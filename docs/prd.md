@@ -1,6 +1,6 @@
 # BayiOS — Product Requirements Document (PRD)
 
-**Belge sürümü:** 1.0  
+**Belge sürümü:** 1.1
 **Durum:** MVP geliştirmeye hazır ürün gereksinimleri  
 **Tarih:** 4 Kasım 2026  
 **Ürün:** BayiOS  
@@ -26,7 +26,7 @@ BayiOS bir ERP/WMS/POS ikamesi değildir. Mevcut WMS veya Dynamics 365 sistemine
 1. **Hızlı kullanım:** Çalışanın kayıt açması mevcut iş akışından daha zahmetli olmamalıdır. Zorunlu alanlar minimumda tutulur.
 2. **Tek bilgi noktası:** Ürün, fiyat, kampanya, bayi fiyatı, teklif ve rezervasyon bilgileri tek uygulamada tutulur.
 3. **Geçmiş kaybolmaz:** Fiyat, stok, rezervasyon ve kampanya değişiklikleri gerektiğinde geriye dönük incelenebilir.
-4. **Mobil öncelik, masaüstü desteği:** Satış çalışanı telefondan kullanabilir; çıktı, toplu veri girişi ve barkod görseli içe aktarma masaüstünde de rahat çalışır.
+4. **Mobil öncelik, masaüstü desteği:** Satış çalışanı telefondan kullanabilir; çıktı, toplu veri girişi ve barkod görseli içe aktarma masaüstünde de rahat çalışır. MVP'de PWA kurulumu zorunlu değildir; site kısayolu yeterlidir.
 5. **A4 ile uyum:** Depocu ve uygulama kullanmayan çalışanlar için temel operasyonlar basılabilir olmalıdır.
 6. **Yerel ve bağımsız çalışma:** Uygulamanın temel işlevleri internet bağlantısı olmadan, bayi yerel ağı içinde çalışmalıdır.
 7. **Açıkça tanımlı stok hareketi:** Rezervasyon oluşturulması veya servis atanması fiziksel stoktan düşmez. Stok, teslimat/kurulum tamamlandı olarak işaretlendiğinde düşer.
@@ -83,6 +83,8 @@ MVP'nin başarılı sayılması için:
 
 MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uygulama bayi yerel ağına açık, iç kullanım amaçlı bir alpha sistemidir.
 
+- Her istemci tarayıcıda bir `client_id` (UUID) üretir ve kullanıcı tarafından verilen cihaz adıyla birlikte isteklerde gönderir. Bu bilgi güvenlik doğrulaması değil, izleme bilgisidir; taklit edilebilir ve tarayıcı verisi silinirse değişebilir.
+- Tüm yazma işlemleri tek bir `get_actor` bağımlılığı üzerinden izleme kimliği almalıdır. İleride bu katman session cookie ve kullanıcı kimliğiyle değiştirilebilir; `created_by_name`/`created_by_device` geçmiş kayıtlarla uyumlu kalır.
 - İşlem formlarında “İşlemi yapan” veya “Çalışan” alanı bulunabilir; bu alan isteğe bağlıdır.
 - Çalışan adı doğrulanmış kimlik değildir; yalnızca kayda eklenen açıklayıcı bilgidir.
 - Uygulamaya erişebilen yerel ağ kullanıcıları MVP'de aynı işlevlere erişebilir.
@@ -100,7 +102,7 @@ MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uyg
 3. Ürün fiyat geçmişi ve CSV aktarım geçmişi.
 4. Fiziksel stok, açık rezervasyon miktarı, satılabilir stok ve stok hareketleri.
 5. Kategori bazlı stok sayım oturumları ve A4 sayım listeleri.
-6. Rezervasyon kayıtları, çoklu ürün, durum akışı, ek PDF ve hatırlatma/erteleme.
+6. Rezervasyon kayıtları, çoklu ürün, durum akışı ve hatırlatma/erteleme.
 7. Şirket kampanyaları ve bayi özel fiyat/indirim rehberi.
 8. Banka ve taksit bazlı POS komisyon tablosu; minimum satış fiyatı referans hesabı.
 9. Çok ürünlü teklif oluşturma, kaydetme, teklif geçmişi ve A4 çıktı.
@@ -108,7 +110,7 @@ MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uyg
 11. Hızlı teslim barkod resmi içe aktarma: dosya yükleme veya `Ctrl+V` ile panodan yapıştırma.
 12. Temel ana ekran, arama ve bildirim/hatırlatma alanı.
 13. Yerel ağda mobil ve masaüstü tarayıcıdan kullanım.
-14. Veritabanı ve ek dosya yedekleme.
+14. Veritabanı yedekleme.
 
 ### 3.2 MVP dışında (sonraki sürüm / good-to-have)
 
@@ -118,6 +120,7 @@ MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uyg
 - POS kampanya/indirim dağıtım hesaplayıcısı ve karma sepet algoritması.
 - Birden fazla bankayı veya taksit seçeneğini tek teklifte yan yana karşılaştırma.
 - E-fatura PDF/UBL-TR XML otomatik okuma, satırları ürünlere bağlama.
+- Rezervasyonlara PDF ekleme ve uygulama içinde görüntüleme (ilk ek özellik olarak sonraki faz).
 - Rezervasyon devretme ve işlem sorumluluğu yönetimi.
 - İç bilgi tabanı/şirket wiki'si (ürün bilgisi, süreç, sık sorulan sorular ve eğitim notları). MVP'de mevcut Trilium kullanımı devam edebilir; BayiOS içinde özel wiki modülü geliştirilmez.
 - Rol, kullanıcı hesabı, parola ve ayrıntılı izin sistemi.
@@ -338,7 +341,11 @@ Bu hesap, POS komisyonu kesintisi sonrasında maliyet + seçilen hedef kârı ka
 
 **FR-PROD-08 (P0):** Kullanıcı onayı olmadan aktarım veritabanına uygulanmamalıdır.
 
-**FR-PROD-09 (P0):** Eşleştirme öncelikle ürün adına dayanmalıdır. Belirsiz eşleşmeler otomatik birleştirilmemeli, kullanıcıya gösterilmelidir.
+**FR-PROD-09 (P0):** Ürün eşleştirmesi kesin ürün adına ve `name_normalized` değerine dayanmalıdır; bulanık eşleştirme yasaktır. Belirsiz veya yalnızca boşluk kaldırılınca eşleşen adlar otomatik birleştirilmemeli, kullanıcıya çakışma olarak gösterilmelidir.
+
+**Ürün adı normalizasyonu:** Unicode NFKC, baş/son boşluk kırpma ve ardışık boşlukları tek boşluğa indirme uygulanır. Büyük/küçük harf ve Türkçe `i/ı/İ/I` farkı yalnızca normalleştirilmiş değerde yok sayılır. Boşluk anlamlıdır (`07325 A` ve `07325A` farklıdır), baştaki sıfırlar korunur ve `products.name_normalized` üzerinde UNIQUE indeks bulunur. `^[0-9A-Z]+( [0-9A-Z]+)*$` desenine uymayan ad uyarı alır.
+
+**FR-PROD-06–08 aktarım kararı:** Önizleme çakışmaları en üstte gösterir. Her satırda Güncelle, Atla veya indirimli fiyatı Temizle kararı ve toplu “Hepsini güncelle/atla” seçenekleri bulunur. `website_discounted_price` boşsa varsayılan mevcut değer korunur; temizleme açıkça seçilir. `quantity` boşsa değişmez, `0` sıfırlar. Her karar staging satırına yazılır ve commit tek transaction'dır; önizleme sonrası ürün değişmişse satır yeniden çakışma olarak işaretlenir. CSV metin olarak okunur (`utf-8-sig`, gerekirse `cp1254`; `;` veya `,`), Excel'de yalnızca `.xlsx` desteklenir.
 
 **FR-PROD-10 (P0):** CSV/Excel aktarımında bulunmayan ürünler silinmemeli veya otomatik arşivlenmemelidir.
 
@@ -421,6 +428,8 @@ product_name,regular_price,website_discounted_price,quantity
 
 **FR-CAMP-13 (P0):** Çalışan ürün detayına geldiğinde ürünle ilişkili aktif kampanyaları görmelidir.
 
+Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgulanmalıdır. Her düzenleme `campaign_versions` tablosunda değişmez sürüm olarak tutulur; müşteriye fiilen verilen koşul teklif içindeki `campaign_snapshot_json` değeridir.
+
 **FR-CAMP-14 (P1):** Kampanya rehberi A4 çıktısı alınabilmelidir.
 
 **FR-CAMP-15 (P2):** Çok ürünlü sepet için kampanyaların otomatik uygulanması ve indirim dağıtımı POS milestone'unda ele alınmalıdır.
@@ -487,7 +496,7 @@ product_name,regular_price,website_discounted_price,quantity
 
 **FR-RES-04 (P0):** Çalışan adı isteğe bağlı olmalıdır.
 
-**FR-RES-05 (P0):** Rezervasyona not ve PDF eklenebilmelidir.
+**FR-RES-05 (P0):** Rezervasyona not eklenebilmelidir. PDF ekleri MVP dışıdır ve sonraki fazda ele alınmalıdır.
 
 **FR-RES-06 (P0):** Rezervasyon oluşturulurken kapora, senet veya açık hesap akışı sunulmamalıdır.
 
@@ -513,6 +522,8 @@ product_name,regular_price,website_discounted_price,quantity
 
 **FR-RES-17 (P0):** Fiziksel stok çıkışı yalnızca teslim edilen miktar kadar ve `DELIVERED` geçişinde yapılmalıdır.
 
+Teslim anında fiziksel stok yetersizse sistem uyarı göstermeli ancak onayla devam etmeye izin vermelidir. Negatif stok kırmızı gösterilir, “stok düzeltmesi gerekli” listesine alınır ve olay gerekçesi kaydedilir.
+
 **FR-RES-18 (P0):** Aynı teslimat geçişi tekrarlanırsa çift stok düşümü engellenmelidir.
 
 **FR-RES-19 (P0):** Bir rezervasyonda kısmi teslimat desteklenmelidir.
@@ -527,7 +538,7 @@ product_name,regular_price,website_discounted_price,quantity
 
 **FR-RES-24 (P0):** Rezervasyon çıktısında depo ve bayi için iki ayrı kopya seçeneği bulunmalıdır; logo zorunlu değildir.
 
-**FR-RES-25 (P0):** Rezervasyon ekindeki PDF tarayıcı içinde görüntülenebilmelidir.
+**FR-RES-25 (P2):** Rezervasyon ekindeki PDF, özellik sonraki fazda eklendiğinde tarayıcı içinde görüntülenebilmelidir.
 
 **FR-RES-26 (P1):** Rezervasyon başka bir çalışana devredilebilmelidir; rol/hesap sistemi gerektirmez.
 
@@ -597,6 +608,10 @@ product_name,regular_price,website_discounted_price,quantity
 
 **FR-QUICK-14 (P0):** Hızlı teslim kaydı, WMS'de işlem yapıldığı anlamına gelmemelidir. Ekranda “WMS çıkışı bu uygulamada yapılmaz” açıklaması bulunmalıdır.
 
+**FR-QUICK-17 (P0):** Code 128 çizgilerinden çözülen değer ile barkod altındaki insan-okunabilir metin doğrulanmalıdır. Değerler uyuşmuyorsa kayıt tamamlanmamalı ve kullanıcıya düzeltme/iptal akışı gösterilmelidir.
+
+**FR-QUICK-18 (P0):** MVP'de orijinal görsel saklanmamalıdır; doğrulanmış Code 128 metni, müşteri adı, isteğe bağlı telefon, kaynak türü ve zaman saklanmalıdır.
+
 **Görüntü giriş notu:** MVP'de kullanıcı görüntü dosyası yükler veya panodaki görüntüyü BayiOS'a `Ctrl + V` ile yapıştırır. Uygulama sürekli ekran kaydı tutmaz; kamera, galeri, ekran yakalama ve manuel kod girişi MVP dışıdır.
 
 ### 5.10 A4 ve PDF çıktıları
@@ -619,17 +634,7 @@ product_name,regular_price,website_discounted_price,quantity
 
 ### 5.11 PDF ekleri
 
-**FR-FILE-01 (P0):** Rezervasyona PDF dosyası eklenebilmelidir.
-
-**FR-FILE-02 (P0):** Eklenen PDF rezervasyon detayında tarayıcı içinde görüntülenebilmelidir.
-
-**FR-FILE-03 (P0):** Dosya boyutu ve dosya türü için konfigüre edilebilir sınır olmalıdır.
-
-**FR-FILE-04 (P0):** Dosya adı, boyut, eklenme zamanı ve bağlı olduğu kayıt veritabanında tutulmalıdır.
-
-**FR-FILE-05 (P0):** Dosyalar uygulama veritabanı dışında kontrollü bir dosya dizininde saklanmalı ve yedeklemeye dahil edilmelidir.
-
-**FR-FILE-06 (P2):** PDF/UBL-TR XML içeriğinden otomatik müşteri/ürün/fatura alanı çıkarma sonraki sürümde ele alınmalıdır.
+PDF ekleri MVP dışıdır; rezervasyona PDF ekleme ve tarayıcı içinde görüntüleme sonraki fazda ele alınacaktır. PDF/UBL-TR XML içeriğinden otomatik alan/ürün çıkarma daha sonraki sürümdür.
 
 ---
 
@@ -695,7 +700,7 @@ Ekranların adları kısa ve çalışanların alışık olduğu terimlerle yazı
 1. Müşteri adı-soyadı girilir.
 2. Bir veya daha fazla ürün/miktar eklenir.
 3. Rezervasyon tarihi otomatik gelir.
-4. İsteğe bağlı çalışan adı, not ve PDF eklenir.
+4. İsteğe bağlı çalışan adı ve not eklenir. PDF eki MVP akışının parçası değildir.
 5. Kaydet denir.
 6. Açık rezervasyon miktarı güncellenir; fiziksel stok değişmez.
 7. Varsayılan 13 aylık hatırlatma tarihi hesaplanır.
@@ -925,11 +930,7 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 - `previous_due_at`, `new_due_at`
 - `note`, `created_at`, `created_by_name` (nullable)
 
-**attachments**
-
-- `id`, `owner_type`, `owner_id`
-- `original_file_name`, `stored_file_name`, `mime_type`, `size_bytes`
-- `storage_path`, `uploaded_at`
+PDF/ek dosya tablosu MVP'de bulunmaz. Dosya özelliği sonraki fazda eklendiğinde ayrı bir metadata tablosu tanımlanır.
 
 ### 7.6 Stok sayımı
 
@@ -950,7 +951,7 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 
 **quick_deliveries**
 
-- `id`, `customer_name` (required)
+- `id`, `customer_name` (required), `customer_phone` (nullable)
 - `status` (`open`, `completed`, `cancelled`)
 - `created_at`, `created_by_name` (nullable)
 - `note` (nullable)
@@ -959,9 +960,10 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 
 - `id`, `quick_delivery_id`
 - `barcode_value` (exact decoded Code 128 string)
-- `source_type` (`upload`, `clipboard`, `screen_capture`, `camera`)
+- `human_readable_value` (nullable; the text printed below the barcode)
+- `source_type` (`upload`, `clipboard`)
 - `decoded_at`, `verified_at` (nullable)
-- `image_attachment_id` (nullable)
+- Unique constraint on `barcode_value`; no image is stored in MVP.
 
 ### 7.8 Veri bütünlüğü notları
 
@@ -1015,7 +1017,7 @@ Filtrelenmiş ürün sonuçlarını dışa aktarma MVP dışında tutulur; tüm 
 - Rezervasyonun mevcut durumu.
 - Depo kopyası / bayi kopyası ayrımı.
 - Gerekirse müşteri/çalışan için imza veya el yazısı not alanı bırakılabilir; ilk sürümde zorunlu değildir.
-- Ekli PDF yazdırma formuna otomatik gömülmek zorunda değildir; PDF ayrı açılabilir.
+- Gelecekte eklenecek PDF ekleri yazdırma formuna otomatik gömülmek zorunda değildir; PDF ayrı açılabilir.
 
 ### 9.2 Stok sayım çıktısı
 
@@ -1059,11 +1061,11 @@ Filtrelenmiş ürün sonuçlarını dışa aktarma MVP dışında tutulur; tüm 
 - Veri tabanı: PostgreSQL.
 - ORM/migration: SQLAlchemy + Alembic.
 - Veri doğrulama: Pydantic.
-- Frontend: React + TypeScript.
+- Frontend: FastAPI + Jinja2 server-side templates.
+- Etkileşim: HTMX; küçük istemci tarafı durumlar için Alpine.js.
 - UI: Tailwind CSS ve erişilebilir bileşenler.
-- Mobil kullanım: responsive PWA yaklaşımı.
-- PDF ekleri: Windows sunucuda kontrollü dosya dizini.
-- Barkod çözme: tarayıcıda veya yerel API üzerinden Code 128 decoder; mevcut Python decoder scripti değerlendirildikten sonra entegrasyon yöntemi seçilir.
+- Mobil kullanım: responsive web arayüzü; MVP'de PWA kurulumu zorunlu değildir.
+- Barkod çözme: backend'de `pyzbar`/Code 128 decoder; mevcut Python decoder scripti değerlendirilerek entegre edilir.
 - Zamanlanmış hatırlatma: ilk aşamada uygulama içi günlük görev veya sorgu; ayrı mesajlaşma servisi gerekmez.
 
 ### 10.2 Dağıtım
@@ -1082,16 +1084,13 @@ Filtrelenmiş ürün sonuçlarını dışa aktarma MVP dışında tutulur; tüm 
 - Uygulama yalnızca bayi yerel ağı için tasarlanır.
 - İnternete açık port, public URL veya modem port yönlendirme MVP'de yapılmaz.
 - Misafir Wi-Fi ağından erişim mümkünse engellenir.
-- PWA kurulumu ve kamera/clipboard gibi tarayıcı yetenekleri güvenli bağlam (HTTPS/localhost) gereksinimleri açısından test edilmelidir. Yerel IP ile HTTP kullanımında bazı tarayıcı özellikleri kısıtlanabilir; iç ağ HTTPS çözümü dağıtım planında ele alınmalıdır.
-- Ekran yakalama, clipboard ve kamera erişimi tarayıcı izinlerine bağlıdır; dosya yükleme yedek yöntem olarak kalmalıdır.
+- PWA kurulumu MVP dışıdır. Ctrl+V için tarayıcının `paste` olayı kullanılmalı; `navigator.clipboard.read()` güvenli bağlam gerektirdiği için MVP akışının temeli yapılmamalıdır.
+- Kamera ve ekran yakalama MVP dışıdır; dosya yükleme ve `Ctrl+V` alternatif girişleridir.
 
 ### 10.4 Dosya saklama
 
-- PDF ve görseller PostgreSQL blob alanlarında değil, sunucuda kontrollü bir dosya dizininde saklanır.
-- Veritabanında dosya metadata ve ilişki bilgisi tutulur.
-- Dosya yüklemelerinde MIME türü, uzantı ve boyut kontrol edilir.
-- Rastgele/benzersiz saklama adı kullanılır; kullanıcıdan gelen dosya adı doğrudan dosya yolu olarak kullanılmaz.
-- Veritabanı ve dosya dizini aynı yedekleme planına dahil edilir.
+- MVP'de yüklenen barkod görselleri ve PDF ekleri kalıcı olarak saklanmaz.
+- İleride dosya özelliği eklenirse PostgreSQL blob yerine kontrollü dosya dizini, metadata tablosu, MIME/uzantı/boyut kontrolü ve güvenli benzersiz dosya adı kullanılmalıdır.
 
 ### 10.5 Önerilen proje yapısı
 
@@ -1114,7 +1113,6 @@ bayios/
           reservations.py
           inventory.py
           quick_deliveries.py
-          attachments.py
       models/
       schemas/
       services/
@@ -1141,7 +1139,6 @@ bayios/
       types/
     public/
   storage/
-    attachments/       # runtime data; excluded from source control
   deployment/
     windows/
     backup/
@@ -1178,8 +1175,6 @@ POST           /api/v1/stock-counts/{id}/complete
 GET            /api/v1/products/{id}/stock-movements
 GET/POST       /api/v1/quick-deliveries
 POST           /api/v1/quick-deliveries/{id}/barcodes/decode
-POST           /api/v1/attachments
-GET            /api/v1/attachments/{id}
 ```
 
 ### 10.7 Zamanlanmış işler
@@ -1202,26 +1197,17 @@ GET            /api/v1/attachments/{id}
 - Durum adları teknik terimler yerine operasyon dilinde gösterilmelidir.
 - Kaydetme sonrası açık başarı/hata mesajı gösterilmelidir.
 - Hatalı veri sessizce kaydedilmemelidir.
+- 3 çalışan tarafından 5 tekrar ölçümünde medyan hedefler: ürün/fiyat bulma ≤ 10 sn ve ≤ 3 dokunuş; tek ürünlü rezervasyon ≤ 60 sn; teslim edildi geçişi ≤ 20 sn; Hızlı Teslim yapıştırma-doğrulama-kayıt ≤ 30 sn. Pilotta işi engelleyen bulgu olmamalıdır.
 
 ### 11.2 Performans hedefleri
 
-3–4 eşzamanlı LAN kullanıcısı için hedefler:
-
-- Ürün arama sonucu normal katalog boyutunda 1 saniye civarında görünmelidir.
-- Ürün detay sayfası 1 saniye civarında açılmalıdır.
-- Basit kayıt ve durum güncellemeleri 1 saniye civarında tamamlanmalıdır.
-- CSV/Excel aktarımı uzun sürerse ilerleme ve özet gösterilmelidir.
-- Büyük PDF/görsel eklerinde yükleme durumu gösterilmeli ve makul boyut sınırı uygulanmalıdır.
-- Uygulama internet bağlantısı olmadığında LAN erişimi sürdüğü sürece çalışmalıdır.
-
-Performans hedefleri başlangıç kabul kriteridir; gerçek ürün adedi, dosya büyüklüğü ve donanım üzerinde test edilerek ayarlanır.
+Test koşulu: 5.000 ürünlük test verisi, 4 eşzamanlı sanal istemci (Locust), LAN ve gerçek hedef host. Ürün arama API p95 ≤ 300 ms; ürün detay API p95 ≤ 500 ms; basit yazma/durum güncelleme p95 ≤ 500 ms; mobil Wi-Fi'de detay sayfası tam yüklenme ≤ 1,5 sn; 5.000 satırlık CSV önizleme ≤ 30 sn. Eşikler aşılırsa host değişimi veya sorgu optimizasyonu kararı verilir.
 
 ### 11.3 Hata toleransı
 
 - API veya bilgisayar yeniden başladığında kayıtlar kaybolmamalıdır.
 - Veritabanı yazma işlemleri transaction kullanmalıdır.
 - CSV aktarımı tamamlanmadan yarıda kesilirse kısmi ve tutarsız kayıt bırakmamalıdır; aktarım partisi atomik veya kontrollü batch mantığıyla yürütülmelidir.
-- Dosya ekleme başarısız olursa rezervasyon kaydı dosyasız da saklanabilmeli veya kullanıcıya açık hata verilmelidir.
 - Barkod çözülemezse kullanıcıya açık hata ve yeniden deneme sunulmalıdır; manuel kod girişi MVP'de bulunmaz.
 
 ---
@@ -1236,20 +1222,23 @@ Performans hedefleri başlangıç kabul kriteridir; gerçek ürün adedi, dosya 
 - İstemci tarafı gizli veri koruması/rol filtresi varmış gibi tasarlanmamalıdır; MVP'de tüm kullanıcıların aynı veri erişimine sahip olduğu kabul edilir.
 - Dosya yüklemeleri doğrulanmalı ve güvenli dizine yazılmalıdır.
 - Hatalar kullanıcıya anlaşılır biçimde gösterilmeli, hassas teknik ayrıntılar istemciye döndürülmemelidir.
+- Auth ekleneceği zaman iç ağ HTTPS ile birlikte ele alınmalıdır; MVP'de `client_id` ve cihaz adı yalnızca izleme bilgisidir.
 
 ### 12.2 Kişisel veri
 
-Müşteri adı-soyadı kişisel veridir. MVP'de telefon gibi ek kişisel veriler toplanmaz. Buna rağmen işletme, müşteri bilgilerini hangi amaçla tuttuğunu, kimlerin eriştiğini, ne kadar sakladığını ve silme/anonimleştirme ihtiyacını kendi KVKK yükümlülükleri çerçevesinde değerlendirmelidir. Bu PRD hukuki uygunluk garantisi değildir.
+Müşteri adı-soyadı kişisel veridir. MVP'de telefon isteğe bağlı ek kişisel veridir. Buna rağmen işletme, müşteri bilgilerini hangi amaçla tuttuğunu, kimlerin eriştiğini, ne kadar sakladığını ve silme/anonimleştirme ihtiyacını kendi KVKK yükümlülükleri çerçevesinde değerlendirmelidir. Bu PRD hukuki uygunluk garantisi değildir.
 
 ### 12.3 Yedekleme
 
-- Her gün veritabanı yedeği alınmalıdır.
-- Ek PDF ve görsel dosyaları da yedeklenmelidir.
+- Günlük veritabanı yedeği alınmalıdır.
+- Haftalık tam yedek ayrı bir saklama döngüsünde tutulmalıdır.
+- Aylık yedek uzun süreli saklama için korunmalıdır.
 - En az bir yedek sunucunun diskinden bağımsız harici diskte tutulmalıdır.
-- Haftalık tam yedek ve aylık geri yükleme testi önerilir.
-- Yedek dosyalar erişim kontrollü saklanmalıdır.
-- Yedekleme başarısızsa uygulama yöneticisine görünür uyarı sağlanmalıdır (MVP'de log/yerel bildirim olabilir).
-- Yedekleme geri yükleme adımları `OPERATIONS.md` içinde yazılı olmalıdır.
+- Aylık geri yükleme testi yapılmalıdır.
+- Yedek dosyalar erişim kontrollü saklanmalı; başarısızlık ana ekranda/loglarda görünür olmalıdır.
+- MVP'de kalıcı PDF veya barkod görseli bulunmadığından yalnızca veritabanı yedeklenir. Dosya özelliği eklenirse dosya yedekleri bu plana dahil edilir.
+- Geri yükleme adımları `OPERATIONS.md` içinde yazılı olmalıdır.
+- Migration'lar ileri yönlü uygulanmalı; dağıtımdan önce yedek alınmalı, hata halinde eski veritabanı silinmeden yedekten yeni veritabanına dönülmelidir.
 
 ---
 
@@ -1336,7 +1325,7 @@ Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 | Hesap/rol olmaması | LAN'daki herkes veri düzenleyebilir | MVP yalnızca kontrollü LAN; uzaktan erişimden önce auth/role zorunlu |
 | Sunucu bilgisayarın kapanması | Uygulamaya erişilemez | Otomatik başlatma, uyku kapatma, yedek ve mümkünse UPS |
 | Barkod fotoğraf kalitesi | Decoder başarısız | Pano/dosya alternatifleri, ön izleme ve açık yeniden deneme; kamera ve manuel giriş sonraki faz |
-| PDF ve müşteri bilgilerinin kaybolması | Operasyon kaybı | Veritabanı + dosya yedeklemesi ve geri yükleme testi |
+| Müşteri bilgilerinin kaybolması | Operasyon kaybı | Veritabanı yedeklemesi ve geri yükleme testi |
 
 ---
 
@@ -1347,7 +1336,7 @@ POS hesaplayıcısı en son milestone olarak kalır. Sıralama, çalışanlara e
 ### Milestone 0 — Proje altyapısı
 
 - Repo ve modüler proje iskeleti.
-- FastAPI, PostgreSQL ve React/TypeScript kurulumu.
+- FastAPI, PostgreSQL, Jinja2, HTMX ve Alpine.js kurulumu.
 - LAN erişimi.
 - Temel responsive layout ve ana navigasyon.
 - Veritabanı migration altyapısı.
@@ -1373,7 +1362,6 @@ POS hesaplayıcısı en son milestone olarak kalır. Sıralama, çalışanlara e
 - Erteleme.
 - Teslimat isteği, depo onayı, servis ataması, servis tarihi ve teslim edildi akışı.
 - Teslim edildi durumunda fiziksel stoktan düşüm.
-- PDF ekleme/görüntüleme.
 - Rezervasyon listesi/detay A4 ve iki kopya.
 
 **Çıkış kriteri:** Rezervasyon uçtan uca takip edilir; çift stok düşümü olmaz; depo ve bayi çıktıları alınır.
@@ -1420,7 +1408,7 @@ POS hesaplayıcısı en son milestone olarak kalır. Sıralama, çalışanlara e
 - Her kayda tek Code 128 barkodu ve tek müşteri.
 - Aynı kodun ikinci kez kaydedilmesini engelleme.
 
-**Çıkış kriteri:** WhatsApp görüntüsünden barkod metni WMS'ye elle yapıştırılabilecek biçimde doğru alınır; WMS'ye otomatik erişim yapılmaz.
+**Çıkış kriteri:** 20 gerçek görüntüde en az 18/20 birebir doğru Code 128 sonucu alınır; kalanlar okunamadı hatası verir. Yanlış değerle sessiz başarı 0 olmalıdır. Barkoddan çözülen değer ile alt metin uyuşmazsa kayıt tamamlanmaz; WMS'ye otomatik erişim yapılmaz.
 
 ### Milestone 7 — Kabul, sağlamlaştırma ve POS araştırması
 
@@ -1480,7 +1468,10 @@ Bu PRD aşağıdaki kullanıcı kararlarını temel alır:
 - Banka komisyonları banka ve taksit bazında elle güncellenir.
 - Teklifte birden fazla ürün olabilir; MVP'de tek banka/taksit seçimi yapılır.
 - A4 çıktıları rezervasyon, stok sayımı/ürün listesi ve teklif için zorunludur.
-- PDF ekleme/görüntüleme MVP'de; otomatik PDF okuma sonraki sürümdedir.
+- PDF ekleme/görüntüleme MVP dışıdır; ilk ek özellik olarak sonraki fazda ele alınır.
+- MVP'de barkod görseli kalıcı saklanmaz; doğrulanmış metin, müşteri, isteğe bağlı telefon, kaynak ve zaman saklanır.
+- Frontend kararı FastAPI + Jinja2 + HTMX + Alpine.js'tir.
+- Yedekleme döngüsü günlük, haftalık tam ve aylık uzun süreli yedek olarak uygulanır; aylık geri yükleme testi yapılır.
 - POS hesaplayıcısı son milestone'dur.
 
 ---
@@ -1495,10 +1486,9 @@ Bu maddeler ürün kapsamını değiştirmez; geliştirme sırasında örnek dos
 4. Kategori verisinin mevcut CSV'de bulunup bulunmadığı; bulunmuyorsa uygulamada manuel kategori ataması.
 5. Komisyon oranlarının hangi taksit sayıları için girileceği ve aylık değişikliklerin yürürlük tarihi.
 6. Minimum kâr ayarının global mi, ürün bazlı mı, yoksa her ikisi mi kullanılacağı. Öneri: ikisini de desteklemek; ürün değeri global ayarı geçersiz kılsın.
-7. Code 128 decoder için mevcut Python scriptinin değerlendirilmesi ve tarayıcı/Backend çözümünün seçilmesi.
-8. Windows LAN PWA kullanımı için HTTPS/yerel sertifika yaklaşımı.
-9. Gerçek ürün kataloğu büyüklüğü ve eski host donanımıyla performans testi.
-10. Stok sayım sırasında eşzamanlı teslimat/CSV aktarımı olursa farkın nasıl çözüleceği; MVP'de sayım sonu farkı yeniden hesaplama ve onay önerilir.
+7. Code 128 decoder için mevcut Python scriptinin değerlendirilmesi ve backend entegrasyonunun doğrulanması.
+8. Gerçek ürün kataloğu büyüklüğü ve eski host donanımıyla performans testi.
+9. Stok sayım sırasında eşzamanlı teslimat/CSV aktarımı olursa farkın nasıl çözüleceği; MVP'de sayım sonu farkı yeniden hesaplama ve onay önerilir.
 
 Bu maddeler MVP'nin işlevlerini engelleyen ürün kararları değildir; uygulamaya başlamadan önce örnek verilerle doğrulanacak teknik ayrıntılardır.
 
@@ -1519,7 +1509,7 @@ Bu maddeler MVP'nin işlevlerini engelleyen ürün kararları değildir; uygulam
 | Depo hazır | Depocunun ilgili ürünün çıkışına izin verdiği durum |
 | Servis atandı | Servis süreci planlandı; henüz teslim/kurulum tamamlanmadı |
 | Teslim edildi | Ürün müşteriye ulaştı/kurulum tamamlandı; fiziksel stoktan düşüm tetiklenir |
-| Hızlı Teslim | Bir müşteriyle tek Code 128 metninin görüntüden çözülüp kullanıcı onayıyla, ürün/WMS lookup yapılmadan kaydedildiği operasyon modülü |
+| Hızlı Teslim | Bir müşteriyle tek Code 128 metninin görüntüden çözülüp insan-okunabilir metinle doğrulanarak, kullanıcı onayıyla, ürün/WMS lookup yapılmadan kaydedildiği operasyon modülü |
 | POS milestone | Kart/indirim/karma sepet hesaplama algoritmasının ayrı ve sonraki geliştirme aşaması |
 
 ---
