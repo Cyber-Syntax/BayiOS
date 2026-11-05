@@ -1511,7 +1511,3 @@ Bu maddeler MVP'nin işlevlerini engelleyen ürün kararları değildir; uygulam
 | Teslim edildi | Ürün müşteriye ulaştı/kurulum tamamlandı; fiziksel stoktan düşüm tetiklenir |
 | Hızlı Teslim | Bir müşteriyle tek Code 128 metninin görüntüden çözülüp insan-okunabilir metinle doğrulanarak, kullanıcı onayıyla, ürün/WMS lookup yapılmadan kaydedildiği operasyon modülü |
 | POS milestone | Kart/indirim/karma sepet hesaplama algoritmasının ayrı ve sonraki geliştirme aşaması |
-
----
-
-**Belge sonu — BayiOS PRD v1.0**

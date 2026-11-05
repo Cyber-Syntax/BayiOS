@@ -4,6 +4,10 @@ BayiOS is a local dealer operations context for managing products, offers, reser
 
 ## Commercial concepts
 
+**Campaign**:
+A dated commercial promotion or pricing guide that may reference condition products, benefit products, discounts, gifts, and a price basis. In MVP it is a guide and scenario source, not a general basket optimization engine.
+_Avoid_: Scraped promotion, automatic POS campaign
+
 **Customer**:
 A person or organization receiving an offer or delivery, identified by name and optionally by phone number.
 _Avoid_: Client, buyer, account
@@ -24,7 +28,15 @@ _Avoid_: Order, allocation
 The terminal reservation state in which the delivery is completed and physical stock is reduced once.
 _Avoid_: Completed sale
 
+**Reservation item**:
+A quantity-bearing product line within a Reservation whose delivery and cancellation progress is tracked independently.
+_Avoid_: Order line, shipment line
+
 ## Stock concepts
+
+**Stock movement**:
+An append-only record describing a physical stock change, such as an import update, count adjustment, or delivered quantity.
+_Avoid_: Inventory overwrite, deleted adjustment
 
 **Physical stock**:
 The quantity physically present at the dealer.
@@ -43,6 +55,14 @@ The quantity needed when sellable stock cannot satisfy a reservation or planned 
 _Avoid_: Shortage
 
 ## Operational concepts
+
+**Import batch**:
+A staged set of source rows and explicit decisions prepared for review before an atomic product catalog commit.
+_Avoid_: Direct CSV update
+
+**Actor context**:
+Audit metadata identifying the client device and optional worker name for an operation. It is not authentication or authorization.
+_Avoid_: User identity, permission
 
 **Depot ready**:
 A reservation state meaning the products are prepared for handoff to the delivery service.
