@@ -17,6 +17,10 @@ Uygulamanın temel amacı çalışanların bilgiyi WhatsApp fotoğrafları, dağ
 
 BayiOS bir ERP/WMS/POS ikamesi değildir. Mevcut WMS veya Dynamics 365 sistemine bağlanmayacak; bu sistemlere otomatik kayıt göndermeyecektir. POS kampanya hesaplama algoritması da ilk sürümde çözülmeyecek, son milestone olarak ele alınacaktır.
 
+## Teknik Detaylar
+
+- FastAPI + Jinja2 + HTMX + Alpine.js
+
 ### 1.1 Ürün ilkeleri
 
 1. **Hızlı kullanım:** Çalışanın kayıt açması mevcut iş akışından daha zahmetli olmamalıdır. Zorunlu alanlar minimumda tutulur.
@@ -38,7 +42,7 @@ MVP'nin başarılı sayılması için:
 - Rezervasyon açma, müşteri teslimat istediğinde depo sürecini izleme ve tamamlandığında stoktan düşme tek kayıt üzerinden yapılmalıdır.
 - Teklifler kaydedilmeli, daha sonra tekrar açılabilmeli ve A4 basılabilmelidir.
 - Rezervasyon, stok sayım listesi ve teklif çıktıları uygulama dışındaki çalışanlarca kullanılabilmelidir.
-- WhatsApp veya başka bir masaüstü penceresinden alınan barkod ekran görüntüsü BayiOS'a pano yapıştırma, ekran yakalama veya dosya yükleme ile aktarılabilmeli; Code 128 metni çözülebilmelidir.
+- WhatsApp veya başka bir masaüstü penceresinden alınan barkod görüntüsü BayiOS'a dosya yükleme veya `Ctrl+V` ile aktarılabilmeli; yalnızca Code 128 metni çözülebilmelidir. Bu akış ürün/WMS araması yapmaz.
 - POS hesaplayıcısı, scraper veya WMS entegrasyonu olmadan MVP tamamlanabilmelidir.
 
 ---
@@ -48,6 +52,7 @@ MVP'nin başarılı sayılması için:
 ### 2.1 Kullanıcı profilleri
 
 **Satış çalışanı**
+
 - Ürün, fiyat, kampanya ve bayi indirimi bilgisine ulaşır.
 - Teklif ve rezervasyon kaydı oluşturur.
 - Müşteri teslimat istediğinde rezervasyon sürecini başlatır ve depocuyla iletişim kurar.
@@ -55,18 +60,21 @@ MVP'nin başarılı sayılması için:
 - Hızlı teslim ekranıyla müşteri adı ve barkod kaydı oluşturur.
 
 **Depo çalışanı**
+
 - MVP'de uygulamaya doğrudan giriş yapması beklenmez.
 - Fiziksel stok sayımını mevcut çalışma şekliyle yapar.
 - Rezervasyon ve sayım listelerini A4 çıktı olarak kullanabilir.
 - Ürün çıkış izni ve ürün temini gibi bilgileri satış çalışanına iletir; çalışan uygulamaya işler.
 
 **Patron / mağaza yöneticisi**
+
 - Kampanya ve bayi fiyatı kararlarını çalışanlara iletir.
 - Çalışanlar bu kararları uygulamaya manuel kaydeder.
 - Ürün maliyeti, aylık banka komisyonları ve minimum kâr hedefleri izlenebilir.
 - MVP'de ayrı yönetici rolü veya özel yetki sistemi bulunmaz.
 
 **Ürünü geliştiren kişi / sistem sorumlusu**
+
 - Ürün dosyalarının ve uygulama verilerinin bakımını yapar.
 - Yedekleri ve uygulama güncellemelerini yönetir.
 - İlk aşamada destek, veri aktarımı ve hata düzeltme işlerini üstlenir.
@@ -96,8 +104,8 @@ MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uyg
 7. Şirket kampanyaları ve bayi özel fiyat/indirim rehberi.
 8. Banka ve taksit bazlı POS komisyon tablosu; minimum satış fiyatı referans hesabı.
 9. Çok ürünlü teklif oluşturma, kaydetme, teklif geçmişi ve A4 çıktı.
-10. Hızlı teslim kaydı: müşteri adı-soyadı, bir veya daha fazla Code 128 metni.
-11. Hızlı teslim barkod resmi içe aktarma: dosya yükleme, panodan yapıştırma ve masaüstünde izinli ekran yakalama.
+10. Hızlı teslim kaydı: müşteri adı-soyadı, isteğe bağlı telefon ve tam olarak bir Code 128 metni.
+11. Hızlı teslim barkod resmi içe aktarma: dosya yükleme veya `Ctrl+V` ile panodan yapıştırma.
 12. Temel ana ekran, arama ve bildirim/hatırlatma alanı.
 13. Yerel ağda mobil ve masaüstü tarayıcıdan kullanım.
 14. Veritabanı ve ek dosya yedekleme.
@@ -180,6 +188,7 @@ Varsayılan hesap:
 Satılabilir stok sıfırsa bu ürün için yeni satış/rezervasyon teknik olarak engellenmez; ekranda temin ihtiyacı/uyarı gösterilir. Bayi ürünü başka bayiden veya başka bir kanaldan temin edebilir.
 
 **Fiziksel stoktan düşüm zamanı:**
+
 - Rezervasyon oluşturulunca fiziksel stok düşmez.
 - Müşterinin teslimat istemesi fiziksel stok düşürmez.
 - Depocunun ürün çıkışına izin vermesi fiziksel stok düşürmez.
@@ -227,6 +236,7 @@ Rezervasyon kalemi seviyesinde durumlar:
 MVP, kampanya rehberi ve fiyat senaryosu gösterir; tam sepet/POS kampanya algoritması değildir.
 
 Kampanya tipleri:
+
 - Ürün veya seçili ürün grubu indirimi.
 - Bir ürün alana ikinci üründe yüzde/sabit tutar indirim.
 - Bir ürün yanında hediye ürün.
@@ -235,6 +245,7 @@ Kampanya tipleri:
 - Ürüne özel bayi indirimi veya bayi tarafından belirlenmiş özel fiyat.
 
 Kampanya kaydı aşağıdaki alanları destekler:
+
 - Kampanya adı ve açıklaması.
 - Başlangıç/bitiş tarihi.
 - Genel kampanya mı, ürün/ürün grubu kampanyası mı?
@@ -246,6 +257,7 @@ Kampanya kaydı aşağıdaki alanları destekler:
 - Çalışanın göreceği kısa açıklama/not.
 
 **Hediye örneği — zorunlu davranış:**
+
 - Normal fiyat: 25.999 TL.
 - Oliz fiyatı: 23.999 TL.
 - Ürün yanında hediye veriliyorsa bayi indirimi normal fiyat üzerinden hesaplanır.
@@ -291,6 +303,7 @@ Bu hesap, POS komisyonu kesintisi sonrasında maliyet + seçilen hedef kârı ka
 ## 5. Fonksiyonel gereksinimler
 
 Öncelik tanımları:
+
 - **P0:** MVP için zorunlu.
 - **P1:** MVP içinde mümkünse; çekirdek akışın önüne geçmez.
 - **P2:** Sonraki sürüm.
@@ -440,7 +453,7 @@ product_name,regular_price,website_discounted_price,quantity
 
 ### 5.6 Teklifler
 
-**FR-OFFER-01 (P0):** Bir teklife birden fazla ürün ve miktar eklenebilmelidir.
+**FR-OFFER-01 (P0):** Teklif ürün seçiminde katalogdaki tüm ürünler aranabilir ve checkbox ile çoklu seçilebilir olmalıdır; seçilen her ürün için miktar girilebilmelidir.
 
 **FR-OFFER-02 (P0):** Teklifte ürün, miktar, normal fiyat, varsa Oliz fiyatı ve teklif için seçilen birim fiyat saklanmalıdır.
 
@@ -454,7 +467,7 @@ product_name,regular_price,website_discounted_price,quantity
 
 **FR-OFFER-07 (P0):** Teklif kaydedilmeli ve teklif listesinde daha sonra tekrar bulunabilmelidir.
 
-**FR-OFFER-08 (P0):** Teklifte müşteri adı ve açıklama/not alanı bulunmalıdır; MVP'de telefon zorunlu değildir.
+**FR-OFFER-08 (P0):** Teklifte mevcut müşteri seçilebilmeli; müşteri adı ve isteğe bağlı telefon ile açıklama/not alanı bulunmalıdır.
 
 **FR-OFFER-09 (P0):** Teklif durumu izlenebilmelidir: Taslak, Müşteriye sunuldu, Kabul edildi, Kaybedildi/Geçersiz.
 
@@ -552,11 +565,11 @@ product_name,regular_price,website_discounted_price,quantity
 
 ### 5.9 Hızlı teslim ve Code 128
 
-**FR-QUICK-01 (P0):** Hızlı Teslim ekranında müşteri adı-soyadı zorunlu olmalıdır.
+**FR-QUICK-01 (P0):** Hızlı Teslim ekranında müşteri adı-soyadı zorunlu, telefon isteğe bağlı olmalıdır.
 
-**FR-QUICK-02 (P0):** Bir teslim kaydına bir veya birden fazla barkod metni eklenebilmelidir.
+**FR-QUICK-02 (P0):** Her Hızlı Teslim kaydı tam olarak bir Code 128 barkod metni ve bir müşteri içermelidir; aynı müşteri için yeni kod ayrı kayıt olur.
 
-**FR-QUICK-03 (P0):** Barkod görüntüsünden Code 128 metni otomatik çözümlenmelidir.
+**FR-QUICK-03 (P0):** Barkod görüntüsünden yalnızca Code 128 metni otomatik çözümlenmelidir; ürün kataloğu veya WMS lookup yapılmamalıdır.
 
 **FR-QUICK-04 (P0):** Çözülen barkod tam ve değiştirilmeden saklanmalıdır; baş/son haneler atılmamalıdır.
 
@@ -564,23 +577,27 @@ product_name,regular_price,website_discounted_price,quantity
 
 **FR-QUICK-06 (P0):** Hızlı teslim kaydı ve barkod çözüm zamanı geçmişte saklanmalıdır.
 
-**FR-QUICK-07 (P0):** Masaüstünde resim dosyası yükleme desteklenmelidir.
+**FR-QUICK-07 (P0):** Resim dosyası yükleme desteklenmelidir.
 
 **FR-QUICK-08 (P0):** Masaüstünde panodan ekran görüntüsü yapıştırma (`Ctrl+V`) desteklenmelidir.
 
-**FR-QUICK-09 (P0):** Masaüstünde “Ekran görüntüsü al” akışı bulunmalıdır. Kullanıcı işletim sistemi/tarayıcı ekran paylaşım penceresinden ekranı, pencereyi veya tarayıcı sekmesini açıkça seçer; uygulama yalnızca kullanıcı onayıyla tek görüntü karesi yakalar ve paylaşım akışını hemen durdurur.
+**FR-QUICK-09 (P2):** Masaüstünde ekran yakalama akışı sonraki fazda değerlendirilebilir; MVP kapsamı dışındadır.
 
-**FR-QUICK-10 (P0):** Ekran yakalama çalışmazsa dosya yükleme ve pano yapıştırma alternatifleri kullanılabilmelidir.
+**FR-QUICK-10 (P0):** Dosya yükleme ve pano yapıştırma MVP'nin alternatif girişleridir; ekran yakalama gerekmez.
 
-**FR-QUICK-11 (P0):** Mobil cihazlarda kamera veya fotoğraf galerisi üzerinden görüntü seçimi desteklenmelidir.
+**FR-QUICK-11 (P2):** Mobil kamera veya fotoğraf galerisi üzerinden giriş sonraki fazda desteklenebilir; MVP yalnızca dosya yükleme ve `Ctrl+V` ile görsel yapıştırmayı kapsar.
 
-**FR-QUICK-12 (P0):** Decoder tek barkod bulamazsa kullanıcıya hata/yeniden deneme sunmalı; hatalı veya belirsiz sonucu sessizce kaydetmemelidir.
+**FR-QUICK-12 (P0):** Decoder Code 128 bulamazsa kullanıcıya hata/yeniden deneme sunmalı; birden fazla Code 128 bulursa kullanıcıya seçim yaptırmalı; hatalı veya belirsiz sonucu sessizce kaydetmemelidir.
 
 **FR-QUICK-13 (P0):** Kullanıcı çözülen metni doğrulayıp kaydetmelidir.
 
+**FR-QUICK-15 (P0):** MVP'de manuel barkod/metin girişi bulunmamalıdır; yalnızca görüntüden çözülen Code 128 metni kaydedilmelidir.
+
+**FR-QUICK-16 (P0):** Aynı Code 128 metni ikinci kez kaydedilememelidir; sistem kullanıcıya mevcut kaydı göstermelidir.
+
 **FR-QUICK-14 (P0):** Hızlı teslim kaydı, WMS'de işlem yapıldığı anlamına gelmemelidir. Ekranda “WMS çıkışı bu uygulamada yapılmaz” açıklaması bulunmalıdır.
 
-**Ekran görüntüsü güvenlik/uygulama notu:** Tarayıcı, WhatsApp penceresini kullanıcı izni olmadan veya gizlice okuyamaz. Ekran yakalama düğmesi tarayıcının izin penceresini açar; kullanıcı yakalanacak pencere/sekme/ekranı seçer. Alternatif hızlı akış Windows `Win + Shift + S` ile ekran alıntısı → BayiOS'a dönüp `Ctrl + V` yapıştırmadır. Uygulama sürekli ekran kaydı tutmaz.
+**Görüntü giriş notu:** MVP'de kullanıcı görüntü dosyası yükler veya panodaki görüntüyü BayiOS'a `Ctrl + V` ile yapıştırır. Uygulama sürekli ekran kaydı tutmaz; kamera, galeri, ekran yakalama ve manuel kod girişi MVP dışıdır.
 
 ### 5.10 A4 ve PDF çıktıları
 
@@ -709,24 +726,23 @@ Ekranların adları kısa ve çalışanların alışık olduğu terimlerle yazı
 ### 6.9 Hızlı Teslim barkod akışı
 
 **Masaüstü – pano:**
+
 1. WhatsApp Web veya masaüstü uygulamasında barkod fotoğrafı açılır.
-2. Windows ekran alıntısı (`Win + Shift + S`) ile barkod bölgesi panoya alınır.
+2. Barkod görüntüsü panoya alınır.
 3. Çalışan BayiOS Hızlı Teslim ekranına geçer.
 4. Görsel alanına `Ctrl + V` yapıştırır.
 5. Code 128 çözülür ve tam barkod numarası gösterilir.
-6. Çalışan sonucu doğrular, müşteri adını girer ve kaydeder.
+6. Çalışan sonucu doğrular, müşteri adını ve isteğe bağlı telefonu girer, kaydeder.
 
-**Masaüstü – ekran yakalama:**
-1. Çalışan “Ekran görüntüsü al” düğmesine basar.
-2. Tarayıcı ekran paylaşım penceresinden WhatsApp sekmesini/penceresini veya ekranı seçer.
-3. BayiOS tek kare yakalar, aktarımı durdurur ve barkodu çözer.
-4. Çalışan sonucu doğrular ve kaydeder.
+**MVP kapsamı:**
 
-**Mobil:**
-1. Fotoğraf çek veya galeriden seç.
-2. Tek Code 128 barkod çöz.
-3. Tam metni doğrula.
-4. Müşteri adı ve kayıt bilgisiyle sakla.
+1. Görsel dosyası yüklenir veya pano görüntüsü `Ctrl + V` ile yapıştırılır.
+2. Yalnızca Code 128 sonuçları aranır; birden fazla sonuç varsa kullanıcı birini seçer.
+3. Barkoddan çözülen değer ile insan-okunabilir metin doğrulanır.
+4. Kullanıcı sonucu onaylar, müşteri ad-soyadını ve isteğe bağlı telefonu girer.
+5. Kod daha önce kaydedilmişse işlem durur; WMS çıkışı bu uygulamada yapılmaz.
+
+**Sonraki faz:** Kamera/galeri girişi ve manuel kod girişi.
 
 ---
 
@@ -737,6 +753,7 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 ### 7.1 Ortak tablolar
 
 **products**
+
 - `id` (UUID/BigInt, PK)
 - `product_name` (TEXT, gerekli; arama indeksi)
 - `regular_price` (NUMERIC)
@@ -749,9 +766,11 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 - `last_price_changed_at`
 
 **product_categories**
+
 - `id`, `name`, `created_at`, `updated_at`
 
 **product_price_history**
+
 - `id`, `product_id`
 - `field_name` (`regular_price`, `website_discounted_price`, `cost_price`)
 - `old_value`, `new_value` (NUMERIC nullable)
@@ -761,11 +780,13 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 - `import_batch_id` (nullable)
 
 **product_import_batches**
+
 - `id`, `file_name`, `file_type`, `started_at`, `completed_at`
 - `status`, `row_count`, `created_count`, `updated_count`, `error_count`
 - `summary_json` / import metadata
 
 **stock_movements**
+
 - `id`, `product_id`
 - `movement_type` (`csv_update`, `stock_count_adjustment`, `delivery_out`, `manual_adjustment`, `return_in`, `reversal`)
 - `quantity_delta` (signed)
@@ -777,6 +798,7 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 ### 7.2 Kampanya ve bayi fiyatları
 
 **campaigns**
+
 - `id`, `name`, `description`
 - `campaign_type` (`general`, `product_discount`, `bundle`, `gift`, `coupon`, `special`)
 - `starts_at`, `ends_at`
@@ -791,14 +813,17 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 - `status`, `created_at`, `updated_at`, `created_by_name` (nullable)
 
 **campaign_products**
+
 - `id`, `campaign_id`, `product_id`
 - `relation_type` (`qualifying`, `benefit`, `gift`, `related`)
 - `quantity_required` (nullable)
 
 **campaign_history**
+
 - `id`, `campaign_id`, `snapshot_json`, `changed_at`, `changed_by_name` (nullable)
 
 **dealer_pricing**
+
 - `id`, `product_id`
 - `cash_floor_price` (NUMERIC nullable)
 - `card_floor_price` (NUMERIC nullable)
@@ -806,26 +831,31 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 - `note`, `created_at`, `updated_at`, `created_by_name` (nullable)
 
 **dealer_pricing_history**
+
 - `id`, `product_id`, `old_cash_floor`, `new_cash_floor`
 - `old_card_floor`, `new_card_floor`
 - `changed_at`, `changed_by_name`, `note`
 
 **dealer_discount_settings**
+
 - `id`, `default_percent` (default 10.00)
 - `valid_from`, `valid_until`, `updated_at`, `updated_by_name` (nullable)
 
 ### 7.3 Banka komisyonu ve minimum kâr
 
 **banks**
+
 - `id`, `name`, `is_active`, `created_at`, `updated_at`
 
 **bank_installment_commissions**
+
 - `id`, `bank_id`, `installment_count`
 - `commission_percent`
 - `valid_from`, `valid_until` (nullable)
 - `created_at`, `updated_at`, `updated_by_name` (nullable)
 
 **profit_targets**
+
 - `id`, `scope_type` (`global`, `product`), `scope_id` (nullable)
 - `target_type` (`percent`, `fixed_amount`)
 - `target_value`
@@ -835,6 +865,7 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 ### 7.4 Teklifler
 
 **offers**
+
 - `id`, `offer_number` (unique readable sequence)
 - `customer_name` (nullable)
 - `status` (`draft`, `presented`, `accepted`, `lost`, `expired`)
@@ -845,6 +876,7 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 - `created_at`, `updated_at`, `created_by_name` (nullable)
 
 **offer_items**
+
 - `id`, `offer_id`, `product_id` (nullable if product later archived/deleted; product should normally be retained)
 - `product_name_snapshot`
 - `quantity`
@@ -854,11 +886,13 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 - `line_total_cash`, `line_total_card`
 
 **offer_history**
+
 - `id`, `offer_id`, `old_status`, `new_status`, `note`, `changed_at`, `changed_by_name`
 
 ### 7.5 Rezervasyonlar
 
 **reservations**
+
 - `id`, `reservation_number` (unique readable sequence)
 - `customer_name` (required)
 - `reservation_date`
@@ -868,6 +902,7 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 - `created_at`, `updated_at`, `created_by_name` (nullable)
 
 **reservation_items**
+
 - `id`, `reservation_id`, `product_id`
 - `product_name_snapshot`
 - `quantity`, `delivered_quantity` (default 0), `cancelled_quantity` (default 0)
@@ -878,17 +913,20 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 - `created_at`, `updated_at`
 
 **reservation_item_events**
+
 - `id`, `reservation_item_id`
 - `old_status`, `new_status`
 - `quantity_delta` (nullable)
 - `note`, `event_at`, `created_by_name` (nullable)
 
 **reservation_reminders**
+
 - `id`, `reservation_id`
 - `previous_due_at`, `new_due_at`
 - `note`, `created_at`, `created_by_name` (nullable)
 
 **attachments**
+
 - `id`, `owner_type`, `owner_id`
 - `original_file_name`, `stored_file_name`, `mime_type`, `size_bytes`
 - `storage_path`, `uploaded_at`
@@ -896,11 +934,13 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 ### 7.6 Stok sayımı
 
 **stock_count_sessions**
+
 - `id`, `category_id`, `status` (`open`, `review`, `completed`, `cancelled`)
 - `started_at`, `completed_at`, `created_by_name`, `completed_by_name`
 - `note`
 
 **stock_count_items**
+
 - `id`, `session_id`, `product_id`
 - `system_quantity`, `counted_quantity` (nullable)
 - `difference` (nullable)
@@ -909,12 +949,14 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 ### 7.7 Hızlı teslim
 
 **quick_deliveries**
+
 - `id`, `customer_name` (required)
 - `status` (`open`, `completed`, `cancelled`)
 - `created_at`, `created_by_name` (nullable)
 - `note` (nullable)
 
 **quick_delivery_barcodes**
+
 - `id`, `quick_delivery_id`
 - `barcode_value` (exact decoded Code 128 string)
 - `source_type` (`upload`, `clipboard`, `screen_capture`, `camera`)
@@ -1012,6 +1054,7 @@ Filtrelenmiş ürün sonuçlarını dışa aktarma MVP dışında tutulur; tüm 
 İlk sürüm tek uygulama/tek veritabanı prensibiyle bir **modüler monolit** olarak geliştirilmelidir. Mikroservis, Redis, Celery veya ayrı servis kümeleri MVP için gerekli değildir.
 
 **Önerilen teknoloji yığını:**
+
 - Backend: Python + FastAPI.
 - Veri tabanı: PostgreSQL.
 - ORM/migration: SQLAlchemy + Alembic.
@@ -1163,6 +1206,7 @@ GET            /api/v1/attachments/{id}
 ### 11.2 Performans hedefleri
 
 3–4 eşzamanlı LAN kullanıcısı için hedefler:
+
 - Ürün arama sonucu normal katalog boyutunda 1 saniye civarında görünmelidir.
 - Ürün detay sayfası 1 saniye civarında açılmalıdır.
 - Basit kayıt ve durum güncellemeleri 1 saniye civarında tamamlanmalıdır.
@@ -1178,7 +1222,7 @@ Performans hedefleri başlangıç kabul kriteridir; gerçek ürün adedi, dosya 
 - Veritabanı yazma işlemleri transaction kullanmalıdır.
 - CSV aktarımı tamamlanmadan yarıda kesilirse kısmi ve tutarsız kayıt bırakmamalıdır; aktarım partisi atomik veya kontrollü batch mantığıyla yürütülmelidir.
 - Dosya ekleme başarısız olursa rezervasyon kaydı dosyasız da saklanabilmeli veya kullanıcıya açık hata verilmelidir.
-- Barkod çözülemezse kullanıcı kodu manuel girebilmelidir (P0 için güvenli yedek yöntem).
+- Barkod çözülemezse kullanıcıya açık hata ve yeniden deneme sunulmalıdır; manuel kod girişi MVP'de bulunmaz.
 
 ---
 
@@ -1262,10 +1306,10 @@ Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 
 1. Geçerli Code 128 ekran görüntüsü pano ile yapıştırılır ve metin çözülür.
 2. Aynı görüntü dosya olarak yüklenirse aynı barkod metni çözülür.
-3. Ekran yakalama izni reddedilirse uygulama dosya/pano yöntemine geri dönebilir.
+3. Dosya yükleme ve pano yapıştırma girişleri aynı Code 128 metnini üretmelidir.
 4. Çözülemeyen barkod hatalı başarı olarak kaydedilmez.
 5. Kodun başı ve sonu aynen korunur.
-6. Bir müşteri kaydına birden fazla barkod eklenebilir.
+6. Aynı müşteri için her kayıt tek Code 128 barkodu içerir; aynı kod ikinci kez kaydedilemez.
 7. WMS'ye herhangi bir otomatik istek gönderilmez.
 
 ### 13.6 Yazdırma testleri
@@ -1281,7 +1325,7 @@ Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 ## 14. Riskler ve azaltma yöntemleri
 
 | Risk | Etki | Azaltma |
-|---|---|---|
+| --- | --- | --- |
 | Çalışanların yeni uygulamayı kullanmaması | Veriler güncel kalmaz | Az alanlı formlar, hızlı arama, mevcut iş akışını kısaltma, önce gönüllü/pilot kullanıcıyla deneme |
 | CSV ürün adlarının tutarsız olması | Yanlış ürün eşleştirme/duplikasyon | Ön izleme, belirsiz eşleşme onayı, dahili ürün ID'si |
 | CSV stok değerinin fiziksel sayımla uyuşmaması | Yanlış stok | Import ön izlemesi, stok hareketi geçmişi, kategori sayımı ve fark onayı |
@@ -1291,7 +1335,7 @@ Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 | Komisyon oranlarının eski kalması | Yanlış minimum fiyat | Geçerlilik tarihi, aylık güncelleme hatırlatması, teklif snapshot'ı |
 | Hesap/rol olmaması | LAN'daki herkes veri düzenleyebilir | MVP yalnızca kontrollü LAN; uzaktan erişimden önce auth/role zorunlu |
 | Sunucu bilgisayarın kapanması | Uygulamaya erişilemez | Otomatik başlatma, uyku kapatma, yedek ve mümkünse UPS |
-| Barkod fotoğraf kalitesi | Decoder başarısız | Pano/dosya/kamera alternatifleri, ön izleme, manuel metin girişi |
+| Barkod fotoğraf kalitesi | Decoder başarısız | Pano/dosya alternatifleri, ön izleme ve açık yeniden deneme; kamera ve manuel giriş sonraki faz |
 | PDF ve müşteri bilgilerinin kaybolması | Operasyon kaybı | Veritabanı + dosya yedeklemesi ve geri yükleme testi |
 
 ---
@@ -1370,12 +1414,11 @@ POS hesaplayıcısı en son milestone olarak kalır. Sıralama, çalışanlara e
 ### Milestone 6 — Hızlı Teslim / Code 128
 
 - Müşteri adı-soyadı.
-- Fotoğraf yükleme.
+- Görsel dosyası yükleme.
 - Clipboard paste.
-- Masaüstü ekran yakalama izin akışı.
-- Mobil kamera/galeri.
 - Code 128 çözme, doğrulama ve kopyalama.
-- Bir kayda birden fazla barkod.
+- Her kayda tek Code 128 barkodu ve tek müşteri.
+- Aynı kodun ikinci kez kaydedilmesini engelleme.
 
 **Çıkış kriteri:** WhatsApp görüntüsünden barkod metni WMS'ye elle yapıştırılabilecek biçimde doğru alınır; WMS'ye otomatik erişim yapılmaz.
 
@@ -1424,8 +1467,8 @@ Bu PRD aşağıdaki kullanıcı kararlarını temel alır:
 - CSV'de bulunmayan ürünler silinmez/pasife alınmaz.
 - Ürün adı çalışan için ana tanımlayıcıdır; dahili değişmez ürün ID'si ayrıca bulunur.
 - Ürün kataloğunda barkod zorunlu değildir.
-- Code 128 yalnızca Hızlı Teslim akışında fotoğraftan çözülür; tam kod korunur.
-- Hızlı Teslim müşteri adı-soyadı ve barkod(lar) tutar; WMS çıkışı kullanıcı tarafından ayrı yapılır.
+- Code 128 yalnızca Hızlı Teslim akışında görüntüden çözülür; tam kod korunur, manuel giriş MVP'de yoktur.
+- Hızlı Teslim bir müşteriyle tek Code 128 metnini, isteğe bağlı telefonu ve çözüm zamanını tutar; ürün/WMS lookup yapmaz. Aynı kod yinelenemez; WMS çıkışı kullanıcı tarafından ayrı yapılır.
 - Rezervasyon ürün satışından sonra açılır; kapora/senet/açık hesap rezervasyonu yoktur.
 - Rezervasyonlar ürün bazında çoklu satır destekler.
 - Rezervasyonun 13 aylık takip hatırlatması vardır; otomatik iptal yoktur; erteleme varsayılan 1 aydır.
@@ -1464,7 +1507,7 @@ Bu maddeler MVP'nin işlevlerini engelleyen ürün kararları değildir; uygulam
 ## 19. Sözlük
 
 | Terim | Anlam |
-|---|---|
+| --- | --- |
 | Normal fiyat | Ürünün normal/indirimsiz satış fiyatı |
 | Oliz fiyatı | Şirket/web kampanyası sonrası ürün için bildirilen indirimli fiyat |
 | Bayi indirimi | Bayinin şirket fiyatına veya kampanya kuralına eklediği indirim |
@@ -1476,7 +1519,7 @@ Bu maddeler MVP'nin işlevlerini engelleyen ürün kararları değildir; uygulam
 | Depo hazır | Depocunun ilgili ürünün çıkışına izin verdiği durum |
 | Servis atandı | Servis süreci planlandı; henüz teslim/kurulum tamamlanmadı |
 | Teslim edildi | Ürün müşteriye ulaştı/kurulum tamamlandı; fiziksel stoktan düşüm tetiklenir |
-| Hızlı Teslim | Müşteri adı ve Code 128 metninin WMS öncesi operasyon takibi için kaydedildiği modül |
+| Hızlı Teslim | Bir müşteriyle tek Code 128 metninin görüntüden çözülüp kullanıcı onayıyla, ürün/WMS lookup yapılmadan kaydedildiği operasyon modülü |
 | POS milestone | Kart/indirim/karma sepet hesaplama algoritmasının ayrı ve sonraki geliştirme aşaması |
 
 ---
