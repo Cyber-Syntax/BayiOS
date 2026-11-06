@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import StrEnum
 from typing import Mapping
 
@@ -41,6 +41,7 @@ class StockSummary:
 class CountSession:
     category_id: str
     snapshots: Mapping[str, int]
+    stock_version: int
     opened_at: datetime
     completed: bool = False
     completed_at: datetime | None = None
@@ -53,11 +54,14 @@ class CountSession:
         cls,
         category_id: str,
         quantities: Mapping[str, int],
+        stock_version: int,
+        opened_at: datetime,
     ) -> CountSession:
         return cls(
             category_id=category_id,
             snapshots=dict(quantities),
-            opened_at=datetime.now(timezone.utc),
+            stock_version=stock_version,
+            opened_at=opened_at,
         )
 
 
@@ -76,8 +80,8 @@ def complete_count_session(
     current_version: int,
     actor_name: str | None,
     *,
-    expected_version: int = 1,
-    acknowledge_differences: bool = True,
+    acknowledge_differences: bool = False,
+    completed_at: datetime,
 ) -> CountCompletion:
     if session.completed:
         return CountCompletion(
@@ -86,7 +90,7 @@ def complete_count_session(
             actor_name=session.actor_name,
             movements=session.movements,
         )
-    if current_version != expected_version:
+    if current_version != session.stock_version:
         raise ValueError("Cannot complete stale count session")
     if set(counted_quantities) != set(session.snapshots):
         raise ValueError("Counted quantities must cover the category snapshot")
@@ -99,7 +103,6 @@ def complete_count_session(
     if adjustments and not acknowledge_differences:
         raise ValueError("difference review is required before completion")
 
-    completed_at = datetime.now(timezone.utc)
     movements = tuple(
         StockMovement(
             product_id=product_id,
