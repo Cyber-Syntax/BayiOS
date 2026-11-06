@@ -20,7 +20,11 @@ class StockPosition:
 
     @property
     def sellable(self) -> int:
-        return self.physical - self.open_reservation
+        return max(0, self.physical - self.open_reservation)
+
+    @property
+    def supply_need(self) -> int:
+        return max(0, self.open_reservation - self.physical)
 
 
 @dataclass(frozen=True)
@@ -30,6 +34,14 @@ class ReservationItem:
     delivered_quantity: int = 0
     cancelled_quantity: int = 0
     status: ReservationStatus = ReservationStatus.RESERVED
+
+    def __post_init__(self) -> None:
+        if self.quantity < 0:
+            raise ValueError("Quantity must be non-negative")
+        if self.delivered_quantity < 0 or self.cancelled_quantity < 0:
+            raise ValueError("Delivered and cancelled quantities must be non-negative")
+        if self.delivered_quantity + self.cancelled_quantity > self.quantity:
+            raise ValueError("Delivered and cancelled quantities exceed quantity")
 
     @property
     def open_quantity(self) -> int:
@@ -41,6 +53,7 @@ class ReservationItem:
         physical_stock: int,
         idempotency_key: str,
         processed_idempotency_keys: frozenset[str] = frozenset(),
+        low_stock_reason: str | None = None,
     ) -> DeliveryOutcome:
         if idempotency_key in processed_idempotency_keys:
             return DeliveryOutcome(
@@ -50,9 +63,14 @@ class ReservationItem:
             )
         if quantity <= 0:
             raise ValueError("Delivery quantity must be positive")
+        if self.status is not ReservationStatus.SERVICE_ASSIGNED:
+            raise ValueError("Delivery requires SERVICE_ASSIGNED status")
         if quantity > self.open_quantity:
             raise ValueError("Delivery quantity exceeds open quantity")
-        if quantity > physical_stock:
+        low_stock = quantity > physical_stock
+        if low_stock and not low_stock_reason:
+            raise ValueError("A reason is required when physical stock is insufficient")
+        if physical_stock < 0:
             raise ValueError("Physical stock is insufficient")
 
         delivered_quantity = self.delivered_quantity + quantity
@@ -69,6 +87,8 @@ class ReservationItem:
             ),
             physical_stock=physical_stock - quantity,
             processed_idempotency_keys=processed_idempotency_keys | {idempotency_key},
+            warning="Physical stock is insufficient" if low_stock else None,
+            reason=low_stock_reason,
         )
 
     def cancel(self, quantity: int) -> ReservationItem:
@@ -94,6 +114,8 @@ class DeliveryOutcome:
     item: ReservationItem
     physical_stock: int
     processed_idempotency_keys: frozenset[str]
+    warning: str | None = None
+    reason: str | None = None
 
 
 @dataclass(frozen=True)

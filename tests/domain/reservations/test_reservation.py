@@ -17,6 +17,13 @@ def test_reservation_reduces_sellable_stock_but_not_physical_stock() -> None:
     assert position.sellable == 3
 
 
+def test_sellable_stock_is_not_negative_and_exposes_supply_need() -> None:
+    position = StockPosition(physical=1, open_reservation=3)
+
+    assert position.sellable == 0
+    assert position.supply_need == 2
+
+
 def test_multi_product_reservation_keeps_open_quantities_independent() -> None:
     reservation = Reservation(
         items=(
@@ -87,3 +94,41 @@ def test_delivery_decreases_physical_and_open_stock_once_per_idempotency_key() -
     assert first.item.open_quantity == 1
     assert first.physical_stock == 4
     assert retry == first
+
+
+def test_delivery_requires_service_assignment() -> None:
+    item = ReservationItem(product_id="product-1", quantity=1)
+
+    with pytest.raises(ValueError, match="SERVICE_ASSIGNED"):
+        item.deliver(quantity=1, physical_stock=1, idempotency_key="delivery-1")
+
+
+def test_low_stock_delivery_requires_reason_and_records_warning() -> None:
+    item = ReservationItem(
+        product_id="product-1",
+        quantity=2,
+        status=ReservationStatus.SERVICE_ASSIGNED,
+    )
+
+    with pytest.raises(ValueError, match="reason"):
+        item.deliver(quantity=2, physical_stock=1, idempotency_key="delivery-1")
+
+    delivered = item.deliver(
+        quantity=2,
+        physical_stock=1,
+        idempotency_key="delivery-1",
+        low_stock_reason="Customer delivery approved",
+    )
+
+    assert delivered.warning == "Physical stock is insufficient"
+    assert delivered.reason == "Customer delivery approved"
+
+
+def test_reservation_item_rejects_invalid_quantity_invariant() -> None:
+    with pytest.raises(ValueError, match="Delivered and cancelled"):
+        ReservationItem(
+            product_id="product-1",
+            quantity=1,
+            delivered_quantity=1,
+            cancelled_quantity=1,
+        )
