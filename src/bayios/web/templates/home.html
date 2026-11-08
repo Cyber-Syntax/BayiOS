@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Ana Sayfa{% endblock %}
+{% block content %}
+<h1>Ana Sayfa</h1>
+<p class="muted">Modüller ilgili milestone tamamlandıkça açılır.</p>
+<ul class="tiles">
+  {% for item in nav_items if item.key != "home" %}
+  <li class="tile">
+    {% if item.enabled %}
+    <a href="{{ item.href }}">{{ item.label }}</a>
+    {% else %}
+    <span>{{ item.label }}</span>
+    <small class="badge">Yakında</small>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}

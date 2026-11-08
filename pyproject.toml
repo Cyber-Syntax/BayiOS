@@ -1,19 +1,27 @@
 [project]
 name = "bayios"
 version = "0.1.0"
-description = "Add your description here"
+description = "BayiOS — bayi operasyon sistemi"
 readme = "README.md"
 authors = [
-    { name = "Cyber-Syntax", email = "115875369+Cyber-Syntax@users.noreply.github.com" }
+  { name = "Cyber-Syntax", email = "115875369+Cyber-Syntax@users.noreply.github.com" },
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+  "alembic>=1.14",
+  "fastapi>=0.115",
+  "jinja2>=3.1",
+  "openpyxl>=3.1",
+  "psycopg[binary]>=3.2",
+  "pydantic>=2.9",
+  "pydantic-settings>=2.6",
+  "python-multipart>=0.0.18",
+  "sqlalchemy>=2.0.36",
+  "uvicorn[standard]>=0.32",
+]
 
 [dependency-groups]
-dev = [
-    "openpyxl>=3.1",
-    "pytest>=8.0",
-]
+dev = ["httpx>=0.27", "pytest>=8.0"]
 
 [project.scripts]
 bayios = "bayios:main"

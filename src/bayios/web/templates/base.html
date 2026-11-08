@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} · BayiOS</title>
+  <link rel="stylesheet" href="/static/css/app.css?v={{ asset_version }}">
+  <link rel="stylesheet" href="/static/css/print.css?v={{ asset_version }}" media="print">
+  <script src="/static/vendor/htmx.min.js?v={{ asset_version }}" defer></script>
+  <script src="/static/vendor/alpine.min.js?v={{ asset_version }}" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar no-print">
+      <a class="brand" href="/">BayiOS</a>
+      {# Enable (remove `disabled`) when /products search lands. #}
+      <form class="search" role="search" action="/products" method="get">
+        <input type="search" name="q" placeholder="Ürün ara" aria-label="Ürün ara" disabled>
+      </form>
+    </header>
+
+    <nav class="sidenav no-print" aria-label="Ana gezinme">
+      <ul>
+        {% for item in nav_items %}
+        <li>
+          {% if item.enabled %}
+          <a href="{{ item.href }}"{% if item.key == active_nav %} aria-current="page"{% endif %}>{{ item.label }}</a>
+          {% else %}
+          <span class="nav-disabled" aria-disabled="true">{{ item.label }} <small>(yakında)</small></span>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </nav>
+
+    <main class="content">
+      <div id="feedback" role="status" aria-live="polite"></div>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>
