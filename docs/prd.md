@@ -97,20 +97,21 @@ MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uyg
 
 ### 3.1 MVP kapsamına dahil
 
-1. Ürün kataloğu ve ürün arama.
-2. CSV/Excel ürün içe aktarma ve tüm ürünleri dışa aktarma.
-3. Ürün fiyat geçmişi ve CSV aktarım geçmişi.
-4. Fiziksel stok, açık rezervasyon miktarı, satılabilir stok ve stok hareketleri.
-5. Kategori bazlı stok sayım oturumları ve A4 sayım listeleri.
-6. Rezervasyon kayıtları, çoklu ürün, durum akışı ve hatırlatma/erteleme.
-7. Şirket kampanyaları ve bayi özel fiyat/indirim rehberi.
-8. Banka ve taksit bazlı POS komisyon tablosu; minimum satış fiyatı referans hesabı.
-9. Çok ürünlü teklif oluşturma, kaydetme, teklif geçmişi ve A4 çıktı.
-10. Hızlı teslim kaydı: müşteri adı-soyadı, isteğe bağlı telefon ve tam olarak bir Code 128 metni.
-11. Hızlı teslim barkod resmi içe aktarma: dosya yükleme veya `Ctrl+V` ile panodan yapıştırma.
-12. Temel ana ekran, arama ve bildirim/hatırlatma alanı.
-13. Yerel ağda mobil ve masaüstü tarayıcıdan kullanım.
-14. Veritabanı yedekleme.
+1. Ürün kataloğu, ürün arama ve yeni ürün manuel ekleme.
+2. Ürünlerin arşivlenmesi, arşivden çıkarılması ve iki aşamalı doğrulama (çift onay) ile veritabanından kalıcı silinmesi; birden fazla ürün seçilerek toplu arşivleme ve toplu silme.
+3. CSV/Excel ürün içe aktarma ve tüm ürünleri dışa aktarma (sorunlu satırların önizlemede en başta gösterilmesi, "Sorunluları Atla" butonu ve doğru işlem özeti).
+4. Ürün fiyat geçmişi ve CSV aktarım geçmişi.
+5. Fiziksel stok, açık rezervasyon miktarı, satılabilir stok, stok hareketleri ve ürünler sekmesinden doğrudan stok güncelleme.
+6. Kategori bazlı stok sayım oturumları ve A4 sayım listeleri.
+7. Rezervasyon kayıtları, çoklu ürün, durum akışı ve hatırlatma/erteleme.
+8. Şirket kampanyaları ve bayi özel fiyat/indirim rehberi.
+9. Banka ve taksit bazlı POS komisyon tablosu; minimum satış fiyatı referans hesabı.
+10. Çok ürünlü teklif oluşturma, kaydetme, teklif geçmişi ve A4 çıktı.
+11. Hızlı teslim kaydı: müşteri adı-soyadı, isteğe bağlı telefon ve tam olarak bir Code 128 metni.
+12. Hızlı teslim barkod resmi içe aktarma: dosya yükleme veya `Ctrl+V` ile panodan yapıştırma.
+13. Temel ana ekran, arama ve bildirim/hatırlatma alanı.
+14. Yerel ağda mobil ve masaüstü tarayıcıdan kullanım.
+15. Veritabanı yedekleme.
 
 ### 3.2 MVP dışında (sonraki sürüm / good-to-have)
 
@@ -331,21 +332,21 @@ Bu hesap, POS komisyonu kesintisi sonrasında maliyet + seçilen hedef kârı ka
 
 **FR-PROD-03 (P0):** Ürün detayında aktif kampanyalar ve bayi özel fiyatları gösterilmelidir.
 
-**FR-PROD-04 (P0):** Ürün oluşturma/güncelleme manuel olarak yapılabilmelidir.
+**FR-PROD-04 (P0):** Ürün oluşturma ve düzenleme manuel olarak yapılabilmelidir. Ürünler sekmesinde "Yeni Ürün Ekle" butonu bulunmalı; kullanıcı ürün adı, normal fiyat, web indirimli fiyatı, maliyet, kategori ve başlangıç fiziksel stok miktarını girerek manuel ürün oluşturabilmelidir. Manuel eklenen ürün için başlangıç fiyat geçmişi ve stok hareketi otomatik kaydedilmelidir.
 
 **FR-PROD-05 (P0):** CSV ve Excel dosyasıyla toplu ürün aktarımı desteklenmelidir.
 
 **FR-PROD-06 (P0):** Aktarım öncesinde dosya ön izlemesi gösterilmeli; sütun eşleştirme veya otomatik tanıma sunulmalıdır.
 
-**FR-PROD-07 (P0):** Aktarım ön izlemesinde yeni ürün, güncellenecek ürün, değişecek fiyat, stok farkı ve hatalı satırlar ayrıştırılmalıdır.
+**FR-PROD-07 (P0):** Aktarım ön izlemesinde yeni ürün, güncellenecek ürün, değişecek fiyat, stok farkı ve hatalı/sorunlu satırlar açıkça ayrıştırılmalıdır. Hatalı ve sorunlu satırlar (biçim hatası, eksik alan veya çakışma) önizleme tablosunda en başta (en üstte) listelenmelidir.
 
-**FR-PROD-08 (P0):** Kullanıcı onayı olmadan aktarım veritabanına uygulanmamalıdır.
+**FR-PROD-08 (P0):** Kullanıcı onayı olmadan aktarım veritabanına uygulanmamalıdır. Aktarım tamamlandığında kullanıcıya gösterilen sonuç bildirim kutusu fiilen gerçekleşen işlemi doğru yansıtmalıdır; atlanan veya değişikliği olmayan satırlar asla eklenen ya da güncellenen sayısına dahil edilmemelidir.
 
 **FR-PROD-09 (P0):** Ürün eşleştirmesi kesin ürün adına ve `name_normalized` değerine dayanmalıdır; bulanık eşleştirme yasaktır. Belirsiz veya yalnızca boşluk kaldırılınca eşleşen adlar otomatik birleştirilmemeli, kullanıcıya çakışma olarak gösterilmelidir.
 
 **Ürün adı normalizasyonu:** Unicode NFKC, baş/son boşluk kırpma ve ardışık boşlukları tek boşluğa indirme uygulanır. Büyük/küçük harf ve Türkçe `i/ı/İ/I` farkı yalnızca normalleştirilmiş değerde yok sayılır. Boşluk anlamlıdır (`07325 A` ve `07325A` farklıdır), baştaki sıfırlar korunur ve `products.name_normalized` üzerinde UNIQUE indeks bulunur. `^[0-9A-Z]+( [0-9A-Z]+)*$` desenine uymayan ad uyarı alır.
 
-**FR-PROD-06–08 aktarım kararı:** Önizleme çakışmaları en üstte gösterir. Her satırda Güncelle, Atla veya indirimli fiyatı Temizle kararı ve toplu “Hepsini güncelle/atla” seçenekleri bulunur. `website_discounted_price` boşsa varsayılan mevcut değer korunur; temizleme açıkça seçilir. `quantity` boşsa değişmez, `0` sıfırlar. Her karar staging satırına yazılır ve commit tek transaction'dır; önizleme sonrası ürün değişmişse satır yeniden çakışma olarak işaretlenir. CSV metin olarak okunur (`utf-8-sig`, gerekirse `cp1254`; `;` veya `,`), Excel'de yalnızca `.xlsx` desteklenir.
+**FR-PROD-06–08 aktarım kararı ve hata yönetimi:** Önizleme, hatalı ve çakışmalı kayıtları en üstte gösterir. Her satırda Güncelle, Atla veya indirimli fiyatı Temizle kararı verilebilir. Toplu kararlarda "Tümünü güncelle", "Tümünü atla" ve özellikle yalnızca sorunlu kayıtları hedefleyen **"Sorunluları Atla"** butonu bulunur. "Sorunluları Atla" butonu, geçerli ve sorunsuz satırların kararlarına dokunmadan sadece hata/çakışma içeren satırları "Atla" (skip) durumuna getirir. `website_discounted_price` boşsa varsayılan mevcut değer korunur; temizleme açıkça seçilir. `quantity` boşsa değişmez, `0` sıfırlar. Her karar staging satırına yazılır ve commit tek transaction'dır; önizleme sonrası ürün değişmişse satır yeniden çakışma olarak işaretlenir. Commit sonrası bildirim kutusu gerçek sayıları ({yeni_eklenen} yeni ürün eklendi, {guncellenen} ürün güncellendi, {atlanan} satır atlandı) şeklinde tam ve doğru gösterir. CSV metin olarak okunur (`utf-8-sig`, gerekirse `cp1254`; `;` veya `,`), Excel'de yalnızca `.xlsx` desteklenir.
 
 **FR-PROD-10 (P0):** CSV/Excel aktarımında bulunmayan ürünler silinmemeli veya otomatik arşivlenmemelidir.
 
@@ -366,6 +367,17 @@ Bu hesap, POS komisyonu kesintisi sonrasında maliyet + seçilen hedef kârı ka
 **FR-PROD-18 (P0):** İlk kez aktarılan ürün için başlangıç fiyat ve stok geçmişi oluşturulmalıdır.
 
 **FR-PROD-19 (P0):** Ürün fiyat ve maliyet değerleri TL para biriminde tutulmalıdır; ileride çoklu para birimi gereksinimi yoktur.
+
+**FR-PROD-20 (P0) — Çoklu ve Tekil Ürün Arşivleme:** Ürünler tek tek veya ürün listesinden checkbox ile birden fazla ürün seçilerek toplu olarak arşivlenebilmeli (`is_archived=True`) ve gerektiğinde arşivden geri çıkarılabilmelidir. Arşivlenen ürünler varsayılan katalog aramasında gizlenir, ancak arama filtresinde "Arşivdekileri Göster" seçeneğiyle listelenebilir. Arşivleme, ürünün stok veya rezervasyon geçmişini silmez.
+
+**FR-PROD-21 (P0) — Çift Onaylı Veritabanından Kalıcı Silme (Hard Delete):** Ürünler tek tek veya birden fazla ürün seçilerek toplu halde veritabanından kalıcı olarak silinebilmelidir. Yanlışlıkla silinmeyi kesin olarak önlemek için silme işlemi İKİ AŞAMALI DOĞRULAMA (çift onay) gerektirir:
+1. Aşama: Kaç adet ürünün silineceğini, işlemin geri alınamaz olduğunu ve ürün geçmişinin kalıcı silineceğini belirten uyarı modalı/diyaloğu açılır.
+2. Aşama: Kullanıcının silme niyetini teyit eden açık ikinci onay butonu veya teyit adımı ile işlem onaylanır.
+Açık rezervasyonda yer alan ürünlerin silinmesi engellenir ve kullanıcıya uyarı verilir; teklif veya tamamlanmış teslimat geçmişinde yer alan ürünlerde snapshot kuralı korunduğu için veri bütünlüğü aksatılmaz.
+
+**FR-PROD-22 (P0) — Ürünler Sekmesinden Doğrudan Stok Güncelleme:** Fiziksel stok miktarı ürünler sekmesinden (ürün detay kartından ve ürün listesindeki hızlı işlem üzerinden) doğrudan güncellenebilmelidir. Satılabilir stok türetilmiş bir metrik olduğundan (`satilabilir_stok = max(fiziksel_stok - acik_rezervasyon, 0)`), fiziksel stok değiştiğinde satılabilir stok otomatik olarak yansıtılır. Doğrudan stok değişikliği açıklamasıyla birlikte `stock_movements` tablosuna `manual_adjustment` olarak kaydedilir. (Bu işlev Stok Yönetimi Milestone 3 ekranı açıldıktan sonra tam merkezi stok entegrasyonuyla çalışır).
+
+**FR-PROD-23 (P0) — Ürün Arama Arayüzü Ergonomisi:** Ürünler sekmesindeki arama giriş kutusu (input box) ve yanındaki "Ara" butonu responsive düzende dikey kırılma olmadan yan yana kalmalıdır (`whitespace-nowrap`). Buton metninin `AR<br>a` şeklinde ikiye bölünmesi CSS/flex düzeni ile kesin olarak engellenmelidir.
 
 **Önerilen örnek CSV şeması ve gerçek bayi formatı (`arcelik-06-09-2026.csv`):**
 
@@ -668,23 +680,27 @@ Mobil alt navigasyon veya sade yan menü:
 
 Ekranların adları kısa ve çalışanların alışık olduğu terimlerle yazılmalıdır.
 
-### 6.2 Ürün bulma akışı
+### 6.2 Ürün bulma, manuel ekleme ve yönetim akışı
 
-1. Çalışan ana ekrandaki arama alanına ürün adını yazar.
-2. Arama sonucu ürün kartını gösterir.
-3. Ürün kartında normal fiyat, varsa Oliz fiyatı, maliyet, fiziksel stok ve açık rezervasyon özeti görünür.
-4. Ürün detayında kampanyalar, bayi nakit/kart minimum fiyatı, komisyon referansı ve fiyat geçmişi görülebilir.
-5. Çalışan ürün ekranından yeni teklif veya rezervasyon başlatabilir.
+1. Çalışan Ürünler ekranındaki arama alanına ürün adını yazar. Arama kutusu ve "Ara" butonu responsive düzende yan yana ve dikey kırılma olmadan görünür.
+2. Arama sonucu anında ürün kartlarını/tablosunu gösterir; baştaki sıfırlar ve boşluklar korunur.
+3. **Yeni Ürün Ekle:** Çalışan "Yeni Ürün Ekle" butonuna basarak modal/form açar; ürün adı, normal fiyat, indirimli fiyat, maliyet ve başlangıç fiziksel stok miktarını girip kaydeder.
+4. **Çoklu Seçim ve Arşivleme:** Çalışan listeden tek veya birden fazla ürünü checkbox ile seçip "Arşivle" butonuna tıklar. Arşivlenen ürünler normal aramada gizlenir; "Arşivdekileri Göster" filtresi ile incelenebilir veya geri çıkarılabilir.
+5. **Çift Onaylı Kalıcı Silme:** Çalışan tek bir ürün için veya çoklu seçim yaparak "Veritabanından Sil" butonuna tıklar. Sistem 1. onay modalında silinecek ürün sayısını ve risk uyarısını gösterir; kullanıcı devam ettiğinde 2. aşama teyit adımı ile kalıcı silme gerçekleştirilir. Açık rezervasyonu olan ürünler silinemez.
+6. **Doğrudan Stok Güncelleme:** Çalışan ürün detayından veya ürün satırındaki stok düzeltme alanından fiziksel stoku günceller; satılabilir stok otomatik yeniden hesaplanır ve stok hareket günlüğüne işlenir.
+7. Ürün detayında kampanyalar, bayi nakit/kart minimum fiyatı, komisyon referansı ve fiyat/stok hareket geçmişi görülebilir.
+8. Çalışan ürün ekranından yeni teklif veya rezervasyon başlatabilir.
 
-### 6.3 CSV/Excel ürün güncelleme akışı
+### 6.3 CSV/Excel ürün güncelleme ve önizleme akışı
 
-1. Çalışan dosyayı seçer.
-2. Sistem başlıkları tanır veya sütun eşleştirme ekranını açar.
-3. Sistem yeni ürünleri, güncellenecek kayıtları, fiyat değişikliklerini, stok farklarını ve hatalı satırları gösterir.
-4. Boş quantity alanları mevcut stoğu korur; 0 sıfır stok anlamına gelir.
-5. Çalışan aktarımı onaylar.
-6. Sistem aktarım partisi oluşturur; fiyat ve stok geçmişini gerekli olduğunda kaydeder.
-7. Aktarım özeti gösterilir ve hata satırları indirilebilir/görüntülenebilir.
+1. Çalışan dosyayı seçer (sürükle-bırak veya dosya seçici).
+2. Sistem başlıkları tanır; virgül, noktalı virgül, Türkçe binlik nokta ve `TL` formatlarını parse eder.
+3. **Sorunlu Satırların Önceliği:** Önizleme tablosunda hatalı (geçersiz fiyat/eksik kolon) ve çakışmalı kayıtlar listenin **en başında (en üstte)** gösterilir.
+4. **Toplu Kararlar:** "Tümünü güncelle" ve "Tümünü atla" butonlarının yanında **"Sorunluları Atla"** butonu sunulur. "Sorunluları Atla" tıklandığında yalnızca hatalı ve çakışmalı satırların kararı "Atla" (skip) olarak ayarlanır; sorunsuz satırlar geçerli durumunu korur.
+5. Boş quantity alanları mevcut stoğu korur; 0 sıfır stok anlamına gelir.
+6. Çalışan aktarımı onaylar (Commit).
+7. Sistem tek transaction içinde batch'i uygular; sadece fiilen eklenen ve değişen kayıtlar için fiyat/stok hareketi oluşturulur.
+8. **Doğru Sonuç Bildirimi:** Aktarım sonunda çıkan bilgi kutusu fiili durumu doğru raporlar: `Başarılı: Ürün kataloğu içe aktarıldı. ({X} yeni ürün eklendi, {Y} ürün güncellendi, {Z} satır atlandı)`. Atlanan ürünler asla yeni eklenen veya güncellenen sayısına dahil edilmez.
 
 ### 6.4 Kampanya kaydetme akışı
 
@@ -981,7 +997,7 @@ PDF/ek dosya tablosu MVP'de bulunmaz. Dosya özelliği sonraki fazda eklendiğin
 ### 7.8 Veri bütünlüğü notları
 
 - Para alanları `NUMERIC/DECIMAL` olmalıdır; `float`/`double` kullanılmamalıdır.
-- Ürün, teklif, rezervasyon ve stok hareketlerinde geçmiş kayıtları korumak için ürünler fiziksel olarak silinmemelidir; arşivleme tercih edilmelidir.
+- Ürünler arşivlenebilir (`is_archived=True`) veya veritabanından kalıcı olarak silinebilir (hard delete). Silme işleminde yanlışlıkla silinmeleri engellemek için iki aşamalı doğrulama (çift onay) zorunludur. Açık rezervasyonu olan ürünlerin kalıcı silinmesine izin verilmez; teklif ve tamamlanmış teslimat geçmişinde snapshot saklandığı için veri bütünlüğü korunur.
 - Rezervasyon teslim stok hareketleri işlem/transaction içinde atomik oluşturulmalıdır.
 - Teslimat için idempotency kontrolü olmalıdır; aynı kalem için aynı teslim miktarı iki kez stoktan düşmemelidir.
 - Rezervasyon satırında `delivered_quantity + cancelled_quantity <= quantity` kuralı korunmalıdır.
@@ -1257,7 +1273,7 @@ Müşteri adı-soyadı kişisel veridir. MVP'de telefon isteğe bağlı ek kişi
 
 ## 13. Test ve kabul kriterleri
 
-### 13.1 Ürün aktarımı testleri
+### 13.1 Ürün kataloğu ve aktarım testleri
 
 1. `07325 A` olarak gelen ürün adı baştaki sıfırları korur.
 2. Aynı ürün tekrar aktarıldığında yeni ürün yaratılmaz; mevcut ürün güncellenir.
@@ -1267,6 +1283,14 @@ Müşteri adı-soyadı kişisel veridir. MVP'de telefon isteğe bağlı ek kişi
 6. `quantity=0` ise fiziksel stok sıfırlanır ve stok hareketi kaydı oluşur.
 7. CSV'de bulunmayan ürün silinmez/pasife alınmaz.
 8. Hatalı satır diğer geçerli satırların sessizce bozulmasına yol açmaz; aktarım özeti gösterilir.
+9. Önizleme ekranında hatalı/sorunlu satırlar listenin en başında listelenir.
+10. "Sorunluları Atla" butonuna basıldığında sadece hatalı/sorunlu satırlar "Atla" yapılır; geçerli satırlar etkilenmez.
+11. Önizlemede tümü atlandığında veya aynı dosya tekrar aktarılıp atlandığında bildirim kutusu "0 yeni ürün eklendi, 0 ürün güncellendi, X satır atlandı" şeklinde doğru ve kesin sonuç bildirir.
+12. Manuel ürün oluşturma formundan eklenen ürün katalogda anında listelenir, başlangıç fiyat ve stok kaydı oluşur.
+13. Tek veya birden fazla ürün seçilerek arşivlendiğinde normal arama sonuçlarında gizlenir; arşiv filtresiyle listelenip geri alınabilir.
+14. Tek veya birden fazla ürün silinirken 2 aşamalı doğrulama zorunlu tutulur; 2. onay verilmeden veritabanından silinmez. Açık rezervasyonu olan ürünün silinmesi engellenir.
+15. Ürün ekranından doğrudan fiziksel stok güncellendiğinde satılabilir stok anında yeniden hesaplanır ve `manual_adjustment` stok hareketi oluşturulur.
+16. Ürünler sayfasındaki arama kutusu ve "Ara" butonu mobilde ve masaüstünde dikey kırılma (`AR<br>a`) olmadan tek satırda hizalı kalır.
 
 ### 13.2 Stok ve rezervasyon testleri
 
@@ -1359,14 +1383,17 @@ POS hesaplayıcısı en son milestone olarak kalır. Sıralama, çalışanlara e
 
 ### Milestone 1 — Ürün kataloğu ve CSV/Excel
 
-- Ürün listesi ve arama.
-- Ürün detay kartı.
-- CSV/Excel ön izleme ve içe aktarma.
+- Ürün listesi, responsive arama alanı ("Ara" butonu tek satırda hizalı) ve filtreleme.
+- Manuel yeni ürün ekleme formu (fiyat, maliyet, kategori, başlangıç stoku).
+- Çoklu seçim checkbox'ları ile toplu arşivleme ve çift onaylı (iki aşamalı doğrulama) kalıcı silme.
+- Ürün detay kartı ve doğrudan stok güncelleme (fiziksel/satılabilir stok ve hareket kaydı).
+- CSV/Excel ön izleme ve içe aktarma; sorunlu satırların en başta listelenmesi.
+- "Sorunluları Atla" butonu ve aktarım sonrası doğru sonuç bilgi kutusu ({X} eklendi, {Y} güncellendi, {Z} atlandı).
 - Normal/Oliz fiyatı ve fiziksel stok eşleme.
 - Fiyat/stok geçmişi.
 - Tüm ürünleri CSV/Excel dışa aktarma.
 
-**Çıkış kriteri:** Mevcut gerçek örnek dosya (`arcelik-06-09-2026.csv`) veri kaybı/duplikasyon olmadan aktarılır; `XX.XXX TL` formatındaki binlik noktalı fiyatlar, boş quantity ve 0 quantity davranışı test edilir.
+**Çıkış kriteri:** Mevcut gerçek örnek dosya (`arcelik-06-09-2026.csv`) veri kaybı/duplikasyon olmadan aktarılır; sorunlu satırlar en üstte görünür ve "Sorunluları Atla" çalışır; aktarım özeti gerçek sayıları gösterir; manuel ürün eklenebilir; çoklu arşivleme ve çift onaylı silme hatasız çalışır; arama butonu dikey kırılmaz.
 
 ### Milestone 2 — Rezervasyon ve A4
 

@@ -193,31 +193,50 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
    - `_normalize_decimal`: Türkçe binlik nokta ve `TL` sonekli değerleri (`38.099 TL`, `475 TL`), kuruşlu değerleri (`12,50`), düz sayıları (`1200`) hatasız `Decimal` string'e çevirme.
    - `_normalize_quantity`: Boşluk, tam sayı ve negatif olmama kontrolü.
    - Satır sınıflandırma politikası: `create` (yeni ürün), `update` (fiyat/stok değişimi), `skip` (fark yok veya kullanıcı kararı), `error` (eksik ad veya geçersiz sayı), `clear_discount` (indirimli fiyatı temizleme).
-2. **CSV/Excel içe aktarma önizlemesi (`PreviewProductImport`):**
+2. **CSV/Excel içe aktarma önizlemesi ve sorunlu satır yönetimi (`PreviewProductImport`):**
    - `utf-8`, `utf-8-sig` (BOM), `cp1254` (Windows-1254) fallback ve otomatik virgül/noktalı virgül delimiter algılama.
    - `.xlsx` desteği (`openpyxl` streaming `iter_rows`).
    - `product_import_batches` için staging batch kaydı (UUID, `source_checksum` SHA-256, `status='previewed'`).
-   - Satır önizleme sonucu: satır numarası, karar, tespit edilen değerler, hatalar ve uyarılar.
-3. **Atomik içe aktarma onay mekanizması (`CommitProductImport`):**
+   - **Sorunlu satırların önceliği:** Önizleme tablosunda hatalı (`error`) veya çakışmalı (`conflict`) satırlar daima listenin **en başında (en üstte)** sıralanır (`sort_key = (0 if is_problematic else 1, row_number)`).
+   - **"Sorunluları Atla" butonu:** Toplu işlem seçeneklerinde "Tümünü güncelle" ve "Tümünü atla" butonlarının yanında, yalnızca sorunlu/hatalı satırların kararını `skip` yapan hedefli "Sorunluları Atla" butonu sunulur. Bu buton geçerli satırların kararına dokunmaz.
+3. **Atomik içe aktarma onay mekanizması ve doğru sayaçlar (`CommitProductImport`):**
    - Tek `UnitOfWork` transaction sınırı.
    - Concurrency / Stale batch kontrolü: Dosya checksum veya önizleme zamanından sonra değişen ürün varsa commit reddedilir (`ConflictError`).
-   - Yeni ürünler için `Product` insert, mevcutlar için update.
+   - Yeni ürünler için `Product` insert, mevcutlar için update; atlanan satırlar için hiçbir yazma işlemi yapılmaz.
    - Yalnızca fiilen değişen fiyatlar için `ProductPriceHistory` kaydı (fiyat aynıysa gereksiz tarihçe oluşturulmaz).
    - Fiziksel stok değiştiğinde `StockMovement` kaydı (`movement_type='csv_update'`, `quantity_before`, `quantity_after`, `quantity_delta`, batch'e bağlı `idempotency_key`).
-   - Batch durumunu `status='committed'` ve özet sayaçlarını (`created_count`, `updated_count`, `error_count`) güncelleme.
-4. **Ürün kataloğu arama ve detay sorguları:**
-   - `SearchProducts`: Normalleştirilmiş ad ve baştaki sıfırları koruyan substring arama; sayfalama desteği.
+   - **Doğru istatistik bildirimi:** Batch özeti (`created_count`, `updated_count`, `skipped_count`, `error_count`) fiilen icra edilen işlemlere göre hesaplanır. Önizlemede atlanan satırlar kesinlikle eklenen veya güncellenen sayılarına dahil edilmez. Özet bilgi kutusu: `{created_count} yeni ürün eklendi, {updated_count} ürün güncellendi, {skipped_count} satır atlandı` şeklinde gerçeği tam yansıtır.
+4. **Manuel yeni ürün oluşturma (`CreateProduct`):**
+   - `CreateProduct` command'i: `product_name`, `regular_price`, `website_discounted_price`, `cost_price`, `physical_stock`, `category_id`.
+   - Başlangıç fiyat geçmişi (`source='manual'`) ve başlangıç stok hareketi (`movement_type='manual_adjustment'`) kaydı.
+   - UI'da "Yeni Ürün Ekle" modalı ve HTMX formu.
+5. **Ürün arşivleme ve çift onaylı silme (`ArchiveProducts`, `DeleteProducts`):**
+   - Çoklu seçim desteği: Tabloda satır bazında checkbox'lar ve "Tümünü Seç" kutusu.
+   - `ArchiveProducts` ve `UnarchiveProducts`: Tekil veya çoklu ürünleri `is_archived=True/False` yapar. Arşivdekiler filtre ile görüntülenir.
+   - `DeleteProducts` (Veritabanından Kalıcı Silme): Tekil veya çoklu silme.
+   - **İki aşamalı doğrulama (Çift Onay):** Yanlışlıkla silinmeyi önlemek için arayüzde 1. aşama uyarı modalı (silinecek ürün sayısı ve risk bilgisi), ardından 2. aşama açık teyit adımı işletilir.
+   - Açık rezervasyonu olan ürünlerin silinmesi domain kuralı ile engellenir (`ProductHasOpenReservationsError`).
+6. **Ürünler sekmesinden doğrudan stok güncelleme (`AdjustProductStock`):**
+   - Ürün detay kartında veya liste satırında fiziksel stok düzeltme girişi.
+   - `movement_type='manual_adjustment'`, `quantity_delta` ve not ile stok hareketi yazılır.
+   - `satilabilir_stok = max(fiziksel_stok - acik_rezervasyon, 0)` formülüyle satılabilir stok otomatik güncellenir.
+   - Bu akış Milestone 3'teki kapsamlı stok sayım modülü ile tam entegre çalışacak temeli oluşturur.
+7. **Ürün kataloğu arama, UI ergonomisi ve detay sorguları:**
+   - `SearchProducts`: Normalleştirilmiş ad ve baştaki sıfırları koruyan substring arama; sayfalama desteği; arşiv filtresi.
+   - **Arama kutusu düzeni:** Arama input alanı ve yanındaki "Ara" butonu responsive flex yapısında yan yana kalır (`whitespace-nowrap shrink-0`); buton metninin `AR<br>a` şeklinde kırılması engellenir.
    - `GetProductDetail`: Normal fiyat, Oliz fiyatı, maliyet, fiziksel stok, açık rezervasyon (M1'de 0), satılabilir stok, fiyat geçmişi ve stok hareket günlüğü.
-5. **Katalog dışa aktarma (`ExportProducts`):**
+8. **Katalog dışa aktarma (`ExportProducts`):**
    - Tüm ürünleri CSV (`utf-8-sig`) veya `.xlsx` olarak export etme.
    - Kolonlar: `product_name`, `regular_price`, `website_discounted_price`, `quantity`, `cost_price`.
    - Filtreli export MVP dışıdır.
-6. **Web arayüzü ve HTMX entegrasyonu:**
-   - `/products`: Ürün listesi ve canlı arama kutusu (`hx-get="/products" hx-trigger="keyup changed delay:300ms"`).
-   - `/products/{id}`: Ürün detay kartı, fiyat ve stok hareket geçmişi sekmeleri.
+9. **Web arayüzü ve HTMX entegrasyonu:**
+   - `/products`: Ürün listesi, responsive arama kutusu ("Ara" butonu tek satırda), "Yeni Ürün Ekle" butonu, checkbox seçim çubuğu ("Seçilenleri Arşivle", "Seçilenleri Sil"), sayfalama.
+   - `/products/new`: Manuel ürün ekleme modalı/formu.
+   - `/products/{id}`: Ürün detay kartı, doğrudan stok güncelleme alanı, fiyat ve stok hareket geçmişi sekmeleri.
+   - `/products/archive`, `/products/delete`: Toplu arşivleme ve çift onaylı silme endpoint'leri.
    - `/imports/products`: CSV/XLSX dosya yükleme alanı (drag & drop ve dosya seçici).
-   - `/imports/products/preview`: Önizleme tablosu; çakışma, hata, güncelleme ve yeni kayıtları görsel rozetlerle listeleme; satır bazında veya toplu "Güncelle / Atla / İndirimi Temizle" kararları.
-   - `/imports/products/commit`: Onay butonu, işlem sonrası özet bildirim paneli (toast/banner).
+   - `/imports/products/preview`: Önizleme tablosu; sorunlu satırlar en başta; "Sorunluları Atla" butonu; satır bazında ve toplu kararlar.
+   - `/imports/products/commit`: Onay butonu ve tam gerçeği yansıtan özet bildirim paneli (toast/banner).
 
 **Kod sözleşmesi**
 
@@ -235,12 +254,20 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
 - Boş `quantity` mevcut stoku korur; `0` stoku sıfırlar ve stok hareketi oluşturur.
 - CSV'de bulunmayan ürünler silinmez ve `is_archived=True` yapılmaz.
 - Hatalı satırlar geçerli satırların önizlemesini veya aktarımını engellemez; önizleme listesinde hata nedeni gösterilir.
+- Önizleme tablosunda hatalı ve çakışmalı satırlar listenin en başında listelenir.
+- "Sorunluları Atla" tıklandığında yalnızca hatalı satırlar `skip` kararına geçer; geçerli satırların kararları korunur.
+- Önizlemede tümü atlandığında commit sonucu "0 yeni ürün eklendi, 0 ürün güncellendi, X satır atlandı" bilgisini tam doğrulukla raporlar; yanlış ekleme/güncelleme sayısı üretmez.
+- Manuel ürün ekleme formu geçerli verilerle yeni ürün kaydı açar; başlangıç fiyat ve stok geçmişi oluşturur.
+- Seçilen ürünler toplu olarak arşivlenebilir (`is_archived=True`); arşivdekiler varsayılan aramada gizlenir ve istendiğinde geri alınabilir.
+- Silme işlemi iki aşamalı doğrulama (çift onay) tamamlanmadan DB'den kayıt silmez; 2. onay verildiğinde kalıcı silinir. Açık rezervasyonu olan ürün için silme talebi reddedilir.
+- Ürün ekranından doğrudan stok güncellendiğinde fiziksel stok değişir, satılabilir stok otomatik yeniden hesaplanır ve `manual_adjustment` hareketi yazılır.
+- Ürün arama kutusu ve "Ara" butonu mobilde ve masaüstünde `whitespace-nowrap` ile tek satırda yan yana durur; metin bölünmesi (`AR<br>a`) oluşmaz.
 - Önizleme onaylanmadan DB'de ürün veya stok değişikliği yapılmaz.
 - Önizleme sonrası ürün değişmişse commit stale conflict döner; aynı commit retry duplicate yaratmaz.
 
 **Çıkış kriteri**
 
-Gerçek `arcelik-06-09-2026.csv` dosyası web arayüzünden veya API'den önizlenir; fiyatlar (`38.099 TL` -> 38.099,00 TL) ve stoklar doğru sınıflandırılır; kullanıcı onayıyla tek transaction'da DB'ye kaydedilir; ürün arama ve detay sayfalarında anında sorgulanabilir.
+Gerçek `arcelik-06-09-2026.csv` dosyası web arayüzünden veya API'den önizlenir; hatalı satırlar en üstte listelenir; "Sorunluları Atla" butonu ve doğru commit özet sayaçları doğrulanır; manuel ürün eklenebilir; çoklu arşivleme ve çift onaylı silme hatasız çalışır; ürünler sekmesinden doğrudan stok güncellenebilir; arama butonu dikey kırılmaz; kullanıcı onayıyla tek transaction'da DB'ye kaydedilir; ürün arama ve detay sayfalarında anında sorgulanabilir.
 
 ### Milestone 2 — Reservation ve A4
 
