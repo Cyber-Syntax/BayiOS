@@ -13,7 +13,7 @@ class NavItem:
 
 NAV_ITEMS: tuple[NavItem, ...] = (
     NavItem("home", "Ana Sayfa", "/", enabled=True),
-    NavItem("products", "Ürünler", "/products"),
+    NavItem("products", "Ürünler", "/products", enabled=True),
     NavItem("campaigns", "Kampanyalar", "/campaigns"),
     NavItem("offers", "Teklifler", "/offers"),
     NavItem("reservations", "Rezervasyonlar", "/reservations"),

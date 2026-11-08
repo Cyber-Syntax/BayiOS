@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}İçe Aktarma Önizlemesi{% endblock %}
+{% block content %}
+<div class="actions-bar">
+  <div>
+    <div style="margin-bottom: .25rem;">
+      <a href="/imports/products" class="muted" style="text-decoration: none;">&larr; Yeniden Dosya Seç</a>
+    </div>
+    <h1>İçe Aktarma Önizlemesi</h1>
+    <p class="muted" style="margin: 0;">Dosya: <strong>{{ file_name }}</strong> ({{ total_rows }} satır)</p>
+  </div>
+</div>
+
+<div class="grid-stats">
+  <div class="stat-box">
+    <div class="stat-label">Toplam Satır</div>
+    <div class="stat-value">{{ total_rows }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Yeni Ürün</div>
+    <div class="stat-value" style="color: #059669;">{{ create_count }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Güncellenecek</div>
+    <div class="stat-value" style="color: #2563eb;">{{ update_count }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Hatalı Satır</div>
+    <div class="stat-value" style="{% if error_count > 0 %}color: #dc2626;{% endif %}">{{ error_count }}</div>
+  </div>
+</div>
+
+<form id="importCommitForm" action="/imports/products/commit" method="post">
+  <input type="hidden" name="file_name" value="{{ file_name }}">
+  <input type="hidden" name="file_type" value="{{ file_type }}">
+  <input type="hidden" name="source_b64" value="{{ source_b64 }}">
+  <input type="hidden" name="decisions_json" id="decisionsJsonInput">
+
+  <div class="actions-bar" style="margin-top: 1rem; align-items: center; flex-wrap: wrap; gap: .75rem;">
+    <div style="display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;">
+      <span class="muted" style="font-size: .85rem;">Toplu Karar:</span>
+      <button type="button" class="btn" style="padding: .25rem .6rem; font-size: .8rem;" onclick="setAllDecisions('update')">Tümünü Güncelle</button>
+      <button type="button" class="btn" style="padding: .25rem .6rem; font-size: .8rem;" onclick="setAllDecisions('skip')">Tümünü Atla</button>
+      <button type="button" class="btn" style="padding: .25rem .6rem; font-size: .8rem;" onclick="setAllDecisions('create')">Tümünü Yeni Ürün</button>
+    </div>
+    <div class="actions-group">
+      <button type="submit" id="submitBtn" class="btn btn-primary" {% if total_rows == 0 or total_rows == error_count %}disabled{% endif %}>
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+        Değişiklikleri Onayla ve Veritabanına Aktar
+      </button>
+      <a href="/imports/products" class="btn">Vazgeç</a>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Satır</th>
+          <th>Ürün Adı</th>
+          <th>Normal Fiyat</th>
+          <th>Oliz / İndirimli</th>
+          <th>Fiziksel Stok</th>
+          <th>Karar</th>
+          <th>Hata / Uyarı</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr {% if row.errors %}style="background: #fff5f5;"{% endif %}>
+          <td>{{ row.row_number }}</td>
+          <td>
+            <strong>{{ row.product_name or '—' }}</strong>
+          </td>
+          <td>
+            {% if row.regular_price is not none %}
+            {{ "{:,.2f}".format(row.regular_price|float).replace(",", "X").replace(".", ",").replace("X", ".") }} TL
+            {% else %}
+            <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if row.website_discounted_price is not none %}
+            <span class="badge badge-info">
+              {{ "{:,.2f}".format(row.website_discounted_price|float).replace(",", "X").replace(".", ",").replace("X", ".") }} TL
+            </span>
+            {% else %}
+            <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if row.quantity is not none %}
+            {{ row.quantity }} adet
+            {% else %}
+            <small class="muted">(Değişmez)</small>
+            {% endif %}
+          </td>
+          <td>
+            {% if row.errors %}
+            <span class="badge badge-danger">Hata</span>
+            {% else %}
+            <select class="form-control decision-select"
+                    data-row="{{ row.row_number }}"
+                    style="min-height: 32px; padding: .2rem .5rem; font-size: .85rem;">
+              <option value="create" {% if row.decision == 'create' %}selected{% endif %}>Yeni Ürün Aç</option>
+              <option value="update" {% if row.decision == 'update' %}selected{% endif %}>Güncelle</option>
+              <option value="skip" {% if row.decision == 'skip' %}selected{% endif %}>Atla (İşleme Alma)</option>
+              <option value="clear_discount" {% if row.decision == 'clear_discount' %}selected{% endif %}>İndirimli Fiyatı Temizle</option>
+            </select>
+            {% endif %}
+          </td>
+          <td>
+            {% for err in row.errors %}
+            <div style="color: #dc2626; font-size: .8rem;">• {{ err }}</div>
+            {% endfor %}
+            {% for warn in row.warnings %}
+            <div style="color: #d97706; font-size: .8rem;">• {{ warn }}</div>
+            {% endfor %}
+            {% if not row.errors and not row.warnings %}
+            <span class="muted" style="font-size: .8rem;">Sorunsuz</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</form>
+
+<script>
+function setAllDecisions(val) {
+  const selects = document.querySelectorAll('select.decision-select');
+  for (let i = 0; i < selects.length; i++) {
+    selects[i].value = val;
+  }
+}
+
+document.getElementById('importCommitForm').addEventListener('submit', function (e) {
+  const submitBtn = document.getElementById('submitBtn');
+  const decisions = {};
+  const selects = document.querySelectorAll('select.decision-select');
+  for (let i = 0; i < selects.length; i++) {
+    decisions[selects[i].getAttribute('data-row')] = selects[i].value;
+  }
+  document.getElementById('decisionsJsonInput').value = JSON.stringify(decisions);
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Aktarılıyor...';
+  }
+});
+</script>
+{% endblock %}

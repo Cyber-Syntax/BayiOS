@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Ürünler{% endblock %}
+{% block content %}
+{% if request.query_params.get('msg') == 'import_success' %}
+<div class="alert alert-success">
+  <span><strong>Başarılı:</strong> Ürün kataloğu içe aktarıldı. ({{ request.query_params.get('created', 0) }} yeni ürün eklendi, {{ request.query_params.get('updated', 0) }} ürün güncellendi)</span>
+</div>
+{% endif %}
+
+<div class="actions-bar">
+  <div>
+    <h1>Ürünler</h1>
+    <p class="muted" style="margin: 0;">Ürün kataloğu, fiyatlar ve stok durumu.</p>
+  </div>
+  <div class="actions-group">
+    <a class="btn btn-primary" href="/imports/products">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+      CSV / Excel İçe Aktar
+    </a>
+    <a class="btn" href="/products/export/csv">
+      CSV Dışa Aktar
+    </a>
+    <a class="btn" href="/products/export/xlsx">
+      Excel Dışa Aktar
+    </a>
+  </div>
+</div>
+
+<div class="card" style="padding: 1rem;">
+  <form id="search-form" method="get" action="/products"
+        hx-get="/products"
+        hx-trigger="keyup changed delay:300ms from:#product-search-input, search from:#product-search-input"
+        hx-target="#products-table-container"
+        hx-push-url="true">
+    <div style="display: flex; gap: .5rem;">
+      <input type="search"
+             id="product-search-input"
+             name="q"
+             class="form-control"
+             placeholder="Ürün adı ile ara (örn: 07325 A, MD 20, Buzdolabı...)"
+             value="{{ q or '' }}"
+             autocomplete="off">
+      <button type="submit" class="btn btn-primary">Ara</button>
+      {% if q %}
+      <a href="/products" class="btn">Temizle</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<div id="products-table-container">
+  {% include "products/_table.html" %}
+</div>
+{% endblock %}

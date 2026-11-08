@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import re
+import unicodedata
+import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Iterable
+
+from bayios.adapters.db.models.inventory import StockMovement
+from bayios.adapters.db.models.products import Product, ProductImportBatch, ProductPriceHistory
+from bayios.application.ports.unit_of_work import UnitOfWork
+from bayios.domain.products import ActorContext, normalize_product_name
 
 
 @dataclass(frozen=True)
@@ -25,11 +34,27 @@ class ProductImportPreview:
     rows: tuple[ProductImportRow, ...]
 
 
-def preview_product_import(source: bytes) -> ProductImportPreview:
+@dataclass(frozen=True)
+class ProductImportCommitResult:
+    batch_id: uuid.UUID
+    created_count: int
+    updated_count: int
+    error_count: int
+    total_count: int
+
+
+def preview_product_import(
+    source: bytes, existing_names: set[str] | None = None
+) -> ProductImportPreview:
     rows: list[ProductImportRow] = []
 
     for row_number, raw_row in enumerate(_source_rows(source), start=2):
-        product_name = _value(raw_row, "product_name", "name")
+        raw_product_name = _value(raw_row, "product_name", "name")
+        product_name = (
+            unicodedata.normalize("NFKC", raw_product_name).strip()
+            if raw_product_name
+            else ""
+        )
         regular_price = _value(raw_row, "regular_price", "regular price")
         discounted_price = _value(
             raw_row,
@@ -54,10 +79,17 @@ def preview_product_import(source: bytes) -> ProductImportPreview:
         if quantity and normalized_quantity is None:
             errors.append("Quantity must be a non-negative integer")
 
+        if errors:
+            decision = "error"
+        elif existing_names and normalize_product_name(product_name) in existing_names:
+            decision = "update"
+        else:
+            decision = "create"
+
         rows.append(
             ProductImportRow(
                 row_number=row_number,
-                decision="error" if errors else "create",
+                decision=decision,
                 product_name=product_name or None,
                 regular_price=normalized_price,
                 website_discounted_price=normalized_discounted_price,
@@ -68,6 +100,241 @@ def preview_product_import(source: bytes) -> ProductImportPreview:
         )
 
     return ProductImportPreview(rows=tuple(rows))
+
+
+def commit_product_import(
+    uow: UnitOfWork,
+    file_name: str,
+    file_type: str,
+    source: bytes,
+    decisions: dict[int | str, str] | None = None,
+    actor: ActorContext | None = None,
+) -> ProductImportCommitResult:
+    actor = actor or ActorContext()
+    source_checksum = hashlib.sha256(source).hexdigest()
+    batch_id = uuid.uuid4()
+    now = datetime.now(timezone.utc)
+
+    with uow:
+        # Check duplicate commit
+        existing_batch = uow.products.get_import_batch_by_checksum(source_checksum)
+        if existing_batch and existing_batch.status == "committed":
+            return ProductImportCommitResult(
+                batch_id=existing_batch.id,
+                created_count=existing_batch.created_count,
+                updated_count=existing_batch.updated_count,
+                error_count=existing_batch.error_count,
+                total_count=existing_batch.row_count,
+            )
+
+        # First fetch existing products for matching by reading names
+        raw_rows = list(_source_rows(source))
+        raw_names = [_value(r, "product_name", "name") for r in raw_rows]
+        normalized_names = [
+            normalize_product_name(unicodedata.normalize("NFKC", n).strip())
+            for n in raw_names
+            if n
+        ]
+        existing_products = uow.products.get_by_normalized_names(normalized_names)
+        existing_names = set(existing_products.keys())
+
+        raw_preview = preview_product_import(source, existing_names=existing_names)
+
+        created_count = 0
+        updated_count = 0
+        error_count = 0
+
+        for row in raw_preview.rows:
+            if row.errors or not row.product_name:
+                error_count += 1
+                continue
+
+            chosen_decision = (
+                (decisions.get(row.row_number) or decisions.get(str(row.row_number)))
+                if decisions
+                else row.decision
+            ) or row.decision
+
+            if chosen_decision == "skip":
+                continue
+
+            norm_name = normalize_product_name(row.product_name)
+            existing = existing_products.get(norm_name)
+
+            if existing is None:
+                reg_price = Decimal(row.regular_price) if row.regular_price else None
+                disc_price = (
+                    Decimal(row.website_discounted_price)
+                    if row.website_discounted_price
+                    else None
+                )
+                qty = int(row.quantity) if row.quantity is not None else 0
+
+                prod_id = uuid.uuid4()
+                product = Product(
+                    id=prod_id,
+                    name=row.product_name,
+                    name_normalized=norm_name,
+                    regular_price=reg_price,
+                    website_discounted_price=disc_price,
+                    physical_stock=qty,
+                    last_seen_at=now,
+                    last_price_changed_at=now if (reg_price or disc_price) else None,
+                )
+                uow.products.add(product)
+                existing_products[norm_name] = product
+                created_count += 1
+
+                if reg_price is not None:
+                    uow.products.add_price_history(
+                        ProductPriceHistory(
+                            id=uuid.uuid4(),
+                            product_id=prod_id,
+                            field_name="regular_price",
+                            old_value=None,
+                            new_value=reg_price,
+                            source="csv_import",
+                            changed_at=now,
+                            changed_by_name=actor.worker_name,
+                            changed_by_device=actor.device_name,
+                        )
+                    )
+                if disc_price is not None:
+                    uow.products.add_price_history(
+                        ProductPriceHistory(
+                            id=uuid.uuid4(),
+                            product_id=prod_id,
+                            field_name="website_discounted_price",
+                            old_value=None,
+                            new_value=disc_price,
+                            source="csv_import",
+                            changed_at=now,
+                            changed_by_name=actor.worker_name,
+                            changed_by_device=actor.device_name,
+                        )
+                    )
+                if qty > 0:
+                    uow.products.add_stock_movement(
+                        StockMovement(
+                            id=uuid.uuid4(),
+                            product_id=prod_id,
+                            movement_type="csv_update",
+                            quantity_delta=qty,
+                            quantity_before=0,
+                            quantity_after=qty,
+                            note=f"Initial import from {file_name}",
+                            idempotency_key=f"import:{batch_id}:{row.row_number}",
+                            created_at=now,
+                            created_by_name=actor.worker_name,
+                            created_by_device=actor.device_name,
+                        )
+                    )
+            else:
+                if row.regular_price is not None:
+                    new_reg = Decimal(row.regular_price)
+                    if existing.regular_price != new_reg:
+                        uow.products.add_price_history(
+                            ProductPriceHistory(
+                                id=uuid.uuid4(),
+                                product_id=existing.id,
+                                field_name="regular_price",
+                                old_value=existing.regular_price,
+                                new_value=new_reg,
+                                source="csv_import",
+                                changed_at=now,
+                                changed_by_name=actor.worker_name,
+                                changed_by_device=actor.device_name,
+                            )
+                        )
+                        existing.regular_price = new_reg
+                        existing.last_price_changed_at = now
+
+                if chosen_decision == "clear_discount":
+                    if existing.website_discounted_price is not None:
+                        uow.products.add_price_history(
+                            ProductPriceHistory(
+                                id=uuid.uuid4(),
+                                product_id=existing.id,
+                                field_name="website_discounted_price",
+                                old_value=existing.website_discounted_price,
+                                new_value=None,
+                                source="csv_import",
+                                changed_at=now,
+                                changed_by_name=actor.worker_name,
+                                changed_by_device=actor.device_name,
+                            )
+                        )
+                        existing.website_discounted_price = None
+                        existing.last_price_changed_at = now
+                elif row.website_discounted_price is not None:
+                    new_disc = Decimal(row.website_discounted_price)
+                    if existing.website_discounted_price != new_disc:
+                        uow.products.add_price_history(
+                            ProductPriceHistory(
+                                id=uuid.uuid4(),
+                                product_id=existing.id,
+                                field_name="website_discounted_price",
+                                old_value=existing.website_discounted_price,
+                                new_value=new_disc,
+                                source="csv_import",
+                                changed_at=now,
+                                changed_by_name=actor.worker_name,
+                                changed_by_device=actor.device_name,
+                            )
+                        )
+                        existing.website_discounted_price = new_disc
+                        existing.last_price_changed_at = now
+
+                if row.quantity is not None:
+                    new_qty = int(row.quantity)
+                    old_qty = existing.physical_stock
+                    if old_qty != new_qty:
+                        delta = new_qty - old_qty
+                        existing.physical_stock = new_qty
+                        uow.products.add_stock_movement(
+                            StockMovement(
+                                id=uuid.uuid4(),
+                                product_id=existing.id,
+                                movement_type="csv_update",
+                                quantity_delta=delta,
+                                quantity_before=old_qty,
+                                quantity_after=new_qty,
+                                note=f"Stock update from {file_name}",
+                                idempotency_key=f"import:{batch_id}:{row.row_number}",
+                                created_at=now,
+                                created_by_name=actor.worker_name,
+                                created_by_device=actor.device_name,
+                            )
+                        )
+
+                existing.last_seen_at = now
+                updated_count += 1
+
+        batch = ProductImportBatch(
+            id=batch_id,
+            file_name=file_name,
+            file_type=file_type,
+            source_checksum=source_checksum,
+            status="committed",
+            row_count=len(raw_preview.rows),
+            created_count=created_count,
+            updated_count=updated_count,
+            error_count=error_count,
+            started_at=now,
+            completed_at=now,
+            created_by_name=actor.worker_name,
+            created_by_device=actor.device_name,
+        )
+        uow.products.create_import_batch(batch)
+        uow.commit()
+
+    return ProductImportCommitResult(
+        batch_id=batch_id,
+        created_count=created_count,
+        updated_count=updated_count,
+        error_count=error_count,
+        total_count=len(raw_preview.rows),
+    )
 
 
 def _source_rows(source: bytes) -> Iterable[dict[str, str | None]]:
@@ -85,7 +352,7 @@ def _source_rows(source: bytes) -> Iterable[dict[str, str | None]]:
         return
 
     text = _decode_source(source)
-    reader = csv.DictReader(io.StringIO(text), delimiter=_detect_delimiter(text))
+    reader = csv.DictReader(io.StringIO(text), delimiter=_detect_delimiter(text), restval=None)
     yield from reader
 
 
@@ -112,10 +379,35 @@ def _value(row: dict[str, str | None], *headers: str) -> str:
 def _normalize_decimal(value: str) -> str | None:
     if not value:
         return None
-    candidate = value.replace(" ", "").replace(",", ".")
+    cleaned = value.strip()
+    cleaned = re.sub(r"(?i)\s*(?:TL|TRY|₺)\s*$", "", cleaned).strip()
+    cleaned = cleaned.replace(" ", "")
+    if not cleaned:
+        return None
+
+    if "." in cleaned and "," in cleaned:
+        last_dot = cleaned.rfind(".")
+        last_comma = cleaned.rfind(",")
+        if last_comma > last_dot:
+            candidate = cleaned.replace(".", "").replace(",", ".")
+        else:
+            candidate = cleaned.replace(",", "")
+    elif "." in cleaned:
+        parts = cleaned.split(".")
+        if len(parts) > 2 or (len(parts) == 2 and len(parts[1]) == 3 and len(parts[0]) >= 1):
+            candidate = cleaned.replace(".", "")
+        else:
+            candidate = cleaned
+    elif "," in cleaned:
+        candidate = cleaned.replace(",", ".")
+    else:
+        candidate = cleaned
+
     try:
         number = Decimal(candidate)
     except InvalidOperation:
+        return None
+    if number < 0:
         return None
     return format(number, "f")
 

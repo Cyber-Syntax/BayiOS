@@ -367,7 +367,20 @@ Bu hesap, POS komisyonu kesintisi sonrasında maliyet + seçilen hedef kârı ka
 
 **FR-PROD-19 (P0):** Ürün fiyat ve maliyet değerleri TL para biriminde tutulmalıdır; ileride çoklu para birimi gereksinimi yoktur.
 
-**Önerilen örnek CSV şeması:**
+**Önerilen örnek CSV şeması ve gerçek bayi formatı (`arcelik-06-09-2026.csv`):**
+
+Gerçek bayi dosyasında fiyatlar `38.099 TL`, `475 TL` biçiminde binlik basamak ayracı olarak nokta (`.`) ve `TL` soneki içerir; bazı satırlarda 4. kolon (`quantity`) eksik veya boştur:
+
+```csv
+product_name,regular_price,website_discounted_price,quantity
+0.58m  with Anderson cable,475 TL,
+07325 A,38.099 TL,34.099 TL
+09325 A,42.199 TL,38.199 TL
+09470 HP,52.899 TL,48.899 TL
+09605,38.399 TL,34.399 TL
+```
+
+Temiz/sayısal standart format örneği:
 
 ```csv
 product_name,regular_price,website_discounted_price,quantity
@@ -379,10 +392,10 @@ product_name,regular_price,website_discounted_price,quantity
 1002 KMP HA,55599,,1
 ```
 
-- `product_name`: metin.
-- `regular_price`: TL cinsinden sayı.
+- `product_name`: metin. Baştaki sıfırlar (`07325 A`) korunur; NFKC ile normalize edilir ve ardışık boşluklar tek boşluğa indirilir.
+- `regular_price`: TL cinsinden sayı; `38.099 TL` gibi binlik nokta ve `TL` sonekleri ile `12,50` gibi virgüllü ondalıklar otomatik parse edilir.
 - `website_discounted_price`: boş olabilir; boş değer mevcut Oliz fiyatını koruma mı yoksa temizleme mi davranışı aktarım ekranında açıkça seçilmelidir. MVP varsayılanı: boş hücre mevcut değeri korur; fiyatı kaldırmak için ayrı “indirimli fiyatı temizle” seçeneği gerekir.
-- `quantity`: fiziksel stok; boşsa değiştirme, 0 ise sıfırla.
+- `quantity`: fiziksel stok; boşsa veya kolon eksikse mevcut stoğu korur, 0 ise sıfırlar ve stok hareketi oluşturur.
 - Dosya başlıkları farklıysa sütun eşleştirme ekranı kullanılır.
 - Ondalık/ayraç ve binlik ayraç formatları aktarım ön izlemesinde doğrulanmalıdır.
 
@@ -1353,7 +1366,7 @@ POS hesaplayıcısı en son milestone olarak kalır. Sıralama, çalışanlara e
 - Fiyat/stok geçmişi.
 - Tüm ürünleri CSV/Excel dışa aktarma.
 
-**Çıkış kriteri:** Mevcut örnek dosya veri kaybı/duplikasyon olmadan aktarılır; boş quantity ve 0 quantity davranışı test edilir.
+**Çıkış kriteri:** Mevcut gerçek örnek dosya (`arcelik-06-09-2026.csv`) veri kaybı/duplikasyon olmadan aktarılır; `XX.XXX TL` formatındaki binlik noktalı fiyatlar, boş quantity ve 0 quantity davranışı test edilir.
 
 ### Milestone 2 — Rezervasyon ve A4
 
@@ -1480,7 +1493,7 @@ Bu PRD aşağıdaki kullanıcı kararlarını temel alır:
 
 Bu maddeler ürün kapsamını değiştirmez; geliştirme sırasında örnek dosya ve gerçek kullanım üzerinde doğrulanmalıdır:
 
-1. Excel dosyalarında hangi uzantıların (`.xlsx`, eski `.xls`) destekleneceği; CSV ayraç ve encoding seçenekleri.
+1. CSV/Excel formatı netleştirildi: `arcelik-06-09-2026.csv` gerçek verisiyle doğrulandı. `utf-8`/`utf-8-sig` ve `cp1254`, virgül ve noktalı virgül ayracı; `XX.XXX TL` binlik noktalı ve `TL` sonekli fiyatlar ile `,` ondalık ayracı desteklenir. Excel'de `.xlsx` geçerlidir.
 2. Ürün adı değiştiğinde mevcut ürünle eşleştirme için manuel eşleştirme ekranının ayrıntısı.
 3. Boş `website_discounted_price` alanının varsayılan olarak mevcut fiyatı koruması; indirimli fiyatı kaldırmak için açık temizleme seçeneği.
 4. Kategori verisinin mevcut CSV'de bulunup bulunmadığı; bulunmuyorsa uygulamada manuel kategori ataması.

@@ -156,41 +156,91 @@ Her test ortamı `DATABASE_URL` bekler. PostgreSQL Compose servisi local dev/tes
 
 Windows host üzerinde Docker veya Podman Compose ile app/PostgreSQL başlar; LAN'dan bir desktop ve mobile istemci erişir; DB volume kalıcıdır; backup/restore komutları belgelenmiştir.
 
-### Milestone 1 — Product catalog ve import
+### Milestone 1 — Product catalog ve import (Ürün Kataloğu ve CSV/Excel İçe Aktarma)
 
-**Domain ve veri**
+**Amaç ve Kapsam**
 
-- Product aggregate: `name`, `name_normalized`, prices, cost, physical quantity, category, active/archive metadata.
-- Price history, import batch, import rows/decisions ve stock movements migration'ları.
-- `name_normalized` unique index; Unicode NFKC, trim, whitespace collapse ve Türkçe I/İ/ı/i kuralları tek saf normalizer'da.
+Ürün kataloğunu oluşturmak, aramak, detaylarını görüntülemek ve Arçelik bayi operasyonunun gerçek CSV dosyalarını (`arcelik-06-09-2026.csv`) ile Excel (`.xlsx`) dosyalarını önizleme/onay mekanizmasıyla hatasız içe aktarmak. Bu milestone; fiyat ve stok hareket geçmişini, kesin ürün adı normalizasyonunu, staging batch yönetimini ve atomik commit akışını kapsar.
 
-**Use-case akışları**
+**Gerçek CSV Formatı ve Doğrulama Kuralları (`arcelik-06-09-2026.csv`)**
 
-1. `SearchProducts`: exact normalized search semantics ve baştaki sıfırları koruyan arama.
-2. `PreviewProductImport`: `utf-8-sig`, cp1254 fallback, comma/semicolon CSV ve `.xlsx`; header mapping; row classification.
-3. `CommitProductImport`: staging kararlarını validate et, stale batch conflict kontrol et, tek transaction'da upsert/history/movement yaz.
-4. `ExportProducts`: tüm ürünleri explicit field mapping ile CSV/XLSX çıkar; filtreli export MVP dışıdır.
+Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve domain kuralları:
 
-Boş `quantity` mevcut değeri korur, `0` sıfırlar. Boş `website_discounted_price` mevcut değeri korur; temizleme yalnızca explicit decision ile yapılır. Kaynakta olmayan ürün silinmez/arşivlenmez.
+1. **Başlık yapısı:** `product_name,regular_price,website_discounted_price,quantity`
+2. **Fiyat formatı (Türkçe para gösterimi):**
+   - Fiyatlar `38.099 TL`, `475 TL`, `10.349 TL` gibi `TL` soneki ve binlik basamak ayracı olarak nokta (`.`) içerir.
+   - Normalizasyon; `TL`, `TRY`, `₺` soneklerini ve aradaki/sondaki boşlukları temizler.
+   - Nokta (`.`) binlik ayracı olarak yorumlanır (`38.099 TL` -> `38099.00`). Varsa virgül (`,`) ondalık kuruş ayracıdır (`38.099,50 TL` -> `38099.50`, `12,50` -> `12.50`).
+   - Negatif fiyatlar engellenir; geçersiz veya sayıya çevrilemeyen metinler `error` ("Regular Price must be a number") olarak işaretlenir.
+3. **Eksik ve boş kolon toleransı:**
+   - Bazı satırlarda 4. kolon (`quantity`) hiç bulunmaz (örn. `07325 A,38.099 TL,34.099 TL` — satır sonu virgülü yoktur). Parser `restval=None` ile okur, eksik kolonda çökmez.
+   - Bazı satırlarda `quantity` boştur (örn. `0.58m  with Anderson cable,475 TL,`).
+   - `quantity` boş/eksik olduğunda: Mevcut ürünün fiziksel stoku korunur (`quantity=None`), stok hareketi oluşturulmaz.
+   - `quantity=0` olduğunda: Fiziksel stok sıfırlanır ve `stock_movements` tablosuna `csv_update` hareketi yazılır.
+   - `website_discounted_price` boş olduğunda: Mevcut Oliz/indirimli fiyat korunur; indirimi kaldırmak için önizleme ekranından açıkça `clear_discount` kararı seçilmelidir.
+4. **Ürün adı özellikleri ve normalizasyonu:**
+   - Baştaki sıfırlar anlamlıdır ve korunur (`07325 A`, `09325 A`, `09605`).
+   - Unicode NFKC normalizasyonu uygulanır (örn. `16343\xa0TVN` gibi bölünemez boşluk `\xa0` karakterleri standart boşluğa dönüştürülür).
+   - Ardışık boşluklar tek boşluğa indirilir (`0.58m  with Anderson cable` -> `0.58m with Anderson cable`).
+   - Kesin eşleşme `products.name_normalized` unique sütunu üzerinden yapılır; Türkçe `İ/I/ı/i` duyarsızlaştırması bu kolonda sağlanır.
+5. **Katalogda olmayan ürünler:**
+   - CSV dosyasında bulunmayan mevcut ürünler kesinlikle silinmez ve arşivlenmez.
 
-**HTTP/UI**
+**Vertical slice sırası**
 
-- `/products`, `/products/{id}`, `/imports/products/preview`, `/imports/products/commit` page/API çiftleri.
-- Preview ekranı conflict/error/update/skip/clear kararlarını satır bazında ve toplu gösterecek.
-- Commit sonrası özet ve değişen fiyat/stok geçmişi açık success/error feedback ile gösterilecek.
+1. **Domain normalizer ve kuralları:**
+   - `normalize_product_name`: Unicode NFKC, strip, whitespace collapse, baştaki sıfırları koruma, Türkçe `İ/ı` dönüşümü.
+   - `_normalize_decimal`: Türkçe binlik nokta ve `TL` sonekli değerleri (`38.099 TL`, `475 TL`), kuruşlu değerleri (`12,50`), düz sayıları (`1200`) hatasız `Decimal` string'e çevirme.
+   - `_normalize_quantity`: Boşluk, tam sayı ve negatif olmama kontrolü.
+   - Satır sınıflandırma politikası: `create` (yeni ürün), `update` (fiyat/stok değişimi), `skip` (fark yok veya kullanıcı kararı), `error` (eksik ad veya geçersiz sayı), `clear_discount` (indirimli fiyatı temizleme).
+2. **CSV/Excel içe aktarma önizlemesi (`PreviewProductImport`):**
+   - `utf-8`, `utf-8-sig` (BOM), `cp1254` (Windows-1254) fallback ve otomatik virgül/noktalı virgül delimiter algılama.
+   - `.xlsx` desteği (`openpyxl` streaming `iter_rows`).
+   - `product_import_batches` için staging batch kaydı (UUID, `source_checksum` SHA-256, `status='previewed'`).
+   - Satır önizleme sonucu: satır numarası, karar, tespit edilen değerler, hatalar ve uyarılar.
+3. **Atomik içe aktarma onay mekanizması (`CommitProductImport`):**
+   - Tek `UnitOfWork` transaction sınırı.
+   - Concurrency / Stale batch kontrolü: Dosya checksum veya önizleme zamanından sonra değişen ürün varsa commit reddedilir (`ConflictError`).
+   - Yeni ürünler için `Product` insert, mevcutlar için update.
+   - Yalnızca fiilen değişen fiyatlar için `ProductPriceHistory` kaydı (fiyat aynıysa gereksiz tarihçe oluşturulmaz).
+   - Fiziksel stok değiştiğinde `StockMovement` kaydı (`movement_type='csv_update'`, `quantity_before`, `quantity_after`, `quantity_delta`, batch'e bağlı `idempotency_key`).
+   - Batch durumunu `status='committed'` ve özet sayaçlarını (`created_count`, `updated_count`, `error_count`) güncelleme.
+4. **Ürün kataloğu arama ve detay sorguları:**
+   - `SearchProducts`: Normalleştirilmiş ad ve baştaki sıfırları koruyan substring arama; sayfalama desteği.
+   - `GetProductDetail`: Normal fiyat, Oliz fiyatı, maliyet, fiziksel stok, açık rezervasyon (M1'de 0), satılabilir stok, fiyat geçmişi ve stok hareket günlüğü.
+5. **Katalog dışa aktarma (`ExportProducts`):**
+   - Tüm ürünleri CSV (`utf-8-sig`) veya `.xlsx` olarak export etme.
+   - Kolonlar: `product_name`, `regular_price`, `website_discounted_price`, `quantity`, `cost_price`.
+   - Filtreli export MVP dışıdır.
+6. **Web arayüzü ve HTMX entegrasyonu:**
+   - `/products`: Ürün listesi ve canlı arama kutusu (`hx-get="/products" hx-trigger="keyup changed delay:300ms"`).
+   - `/products/{id}`: Ürün detay kartı, fiyat ve stok hareket geçmişi sekmeleri.
+   - `/imports/products`: CSV/XLSX dosya yükleme alanı (drag & drop ve dosya seçici).
+   - `/imports/products/preview`: Önizleme tablosu; çakışma, hata, güncelleme ve yeni kayıtları görsel rozetlerle listeleme; satır bazında veya toplu "Güncelle / Atla / İndirimi Temizle" kararları.
+   - `/imports/products/commit`: Onay butonu, işlem sonrası özet bildirim paneli (toast/banner).
+
+**Kod sözleşmesi**
+
+- Domain parser'lar saf Python fonksiyonlarıdır; DB veya HTTP bilmez.
+- Commit işlemi tamamen atomiktir; kısmi hata durumunda hiçbir satır yazılmaz.
+- `ProductImportBatch.source_checksum` mükerrer onayları engeller.
+- `products.name_normalized` üzerindeki UNIQUE kısıt duplikasyonu DB seviyesinde garantiler.
 
 **Davranış testleri**
 
-- `07325 A` aynı ürünü bulur; `07325A` ayrı üründür.
-- Aynı ürün tekrar import edilince duplicate oluşmaz.
-- Fiyat değişince history, değişmeyince gereksiz history oluşmaz.
-- Boş quantity korunur; zero quantity movement üretir.
-- Hatalı satır valid satırları sessizce bozmaz.
-- Preview sonrası ürün değişmişse commit stale conflict döner; aynı commit retry duplicate yaratmaz.
+- Gerçek `arcelik-06-09-2026.csv` satırları (`38.099 TL`, `475 TL,`, `07325 A,38.099 TL,34.099 TL`) sıfır hatayla ayrıştırılır ve doğru `Decimal` değerlerine normalize edilir.
+- `07325 A` ile `07325A` farklı ürünler olarak saklanır; arama baştaki sıfırları korur.
+- Aynı ürün ikinci kez aktarıldığında yeni ürün açılmaz, mevcut güncellenir.
+- Fiyat değişmemişse `ProductPriceHistory` oluşturulmaz; değişmişse eski/yeni değerlerle tarihçe yazılır.
+- Boş `quantity` mevcut stoku korur; `0` stoku sıfırlar ve stok hareketi oluşturur.
+- CSV'de bulunmayan ürünler silinmez ve `is_archived=True` yapılmaz.
+- Hatalı satırlar geçerli satırların önizlemesini veya aktarımını engellemez; önizleme listesinde hata nedeni gösterilir.
+- Önizleme onaylanmadan DB'de ürün veya stok değişikliği yapılmaz.
+- Önizleme sonrası ürün değişmişse commit stale conflict döner; aynı commit retry duplicate yaratmaz.
 
 **Çıkış kriteri**
 
-Örnek CSV/XLSX preview'da tüm kararları görünür; onay olmadan DB değişmez; commit atomiktir; ürün/fiyat/stok geçmişi geriye dönük okunur.
+Gerçek `arcelik-06-09-2026.csv` dosyası web arayüzünden veya API'den önizlenir; fiyatlar (`38.099 TL` -> 38.099,00 TL) ve stoklar doğru sınıflandırılır; kullanıcı onayıyla tek transaction'da DB'ye kaydedilir; ürün arama ve detay sayfalarında anında sorgulanabilir.
 
 ### Milestone 2 — Reservation ve A4
 

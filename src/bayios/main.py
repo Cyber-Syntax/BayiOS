@@ -11,6 +11,8 @@ from bayios.bootstrap import ApplicationSettings, build_container
 from bayios.logging_config import configure_logging
 from bayios.web.api.health import router as health_router
 from bayios.web.pages.home import router as home_router
+from bayios.web.pages.imports import router as imports_router
+from bayios.web.pages.products import router as products_router
 from bayios.web.templating import STATIC_DIR
 
 logger = logging.getLogger(__name__)
@@ -37,4 +39,6 @@ def create_app(settings: ApplicationSettings | None = None) -> FastAPI:
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     app.include_router(health_router)
     app.include_router(home_router)
+    app.include_router(products_router)
+    app.include_router(imports_router)
     return app

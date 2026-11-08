@@ -1,0 +1,75 @@
+<div class="table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Ürün Adı</th>
+        <th>Normal Fiyat</th>
+        <th>Oliz / Web İndirimli</th>
+        <th>Fiziksel Stok</th>
+        <th>Satılabilir Stok</th>
+        <th>Son Fiyat Değişimi</th>
+        <th>İşlem</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in products %}
+      <tr>
+        <td>
+          <a href="/products/{{ product.id }}"><strong>{{ product.name }}</strong></a>
+        </td>
+        <td>
+          {% if product.regular_price is not none %}
+          {{ "{:,.2f}".format(product.regular_price).replace(",", "X").replace(".", ",").replace("X", ".") }} TL
+          {% else %}
+          <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if product.website_discounted_price is not none %}
+          <span class="badge badge-info">
+            {{ "{:,.2f}".format(product.website_discounted_price).replace(",", "X").replace(".", ",").replace("X", ".") }} TL
+          </span>
+          {% else %}
+          <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if product.physical_stock > 0 %}
+          <span class="badge badge-success">{{ product.physical_stock }} adet</span>
+          {% elif product.physical_stock == 0 %}
+          <span class="badge badge-warning">0 adet</span>
+          {% else %}
+          <span class="badge badge-danger">{{ product.physical_stock }} adet</span>
+          {% endif %}
+        </td>
+        <td>
+          <strong>{{ product.physical_stock }} adet</strong>
+        </td>
+        <td>
+          {% if product.last_price_changed_at %}
+          <small class="muted">{{ product.last_price_changed_at.strftime('%d.%m.%Y %H:%M') }}</small>
+          {% else %}
+          <small class="muted">—</small>
+          {% endif %}
+        </td>
+        <td>
+          <a class="btn btn-sm" href="/products/{{ product.id }}">Detay</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" style="text-align: center; padding: 2.5rem;" class="muted">
+          {% if q %}
+          "{{ q }}" aramasıyla eşleşen ürün bulunamadı.
+          {% else %}
+          Katalogda henüz ürün bulunmuyor. <a href="/imports/products">CSV / Excel ile ürün yükleyin</a>.
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: .75rem;">
+  <small class="muted">Toplam {{ total_count }} ürün</small>
+</div>

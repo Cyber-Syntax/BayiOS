@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block content %}
+<div class="actions-bar">
+  <div>
+    <div style="margin-bottom: .25rem;">
+      <a href="/products" class="muted" style="text-decoration: none;">&larr; Ürünler</a>
+    </div>
+    <h1>{{ product.name }}</h1>
+    <small class="muted">Kayıt No: {{ product.id }}</small>
+  </div>
+  <div class="actions-group">
+    <a class="btn" href="/products">Listeye Dön</a>
+  </div>
+</div>
+
+<div class="grid-stats">
+  <div class="stat-box">
+    <div class="stat-label">Normal Fiyat</div>
+    <div class="stat-value">
+      {% if product.regular_price is not none %}
+      {{ "{:,.2f}".format(product.regular_price).replace(",", "X").replace(".", ",").replace("X", ".") }} TL
+      {% else %}
+      —
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Oliz / Web İndirimli</div>
+    <div class="stat-value" style="color: #2563eb;">
+      {% if product.website_discounted_price is not none %}
+      {{ "{:,.2f}".format(product.website_discounted_price).replace(",", "X").replace(".", ",").replace("X", ".") }} TL
+      {% else %}
+      —
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Alış Maliyeti</div>
+    <div class="stat-value">
+      {% if product.cost_price is not none %}
+      {{ "{:,.2f}".format(product.cost_price).replace(",", "X").replace(".", ",").replace("X", ".") }} TL
+      {% else %}
+      —
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Fiziksel Stok</div>
+    <div class="stat-value" style="color: #059669;">
+      {{ product.physical_stock }}
+    </div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Açık Rezervasyon</div>
+    <div class="stat-value" style="color: #d97706;">
+      {{ open_reservation }}
+    </div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Satılabilir Stok</div>
+    <div class="stat-value">
+      {{ sellable_stock }}
+    </div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Temin İhtiyacı</div>
+    <div class="stat-value" style="{% if supply_need > 0 %}color: #dc2626;{% endif %}">
+      {{ supply_need }}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Fiyat Geçmişi</h2>
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Tarih</th>
+          <th>Fiyat Türü</th>
+          <th>Eski Değer</th>
+          <th>Yeni Değer</th>
+          <th>Kaynak</th>
+          <th>İşlemi Yapan</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in price_history %}
+        <tr>
+          <td>{{ h.changed_at.strftime('%d.%m.%Y %H:%M') if h.changed_at else '—' }}</td>
+          <td>
+            {% if h.field_name == 'regular_price' %}
+            Normal Fiyat
+            {% elif h.field_name == 'website_discounted_price' %}
+            Oliz / İndirimli Fiyat
+            {% else %}
+            {{ h.field_name }}
+            {% endif %}
+          </td>
+          <td>
+            {% if h.old_value is not none %}
+            {{ "{:,.2f}".format(h.old_value).replace(",", "X").replace(".", ",").replace("X", ".") }} TL
+            {% else %}
+            <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if h.new_value is not none %}
+            <strong>{{ "{:,.2f}".format(h.new_value).replace(",", "X").replace(".", ",").replace("X", ".") }} TL</strong>
+            {% else %}
+            <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td><span class="badge">{{ h.source }}</span></td>
+          <td>{{ h.changed_by_name or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="muted" style="text-align: center; padding: 1.5rem;">Fiyat geçmişi kaydı bulunmuyor.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Stok Hareket Geçmişi</h2>
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Tarih</th>
+          <th>Hareket Türü</th>
+          <th>Önceki Miktar</th>
+          <th>Değişim</th>
+          <th>Yeni Miktar</th>
+          <th>Not</th>
+          <th>İşlemi Yapan</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in stock_movements %}
+        <tr>
+          <td>{{ m.created_at.strftime('%d.%m.%Y %H:%M') if m.created_at else '—' }}</td>
+          <td><span class="badge">{{ m.movement_type }}</span></td>
+          <td>{{ m.quantity_before }}</td>
+          <td>
+            {% if m.quantity_delta > 0 %}
+            <strong style="color: #059669;">+{{ m.quantity_delta }}</strong>
+            {% elif m.quantity_delta < 0 %}
+            <strong style="color: #dc2626;">{{ m.quantity_delta }}</strong>
+            {% else %}
+            0
+            {% endif %}
+          </td>
+          <td><strong>{{ m.quantity_after }}</strong></td>
+          <td>{{ m.note or '—' }}</td>
+          <td>{{ m.created_by_name or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="muted" style="text-align: center; padding: 1.5rem;">Stok hareketi kaydı bulunmuyor.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
