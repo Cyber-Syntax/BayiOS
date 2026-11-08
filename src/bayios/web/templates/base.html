@@ -10,22 +10,84 @@
   <script src="/static/vendor/alpine.min.js?v={{ asset_version }}" defer></script>
 </head>
 <body>
-  <div class="shell">
+  {% macro nav_icon(name) %}
+  <svg class="nav-icon" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+    {% if name == "home" %}
+    <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/>
+    {% elif name == "products" %}
+    <path d="M21 8 12 3 3 8l9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>
+    {% elif name == "campaigns" %}
+    <path d="M3 11v2a1 1 0 0 0 1 1h2l5 3V7L6 10H4a1 1 0 0 0-1 1Z"/><path d="M15 8a5 5 0 0 1 0 8"/><path d="M18 5a9 9 0 0 1 0 14"/>
+    {% elif name == "offers" %}
+    <path d="M6 3h9l3 3v15l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h3"/>
+    {% elif name == "reservations" %}
+    <path d="M4 5h16v16H4z"/><path d="M8 3v4M16 3v4M4 10h16"/><path d="m9 15 2 2 4-4"/>
+    {% elif name == "stock" %}
+    <path d="M9 4h6v3H9z"/><path d="M8 5H6v16h12V5h-2"/><path d="M9 11h6M9 15h6M9 19h3"/>
+    {% elif name == "quick_deliveries" %}
+    <path d="M3 7h11v10H3z"/><path d="M14 10h4l3 3v4h-7"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/>
+    {% elif name == "settings" %}
+    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.12.37.4.68.77.87.27.13.56.2.85.2H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51.93Z"/>
+    {% else %}
+    <circle cx="12" cy="12" r="9"/>
+    {% endif %}
+  </svg>
+  {% endmacro %}
+  <div class="shell"
+       x-data="{
+         sidebarOpen: window.matchMedia('(min-width: 1280px)').matches,
+         init() {
+           const media = window.matchMedia('(min-width: 1280px)');
+           media.addEventListener('change', (event) => {
+             this.sidebarOpen = event.matches;
+           });
+         },
+         toggleSidebar() {
+           this.sidebarOpen = !this.sidebarOpen;
+         },
+         closeSidebarOnMobile() {
+           if (window.innerWidth < 1280) {
+             this.sidebarOpen = false;
+           }
+         }
+       }"
+       :class="sidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'">
     <header class="topbar no-print">
+      <button type="button" class="icon-btn sidebar-toggle" @click="toggleSidebar()" :aria-expanded="sidebarOpen ? 'true' : 'false'" aria-controls="main-navigation" aria-label="Menüyü aç veya kapat" title="Menü">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
       <a class="brand" href="/">BayiOS</a>
       <form class="search" role="search" action="/products" method="get">
         <input type="search" name="q" placeholder="Ürün ara" aria-label="Ürün ara" value="{{ q or '' }}">
       </form>
     </header>
 
-    <nav class="sidenav no-print" aria-label="Ana gezinme">
+    <div class="sidebar-backdrop no-print" x-show="sidebarOpen" x-cloak @click="sidebarOpen = false" aria-hidden="true"></div>
+
+    <nav id="main-navigation" class="sidenav no-print" aria-label="Ana gezinme">
+      <div class="sidenav-header">
+        <span class="brand">BayiOS</span>
+        <button type="button" class="icon-btn" @click="sidebarOpen = false" aria-label="Menüyü kapat" title="Menüyü kapat">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6 6 12 12M18 6 6 18"/>
+          </svg>
+        </button>
+      </div>
       <ul>
         {% for item in nav_items %}
         <li>
           {% if item.enabled %}
-          <a href="{{ item.href }}"{% if item.key == active_nav %} aria-current="page"{% endif %}>{{ item.label }}</a>
+          <a href="{{ item.href }}"{% if item.key == active_nav %} aria-current="page"{% endif %} title="{{ item.label }}" @click="closeSidebarOnMobile()">
+            {{ nav_icon(item.icon) }}
+            <span class="nav-label">{{ item.label }}</span>
+          </a>
           {% else %}
-          <span class="nav-disabled" aria-disabled="true">{{ item.label }} <small>(yakında)</small></span>
+          <span class="nav-disabled" aria-disabled="true" title="{{ item.label }} (yakında)">
+            {{ nav_icon(item.icon) }}
+            <span class="nav-label">{{ item.label }} <small>(yakında)</small></span>
+          </span>
           {% endif %}
         </li>
         {% endfor %}

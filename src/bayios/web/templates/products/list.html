@@ -83,23 +83,22 @@
         hx-trigger="keyup changed delay:300ms from:#product-search-input, search from:#product-search-input, change from:#status-filter"
         hx-target="#products-table-container"
         hx-push-url="true">
-    <div style="display: flex; gap: .5rem; align-items: center; width: 100%;">
+    <div class="search-toolbar">
       <input type="search"
              id="product-search-input"
              name="q"
-             class="form-control"
-             style="flex: 1; min-width: 0;"
+             class="form-control search-input"
              placeholder="Ürün adı ile ara (örn: 07325 A, MD 20, Buzdolabı...)"
              value="{{ q or '' }}"
              autocomplete="off">
-      <select id="status-filter" name="status" class="form-control" style="width: auto; min-width: 140px; flex-shrink: 0;">
+      <select id="status-filter" name="status" class="form-control search-filter">
         <option value="active" {% if status == 'active' %}selected{% endif %}>Aktif Ürünler</option>
         <option value="archived" {% if status == 'archived' %}selected{% endif %}>Arşivdekiler</option>
         <option value="all" {% if status == 'all' %}selected{% endif %}>Tümü (Arşiv Dahil)</option>
       </select>
-      <button type="submit" class="btn btn-primary" style="white-space: nowrap; flex-shrink: 0;">Ara</button>
+      <button type="submit" class="btn btn-primary search-submit">Ara</button>
       {% if q or status != 'active' %}
-      <a href="/products" class="btn" style="white-space: nowrap; flex-shrink: 0;">Temizle</a>
+      <a href="/products" class="btn search-clear">Temizle</a>
       {% endif %}
     </div>
   </form>

@@ -1,39 +1,39 @@
-<div class="table-container">
-  <table class="data-table">
+<div class="table-container products-table-container">
+  <table class="data-table products-table">
     <thead>
       <tr>
         <th style="width: 40px; text-align: center;">
           <input type="checkbox" @click="toggleSelectAll()" :checked="selectAll" title="Tümünü Seç">
         </th>
-        <th>Ürün Adı</th>
-        <th>Normal Fiyat</th>
-        <th>Oliz / Web İndirimli</th>
-        <th>Fiziksel Stok</th>
-        <th>Satılabilir Stok</th>
-        <th>Son Fiyat Değişimi</th>
-        <th style="text-align: right;">İşlem</th>
+        <th class="col-name">Ürün Adı</th>
+        <th class="col-price">Normal Fiyat</th>
+        <th class="col-price">Oliz / Web İndirimli</th>
+        <th class="col-stock">Fiziksel Stok</th>
+        <th class="col-stock">Satılabilir Stok</th>
+        <th class="col-date">Son Fiyat Değişimi</th>
+        <th class="col-actions">İşlem</th>
       </tr>
     </thead>
     <tbody>
       {% for product in products %}
       <tr {% if product.is_archived %}style="opacity: 0.7; background: #fafafa;"{% endif %}>
-        <td style="text-align: center;">
+        <td class="col-select" style="text-align: center;">
           <input type="checkbox" class="product-checkbox" value="{{ product.id }}" @change="updateSelection()">
         </td>
-        <td>
+        <td class="col-name" data-label="Ürün Adı">
           <a href="/products/{{ product.id }}"><strong>{{ product.name }}</strong></a>
           {% if product.is_archived %}
           <span class="badge" style="margin-left: .25rem; font-size: .75rem;">Arşivde</span>
           {% endif %}
         </td>
-        <td>
+        <td class="col-price" data-label="Normal Fiyat">
           {% if product.regular_price is not none %}
           {{ "{:,.2f}".format(product.regular_price).replace(",", "X").replace(".", ",").replace("X", ".") }} TL
           {% else %}
           <span class="muted">—</span>
           {% endif %}
         </td>
-        <td>
+        <td class="col-price" data-label="Oliz / Web İndirimli">
           {% if product.website_discounted_price is not none %}
           <span class="badge badge-info">
             {{ "{:,.2f}".format(product.website_discounted_price).replace(",", "X").replace(".", ",").replace("X", ".") }} TL
@@ -42,7 +42,7 @@
           <span class="muted">—</span>
           {% endif %}
         </td>
-        <td>
+        <td class="col-stock" data-label="Fiziksel Stok">
           {% if product.physical_stock > 0 %}
           <span class="badge badge-success">{{ product.physical_stock }} adet</span>
           {% elif product.physical_stock == 0 %}
@@ -51,22 +51,22 @@
           <span class="badge badge-danger">{{ product.physical_stock }} adet</span>
           {% endif %}
         </td>
-        <td>
+        <td class="col-stock" data-label="Satılabilir Stok">
           <strong>{{ product.physical_stock }} adet</strong>
         </td>
-        <td>
+        <td class="col-date" data-label="Son Fiyat Değişimi">
           {% if product.last_price_changed_at %}
           <small class="muted">{{ product.last_price_changed_at.strftime('%d.%m.%Y %H:%M') }}</small>
           {% else %}
           <small class="muted">—</small>
           {% endif %}
         </td>
-        <td style="text-align: right;">
-          <div style="display: inline-flex; gap: .25rem; align-items: center; justify-content: flex-end;">
-            <form method="post" action="/products/{{ product.id }}/stock" style="display: inline-flex; gap: .25rem; align-items: center;">
+        <td class="col-actions" data-label="İşlem">
+          <div class="actions-inline">
+            <form method="post" action="/products/{{ product.id }}/stock" class="stock-form">
               <input type="hidden" name="redirect_to" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
-              <input type="number" name="physical_stock" value="{{ product.physical_stock }}" min="0" class="form-control" style="width: 5.5rem; min-height: 32px; padding: .2rem .4rem;" aria-label="Fiziksel stok" required>
-              <button type="submit" class="btn btn-sm" title="Stok güncelle">Stok</button>
+              <input type="number" name="physical_stock" value="{{ product.physical_stock }}" min="0" class="form-control stock-input" aria-label="Fiziksel stok" required>
+              <button type="submit" class="btn btn-sm" title="Stok güncelle">Stok Güncelle</button>
             </form>
             <a class="btn btn-sm" href="/products/{{ product.id }}">Detay</a>
           </div>
