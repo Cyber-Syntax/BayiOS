@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import base64
 import json
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from bayios.application.imports import commit_product_import, preview_product_import
-from bayios.domain.products import normalize_product_name
 from bayios.web.deps import ActorDep, UnitOfWorkDep
 from bayios.web.templating import templates
 
@@ -77,6 +77,8 @@ async def preview_import(
         if not row.errors
     }
 
+    import_token = uuid.uuid4().hex
+
     return templates.TemplateResponse(
         request,
         "imports/preview.html",
@@ -91,6 +93,7 @@ async def preview_import(
             "rows": preview.rows,
             "source_b64": source_b64,
             "initial_decisions": initial_decisions,
+            "import_token": import_token,
         },
     )
 
@@ -112,6 +115,7 @@ async def commit_import(
     # Parse decisions from single JSON field — avoids multipart field-count limits
     form_data = await request.form()
     decisions_json_str = form_data.get("decisions_json") or "{}"
+    import_token = form_data.get("import_token")
     try:
         decisions: dict[str, str] = json.loads(decisions_json_str)
     except json.JSONDecodeError as exc:
@@ -124,10 +128,11 @@ async def commit_import(
         source=source_bytes,
         decisions=decisions,
         actor=actor,
+        commit_token=str(import_token) if import_token else None,
     )
 
     # Redirect back to products with feedback
     return RedirectResponse(
-        url=f"/products?msg=import_success&created={result.created_count}&updated={result.updated_count}",
+        url=f"/products?msg=import_success&created={result.created_count}&updated={result.updated_count}&skipped={result.skipped_count}",
         status_code=303,
     )

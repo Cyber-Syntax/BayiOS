@@ -6,7 +6,11 @@ from types import TracebackType
 from typing import Self
 
 from bayios.adapters.db.models.inventory import StockMovement
-from bayios.adapters.db.models.products import Product, ProductImportBatch, ProductPriceHistory
+from bayios.adapters.db.models.products import (
+    Product,
+    ProductImportBatch,
+    ProductPriceHistory,
+)
 from bayios.domain.products import normalize_product_name
 
 
@@ -18,9 +22,19 @@ class FakeProductRepository:
         self.import_batches: list[ProductImportBatch] = []
 
     def search(
-        self, query: str | None = None, limit: int = 50, offset: int = 0
+        self,
+        query: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        include_archived: bool = False,
+        only_archived: bool = False,
     ) -> tuple[Sequence[Product], int]:
         results = list(self.products.values())
+        if only_archived:
+            results = [p for p in results if getattr(p, "is_archived", False)]
+        elif not include_archived:
+            results = [p for p in results if not getattr(p, "is_archived", False)]
+
         if query and query.strip():
             normalized = normalize_product_name(query)
             clean = query.strip().lower()
@@ -35,6 +49,29 @@ class FakeProductRepository:
 
     def get_by_id(self, product_id: uuid.UUID) -> Product | None:
         return self.products.get(product_id)
+
+    def get_by_ids(self, product_ids: Sequence[uuid.UUID]) -> Sequence[Product]:
+        target = set(product_ids)
+        return [p for p in self.products.values() if p.id in target]
+
+    def set_archived(self, product_ids: Sequence[uuid.UUID], archived: bool = True) -> int:
+        count = 0
+        for pid in product_ids:
+            if pid in self.products:
+                self.products[pid].is_archived = archived
+                count += 1
+        return count
+
+    def delete_products(self, product_ids: Sequence[uuid.UUID]) -> int:
+        target = set(product_ids)
+        self.price_history = [h for h in self.price_history if h.product_id not in target]
+        self.stock_movements = [m for m in self.stock_movements if m.product_id not in target]
+        count = 0
+        for pid in list(self.products.keys()):
+            if pid in target:
+                del self.products[pid]
+                count += 1
+        return count
 
     def get_by_normalized_name(self, normalized_name: str) -> Product | None:
         for p in self.products.values():
@@ -85,8 +122,35 @@ class FakeUnitOfWork:
         self.products = repo or FakeProductRepository()
         self.committed = False
         self.rolled_back = False
+        self._initial_state: tuple[object, ...] | None = None
+
+    def _state(self) -> tuple[object, ...]:
+        products = tuple(
+            sorted(
+                (
+                    str(p.id),
+                    p.name,
+                    p.name_normalized,
+                    getattr(p, "is_archived", None),
+                    getattr(p, "physical_stock", None),
+                    getattr(p, "regular_price", None),
+                    getattr(p, "website_discounted_price", None),
+                    getattr(p, "cost_price", None),
+                )
+                for p in self.products.products.values()
+            )
+        )
+        return (
+            products,
+            len(self.products.price_history),
+            len(self.products.stock_movements),
+            len(self.products.import_batches),
+        )
 
     def __enter__(self) -> Self:
+        self.committed = False
+        self.rolled_back = False
+        self._initial_state = self._state()
         return self
 
     def __exit__(
@@ -97,6 +161,10 @@ class FakeUnitOfWork:
     ) -> None:
         if exc_type is not None:
             self.rollback()
+        elif not self.committed and self._initial_state != self._state():
+            raise AssertionError(
+                "UnitOfWork exited with uncommitted writes; call uow.commit()"
+            )
 
     def commit(self) -> None:
         self.committed = True

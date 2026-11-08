@@ -56,7 +56,7 @@ def test_get_products_htmx_search_renders_partial_table(client: TestClient) -> N
 
 
 def test_get_product_detail(client: TestClient, fake_uow: FakeUnitOfWork) -> None:
-    p = list(fake_uow.products.get_all())[0]
+    p = next(iter(fake_uow.products.get_all()))
     response = client.get(f"/products/{p.id}")
     assert response.status_code == 200
     assert p.name in response.text
@@ -104,7 +104,7 @@ def test_post_imports_preview_and_commit(client: TestClient, fake_uow: FakeUnitO
     # Verify in repo
     imported = fake_uow.products.get_by_normalized_name("09325 a")
     assert imported is not None
-    assert imported.regular_price == Decimal("42199")
+    assert imported.regular_price == Decimal(42199)
     assert imported.physical_stock == 3
 
 
@@ -137,3 +137,150 @@ def test_export_endpoints(client: TestClient) -> None:
     xlsx_res = client.get("/products/export/xlsx")
     assert xlsx_res.status_code == 200
     assert xlsx_res.content.startswith(b"PK")
+
+
+def test_post_create_manual_product_route(client: TestClient, fake_uow: FakeUnitOfWork) -> None:
+    res = client.post(
+        "/products",
+        data={
+            "name": "Yeni Manuel Ürün",
+            "regular_price": "25.000 TL",
+            "website_discounted_price": "22.500 TL",
+            "cost_price": "18.000 TL",
+            "physical_stock": "4",
+        },
+        follow_redirects=False,
+    )
+    assert res.status_code == 303
+    assert fake_uow.committed
+    assert "Yeni ürün kataloğa eklendi." in client.get(res.headers["location"]).text
+    prod = fake_uow.products.get_by_normalized_name("yeni manuel ürün")
+    assert prod is not None
+    assert prod.regular_price == Decimal(25000)
+    assert prod.physical_stock == 4
+
+
+def test_bulk_archive_and_unarchive_route(client: TestClient, fake_uow: FakeUnitOfWork) -> None:
+    prod = next(iter(fake_uow.products.get_all()))
+    res = client.post(
+        "/products/bulk-archive",
+        data={"product_ids": [str(prod.id)], "action": "archive"},
+        follow_redirects=False,
+    )
+    assert res.status_code == 303
+    assert fake_uow.committed
+    assert "Seçilen ürün(ler) arşivlendi." in client.get(res.headers["location"]).text
+    assert prod.is_archived is True
+
+    # Unarchive
+    res2 = client.post(
+        "/products/bulk-archive",
+        data={"product_ids": [str(prod.id)], "action": "unarchive"},
+        follow_redirects=False,
+    )
+    assert res2.status_code == 303
+    assert fake_uow.committed
+    assert "Seçilen ürün(ler) arşivden çıkarıldı." in client.get(res2.headers["location"]).text
+    assert prod.is_archived is False
+
+
+def test_bulk_delete_requires_confirmation_route(client: TestClient, fake_uow: FakeUnitOfWork) -> None:
+    prod = next(iter(fake_uow.products.get_all()))
+
+    # Without confirmation fails
+    fail_res = client.post(
+        "/products/bulk-delete",
+        data={"product_ids": [str(prod.id)]},
+    )
+    assert fail_res.status_code == 400
+    assert "Silme işlemi iki aşamalı doğrulama gerektirir" in fail_res.text
+
+    # With confirmation succeeds
+    ok_res = client.post(
+        "/products/bulk-delete",
+        data={"product_ids": [str(prod.id)], "confirmed": "yes_delete_permanently"},
+        follow_redirects=False,
+    )
+    assert ok_res.status_code == 303
+    assert fake_uow.committed
+    assert "Seçilen ürün(ler) veritabanından kalıcı olarak silindi." in client.get(
+        ok_res.headers["location"]
+    ).text
+    assert fake_uow.products.get_by_id(prod.id) is None
+
+
+def test_update_product_stock_route(client: TestClient, fake_uow: FakeUnitOfWork) -> None:
+    prod = next(iter(fake_uow.products.get_all()))
+    res = client.post(
+        f"/products/{prod.id}/stock",
+        data={"physical_stock": "12", "note": "Sayım fazlası bulundu"},
+        follow_redirects=False,
+    )
+    assert res.status_code == 303
+    assert fake_uow.committed
+    assert "Ürün stoku başarıyla güncellendi." in client.get(res.headers["location"]).text
+    assert prod.physical_stock == 12
+
+
+def test_update_product_stock_route_can_redirect_back_to_list(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    prod = next(iter(fake_uow.products.get_all()))
+    res = client.post(
+        f"/products/{prod.id}/stock",
+        data={
+            "physical_stock": "7",
+            "note": "Liste hızlı güncelleme",
+            "redirect_to": "/products?q=07325&status=active",
+        },
+        follow_redirects=False,
+    )
+    assert res.status_code == 303
+    assert res.headers["location"].startswith("/products?")
+    assert "msg=stock_updated" in res.headers["location"]
+    assert fake_uow.committed
+    assert prod.physical_stock == 7
+
+
+def test_update_product_route_records_history(client: TestClient, fake_uow: FakeUnitOfWork) -> None:
+    prod = next(iter(fake_uow.products.get_all()))
+    res = client.post(
+        f"/products/{prod.id}/edit",
+        data={
+            "name": "07325 A Guncel",
+            "regular_price": "40.000 TL",
+            "website_discounted_price": "",
+            "cost_price": "30.000 TL",
+        },
+        follow_redirects=False,
+    )
+    assert res.status_code == 303
+    assert fake_uow.committed
+    assert "Ürün bilgileri güncellendi." in client.get(res.headers["location"]).text
+    assert prod.name == "07325 A Guncel"
+    assert prod.regular_price == Decimal(40000)
+    assert prod.website_discounted_price is None
+    assert prod.cost_price == Decimal(30000)
+    assert len(fake_uow.products.get_price_history(prod.id)) == 3
+
+
+def test_commit_with_all_skipped_shows_accurate_message(client: TestClient) -> None:
+    csv_content = (
+        b"product_name,regular_price,quantity\n"
+        b"Deneme Urun,1000,1\n"
+    )
+    source_b64 = base64.b64encode(csv_content).decode("ascii")
+    # All rows skipped
+    res = client.post(
+        "/imports/products/commit",
+        data={
+            "file_name": "deneme.csv",
+            "file_type": "csv",
+            "source_b64": source_b64,
+            "decisions_json": '{"2": "skip"}',
+        },
+        follow_redirects=True,
+    )
+    assert res.status_code == 200
+    # Shows 0 new, 0 updated, 1 skipped!
+    assert "0 yeni ürün eklendi, 0 ürün güncellendi, 1 satır atlandı" in res.text

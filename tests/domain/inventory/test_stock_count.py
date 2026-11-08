@@ -1,6 +1,6 @@
-import pytest
+from datetime import UTC, datetime
 
-from datetime import datetime, timezone
+import pytest
 
 from bayios.domain.inventory import (
     CountSession,
@@ -24,8 +24,8 @@ def test_stock_movement_types_distinguish_csv_delivery_and_count() -> None:
 
 
 def test_count_session_snapshots_quantity_and_completes_adjustment_once() -> None:
-    opened_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
-    completed_at = datetime(2026, 1, 2, tzinfo=timezone.utc)
+    opened_at = datetime(2026, 1, 1, tzinfo=UTC)
+    completed_at = datetime(2026, 1, 2, tzinfo=UTC)
     session = CountSession.open(
         category_id="white-goods",
         quantities={"p1": 5},
@@ -48,7 +48,7 @@ def test_count_session_snapshots_quantity_and_completes_adjustment_once() -> Non
         current_quantities={"p1": 3},
         current_version=4,
         actor_name="Ayşe",
-        completed_at=datetime(2026, 1, 3, tzinfo=timezone.utc),
+        completed_at=datetime(2026, 1, 3, tzinfo=UTC),
     )
 
     assert completed.adjustments == {"p1": -2}
@@ -68,7 +68,7 @@ def test_count_completion_requires_all_differences_to_be_reviewed() -> None:
         category_id="white-goods",
         quantities={"p1": 5},
         stock_version=1,
-        opened_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        opened_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
 
     with pytest.raises(ValueError, match="difference"):
@@ -79,7 +79,7 @@ def test_count_completion_requires_all_differences_to_be_reviewed() -> None:
             current_version=1,
             actor_name=None,
             acknowledge_differences=False,
-            completed_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
+            completed_at=datetime(2026, 1, 2, tzinfo=UTC),
         )
 
 
@@ -88,7 +88,7 @@ def test_count_completion_rejects_stale_stock_version() -> None:
         category_id="white-goods",
         quantities={"p1": 5},
         stock_version=1,
-        opened_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        opened_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
 
     with pytest.raises(ValueError, match="stale"):
@@ -98,7 +98,7 @@ def test_count_completion_rejects_stale_stock_version() -> None:
             current_quantities={"p1": 6},
             current_version=2,
             actor_name=None,
-            completed_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
+            completed_at=datetime(2026, 1, 2, tzinfo=UTC),
         )
 
 
@@ -107,7 +107,7 @@ def test_count_session_requires_explicit_difference_acknowledgement() -> None:
         category_id="white-goods",
         quantities={"p1": 5},
         stock_version=1,
-        opened_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        opened_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
 
     with pytest.raises(ValueError, match="difference"):
@@ -117,5 +117,5 @@ def test_count_session_requires_explicit_difference_acknowledgement() -> None:
             current_quantities={"p1": 5},
             current_version=1,
             actor_name=None,
-            completed_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
+            completed_at=datetime(2026, 1, 2, tzinfo=UTC),
         )

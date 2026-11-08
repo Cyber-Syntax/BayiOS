@@ -45,10 +45,9 @@ class SqlAlchemyUnitOfWork:
         try:
             if exc_type is not None:
                 session.rollback()
-            elif not self._committed:
+            elif not self._committed and (session.dirty or session.new or session.deleted):
                 # Rollback uncommitted write changes if any exist
-                if session.dirty or session.new or session.deleted:
-                    session.rollback()
+                session.rollback()
         finally:
             session.close()
             self._session = None

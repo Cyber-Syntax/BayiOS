@@ -5,17 +5,32 @@ from collections.abc import Sequence
 from typing import Protocol
 
 from bayios.adapters.db.models.inventory import StockMovement
-from bayios.adapters.db.models.products import Product, ProductImportBatch, ProductPriceHistory
+from bayios.adapters.db.models.products import (
+    Product,
+    ProductImportBatch,
+    ProductPriceHistory,
+)
 
 
 class ProductRepository(Protocol):
     """Product catalog and import persistence port."""
 
     def search(
-        self, query: str | None = None, limit: int = 50, offset: int = 0
+        self,
+        query: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        include_archived: bool = False,
+        only_archived: bool = False,
     ) -> tuple[Sequence[Product], int]: ...
 
     def get_by_id(self, product_id: uuid.UUID) -> Product | None: ...
+
+    def get_by_ids(self, product_ids: Sequence[uuid.UUID]) -> Sequence[Product]: ...
+
+    def set_archived(self, product_ids: Sequence[uuid.UUID], archived: bool = True) -> int: ...
+
+    def delete_products(self, product_ids: Sequence[uuid.UUID]) -> int: ...
 
     def get_by_normalized_name(self, normalized_name: str) -> Product | None: ...
 

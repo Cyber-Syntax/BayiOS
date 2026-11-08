@@ -6,14 +6,15 @@ def test_preview_product_import_classifies_new_and_invalid_rows() -> None:
         b"product_name,regular_price,quantity\nNew Product,1200,3\n,not-a-price,abc\n"
     )
 
-    assert [row.decision for row in result.rows] == ["create", "error"]
-    assert result.rows[0].product_name == "New Product"
-    assert result.rows[0].regular_price == "1200"
-    assert result.rows[1].errors == (
+    # Problematic rows are sorted to the top
+    assert [row.decision for row in result.rows] == ["error", "create"]
+    assert result.rows[0].errors == (
         "Name is required",
         "Regular Price must be a number",
         "Quantity must be a non-negative integer",
     )
+    assert result.rows[1].product_name == "New Product"
+    assert result.rows[1].regular_price == "1200"
 
 
 def test_preview_product_import_accepts_cp1254_semicolon_and_bom() -> None:

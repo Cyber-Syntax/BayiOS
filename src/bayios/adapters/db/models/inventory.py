@@ -30,7 +30,9 @@ class StockMovement(Base):
     )
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    product_id: Mapped[uuid.UUID] = mapped_column(sa.ForeignKey("products.id"))
+    product_id: Mapped[uuid.UUID] = mapped_column(
+        sa.ForeignKey("products.id", ondelete="CASCADE")
+    )
     movement_type: Mapped[str] = mapped_column(sa.Text)
     quantity_delta: Mapped[int] = mapped_column(sa.Integer)
     quantity_before: Mapped[int] = mapped_column(sa.Integer)

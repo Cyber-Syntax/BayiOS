@@ -2,20 +2,29 @@
   <table class="data-table">
     <thead>
       <tr>
+        <th style="width: 40px; text-align: center;">
+          <input type="checkbox" @click="toggleSelectAll()" :checked="selectAll" title="Tümünü Seç">
+        </th>
         <th>Ürün Adı</th>
         <th>Normal Fiyat</th>
         <th>Oliz / Web İndirimli</th>
         <th>Fiziksel Stok</th>
         <th>Satılabilir Stok</th>
         <th>Son Fiyat Değişimi</th>
-        <th>İşlem</th>
+        <th style="text-align: right;">İşlem</th>
       </tr>
     </thead>
     <tbody>
       {% for product in products %}
-      <tr>
+      <tr {% if product.is_archived %}style="opacity: 0.7; background: #fafafa;"{% endif %}>
+        <td style="text-align: center;">
+          <input type="checkbox" class="product-checkbox" value="{{ product.id }}" @change="updateSelection()">
+        </td>
         <td>
           <a href="/products/{{ product.id }}"><strong>{{ product.name }}</strong></a>
+          {% if product.is_archived %}
+          <span class="badge" style="margin-left: .25rem; font-size: .75rem;">Arşivde</span>
+          {% endif %}
         </td>
         <td>
           {% if product.regular_price is not none %}
@@ -52,17 +61,24 @@
           <small class="muted">—</small>
           {% endif %}
         </td>
-        <td>
-          <a class="btn btn-sm" href="/products/{{ product.id }}">Detay</a>
+        <td style="text-align: right;">
+          <div style="display: inline-flex; gap: .25rem; align-items: center; justify-content: flex-end;">
+            <form method="post" action="/products/{{ product.id }}/stock" style="display: inline-flex; gap: .25rem; align-items: center;">
+              <input type="hidden" name="redirect_to" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+              <input type="number" name="physical_stock" value="{{ product.physical_stock }}" min="0" class="form-control" style="width: 5.5rem; min-height: 32px; padding: .2rem .4rem;" aria-label="Fiziksel stok" required>
+              <button type="submit" class="btn btn-sm" title="Stok güncelle">Stok</button>
+            </form>
+            <a class="btn btn-sm" href="/products/{{ product.id }}">Detay</a>
+          </div>
         </td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="7" style="text-align: center; padding: 2.5rem;" class="muted">
+        <td colspan="8" style="text-align: center; padding: 2.5rem;" class="muted">
           {% if q %}
           "{{ q }}" aramasıyla eşleşen ürün bulunamadı.
           {% else %}
-          Katalogda henüz ürün bulunmuyor. <a href="/imports/products">CSV / Excel ile ürün yükleyin</a>.
+          Katalogda henüz ürün bulunmuyor. <a href="/imports/products">CSV / Excel ile ürün yükleyin</a> veya manuel ekleyin.
           {% endif %}
         </td>
       </tr>
@@ -70,6 +86,17 @@
     </tbody>
   </table>
 </div>
-<div style="display: flex; justify-content: space-between; align-items: center; margin-top: .75rem;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: .75rem; gap: .5rem; flex-wrap: wrap;">
   <small class="muted">Toplam {{ total_count }} ürün</small>
+  {% if total_pages > 1 %}
+  <div style="display: flex; align-items: center; gap: .5rem;">
+    {% if page > 1 %}
+    <a class="btn btn-sm" href="{{ request.url.include_query_params(page=page-1) }}">&larr; Önceki</a>
+    {% endif %}
+    <small class="muted">Sayfa {{ page }} / {{ total_pages }}</small>
+    {% if page < total_pages %}
+    <a class="btn btn-sm" href="{{ request.url.include_query_params(page=page+1) }}">Sonraki &rarr;</a>
+    {% endif %}
+  </div>
+  {% endif %}
 </div>

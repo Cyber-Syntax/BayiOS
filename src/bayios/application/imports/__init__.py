@@ -6,13 +6,17 @@ import io
 import re
 import unicodedata
 import uuid
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
-from typing import Iterable
 
 from bayios.adapters.db.models.inventory import StockMovement
-from bayios.adapters.db.models.products import Product, ProductImportBatch, ProductPriceHistory
+from bayios.adapters.db.models.products import (
+    Product,
+    ProductImportBatch,
+    ProductPriceHistory,
+)
 from bayios.application.ports.unit_of_work import UnitOfWork
 from bayios.domain.products import ActorContext, normalize_product_name
 
@@ -28,6 +32,10 @@ class ProductImportRow:
     errors: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
 
+    @property
+    def is_problematic(self) -> bool:
+        return bool(self.errors or self.warnings or self.decision == "error")
+
 
 @dataclass(frozen=True)
 class ProductImportPreview:
@@ -39,6 +47,7 @@ class ProductImportCommitResult:
     batch_id: uuid.UUID
     created_count: int
     updated_count: int
+    skipped_count: int
     error_count: int
     total_count: int
 
@@ -99,6 +108,7 @@ def preview_product_import(
             )
         )
 
+    rows.sort(key=lambda r: (0 if r.is_problematic else 1, r.row_number))
     return ProductImportPreview(rows=tuple(rows))
 
 
@@ -109,23 +119,30 @@ def commit_product_import(
     source: bytes,
     decisions: dict[int | str, str] | None = None,
     actor: ActorContext | None = None,
+    commit_token: str | None = None,
 ) -> ProductImportCommitResult:
     actor = actor or ActorContext()
     source_checksum = hashlib.sha256(source).hexdigest()
     batch_id = uuid.uuid4()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     with uow:
-        # Check duplicate commit
-        existing_batch = uow.products.get_import_batch_by_checksum(source_checksum)
-        if existing_batch and existing_batch.status == "committed":
-            return ProductImportCommitResult(
-                batch_id=existing_batch.id,
-                created_count=existing_batch.created_count,
-                updated_count=existing_batch.updated_count,
-                error_count=existing_batch.error_count,
-                total_count=existing_batch.row_count,
-            )
+        # Check duplicate commit by token or batch idempotency when decisions not provided
+        if commit_token or decisions is None:
+            check_key = commit_token or source_checksum
+            existing_batch = uow.products.get_import_batch_by_checksum(check_key)
+            if existing_batch and existing_batch.status == "committed":
+                skipped = 0
+                if existing_batch.summary and isinstance(existing_batch.summary, dict):
+                    skipped = existing_batch.summary.get("skipped_count", 0)
+                return ProductImportCommitResult(
+                    batch_id=existing_batch.id,
+                    created_count=existing_batch.created_count,
+                    updated_count=existing_batch.updated_count,
+                    skipped_count=skipped,
+                    error_count=existing_batch.error_count,
+                    total_count=existing_batch.row_count,
+                )
 
         # First fetch existing products for matching by reading names
         raw_rows = list(_source_rows(source))
@@ -142,6 +159,7 @@ def commit_product_import(
 
         created_count = 0
         updated_count = 0
+        skipped_count = 0
         error_count = 0
 
         for row in raw_preview.rows:
@@ -156,6 +174,7 @@ def commit_product_import(
             ) or row.decision
 
             if chosen_decision == "skip":
+                skipped_count += 1
                 continue
 
             norm_name = normalize_product_name(row.product_name)
@@ -230,6 +249,9 @@ def commit_product_import(
                         )
                     )
             else:
+                # A product present in the current catalog file is active again.
+                existing.is_archived = False
+
                 if row.regular_price is not None:
                     new_reg = Decimal(row.regular_price)
                     if existing.regular_price != new_reg:
@@ -314,12 +336,13 @@ def commit_product_import(
             id=batch_id,
             file_name=file_name,
             file_type=file_type,
-            source_checksum=source_checksum,
+            source_checksum=commit_token or source_checksum,
             status="committed",
             row_count=len(raw_preview.rows),
             created_count=created_count,
             updated_count=updated_count,
             error_count=error_count,
+            summary={"skipped_count": skipped_count, "source_sha256": source_checksum},
             started_at=now,
             completed_at=now,
             created_by_name=actor.worker_name,
@@ -332,6 +355,7 @@ def commit_product_import(
         batch_id=batch_id,
         created_count=created_count,
         updated_count=updated_count,
+        skipped_count=skipped_count,
         error_count=error_count,
         total_count=len(raw_preview.rows),
     )

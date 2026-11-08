@@ -22,14 +22,14 @@ def test_search_preserves_leading_zeros() -> None:
         id=uuid.uuid4(),
         name="07325 A",
         name_normalized="07325 a",
-        regular_price=Decimal("38099"),
+        regular_price=Decimal(38099),
         physical_stock=5,
     )
     p2 = Product(
         id=uuid.uuid4(),
         name="7325 B",
         name_normalized="7325 b",
-        regular_price=Decimal("20000"),
+        regular_price=Decimal(20000),
         physical_stock=2,
     )
     uow.products.add(p1)
@@ -52,7 +52,7 @@ def test_search_finds_by_turkish_normalized_name() -> None:
         id=uuid.uuid4(),
         name="Çamaşır Makinesi",
         name_normalized="çamaşır makinesi",
-        regular_price=Decimal("15000"),
+        regular_price=Decimal(15000),
         physical_stock=3,
     )
     uow.products.add(p)
@@ -74,8 +74,8 @@ def test_get_product_detail_calculates_stock_correctly() -> None:
         id=prod_id,
         name="Buzdolabı",
         name_normalized="buzdolabı",
-        regular_price=Decimal("25000"),
-        website_discounted_price=Decimal("23000"),
+        regular_price=Decimal(25000),
+        website_discounted_price=Decimal(23000),
         physical_stock=7,
     )
     uow.products.add(p)
@@ -134,3 +134,124 @@ def test_export_products_csv_and_xlsx() -> None:
     assert rows[1][2] == 34099.00
     assert rows[1][3] == 5
     wb.close()
+
+
+def test_create_manual_product_creates_history_and_movements() -> None:
+    from bayios.application.products import create_manual_product
+    from bayios.domain.products import ActorContext
+
+    uow = FakeUnitOfWork()
+    actor = ActorContext(worker_name="Ahmet", device_name="Kasa-1")
+    product = create_manual_product(
+        uow=uow,
+        name="07325 A",
+        regular_price=Decimal(38099),
+        website_discounted_price=Decimal(34099),
+        cost_price=Decimal(25000),
+        physical_stock=5,
+        actor=actor,
+    )
+
+    assert uow.committed
+    assert product.name == "07325 A"
+    assert product.physical_stock == 5
+    assert len(uow.products.price_history) == 3
+    assert len(uow.products.stock_movements) == 1
+    assert uow.products.stock_movements[0].quantity_delta == 5
+    assert uow.products.stock_movements[0].movement_type == "manual_adjustment"
+
+
+def test_archive_and_unarchive_products() -> None:
+    from bayios.application.products import archive_products, create_manual_product
+
+    uow = FakeUnitOfWork()
+    p1 = create_manual_product(uow, name="Ürün 1")
+    p2 = create_manual_product(uow, name="Ürün 2")
+
+    # Bulk archive
+    archived_count = archive_products(uow, [p1.id, p2.id], archive=True)
+    assert archived_count == 2
+    assert uow.committed
+    active_results, count = search_products(uow, include_archived=False)
+    assert count == 0
+
+    _archived_results, count = search_products(uow, only_archived=True)
+    assert count == 2
+
+    # Unarchive
+    archive_products(uow, [p1.id], archive=False)
+    active_results, count = search_products(uow, include_archived=False)
+    assert count == 1
+    assert active_results[0].id == p1.id
+
+
+def test_delete_products_removes_from_database() -> None:
+    from bayios.application.products import create_manual_product, delete_products
+
+    uow = FakeUnitOfWork()
+    p1 = create_manual_product(uow, name="Silinecek Ürün", regular_price=Decimal(100), physical_stock=2)
+    assert len(uow.products.products) == 1
+    assert len(uow.products.price_history) == 1
+    assert len(uow.products.stock_movements) == 1
+
+    deleted_count = delete_products(uow, [p1.id])
+    assert deleted_count == 1
+    assert uow.committed
+    assert len(uow.products.products) == 0
+    assert len(uow.products.price_history) == 0
+    assert len(uow.products.stock_movements) == 0
+
+
+def test_adjust_product_stock_creates_movement() -> None:
+    from bayios.application.products import adjust_product_stock, create_manual_product
+
+    uow = FakeUnitOfWork()
+    p = create_manual_product(uow, name="Stok Test Ürün", physical_stock=3)
+    assert p.physical_stock == 3
+
+    adjust_product_stock(uow, p.id, new_physical_stock=8, note="Raf sayımı düzeltildi")
+    assert uow.committed
+    assert p.physical_stock == 8
+    movements = uow.products.get_stock_movements(p.id)
+    # 1 initial + 1 adjustment
+    assert len(movements) == 2
+    latest = movements[-1]
+    assert latest.quantity_delta == 5
+    assert latest.quantity_before == 3
+    assert latest.quantity_after == 8
+    assert latest.note == "Raf sayımı düzeltildi"
+
+
+def test_update_product_records_price_history_and_normalized_name() -> None:
+    from bayios.application.products import create_manual_product, update_product
+
+    uow = FakeUnitOfWork()
+    p = create_manual_product(
+        uow,
+        name="07325 A",
+        regular_price=Decimal(38099),
+        website_discounted_price=Decimal(34099),
+        cost_price=Decimal(25000),
+    )
+    initial_history = len(uow.products.get_price_history(p.id))
+
+    updated = update_product(
+        uow,
+        p.id,
+        name="07325 A V2",
+        regular_price=Decimal(40000),
+        website_discounted_price=None,
+        cost_price=Decimal(25000),
+    )
+
+    assert uow.committed
+    assert updated.name == "07325 A V2"
+    assert updated.name_normalized == "07325 a v2"
+    assert updated.regular_price == Decimal(40000)
+    assert updated.website_discounted_price is None
+    histories = uow.products.get_price_history(p.id)
+    assert len(histories) == initial_history + 2
+    assert {h.field_name for h in histories[-2:]} == {
+        "regular_price",
+        "website_discounted_price",
+    }

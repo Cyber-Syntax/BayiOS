@@ -34,6 +34,7 @@
   <input type="hidden" name="file_name" value="{{ file_name }}">
   <input type="hidden" name="file_type" value="{{ file_type }}">
   <input type="hidden" name="source_b64" value="{{ source_b64 }}">
+  <input type="hidden" name="import_token" value="{{ import_token }}">
   <input type="hidden" name="decisions_json" id="decisionsJsonInput">
 
   <div class="actions-bar" style="margin-top: 1rem; align-items: center; flex-wrap: wrap; gap: .75rem;">
@@ -42,9 +43,10 @@
       <button type="button" class="btn" style="padding: .25rem .6rem; font-size: .8rem;" onclick="setAllDecisions('update')">Tümünü Güncelle</button>
       <button type="button" class="btn" style="padding: .25rem .6rem; font-size: .8rem;" onclick="setAllDecisions('skip')">Tümünü Atla</button>
       <button type="button" class="btn" style="padding: .25rem .6rem; font-size: .8rem;" onclick="setAllDecisions('create')">Tümünü Yeni Ürün</button>
+      <button type="button" class="btn" style="padding: .25rem .6rem; font-size: .8rem; background: #fef3c7; color: #92400e; border-color: #fde68a;" onclick="skipProblematicRows()">⚠️ Sorunluları Atla</button>
     </div>
     <div class="actions-group">
-      <button type="submit" id="submitBtn" class="btn btn-primary" {% if total_rows == 0 or total_rows == error_count %}disabled{% endif %}>
+      <button type="submit" id="submitBtn" class="btn btn-primary">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
         Değişiklikleri Onayla ve Veritabanına Aktar
       </button>
@@ -67,7 +69,7 @@
       </thead>
       <tbody>
         {% for row in rows %}
-        <tr {% if row.errors %}style="background: #fff5f5;"{% endif %}>
+        <tr {% if row.errors %}style="background: #fff5f5;"{% elif row.warnings %}style="background: #fffdf5;"{% endif %}>
           <td>{{ row.row_number }}</td>
           <td>
             <strong>{{ row.product_name or '—' }}</strong>
@@ -97,10 +99,16 @@
           </td>
           <td>
             {% if row.errors %}
-            <span class="badge badge-danger">Hata</span>
+            <select class="form-control decision-select"
+                    data-row="{{ row.row_number }}"
+                    data-problematic="true"
+                    style="min-height: 32px; padding: .2rem .5rem; font-size: .85rem; border-color: #dc2626;">
+              <option value="skip" selected>Atla (Hatalı Satır)</option>
+            </select>
             {% else %}
             <select class="form-control decision-select"
                     data-row="{{ row.row_number }}"
+                    data-problematic="{{ 'true' if row.is_problematic else 'false' }}"
                     style="min-height: 32px; padding: .2rem .5rem; font-size: .85rem;">
               <option value="create" {% if row.decision == 'create' %}selected{% endif %}>Yeni Ürün Aç</option>
               <option value="update" {% if row.decision == 'update' %}selected{% endif %}>Güncelle</option>
@@ -132,6 +140,13 @@ function setAllDecisions(val) {
   const selects = document.querySelectorAll('select.decision-select');
   for (let i = 0; i < selects.length; i++) {
     selects[i].value = val;
+  }
+}
+
+function skipProblematicRows() {
+  const selects = document.querySelectorAll('select.decision-select[data-problematic="true"]');
+  for (let i = 0; i < selects.length; i++) {
+    selects[i].value = 'skip';
   }
 }
 

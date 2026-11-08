@@ -41,10 +41,9 @@ def test_sqlalchemy_uow_rolls_back_on_exception() -> None:
     sm = sessionmaker(bind=engine, expire_on_commit=False)
 
     uow = SqlAlchemyUnitOfWork(sm)
-    with pytest.raises(RuntimeError):
-        with uow:
-            uow.session.add(Sample(id=2, name="Should Rollback"))
-            raise RuntimeError("Failure")
+    with pytest.raises(RuntimeError), uow:
+        uow.session.add(Sample(id=2, name="Should Rollback"))
+        raise RuntimeError("Failure")
 
     with sm() as s:
         assert s.get(Sample, 2) is None

@@ -28,8 +28,8 @@ def test_commit_creates_new_products_and_history_and_movements() -> None:
     product = uow.products.get_by_normalized_name("07325 a")
     assert product is not None
     assert product.name == "07325 A"
-    assert product.regular_price == Decimal("38099")
-    assert product.website_discounted_price == Decimal("34099")
+    assert product.regular_price == Decimal(38099)
+    assert product.website_discounted_price == Decimal(34099)
     assert product.physical_stock == 5
 
     # Check price history
@@ -65,7 +65,7 @@ def test_commit_updates_existing_product_price_and_stock() -> None:
     )
 
     assert result2.updated_count == 1
-    assert product.regular_price == Decimal("40000")
+    assert product.regular_price == Decimal(40000)
     assert product.physical_stock == 8
 
     # Price history grew by 1 (only regular_price changed, website_discounted_price did not)
@@ -73,8 +73,8 @@ def test_commit_updates_existing_product_price_and_stock() -> None:
     assert len(histories) == initial_hist_count + 1
     latest_hist = histories[-1]
     assert latest_hist.field_name == "regular_price"
-    assert latest_hist.old_value == Decimal("38099")
-    assert latest_hist.new_value == Decimal("40000")
+    assert latest_hist.old_value == Decimal(38099)
+    assert latest_hist.new_value == Decimal(40000)
 
     # Stock movements grew by 1 with delta +3
     movements = uow.products.get_stock_movements(product.id)
@@ -145,7 +145,7 @@ def test_commit_respects_skip_and_clear_discount_decisions() -> None:
     assert p1.website_discounted_price is None
 
     # 09325 A was skipped completely
-    assert p2.regular_price == Decimal("42000")
+    assert p2.regular_price == Decimal(42000)
 
 
 def test_commit_real_arcelik_csv_snippet() -> None:
@@ -169,14 +169,38 @@ def test_commit_real_arcelik_csv_snippet() -> None:
 
     p_cable = uow.products.get_by_normalized_name("0.58m with anderson cable")
     assert p_cable is not None
-    assert p_cable.regular_price == Decimal("475")
+    assert p_cable.regular_price == Decimal(475)
     assert p_cable.website_discounted_price is None
     assert p_cable.physical_stock == 0
 
     p_07325 = uow.products.get_by_normalized_name("07325 a")
     assert p_07325 is not None
-    assert p_07325.regular_price == Decimal("38099")
-    assert p_07325.website_discounted_price == Decimal("34099")
+    assert p_07325.regular_price == Decimal(38099)
+    assert p_07325.website_discounted_price == Decimal(34099)
+
+
+def test_commit_unarchives_products_present_in_catalog_file() -> None:
+    from bayios.application.products import archive_products
+
+    uow = FakeUnitOfWork()
+    csv_bytes = b"product_name,regular_price,quantity\n07325 A,38099,5\n"
+    commit_product_import(uow=uow, file_name="test.csv", file_type="csv", source=csv_bytes)
+    product = uow.products.get_by_normalized_name("07325 a")
+    assert product is not None
+
+    archive_products(uow, [product.id], archive=True)
+    assert product.is_archived is True
+
+    # A catalog file that still contains the product means it is active again.
+    commit_product_import(
+        uow=uow,
+        file_name="test2.csv",
+        file_type="csv",
+        source=b"product_name,regular_price,quantity\n07325 A,38099,5\n",
+        commit_token="second-import",
+    )
+
+    assert product.is_archived is False
 
 
 def test_commit_duplicate_checksum_is_idempotent() -> None:

@@ -110,7 +110,9 @@ class ProductPriceHistory(Base):
     )
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    product_id: Mapped[uuid.UUID] = mapped_column(sa.ForeignKey("products.id"))
+    product_id: Mapped[uuid.UUID] = mapped_column(
+        sa.ForeignKey("products.id", ondelete="CASCADE")
+    )
     field_name: Mapped[str] = mapped_column(sa.Text)
     old_value: Mapped[Decimal | None] = mapped_column(MONEY)
     new_value: Mapped[Decimal | None] = mapped_column(MONEY)
