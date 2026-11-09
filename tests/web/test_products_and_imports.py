@@ -47,6 +47,32 @@ def test_get_products_list_renders_html(client: TestClient) -> None:
     assert "38.099,00 TL" in response.text
 
 
+def test_get_products_list_shows_at_most_25_per_page(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    for index in range(30):
+        name = f"Ürün {index:03d}"
+        fake_uow.products.add(
+            Product(
+                id=uuid.uuid4(),
+                name=name,
+                name_normalized=name.lower(),
+                regular_price=Decimal("100.00"),
+                physical_stock=1,
+            )
+        )
+
+    first_page = client.get("/products")
+    assert first_page.status_code == 200
+    assert first_page.text.count('class="product-checkbox"') == 25
+    assert "Toplam 31 ürün" in first_page.text
+    assert "page=2" in first_page.text
+
+    second_page = client.get("/products?page=2")
+    assert second_page.status_code == 200
+    assert second_page.text.count('class="product-checkbox"') == 6
+
+
 def test_get_products_htmx_search_renders_partial_table(client: TestClient) -> None:
     response = client.get("/products?q=07325", headers={"HX-Request": "true"})
     assert response.status_code == 200

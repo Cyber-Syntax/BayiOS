@@ -160,8 +160,8 @@ table.data-table tr:hover td { background: rgba(246, 247, 251, .5); }
 table.data-table tr:last-child td { border-bottom: 0; }
 table.data-table th.col-actions,
 table.data-table td.col-actions {
-  position: sticky; right: 0; z-index: 1; min-width: 13rem; white-space: nowrap; text-align: right;
-  padding-left: .5rem; padding-right: .5rem;
+  position: sticky; right: 0; z-index: 1; width: 1%; min-width: 0; white-space: nowrap; text-align: right;
+  padding-left: .5rem; padding-right: .75rem;
   background: var(--surface); box-shadow: -1px 0 0 var(--border);
 }
 table.data-table th.col-actions { z-index: 2; background: var(--bg); }
@@ -292,7 +292,7 @@ table.data-table td.col-date small { font-size: .72rem; }
   table.products-table td.col-name { grid-column: 1 / -1; padding-right: 1.75rem; }
   table.products-table td.col-date { grid-column: 1 / -1; }
   table.products-table td.col-actions {
-    position: static; grid-column: 1 / -1; min-width: 0; margin-top: .25rem;
+    position: static; grid-column: 1 / -1; width: auto; min-width: 0; margin-top: .25rem;
     padding-top: .55rem; border-top: 1px solid var(--border); text-align: left;
     background: transparent; box-shadow: none;
   }

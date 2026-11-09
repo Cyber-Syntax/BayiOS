@@ -73,7 +73,7 @@ def list_products(
     status: Annotated[str, Query()] = "active",
     category_id: Annotated[str | None, Query()] = None,
     page: int = 1,
-    limit: int = 100,
+    limit: int = 25,
 ) -> HTMLResponse:
     page = max(1, page)
     limit = max(1, limit)
