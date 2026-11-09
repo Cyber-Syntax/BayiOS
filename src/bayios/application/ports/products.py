@@ -31,6 +31,10 @@ class ProductRepository(Protocol):
 
     def set_archived(self, product_ids: Sequence[uuid.UUID], archived: bool = True) -> int: ...
 
+    def set_category(
+        self, product_ids: Sequence[uuid.UUID], category_id: uuid.UUID | None
+    ) -> int: ...
+
     def delete_products(self, product_ids: Sequence[uuid.UUID]) -> int: ...
 
     def get_by_normalized_name(self, normalized_name: str) -> Product | None: ...
@@ -46,6 +50,15 @@ class ProductRepository(Protocol):
         category_id: uuid.UUID | None,
         include_archived: bool = False,
     ) -> Sequence[Product]: ...
+
+    def search_by_category(
+        self,
+        category_id: uuid.UUID | None,
+        query: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        include_archived: bool = False,
+    ) -> tuple[Sequence[Product], int]: ...
 
     def get_categories(self) -> Sequence[ProductCategory]: ...
 

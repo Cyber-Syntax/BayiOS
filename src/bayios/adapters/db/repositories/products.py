@@ -84,6 +84,18 @@ class SqlAlchemyProductRepository:
         )
         return result.rowcount or 0
 
+    def set_category(
+        self, product_ids: Sequence[uuid.UUID], category_id: uuid.UUID | None
+    ) -> int:
+        if not product_ids:
+            return 0
+        result = self._session.execute(
+            sa.update(Product)
+            .where(Product.id.in_(product_ids))
+            .values(category_id=category_id, updated_at=sa.func.now())
+        )
+        return result.rowcount or 0
+
     def get_by_normalized_name(self, normalized_name: str) -> Product | None:
         return self._session.scalar(
             sa.select(Product).where(Product.name_normalized == normalized_name)
@@ -117,6 +129,38 @@ class SqlAlchemyProductRepository:
         if not include_archived:
             stmt = stmt.where(Product.is_archived.is_(False))
         return self._session.scalars(stmt.order_by(Product.name)).all()
+
+    def search_by_category(
+        self,
+        category_id: uuid.UUID | None,
+        query: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        include_archived: bool = False,
+    ) -> tuple[Sequence[Product], int]:
+        stmt = sa.select(Product)
+        count_stmt = sa.select(sa.func.count(Product.id))
+        if category_id is not None:
+            stmt = stmt.where(Product.category_id == category_id)
+            count_stmt = count_stmt.where(Product.category_id == category_id)
+        if not include_archived:
+            stmt = stmt.where(Product.is_archived.is_(False))
+            count_stmt = count_stmt.where(Product.is_archived.is_(False))
+        if query and query.strip():
+            normalized = normalize_product_name(query)
+            clean_query = query.strip()
+            filter_clause = sa.or_(
+                Product.name_normalized.contains(normalized),
+                Product.name.ilike(f"%{clean_query}%"),
+            )
+            stmt = stmt.where(filter_clause)
+            count_stmt = count_stmt.where(filter_clause)
+
+        total_count = self._session.scalar(count_stmt) or 0
+        products = self._session.scalars(
+            stmt.order_by(Product.name).limit(limit).offset(offset)
+        ).all()
+        return products, total_count
 
     def get_categories(self) -> Sequence[ProductCategory]:
         return self._session.scalars(

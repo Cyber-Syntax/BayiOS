@@ -230,13 +230,22 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
    - Kolonlar: `product_name`, `regular_price`, `website_discounted_price`, `quantity`, `cost_price`.
    - Filtreli export MVP dışıdır.
 9. **Web arayüzü ve HTMX entegrasyonu:**
-   - `/products`: Ürün listesi, responsive arama kutusu ("Ara" butonu tek satırda), "Yeni Ürün Ekle" butonu, checkbox seçim çubuğu ("Seçilenleri Arşivle", "Seçilenleri Sil"), sayfalama.
+   - `/products`: Ürün listesi, responsive arama kutusu ("Ara" butonu tek satırda), "Yeni Ürün Ekle" butonu, checkbox seçim çubuğu ("Seçilenleri Arşivle", "Seçilenleri Sil", "Kategori Ata"), sayfalama.
    - `/products/new`: Manuel ürün ekleme modalı/formu.
-   - `/products/{id}`: Ürün detay kartı, doğrudan stok güncelleme alanı, fiyat ve stok hareket geçmişi sekmeleri.
-   - `/products/archive`, `/products/delete`: Toplu arşivleme ve çift onaylı silme endpoint'leri.
+   - `/products/{id}`: Ürün detay kartı, kategori bilgisi, doğrudan stok güncelleme alanı, fiyat ve stok hareket geçmişi sekmeleri.
+   - `/products/archive`, `/products/delete`, `/products/bulk-category`: Toplu arşivleme, çift onaylı silme ve toplu kategori atama endpoint'leri.
    - `/imports/products`: CSV/XLSX dosya yükleme alanı (drag & drop ve dosya seçici).
    - `/imports/products/preview`: Önizleme tablosu; sorunlu satırlar en başta; "Sorunluları Atla" butonu; satır bazında ve toplu kararlar.
    - `/imports/products/commit`: Onay butonu ve tam gerçeği yansıtan özet bildirim paneli (toast/banner).
+10. **Ürünlere kategori atama (`AssignProductsCategory`):**
+    - Ürün detayındaki düzenleme formu kategori seçimini destekler (`update_product`).
+    - Ürün listesinde seçilen birden fazla ürün için `AssignProductsCategory` command'i `category_id` veya `None` (kategorisiz) alır.
+    - Toplu işlem stok, fiyat, arşiv ve geçmiş kayıtlarına dokunmaz; yalnızca `products.category_id` güncellenir.
+    - Başarı bildirimi güncellenen ürün sayısını gösterir.
+11. **Sayfalama ve doğrudan sayfa geçişi:**
+    - Ürünler listesinde mevcut önceki/sonraki butonlarına ek olarak sayfa numarası girişi ve "Git" butonu bulunur.
+    - Sayfa geçişi `q`, `status` ve `limit` gibi mevcut filtre parametrelerini korur.
+    - Aynı ortak sayfalama bileşeni stok sayfası ve sayım satırlarında yeniden kullanılır.
 
 **Kod sözleşmesi**
 
@@ -262,12 +271,15 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
 - Silme işlemi iki aşamalı doğrulama (çift onay) tamamlanmadan DB'den kayıt silmez; 2. onay verildiğinde kalıcı silinir. Açık rezervasyonu olan ürün için silme talebi reddedilir.
 - Ürün ekranından doğrudan stok güncellendiğinde fiziksel stok değişir, satılabilir stok otomatik yeniden hesaplanır ve `manual_adjustment` hareketi yazılır.
 - Ürün arama kutusu ve "Ara" butonu mobilde ve masaüstünde `whitespace-nowrap` ile tek satırda yan yana durur; metin bölünmesi (`AR<br>a`) oluşmaz.
+- Ürün detayından kategori seçilip kaydedildiğinde kategori güncellenir; stok ve fiyat değişmez.
+- Birden fazla ürün seçilip toplu kategori atandığında tüm seçilen ürünlerin `category_id` değeri aynı olur; "Kategorisiz" seçimi kategoriyi temizler ve bildirim doğru sayıyı gösterir.
+- Ürünler listesinde sayfa numarası girilerek doğrudan son sayfaya gidilebilir; `q` ve `status` filtreleri korunur.
 - Önizleme onaylanmadan DB'de ürün veya stok değişikliği yapılmaz.
 - Önizleme sonrası ürün değişmişse commit stale conflict döner; aynı commit retry duplicate yaratmaz.
 
 **Çıkış kriteri**
 
-Gerçek `arcelik-06-09-2026.csv` dosyası web arayüzünden veya API'den önizlenir; hatalı satırlar en üstte listelenir; "Sorunluları Atla" butonu ve doğru commit özet sayaçları doğrulanır; manuel ürün eklenebilir; çoklu arşivleme ve çift onaylı silme hatasız çalışır; ürünler sekmesinden doğrudan stok güncellenebilir; arama butonu dikey kırılmaz; kullanıcı onayıyla tek transaction'da DB'ye kaydedilir; ürün arama ve detay sayfalarında anında sorgulanabilir.
+Gerçek `arcelik-06-09-2026.csv` dosyası web arayüzünden veya API'den önizlenir; hatalı satırlar en üstte listelenir; "Sorunluları Atla" butonu ve doğru commit özet sayaçları doğrulanır; manuel ürün eklenebilir; çoklu arşivleme ve çift onaylı silme hatasız çalışır; ürün detayından ve çoklu seçimle kategori atanabilir; sayfa numarası yazarak doğrudan geçiş çalışır; ürünler sekmesinden doğrudan stok güncellenebilir; arama butonu dikey kırılmaz; kullanıcı onayıyla tek transaction'da DB'ye kaydedilir; ürün arama ve detay sayfalarında anında sorgulanabilir.
 
 ### Milestone 2 — Reservation ve A4
 
@@ -309,6 +321,14 @@ Bir reservation uçtan uca takip edilir; duplicate stock deduction mümkün değ
 - Completion sırasında current stock version kontrol edilir; conflict varsa yeniden hesaplama/review istenir.
 - Farklar stock adjustment movement olarak ledger'a yazılır; movement silinmez.
 
+**Kullanım kolaylığı gereksinimleri**
+
+1. Stok sayfası açıldığında `open` ve `review` durumundaki oturumlar ürün tablosunun üstünde ayrı bir "Açık Sayım Oturumları" bölümünde listelenir; her satırda "Devam Et" bağlantısı bulunur. Tamamlanmış oturum geçmişi sayfanın altında kalır.
+2. Stok ürün listesi `page`/`limit` parametreleriyle sayfalanır; arama (`q`) ve kategori filtresi korunur.
+3. Sayım oturumu ürün satırları da sayfalanır; sayılan miktar formu yalnızca görünen sayfadaki alanları gönderir, diğer sayfalardaki kayıtlı değerler korunur.
+4. Ortak sayfalama bileşeni önceki/sonraki butonları, sayfa numarası girişi ve "Git" butonu içerir; kullanıcı doğrudan son sayfaya atlayabilir.
+5. Açık sayım oturumunda "Miktarları Kaydet" butonu `position: fixed` eylem çubuğunda ekranın altında durur; içerik için alt boşluk bırakılır ve yazdırma CSS'inde gizlenir.
+
 **Davranış testleri**
 
 - Sellable negatif gösterilmez; temin ihtiyacı pozitif görünür.
@@ -316,10 +336,13 @@ Bir reservation uçtan uca takip edilir; duplicate stock deduction mümkün değ
 - Eşzamanlı movement sonrası eski count sessizce overwrite etmez.
 - Completed session tekrar complete edilince duplicate movement üretmez.
 - A4 kategori listesi elle yazılabilir alanları içerir.
+- Stok sayfasında açık/incelemedeki oturumlar üst bölümde görünür ve "Devam Et" doğru oturuma gider.
+- Stok listesi ve sayım satırlarında sayfa numarasıyla doğrudan son sayfaya geçiş çalışır; filtre parametreleri kaybolmaz.
+- Açık sayım oturumunda "Miktarları Kaydet" butonu HTML'de sabit eylem çubuğu içinde bulunur ve formu gönderir.
 
 **Çıkış kriteri**
 
-Kategori sayımı uygulamaya işlenir, fark ve actor/time history görünür, movement geçmişi denetlenebilir.
+Kategori sayımı uygulamaya işlenir, fark ve actor/time history görünür, movement geçmişi denetlenebilir; açık oturumlar üstte erişilebilir; uzun listelerde sayfalama ve sabit kaydet butonu kullanılabilir.
 
 ### Milestone 4 — Campaign ve dealer price guide
 

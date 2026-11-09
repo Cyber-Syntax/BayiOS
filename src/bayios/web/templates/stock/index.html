@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_pagination.html" import pagination with context %}
 {% block title %}Stok / Sayım{% endblock %}
 {% block content %}
 <div x-data="{ showSessionModal: false, showCategoryModal: false }">
@@ -23,17 +24,53 @@
   <div class="grid-stats">
     <div class="stat-box">
       <div class="stat-label">Listelenen Ürün</div>
-      <div class="stat-value">{{ total_products }}</div>
+      <div class="stat-value">{{ total_count }}</div>
     </div>
     <div class="stat-box">
       <div class="stat-label">Açık / İncelemede Oturum</div>
-      <div class="stat-value">{{ sessions | selectattr('status', 'in', ['open', 'review']) | list | length }}</div>
+      <div class="stat-value">{{ open_sessions | length }}</div>
     </div>
     <div class="stat-box">
       <div class="stat-label">Tamamlanan Oturum</div>
-      <div class="stat-value">{{ sessions | selectattr('status', 'equalto', 'completed') | list | length }}</div>
+      <div class="stat-value">{{ completed_sessions | length }}</div>
     </div>
   </div>
+
+  {% if open_sessions %}
+  <div class="card" style="padding: 1rem; border-color: #fde68a; background: #fffdf5;">
+    <h2 style="margin: 0 0 .75rem;">Açık Sayım Oturumları</h2>
+    <div class="table-container" style="margin-top: 0;">
+      <table class="data-table" style="min-width: 0;">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Kategori</th>
+            <th>Durum</th>
+            <th>Başlangıç</th>
+            <th>İşlem</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for session in open_sessions %}
+          <tr>
+            <td>#{{ session.count_number }}</td>
+            <td>{{ category_names.get(session.category_id, 'Tüm Ürünler') }}</td>
+            <td>
+              {% if session.status == 'review' %}
+              <span class="badge badge-warning">Fark İncelemesi</span>
+              {% else %}
+              <span class="badge">Açık</span>
+              {% endif %}
+            </td>
+            <td>{{ session.started_at.strftime('%d.%m.%Y %H:%M') if session.started_at else '—' }}</td>
+            <td><a class="btn btn-sm btn-primary" href="/stock/sessions/{{ session.id }}">Devam Et</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
 
   <div class="card" style="padding: 1rem;">
     <form method="get" action="/stock">
@@ -100,9 +137,14 @@
     </table>
   </div>
 
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: .75rem; gap: .5rem; flex-wrap: wrap;">
+    <small class="muted">Toplam {{ total_count }} ürün</small>
+    {{ pagination(page, total_pages) }}
+  </div>
+
   <div class="card">
-    <h2>Son Sayım Oturumları</h2>
-    <div class="table-container">
+    <h2>Sayım Geçmişi</h2>
+    <div class="table-container" style="margin-top: 0;">
       <table class="data-table">
         <thead>
           <tr>
@@ -116,19 +158,11 @@
           </tr>
         </thead>
         <tbody>
-          {% for session in sessions %}
+          {% for session in completed_sessions %}
           <tr>
             <td>#{{ session.count_number }}</td>
             <td>{{ category_names.get(session.category_id, 'Tüm Ürünler') }}</td>
-            <td>
-              {% if session.status == 'completed' %}
-              <span class="badge badge-success">Tamamlandı</span>
-              {% elif session.status == 'review' %}
-              <span class="badge badge-warning">Fark İncelemesi</span>
-              {% else %}
-              <span class="badge">Açık</span>
-              {% endif %}
-            </td>
+            <td><span class="badge badge-success">Tamamlandı</span></td>
             <td>{{ session.started_at.strftime('%d.%m.%Y %H:%M') if session.started_at else '—' }}</td>
             <td>{{ session.completed_at.strftime('%d.%m.%Y %H:%M') if session.completed_at else '—' }}</td>
             <td>{{ session.completed_by_name or '—' }}</td>
@@ -136,7 +170,7 @@
           </tr>
           {% else %}
           <tr>
-            <td colspan="7" class="muted" style="text-align: center; padding: 1.5rem;">Henüz sayım oturumu açılmadı.</td>
+            <td colspan="7" class="muted" style="text-align: center; padding: 1.5rem;">Henüz tamamlanmış sayım oturumu yok.</td>
           </tr>
           {% endfor %}
         </tbody>

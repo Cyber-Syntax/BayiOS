@@ -60,8 +60,9 @@ def test_stock_overview_uses_shared_summary_policy() -> None:
     uow = FakeUnitOfWork()
     product = _add_product(uow, "Buzdolabı", physical_stock=2)
 
-    rows = get_stock_overview(uow, open_reservations={product.id: 5})
+    rows, total = get_stock_overview(uow, open_reservations={product.id: 5})
 
+    assert total == 1
     assert len(rows) == 1
     assert rows[0].summary.physical == 2
     assert rows[0].summary.open_reservation == 5

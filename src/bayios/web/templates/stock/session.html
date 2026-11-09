@@ -1,7 +1,8 @@
 {% extends "base.html" %}
+{% from "_pagination.html" import pagination with context %}
 {% block title %}Sayım #{{ session.count_number }}{% endblock %}
 
-{% macro count_table(editable) %}
+{% macro count_table(editable, items) %}
 <div class="table-container">
   <table class="data-table">
     <thead>
@@ -14,7 +15,7 @@
       </tr>
     </thead>
     <tbody>
-      {% for item in session.items %}
+      {% for item in items %}
       <tr>
         <td><strong>{{ item.product_name }}</strong></td>
         <td>{{ item.system_quantity }}</td>
@@ -107,7 +108,7 @@
 <div class="grid-stats">
   <div class="stat-box">
     <div class="stat-label">Ürün Sayısı</div>
-    <div class="stat-value">{{ session.items | length }}</div>
+    <div class="stat-value">{{ total_items }}</div>
   </div>
   <div class="stat-box">
     <div class="stat-label">Sayılan Satır</div>
@@ -124,7 +125,11 @@
 </div>
 
 {% if session.status == 'completed' %}
-{{ count_table(false) }}
+{{ count_table(false, page_items) }}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: .75rem; gap: .5rem; flex-wrap: wrap;">
+  <small class="muted">Toplam {{ total_items }} satır</small>
+  {{ pagination(page, total_pages) }}
+</div>
 <div class="card">
   <h2>Sayım Özeti</h2>
   {% set summary = session.summary or {} %}
@@ -135,15 +140,13 @@
   </p>
 </div>
 {% else %}
-<form method="post" action="/stock/sessions/{{ session.id }}/count">
-  {{ count_table(true) }}
-  <div class="actions-bar" style="margin-top: 1rem;">
-    <small class="muted">Boş bırakılan alanlar sayılmamış kabul edilir; tüm alanlar dolmadan sayım tamamlanamaz.</small>
-    <div class="actions-group">
-      <button type="submit" class="btn btn-primary">Miktarları Kaydet</button>
-    </div>
-  </div>
+<form id="count-form" method="post" action="/stock/sessions/{{ session.id }}/count">
+  {{ count_table(true, page_items) }}
 </form>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: .75rem; gap: .5rem; flex-wrap: wrap;">
+  <small class="muted">Toplam {{ total_items }} satır</small>
+  {{ pagination(page, total_pages) }}
+</div>
 
 {% if session.status == 'review' %}
 <div class="card" style="border-color: #fde68a; background: #fffdf5;">
@@ -167,5 +170,11 @@
   </form>
 </div>
 {% endif %}
+
+<div class="sticky-action-bar no-print">
+  <small class="muted sticky-note">Boş bırakılan alanlar sayılmamış kabul edilir; tüm alanlar dolmadan sayım tamamlanamaz.</small>
+  <button type="submit" form="count-form" class="btn btn-primary">Miktarları Kaydet</button>
+</div>
+<div class="sticky-action-spacer no-print" aria-hidden="true"></div>
 {% endif %}
 {% endblock %}

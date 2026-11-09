@@ -68,6 +68,16 @@
 
 <div class="grid-stats">
   <div class="stat-box">
+    <div class="stat-label">Kategori</div>
+    <div class="stat-value" style="font-size: 1.1rem;">
+      {% if category_name %}
+      {{ category_name }}
+      {% else %}
+      <span class="muted" style="font-size: .95rem;">Kategorisiz</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat-box">
     <div class="stat-label">Normal Fiyat</div>
     <div class="stat-value">
       {% if product.regular_price is not none %}

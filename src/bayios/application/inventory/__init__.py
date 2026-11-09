@@ -14,7 +14,7 @@ from bayios.adapters.db.models.products import Product, ProductCategory
 from bayios.application.errors import ConflictError, NotFoundError, ValidationError
 from bayios.application.ports.unit_of_work import UnitOfWork
 from bayios.domain.inventory import CountSession, StockSummary, complete_count_session
-from bayios.domain.products import ActorContext, normalize_product_name
+from bayios.domain.products import ActorContext
 
 
 @dataclass(frozen=True)
@@ -75,26 +75,29 @@ def get_stock_overview(
     category_id: uuid.UUID | None = None,
     query: str | None = None,
     open_reservations: Mapping[uuid.UUID, int] | None = None,
-) -> tuple[StockOverviewRow, ...]:
+    limit: int | None = None,
+    offset: int = 0,
+) -> tuple[tuple[StockOverviewRow, ...], int]:
     reservations = open_reservations or {}
     with uow:
-        products = list(uow.products.list_by_category(category_id))
-        if query and query.strip():
-            normalized = normalize_product_name(query)
-            products = [
-                product
+        products, total = uow.products.search_by_category(
+            category_id=category_id,
+            query=query,
+            limit=limit or 10_000,
+            offset=offset,
+        )
+        return (
+            tuple(
+                StockOverviewRow(
+                    product=product,
+                    summary=StockSummary(
+                        physical=product.physical_stock,
+                        open_reservation=reservations.get(product.id, 0),
+                    ),
+                )
                 for product in products
-                if normalized in product.name_normalized
-            ]
-        return tuple(
-            StockOverviewRow(
-                product=product,
-                summary=StockSummary(
-                    physical=product.physical_stock,
-                    open_reservation=reservations.get(product.id, 0),
-                ),
-            )
-            for product in products
+            ),
+            total,
         )
 
 

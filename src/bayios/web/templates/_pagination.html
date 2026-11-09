@@ -1,0 +1,45 @@
+{% macro pagination(page, total_pages) %}
+{% if total_pages > 1 %}
+<div class="pagination">
+  <div class="pagination-pages">
+    {% if page > 1 %}
+    <a class="btn btn-sm" href="{{ request.url.include_query_params(page=page-1) }}">&larr; Önceki</a>
+    {% else %}
+    <span class="btn btn-sm btn-disabled" aria-disabled="true">&larr; Önceki</span>
+    {% endif %}
+
+    {% set window_start = [1, page - 2] | max %}
+    {% set window_end = [total_pages, page + 2] | min %}
+    {% if window_start > 1 %}
+    <a class="btn btn-sm" href="{{ request.url.include_query_params(page=1) }}">1</a>
+    {% if window_start > 2 %}<span class="pagination-ellipsis">…</span>{% endif %}
+    {% endif %}
+    {% for p in range(window_start, window_end + 1) %}
+    <a class="btn btn-sm{% if p == page %} btn-primary{% endif %}" href="{{ request.url.include_query_params(page=p) }}"{% if p == page %} aria-current="page"{% endif %}>{{ p }}</a>
+    {% endfor %}
+    {% if window_end < total_pages %}
+    {% if window_end < total_pages - 1 %}<span class="pagination-ellipsis">…</span>{% endif %}
+    <a class="btn btn-sm" href="{{ request.url.include_query_params(page=total_pages) }}">{{ total_pages }}</a>
+    {% endif %}
+
+    {% if page < total_pages %}
+    <a class="btn btn-sm" href="{{ request.url.include_query_params(page=page+1) }}">Sonraki &rarr;</a>
+    {% else %}
+    <span class="btn btn-sm btn-disabled" aria-disabled="true">Sonraki &rarr;</span>
+    {% endif %}
+  </div>
+
+  <form method="get" action="{{ request.url.path }}" class="pagination-jump">
+    {% for key, value in request.query_params.multi_items() %}
+    {% if key != 'page' %}
+    <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endif %}
+    {% endfor %}
+    <label class="pagination-jump-label" for="page-jump-input">Sayfa</label>
+    <input type="number" id="page-jump-input" name="page" min="1" max="{{ total_pages }}" value="{{ page }}" class="form-control page-input" inputmode="numeric" aria-label="Sayfa numarası">
+    <span class="pagination-jump-total">/ {{ total_pages }}</span>
+    <button type="submit" class="btn btn-sm">Git</button>
+  </form>
+</div>
+{% endif %}
+{% endmacro %}

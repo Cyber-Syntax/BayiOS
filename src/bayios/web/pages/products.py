@@ -14,6 +14,7 @@ from bayios.application.inventory import list_categories
 from bayios.application.products import (
     adjust_product_stock,
     archive_products,
+    assign_products_category,
     create_manual_product,
     delete_products,
     export_products_csv,
@@ -65,6 +66,7 @@ def list_products(
     limit: int = 100,
 ) -> HTMLResponse:
     page = max(1, page)
+    limit = max(1, limit)
     offset = (page - 1) * limit
     only_archived = status == "archived"
     include_archived = status == "all" or status == "archived"
@@ -78,16 +80,31 @@ def list_products(
         only_archived=only_archived,
     )
 
+    total_pages = max(1, math.ceil(total_count / limit))
+    if page > total_pages:
+        page = total_pages
+        offset = (page - 1) * limit
+        products, total_count = search_products(
+            uow,
+            query=q,
+            limit=limit,
+            offset=offset,
+            include_archived=include_archived,
+            only_archived=only_archived,
+        )
+
+    categories = list_categories(uow)
     context = {
         "active_nav": "products",
         "products": products,
-        "categories": list_categories(uow),
+        "categories": categories,
+        "category_names": {category.id: category.name for category in categories},
         "total_count": total_count,
         "q": q or "",
         "status": status,
         "page": page,
         "limit": limit,
-        "total_pages": max(1, math.ceil(total_count / limit)),
+        "total_pages": total_pages,
     }
 
     # If requested by HTMX search input, render only the table fragment
@@ -155,6 +172,24 @@ def bulk_delete_route(
     uuids = [uuid.UUID(pid) for pid in product_ids if pid]
     delete_products(uow, uuids)
     return RedirectResponse(url=f"/products?msg=deleted&count={len(uuids)}", status_code=303)
+
+
+@router.post("/bulk-category")
+def bulk_category_route(
+    uow: UnitOfWorkDep,
+    product_ids: Annotated[list[str], Form()],
+    category_id: Annotated[str | None, Form()] = None,
+) -> Response:
+    uuids = [uuid.UUID(pid) for pid in product_ids if pid]
+    try:
+        count = assign_products_category(
+            uow, uuids, category_id=_parse_uuid_form(category_id)
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return RedirectResponse(
+        url=f"/products?msg=category_assigned&count={count}", status_code=303
+    )
 
 
 @router.post("/{product_id}/stock")
@@ -271,6 +306,8 @@ def product_detail(
     if detail is None:
         raise HTTPException(status_code=404, detail="Ürün bulunamadı")
 
+    categories = list_categories(uow)
+    category_names = {category.id: category.name for category in categories}
     return templates.TemplateResponse(
         request,
         "products/detail.html",
@@ -282,6 +319,7 @@ def product_detail(
             "sellable_stock": detail.sellable_stock,
             "open_reservation": detail.open_reservation,
             "supply_need": detail.supply_need,
-            "categories": list_categories(uow),
+            "categories": categories,
+            "category_name": category_names.get(detail.product.category_id),
         },
     )

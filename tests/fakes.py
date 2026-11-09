@@ -79,6 +79,17 @@ class FakeProductRepository:
                 count += 1
         return count
 
+    def set_category(
+        self, product_ids: Sequence[uuid.UUID], category_id: uuid.UUID | None
+    ) -> int:
+        count = 0
+        for product_id in product_ids:
+            product = self.products.get(product_id)
+            if product is not None:
+                product.category_id = category_id
+                count += 1
+        return count
+
     def get_by_normalized_name(self, normalized_name: str) -> Product | None:
         for p in self.products.values():
             if p.name_normalized == normalized_name:
@@ -114,6 +125,32 @@ class FakeProductRepository:
         ]
         results.sort(key=lambda p: p.name)
         return results
+
+    def search_by_category(
+        self,
+        category_id: uuid.UUID | None,
+        query: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        include_archived: bool = False,
+    ) -> tuple[Sequence[Product], int]:
+        results = [
+            product
+            for product in self.products.values()
+            if (category_id is None or product.category_id == category_id)
+            and (include_archived or not product.is_archived)
+        ]
+        if query and query.strip():
+            normalized = normalize_product_name(query)
+            clean = query.strip().lower()
+            results = [
+                product
+                for product in results
+                if normalized in product.name_normalized or clean in product.name.lower()
+            ]
+        results.sort(key=lambda p: p.name)
+        total = len(results)
+        return results[offset : offset + limit], total
 
     def get_categories(self) -> Sequence[ProductCategory]:
         return sorted(self.categories.values(), key=lambda category: category.name)

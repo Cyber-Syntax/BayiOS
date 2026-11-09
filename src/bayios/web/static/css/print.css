@@ -1,6 +1,6 @@
 @page { size: A4; margin: 12mm; }
 
-.no-print, .topbar, .sidenav { display: none !important; }
+.no-print, .topbar, .sidenav, .pagination, .sticky-action-bar { display: none !important; }
 .shell { display: block; }
 .content { padding: 0; }
 body { background: #fff; color: #000; font-size: 11pt; }

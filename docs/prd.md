@@ -1,8 +1,8 @@
 # BayiOS — Product Requirements Document (PRD)
 
-**Belge sürümü:** 1.1
+**Belge sürümü:** 1.2
 **Durum:** MVP geliştirmeye hazır ürün gereksinimleri  
-**Tarih:** 4 Kasım 2026  
+**Tarih:** 9 Kasım 2026  
 **Ürün:** BayiOS  
 **Hedef ortam:** Windows 11 üzerinde yerel sunucu, bayi LAN/Wi-Fi ağı, mobil ve masaüstü tarayıcılar  
 **Hedef eşzamanlı kullanıcı:** İlk aşamada 3–4 kişi  
@@ -112,6 +112,7 @@ MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uyg
 13. Temel ana ekran, arama ve bildirim/hatırlatma alanı.
 14. Yerel ağda mobil ve masaüstü tarayıcıdan kullanım.
 15. Veritabanı yedekleme.
+16. Ürün detayından ve ürün listesinden çoklu seçimle kategori atama; kategorisiz bırakma.
 
 ### 3.2 MVP dışında (sonraki sürüm / good-to-have)
 
@@ -379,6 +380,10 @@ Açık rezervasyonda yer alan ürünlerin silinmesi engellenir ve kullanıcıya 
 
 **FR-PROD-23 (P0) — Ürün Arama Arayüzü Ergonomisi:** Ürünler sekmesindeki arama giriş kutusu (input box) ve yanındaki "Ara" butonu responsive düzende dikey kırılma olmadan yan yana kalmalıdır (`whitespace-nowrap`). Buton metninin `AR<br>a` şeklinde ikiye bölünmesi CSS/flex düzeni ile kesin olarak engellenmelidir.
 
+**FR-PROD-24 (P0) — Ürünlere Kategori Atama:** Bir ürünün kategorisi ürün detayındaki düzenleme formundan seçilebilmelidir. Ayrıca ürünler sekmesinde checkbox ile birden fazla ürün seçilerek tek işlemde ortak bir kategoriye atanabilmeli veya kategorisi kaldırılabilmelidir. Toplu atama sonunda kaç ürünün güncellendiğini gösteren açık bir başarı bildirimi verilmelidir. Kategori ataması stok, fiyat veya arşiv durumunu değiştirmemelidir.
+
+**FR-PROD-25 (P0) — Sayfalama ve Doğrudan Sayfa Geçişi:** Ürünler sekmesinde sayfalama önceki/sonraki butonlarıyla çalışmalı; kullanıcı ayrıca bir sayfa numarası girerek (örn. son sayfaya gitmek için `5`) doğrudan o sayfaya atlayabilmelidir. Sayfa numarası girişi mevcut arama ve durum filtrelerini korumalıdır. Aynı sayfalama ve doğrudan sayfa geçişi deseni stok sayfası ürün listesinde ve açık sayım oturumu satırlarında da kullanılmalıdır.
+
 **Önerilen örnek CSV şeması ve gerçek bayi formatı (`arcelik-06-09-2026.csv`):**
 
 Gerçek bayi dosyasında fiyatlar `38.099 TL`, `475 TL` biçiminde binlik basamak ayracı olarak nokta (`.`) ve `TL` soneki içerir; bazı satırlarda 4. kolon (`quantity`) eksik veya boştur:
@@ -599,6 +604,12 @@ Teslim anında fiziksel stok yetersizse sistem uyarı göstermeli ancak onayla d
 
 **FR-STOCK-14 (P1):** Sayım oturumu kaydedildikten sonra farklı çalışan tarafından sonuç girilebilmesi kolaylaştırılabilir.
 
+**FR-STOCK-15 (P0) — Açık Sayım Oturumlarının Üstte Gösterilmesi:** Stok / Sayım sayfası açıldığında `open` ve `review` durumundaki sayım oturumları uzun ürün tablosunun altında aranmamalıdır. Bu oturumlar sayfanın üst kısmında, devam etme bağlantısıyla birlikte belirgin bir bölümde gösterilmelidir. Tamamlanmış oturum geçmişi sayfanın altında kalabilir.
+
+**FR-STOCK-16 (P0) — Stok Sayfası ve Sayım Satırlarında Sayfalama:** Stok özeti ürün listesi ve açık sayım oturumundaki ürün satırları, ürünler sekmesindeki gibi sayfalanmalıdır. Önceki/sonraki butonlarının yanında sayfa numarası girilerek doğrudan istenen sayfaya (örn. son sayfaya) atlanabilmelidir. Sayfalama mevcut kategori ve arama filtrelerini korumalıdır.
+
+**FR-STOCK-17 (P0) — Sabit "Miktarları Kaydet" Butonu:** Açık sayım oturumunda "Miktarları Kaydet" butonu uzun ürün listesinin en altında aranmamalıdır. Buton, ekranın altında sabit (sticky/fixed) bir eylem çubuğunda görünmeli ve sayfa kaydırılsa bile erişilebilir kalmalıdır. Yazdırma görünümünde bu eylem çubuğu basılmamalıdır.
+
 ### 5.9 Hızlı teslim ve Code 128
 
 **FR-QUICK-01 (P0):** Hızlı Teslim ekranında müşteri adı-soyadı zorunlu, telefon isteğe bağlı olmalıdır.
@@ -690,6 +701,8 @@ Ekranların adları kısa ve çalışanların alışık olduğu terimlerle yazı
 6. **Doğrudan Stok Güncelleme:** Çalışan ürün detayından veya ürün satırındaki stok düzeltme alanından fiziksel stoku günceller; satılabilir stok otomatik yeniden hesaplanır ve stok hareket günlüğüne işlenir.
 7. Ürün detayında kampanyalar, bayi nakit/kart minimum fiyatı, komisyon referansı ve fiyat/stok hareket geçmişi görülebilir.
 8. Çalışan ürün ekranından yeni teklif veya rezervasyon başlatabilir.
+9. **Kategori Atama:** Çalışan ürün detayındaki düzenleme formundan ürünün kategorisini seçebilir. Ürünler listesinde checkbox ile birden fazla ürün seçip toplu "Kategori Ata" işlemiyle ortak kategoriyi tek adımda uygulayabilir veya kategorisiz bırakabilir.
+10. **Sayfalama:** Çalışan önceki/sonraki butonlarını kullanabilir veya sayfa numarası yazarak doğrudan istediği sayfaya geçebilir.
 
 ### 6.3 CSV/Excel ürün güncelleme ve önizleme akışı
 
@@ -748,14 +761,15 @@ Ekranların adları kısa ve çalışanların alışık olduğu terimlerle yazı
 
 ### 6.8 Stok sayımı akışı
 
-1. Çalışan kategori seçer ve sayım oturumu açar.
-2. Sistem o kategorideki ürünlerin mevcut fiziksel stoklarını listeler.
-3. A4 sayım listesi alınabilir.
-4. Depocu/çalışan sayılan miktarları kâğıttan veya doğrudan telefondan/bilgisayardan girer.
-5. Sistem farkları hesaplar.
-6. Çalışan farkları kontrol edip onaylar.
-7. Stok düzeltmeleri hareket olarak uygulanır.
-8. Sayım oturumu kapanır; önceki değerler korunur.
+1. Çalışan stok sayfasının üstünde açık/incelemedeki sayım oturumlarını görür; yeni oturum açar veya mevcut oturuma devam eder.
+2. Çalışan kategori seçer ve sayım oturumu açar.
+3. Sistem o kategorideki ürünlerin mevcut fiziksel stoklarını listeler; uzun liste sayfalanır ve sayfa numarasıyla doğrudan istenen sayfaya gidilebilir.
+4. A4 sayım listesi alınabilir.
+5. Depocu/çalışan sayılan miktarları kâğıttan veya doğrudan telefondan/bilgisayardan girer; "Miktarları Kaydet" butonu ekranın altında sabit durur.
+6. Sistem farkları hesaplar.
+7. Çalışan farkları kontrol edip onaylar.
+8. Stok düzeltmeleri hareket olarak uygulanır.
+9. Sayım oturumu kapanır; önceki değerler korunur.
 
 ### 6.9 Hızlı Teslim barkod akışı
 
@@ -1291,6 +1305,9 @@ Müşteri adı-soyadı kişisel veridir. MVP'de telefon isteğe bağlı ek kişi
 14. Tek veya birden fazla ürün silinirken 2 aşamalı doğrulama zorunlu tutulur; 2. onay verilmeden veritabanından silinmez. Açık rezervasyonu olan ürünün silinmesi engellenir.
 15. Ürün ekranından doğrudan fiziksel stok güncellendiğinde satılabilir stok anında yeniden hesaplanır ve `manual_adjustment` stok hareketi oluşturulur.
 16. Ürünler sayfasındaki arama kutusu ve "Ara" butonu mobilde ve masaüstünde dikey kırılma (`AR<br>a`) olmadan tek satırda hizalı kalır.
+17. Ürün detayındaki düzenleme formundan kategori seçilip kaydedildiğinde ürünün kategorisi güncellenir; stok ve fiyat değişmez.
+18. Ürünler listesinde birden fazla ürün seçilip toplu kategori atandığında seçilen tüm ürünler aynı kategoriye geçer ve başarı bildirimi doğru ürün sayısını gösterir. "Kategorisiz" seçilerek kategori kaldırılabilir.
+19. Ürünler ve stok sayfalarında sayfa numarası girilerek doğrudan son sayfaya gidilebilir; önceki/sonraki butonları çalışır ve arama/kategori filtreleri korunur.
 
 ### 13.2 Stok ve rezervasyon testleri
 
@@ -1308,6 +1325,9 @@ Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 10. 13 ay geçmiş rezervasyon uyarı verir ancak otomatik iptal olmaz.
 11. Erteleme varsayılan olarak 1 ay sonrasına yapılır ve tarihçe tutulur.
 12. Çok ürünlü rezervasyonda bir ürün teslim edildiğinde diğer ürün satırları açık kalabilir.
+13. Stok / Sayım sayfasında `open` ve `review` durumundaki oturumlar sayfanın üst bölümünde görünür; uzun ürün listesinin altına inmeden "Devam Et" ile açılabilir.
+14. Stok ürün listesi ve sayım satırları sayfalanır; sayfa numarası yazılarak doğrudan son sayfaya gidilebilir.
+15. Açık sayım oturumunda "Miktarları Kaydet" butonu sayfa kaydırılsa bile ekranın altında sabit kalır ve formu gönderir.
 
 ### 13.3 Kampanya testleri
 
@@ -1386,14 +1406,16 @@ POS hesaplayıcısı en son milestone olarak kalır. Sıralama, çalışanlara e
 - Ürün listesi, responsive arama alanı ("Ara" butonu tek satırda hizalı) ve filtreleme.
 - Manuel yeni ürün ekleme formu (fiyat, maliyet, kategori, başlangıç stoku).
 - Çoklu seçim checkbox'ları ile toplu arşivleme ve çift onaylı (iki aşamalı doğrulama) kalıcı silme.
+- Ürün detayından ve çoklu seçimle ürün listesinden kategori atama.
 - Ürün detay kartı ve doğrudan stok güncelleme (fiziksel/satılabilir stok ve hareket kaydı).
 - CSV/Excel ön izleme ve içe aktarma; sorunlu satırların en başta listelenmesi.
 - "Sorunluları Atla" butonu ve aktarım sonrası doğru sonuç bilgi kutusu ({X} eklendi, {Y} güncellendi, {Z} atlandı).
 - Normal/Oliz fiyatı ve fiziksel stok eşleme.
 - Fiyat/stok geçmişi.
 - Tüm ürünleri CSV/Excel dışa aktarma.
+- Sayfa numarası yazarak doğrudan geçiş dahil sayfalama.
 
-**Çıkış kriteri:** Mevcut gerçek örnek dosya (`arcelik-06-09-2026.csv`) veri kaybı/duplikasyon olmadan aktarılır; sorunlu satırlar en üstte görünür ve "Sorunluları Atla" çalışır; aktarım özeti gerçek sayıları gösterir; manuel ürün eklenebilir; çoklu arşivleme ve çift onaylı silme hatasız çalışır; arama butonu dikey kırılmaz.
+**Çıkış kriteri:** Mevcut gerçek örnek dosya (`arcelik-06-09-2026.csv`) veri kaybı/duplikasyon olmadan aktarılır; sorunlu satırlar en üstte görünür ve "Sorunluları Atla" çalışır; aktarım özeti gerçek sayıları gösterir; manuel ürün eklenebilir; çoklu arşivleme ve çift onaylı silme hatasız çalışır; ürün detayından ve çoklu seçimle kategori atanabilir; sayfa numarasıyla doğrudan geçiş çalışır; arama butonu dikey kırılmaz.
 
 ### Milestone 2 — Rezervasyon ve A4
 
@@ -1409,12 +1431,15 @@ POS hesaplayıcısı en son milestone olarak kalır. Sıralama, çalışanlara e
 ### Milestone 3 — Stok sayımı ve stok özeti
 
 - Fiziksel/açık rezervasyon/satılabilir/temin ihtiyacı görünümü.
+- Açık ve incelemedeki sayım oturumlarının sayfa üstünde gösterilmesi.
 - Kategori bazlı sayım oturumu.
 - Sayım farkı ve onay.
 - Stok hareket geçmişi.
 - A4 sayım listesi.
+- Stok ürün listesi ve sayım satırlarında sayfalama + doğrudan sayfa geçişi.
+- Açık sayım oturumunda sabit "Miktarları Kaydet" eylem çubuğu.
 
-**Çıkış kriteri:** Kategori sayımı uygulamaya işlenir ve stok hareketi olarak geriye dönük görülebilir.
+**Çıkış kriteri:** Kategori sayımı uygulamaya işlenir ve stok hareketi olarak geriye dönük görülebilir; açık oturumlar üstte bulunur; sayfalama ve sabit kaydet butonu uzun listelerde kullanılabilir.
 
 ### Milestone 4 — Kampanya ve bayi fiyat rehberi
 
@@ -1511,6 +1536,9 @@ Bu PRD aşağıdaki kullanıcı kararlarını temel alır:
 - PDF ekleme/görüntüleme MVP dışıdır; ilk ek özellik olarak sonraki fazda ele alınır.
 - MVP'de barkod görseli kalıcı saklanmaz; doğrulanmış metin, müşteri, isteğe bağlı telefon, kaynak ve zaman saklanır.
 - Frontend kararı FastAPI + Jinja2 + HTMX + Alpine.js'tir.
+- Ürün kategorileri ürün detayından tek tek veya ürün listesinden çoklu seçimle atanabilir; kategori ataması stok/fiyat/arşiv durumunu değiştirmez.
+- Ürünler, stok listesi ve sayım satırları sayfalanır; sayfa numarası yazılarak doğrudan istenen sayfaya gidilebilir.
+- Açık sayım oturumları stok sayfasının üstünde gösterilir ve "Miktarları Kaydet" butonu ekran altında sabit durur.
 - Yedekleme döngüsü günlük, haftalık tam ve aylık uzun süreli yedek olarak uygulanır; aylık geri yükleme testi yapılır.
 - POS hesaplayıcısı son milestone'dur.
 

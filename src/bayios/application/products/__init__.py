@@ -230,6 +230,19 @@ def delete_products(uow: UnitOfWork, product_ids: Sequence[uuid.UUID]) -> int:
         return count
 
 
+def assign_products_category(
+    uow: UnitOfWork,
+    product_ids: Sequence[uuid.UUID],
+    category_id: uuid.UUID | None,
+) -> int:
+    with uow:
+        if category_id is not None and uow.products.get_category(category_id) is None:
+            raise ValueError("Seçilen kategori bulunamadı.")
+        count = uow.products.set_category(product_ids, category_id)
+        uow.commit()
+        return count
+
+
 def adjust_product_stock(
     uow: UnitOfWork,
     product_id: uuid.UUID,

@@ -210,6 +210,31 @@ table.data-table td.col-date small { font-size: .72rem; }
 .alert-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
 .alert-warning { background: #fef9c3; color: #854d0e; border: 1px solid #fef08a; }
 
+/* Pagination */
+.pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: .75rem; flex-wrap: wrap;
+}
+.pagination-pages { display: flex; align-items: center; gap: .25rem; flex-wrap: wrap; }
+.pagination-ellipsis { color: var(--muted); padding: 0 .25rem; }
+.pagination-jump { display: flex; align-items: center; gap: .5rem; }
+.pagination-jump-label { font-size: .8rem; color: var(--muted); }
+.pagination-jump-total { font-size: .8rem; color: var(--muted); }
+.page-input {
+  width: 4rem; min-height: 32px; padding: .2rem .3rem; text-align: center;
+}
+.btn-disabled { opacity: .5; pointer-events: none; }
+
+/* Sticky action bar (stock count) */
+.sticky-action-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  padding: .75rem 1.25rem; background: var(--surface);
+  border-top: 1px solid var(--border); box-shadow: 0 -4px 12px rgba(15, 23, 42, .08);
+}
+.sticky-action-bar .sticky-note { font-size: .8rem; max-width: 60ch; }
+.sticky-action-spacer { height: 4.5rem; }
+
 @media (max-width: 1279px) {
   .shell,
   .shell.sidebar-collapsed {

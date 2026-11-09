@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -47,11 +48,29 @@ def stock_index(
     uow: UnitOfWorkDep,
     category_id: Annotated[str | None, Query()] = None,
     q: Annotated[str | None, Query()] = None,
+    page: Annotated[int, Query()] = 1,
+    limit: Annotated[int, Query()] = 50,
 ) -> HTMLResponse:
     selected_category = _optional_uuid(category_id)
+    page = max(1, page)
+    limit = max(1, limit)
+    offset = (page - 1) * limit
+
     categories = list_categories(uow)
-    rows = get_stock_overview(uow, category_id=selected_category, query=q)
+    rows, total_count = get_stock_overview(
+        uow, category_id=selected_category, query=q, limit=limit, offset=offset
+    )
+    total_pages = max(1, math.ceil(total_count / limit))
+    if page > total_pages:
+        page = total_pages
+        offset = (page - 1) * limit
+        rows, total_count = get_stock_overview(
+            uow, category_id=selected_category, query=q, limit=limit, offset=offset
+        )
+
     sessions = list_recent_stock_count_sessions(uow)
+    open_sessions = [s for s in sessions if s.status in ("open", "review")]
+    completed_sessions = [s for s in sessions if s.status == "completed"]
     category_names = _category_index(categories)
 
     return templates.TemplateResponse(
@@ -64,8 +83,13 @@ def stock_index(
             "category_names": category_names,
             "rows": rows,
             "sessions": sessions,
+            "open_sessions": open_sessions,
+            "completed_sessions": completed_sessions,
             "q": q or "",
-            "total_products": len(rows),
+            "page": page,
+            "limit": limit,
+            "total_pages": total_pages,
+            "total_count": total_count,
         },
     )
 
@@ -108,8 +132,10 @@ def session_page(
     request: Request,
     session_id: uuid.UUID,
     uow: UnitOfWorkDep,
+    page: Annotated[int, Query()] = 1,
+    limit: Annotated[int, Query()] = 50,
 ) -> HTMLResponse:
-    return _render_session(request, uow, session_id)
+    return _render_session(request, uow, session_id, page=page, limit=limit)
 
 
 @router.post("/sessions/{session_id}/count")
@@ -196,7 +222,7 @@ def print_count_list(
     selected_category = _optional_uuid(category_id)
     categories = list_categories(uow)
     category_names = _category_index(categories)
-    rows = get_stock_overview(uow, category_id=selected_category)
+    rows, _ = get_stock_overview(uow, category_id=selected_category)
 
     return templates.TemplateResponse(
         request,
@@ -218,16 +244,33 @@ def _render_session(
     session_id: uuid.UUID,
     error: str | None = None,
     status_code: int = 200,
+    page: int = 1,
+    limit: int = 50,
 ) -> HTMLResponse:
     view = get_stock_count_session(uow, session_id)
     if view is None:
         raise HTTPException(status_code=404, detail="Sayım oturumu bulunamadı.")
+
+    page = max(1, page)
+    limit = max(1, limit)
+    total_items = len(view.items)
+    total_pages = max(1, math.ceil(total_items / limit))
+    if page > total_pages:
+        page = total_pages
+    offset = (page - 1) * limit
+    page_items = view.items[offset : offset + limit]
+
     return templates.TemplateResponse(
         request,
         "stock/session.html",
         {
             "active_nav": "stock",
             "session": view,
+            "page_items": page_items,
+            "page": page,
+            "limit": limit,
+            "total_pages": total_pages,
+            "total_items": total_items,
             "error": error,
         },
         status_code=status_code,

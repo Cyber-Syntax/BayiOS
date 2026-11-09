@@ -48,6 +48,10 @@
 <div class="alert alert-success">
   <span><strong>Başarılı:</strong> Seçilen ürün(ler) veritabanından kalıcı olarak silindi.</span>
 </div>
+{% elif request.query_params.get('msg') == 'category_assigned' %}
+<div class="alert alert-success">
+  <span><strong>Başarılı:</strong> {{ request.query_params.get('count', 0) }} ürünün kategorisi güncellendi.</span>
+</div>
 {% elif request.query_params.get('msg') == 'stock_updated' %}
 <div class="alert alert-success">
   <span><strong>Başarılı:</strong> Ürün stoku güncellendi.</span>
@@ -109,7 +113,20 @@
   <div>
     <strong><span x-text="selectedIds.length"></span> ürün seçildi</strong>
   </div>
-  <div style="display: flex; gap: .5rem; align-items: center;">
+  <div style="display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;">
+    <form method="post" action="/products/bulk-category" style="display: flex; gap: .5rem; align-items: center;">
+      <template x-for="id in selectedIds" :key="id">
+        <input type="hidden" name="product_ids" :value="id">
+      </template>
+      <select name="category_id" class="form-control" style="min-width: 10rem; width: auto; min-height: 32px; padding: .2rem .5rem;" aria-label="Toplu kategori seçimi">
+        <option value="">Kategorisiz</option>
+        {% for category in categories %}
+        <option value="{{ category.id }}">{{ category.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm">Kategori Ata</button>
+    </form>
+
     {% if status == 'archived' %}
     <form method="post" action="/products/bulk-archive">
       <template x-for="id in selectedIds" :key="id">
