@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}A4 Sayım Listesi{% endblock %}
+{% block content %}
+<div class="actions-bar no-print">
+  <div>
+    <a href="/stock" class="muted" style="text-decoration: none;">&larr; Stok / Sayım</a>
+    <h1 style="margin-top: .25rem;">A4 Sayım Listesi</h1>
+  </div>
+  <div class="actions-group">
+    <button type="button" class="btn btn-primary" onclick="window.print()">Yazdır</button>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+    <div>
+      <h2 style="margin: 0;">BayiOS Stok Sayım Listesi</h2>
+      <p class="muted" style="margin: .25rem 0 0;">Kategori: <strong>{{ category_name }}</strong></p>
+    </div>
+    <div style="text-align: right; font-size: .85rem;">
+      <div>Tarih: {{ generated_at.strftime('%d.%m.%Y %H:%M') }}</div>
+      <div>Sayımı yapan: ____________________</div>
+      <div>İmza: ____________________</div>
+    </div>
+  </div>
+
+  <table class="data-table" style="min-width: 0;">
+    <thead>
+      <tr>
+        <th style="width: 3rem;">#</th>
+        <th>Ürün Adı</th>
+        <th style="width: 8rem;">Sistem Stoğu</th>
+        <th style="width: 8rem;">Sayılan Miktar</th>
+        <th style="width: 7rem;">Fark</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ row.product.name }}</td>
+        <td>{{ row.summary.physical }}</td>
+        <td style="height: 2.6rem;"></td>
+        <td></td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" class="muted" style="text-align: center; padding: 1.5rem;">Bu kategoride ürün bulunmuyor.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

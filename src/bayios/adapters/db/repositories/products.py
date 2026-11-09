@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from bayios.adapters.db.models.inventory import StockMovement
 from bayios.adapters.db.models.products import (
     Product,
+    ProductCategory,
     ProductImportBatch,
     ProductPriceHistory,
 )
@@ -104,6 +105,35 @@ class SqlAlchemyProductRepository:
 
     def get_all(self) -> Sequence[Product]:
         return self._session.scalars(sa.select(Product).order_by(Product.name)).all()
+
+    def list_by_category(
+        self,
+        category_id: uuid.UUID | None,
+        include_archived: bool = False,
+    ) -> Sequence[Product]:
+        stmt = sa.select(Product)
+        if category_id is not None:
+            stmt = stmt.where(Product.category_id == category_id)
+        if not include_archived:
+            stmt = stmt.where(Product.is_archived.is_(False))
+        return self._session.scalars(stmt.order_by(Product.name)).all()
+
+    def get_categories(self) -> Sequence[ProductCategory]:
+        return self._session.scalars(
+            sa.select(ProductCategory).order_by(ProductCategory.name)
+        ).all()
+
+    def get_category(self, category_id: uuid.UUID) -> ProductCategory | None:
+        return self._session.get(ProductCategory, category_id)
+
+    def get_category_by_name(self, name: str) -> ProductCategory | None:
+        return self._session.scalar(
+            sa.select(ProductCategory).where(ProductCategory.name == name)
+        )
+
+    def add_category(self, category: ProductCategory) -> None:
+        self._session.add(category)
+        self._session.flush()
 
     def get_price_history(self, product_id: uuid.UUID) -> Sequence[ProductPriceHistory]:
         return self._session.scalars(

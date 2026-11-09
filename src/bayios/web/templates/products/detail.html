@@ -150,6 +150,15 @@
         <input type="text" name="cost_price" class="form-control" value="{{ product.cost_price if product.cost_price is not none else '' }}">
         <small class="muted">Boş bırakılan fiyat alanları temizlenir. Fiziksel stok için "Stok Güncelle" kullanılır.</small>
       </div>
+      <div style="margin-bottom: 1rem;">
+        <label style="display: block; font-weight: 500; font-size: .85rem; margin-bottom: .25rem;">Kategori</label>
+        <select name="category_id" class="form-control">
+          <option value="">Kategorisiz</option>
+          {% for category in categories %}
+          <option value="{{ category.id }}" {% if product.category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
       <div style="display: flex; justify-content: flex-end; gap: .5rem;">
         <button type="button" class="btn" @click="showEditModal = false">İptal</button>
         <button type="submit" class="btn btn-primary">Kaydet</button>
@@ -289,10 +298,18 @@
         </tr>
       </thead>
       <tbody>
+        {% set movement_labels = {
+          'csv_update': 'CSV Güncellemesi',
+          'stock_count_adjustment': 'Sayım Düzeltmesi',
+          'manual_adjustment': 'Manuel Düzeltme',
+          'delivery_out': 'Teslimat Çıkışı',
+          'return_in': 'İade Girişi',
+          'reversal': 'Geri Alma'
+        } %}
         {% for m in stock_movements %}
         <tr>
           <td>{{ m.created_at.strftime('%d.%m.%Y %H:%M') if m.created_at else '—' }}</td>
-          <td><span class="badge">{{ m.movement_type }}</span></td>
+          <td><span class="badge">{{ movement_labels.get(m.movement_type, m.movement_type) }}</span></td>
           <td>{{ m.quantity_before }}</td>
           <td>
             {% if m.quantity_delta > 0 %}

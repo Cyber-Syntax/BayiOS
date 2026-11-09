@@ -5,9 +5,14 @@ from collections.abc import Sequence
 from types import TracebackType
 from typing import Self
 
-from bayios.adapters.db.models.inventory import StockMovement
+from bayios.adapters.db.models.inventory import (
+    StockCountItem,
+    StockCountSession,
+    StockMovement,
+)
 from bayios.adapters.db.models.products import (
     Product,
+    ProductCategory,
     ProductImportBatch,
     ProductPriceHistory,
 )
@@ -17,6 +22,7 @@ from bayios.domain.products import normalize_product_name
 class FakeProductRepository:
     def __init__(self) -> None:
         self.products: dict[uuid.UUID, Product] = {}
+        self.categories: dict[uuid.UUID, ProductCategory] = {}
         self.price_history: list[ProductPriceHistory] = []
         self.stock_movements: list[StockMovement] = []
         self.import_batches: list[ProductImportBatch] = []
@@ -95,6 +101,35 @@ class FakeProductRepository:
         results.sort(key=lambda p: p.name)
         return results
 
+    def list_by_category(
+        self,
+        category_id: uuid.UUID | None,
+        include_archived: bool = False,
+    ) -> Sequence[Product]:
+        results = [
+            product
+            for product in self.products.values()
+            if (category_id is None or product.category_id == category_id)
+            and (include_archived or not product.is_archived)
+        ]
+        results.sort(key=lambda p: p.name)
+        return results
+
+    def get_categories(self) -> Sequence[ProductCategory]:
+        return sorted(self.categories.values(), key=lambda category: category.name)
+
+    def get_category(self, category_id: uuid.UUID) -> ProductCategory | None:
+        return self.categories.get(category_id)
+
+    def get_category_by_name(self, name: str) -> ProductCategory | None:
+        for category in self.categories.values():
+            if category.name == name:
+                return category
+        return None
+
+    def add_category(self, category: ProductCategory) -> None:
+        self.categories[category.id] = category
+
     def get_price_history(self, product_id: uuid.UUID) -> Sequence[ProductPriceHistory]:
         return [h for h in self.price_history if h.product_id == product_id]
 
@@ -117,9 +152,61 @@ class FakeProductRepository:
         return None
 
 
+class FakeStockCountRepository:
+    def __init__(self, products: FakeProductRepository) -> None:
+        self._products = products
+        self.sessions: dict[uuid.UUID, StockCountSession] = {}
+        self.items: dict[uuid.UUID, list[StockCountItem]] = {}
+        self._next_number = 1
+
+    def add_session(self, session: StockCountSession) -> None:
+        if getattr(session, "count_number", None) is None:
+            session.count_number = self._next_number
+            self._next_number += 1
+        self.sessions[session.id] = session
+
+    def add_items(self, items: Sequence[StockCountItem]) -> None:
+        for item in items:
+            self.items.setdefault(item.session_id, []).append(item)
+
+    def get_session(self, session_id: uuid.UUID) -> StockCountSession | None:
+        return self.sessions.get(session_id)
+
+    def get_items(self, session_id: uuid.UUID) -> Sequence[StockCountItem]:
+        return sorted(
+            self.items.get(session_id, []), key=lambda item: item.product_name
+        )
+
+    def list_sessions(self, limit: int = 20) -> Sequence[StockCountSession]:
+        sessions = sorted(
+            self.sessions.values(), key=lambda session: session.started_at, reverse=True
+        )
+        return sessions[:limit]
+
+    def delete_item(self, item: StockCountItem) -> None:
+        bucket = self.items.get(item.session_id, [])
+        if item in bucket:
+            bucket.remove(item)
+
+    def stock_version(self, category_id: uuid.UUID | None) -> int:
+        if category_id is None:
+            return len(self._products.stock_movements)
+        product_ids = {
+            product.id
+            for product in self._products.products.values()
+            if product.category_id == category_id
+        }
+        return sum(
+            1
+            for movement in self._products.stock_movements
+            if movement.product_id in product_ids
+        )
+
+
 class FakeUnitOfWork:
     def __init__(self, repo: FakeProductRepository | None = None) -> None:
         self.products = repo or FakeProductRepository()
+        self.stock_counts = FakeStockCountRepository(self.products)
         self.committed = False
         self.rolled_back = False
         self._initial_state: tuple[object, ...] | None = None
@@ -145,6 +232,25 @@ class FakeUnitOfWork:
             len(self.products.price_history),
             len(self.products.stock_movements),
             len(self.products.import_batches),
+            tuple(
+                sorted(
+                    (str(session.id), session.status, session.stock_version)
+                    for session in self.stock_counts.sessions.values()
+                )
+            ),
+            tuple(
+                sorted(
+                    (
+                        str(item.id),
+                        str(item.session_id),
+                        item.system_quantity,
+                        item.counted_quantity,
+                        item.difference,
+                    )
+                    for bucket in self.stock_counts.items.values()
+                    for item in bucket
+                )
+            ),
         )
 
     def __enter__(self) -> Self:

@@ -170,6 +170,15 @@
           <input type="number" name="physical_stock" class="form-control" value="0" min="0">
         </div>
       </div>
+      <div style="margin-bottom: 1rem;">
+        <label style="display: block; font-weight: 500; font-size: .85rem; margin-bottom: .25rem;">Kategori</label>
+        <select name="category_id" class="form-control">
+          <option value="">Kategorisiz</option>
+          {% for category in categories %}
+          <option value="{{ category.id }}">{{ category.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
       <div style="display: flex; justify-content: flex-end; gap: .5rem;">
         <button type="button" class="btn" @click="showNewModal = false">İptal</button>
         <button type="submit" class="btn btn-primary">Kaydet</button>

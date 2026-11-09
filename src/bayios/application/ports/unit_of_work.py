@@ -4,6 +4,7 @@ from types import TracebackType
 from typing import Protocol, Self
 
 from bayios.application.ports.products import ProductRepository
+from bayios.application.ports.stock_counts import StockCountRepository
 
 
 class UnitOfWork(Protocol):
@@ -13,6 +14,7 @@ class UnitOfWork(Protocol):
     """
 
     products: ProductRepository
+    stock_counts: StockCountRepository
 
     def __enter__(self) -> Self: ...
 

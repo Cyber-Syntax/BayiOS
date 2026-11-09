@@ -11,6 +11,7 @@ from decimal import Decimal
 from bayios.adapters.db.models.inventory import StockMovement
 from bayios.adapters.db.models.products import Product, ProductPriceHistory
 from bayios.application.ports.unit_of_work import UnitOfWork
+from bayios.domain.inventory import StockSummary
 from bayios.domain.products import ActorContext, normalize_product_name
 
 
@@ -49,6 +50,7 @@ def create_manual_product(
     website_discounted_price: Decimal | None = None,
     cost_price: Decimal | None = None,
     physical_stock: int = 0,
+    category_id: uuid.UUID | None = None,
     actor: ActorContext | None = None,
 ) -> Product:
     clean_name = name.strip()
@@ -62,6 +64,8 @@ def create_manual_product(
         existing = uow.products.get_by_normalized_name(norm_name)
         if existing is not None:
             raise ValueError(f"'{clean_name}' adında bir ürün zaten mevcut.")
+        if category_id is not None and uow.products.get_category(category_id) is None:
+            raise ValueError("Seçilen kategori bulunamadı.")
 
         prod_id = uuid.uuid4()
         product = Product(
@@ -72,6 +76,7 @@ def create_manual_product(
             website_discounted_price=website_discounted_price,
             cost_price=cost_price,
             physical_stock=physical_stock,
+            category_id=category_id,
             last_seen_at=now,
             last_price_changed_at=now
             if (regular_price is not None or website_discounted_price is not None)
@@ -147,6 +152,7 @@ def update_product(
     regular_price: Decimal | None = None,
     website_discounted_price: Decimal | None = None,
     cost_price: Decimal | None = None,
+    category_id: uuid.UUID | None = None,
     actor: ActorContext | None = None,
 ) -> Product:
     clean_name = name.strip()
@@ -160,6 +166,8 @@ def update_product(
         product = uow.products.get_by_id(product_id)
         if product is None:
             raise ValueError("Ürün bulunamadı.")
+        if category_id is not None and uow.products.get_category(category_id) is None:
+            raise ValueError("Seçilen kategori bulunamadı.")
 
         if norm_name != product.name_normalized:
             duplicate = uow.products.get_by_normalized_name(norm_name)
@@ -199,6 +207,8 @@ def update_product(
 
         if price_changed:
             product.last_price_changed_at = now
+
+        product.category_id = category_id
 
         uow.commit()
         return product
@@ -258,7 +268,11 @@ def adjust_product_stock(
         return product
 
 
-def get_product_detail(uow: UnitOfWork, product_id: uuid.UUID) -> ProductDetail | None:
+def get_product_detail(
+    uow: UnitOfWork,
+    product_id: uuid.UUID,
+    open_reservations: dict[uuid.UUID, int] | None = None,
+) -> ProductDetail | None:
     with uow:
         product = uow.products.get_by_id(product_id)
         if product is None:
@@ -266,18 +280,18 @@ def get_product_detail(uow: UnitOfWork, product_id: uuid.UUID) -> ProductDetail 
         price_history = uow.products.get_price_history(product_id)
         stock_movements = uow.products.get_stock_movements(product_id)
 
-        # In M1 open_reservation is 0
-        open_reservation = 0
-        sellable_stock = max(0, product.physical_stock - open_reservation)
-        supply_need = max(0, open_reservation - product.physical_stock)
+        summary = StockSummary(
+            physical=product.physical_stock,
+            open_reservation=(open_reservations or {}).get(product.id, 0),
+        )
 
         return ProductDetail(
             product=product,
             price_history=price_history,
             stock_movements=stock_movements,
-            sellable_stock=sellable_stock,
-            open_reservation=open_reservation,
-            supply_need=supply_need,
+            sellable_stock=summary.sellable,
+            open_reservation=summary.open_reservation,
+            supply_need=summary.supply_need,
         )
 
 

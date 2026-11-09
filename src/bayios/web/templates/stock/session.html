@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Sayım #{{ session.count_number }}{% endblock %}
+
+{% macro count_table(editable) %}
+<div class="table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Ürün Adı</th>
+        <th>Sistem Stoğu</th>
+        <th>Sayılan Miktar</th>
+        <th>Fark</th>
+        <th>Uygulandı</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in session.items %}
+      <tr>
+        <td><strong>{{ item.product_name }}</strong></td>
+        <td>{{ item.system_quantity }}</td>
+        <td>
+          {% if editable %}
+          <input type="number" min="0" step="1"
+                 name="counted_{{ item.product_id }}"
+                 value="{{ item.counted_quantity if item.counted_quantity is not none else '' }}"
+                 class="form-control stock-input"
+                 aria-label="{{ item.product_name }} sayılan miktar">
+          {% else %}
+          {{ item.counted_quantity if item.counted_quantity is not none else '—' }}
+          {% endif %}
+        </td>
+        <td>
+          {% if item.difference is not none %}
+            {% if item.difference > 0 %}
+            <strong style="color: #059669;">+{{ item.difference }}</strong>
+            {% elif item.difference < 0 %}
+            <strong style="color: #dc2626;">{{ item.difference }}</strong>
+            {% else %}
+            <span class="muted">0</span>
+            {% endif %}
+          {% else %}
+          <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td>{{ item.applied_at.strftime('%d.%m.%Y %H:%M') if item.applied_at else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% block content %}
+{% if request.query_params.get('msg') == 'counts_saved' %}
+<div class="alert alert-success">
+  <span><strong>Kaydedildi:</strong> Sayılan miktarlar kaydedildi. Farkları kontrol edip sayımı tamamlayın.</span>
+</div>
+{% elif request.query_params.get('msg') == 'refreshed' %}
+<div class="alert alert-success">
+  <span><strong>Yenilendi:</strong> Sistem stokları güncellendi. Farkları yeniden inceleyin.</span>
+</div>
+{% elif request.query_params.get('msg') == 'completed' %}
+<div class="alert alert-success">
+  <span><strong>Başarılı:</strong> Sayım tamamlandı ve stok düzeltme hareketleri kaydedildi.</span>
+</div>
+{% endif %}
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div class="actions-bar">
+  <div>
+    <div style="margin-bottom: .25rem;">
+      <a href="/stock" class="muted" style="text-decoration: none;">&larr; Stok / Sayım</a>
+    </div>
+    <div style="display: flex; align-items: center; gap: .5rem;">
+      <h1 style="margin: 0;">Sayım #{{ session.count_number }}</h1>
+      {% if session.status == 'completed' %}
+      <span class="badge badge-success">Tamamlandı</span>
+      {% elif session.status == 'review' %}
+      <span class="badge badge-warning">Fark İncelemesi</span>
+      {% else %}
+      <span class="badge">Açık</span>
+      {% endif %}
+    </div>
+    <small class="muted">
+      Kategori: {{ session.category_name or 'Tüm Ürünler' }} ·
+      Başlangıç: {{ session.started_at.strftime('%d.%m.%Y %H:%M') if session.started_at else '—' }}
+      {% if session.completed_at %}
+      · Tamamlanma: {{ session.completed_at.strftime('%d.%m.%Y %H:%M') }}
+      {% endif %}
+      {% if session.completed_by_name %} · Tamamlayan: {{ session.completed_by_name }}{% endif %}
+    </small>
+    {% if session.note %}<p class="muted" style="margin: .25rem 0 0;">Not: {{ session.note }}</p>{% endif %}
+  </div>
+  <div class="actions-group">
+    <a class="btn" href="/stock/print{% if session.category_id %}?category_id={{ session.category_id }}{% endif %}" target="_blank">A4 Sayım Listesi</a>
+    {% if session.status != 'completed' %}
+    <form method="post" action="/stock/sessions/{{ session.id }}/refresh">
+      <button type="submit" class="btn">Farkları Yenile</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid-stats">
+  <div class="stat-box">
+    <div class="stat-label">Ürün Sayısı</div>
+    <div class="stat-value">{{ session.items | length }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Sayılan Satır</div>
+    <div class="stat-value">{{ session.counted_lines }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Farklı Satır</div>
+    <div class="stat-value" style="{% if session.difference_lines > 0 %}color: #d97706;{% endif %}">{{ session.difference_lines }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Toplam Fark</div>
+    <div class="stat-value" style="{% if session.total_difference != 0 %}color: #dc2626;{% endif %}">{{ session.total_difference }}</div>
+  </div>
+</div>
+
+{% if session.status == 'completed' %}
+{{ count_table(false) }}
+<div class="card">
+  <h2>Sayım Özeti</h2>
+  {% set summary = session.summary or {} %}
+  <p style="margin: 0;">
+    <strong>{{ summary.get('adjusted_count', 0) }}</strong> üründe stok düzeltmesi uygulandı,
+    <strong>{{ summary.get('unchanged_count', 0) }}</strong> ürünün stoğu değişmedi.
+    Toplam miktar farkı: <strong>{{ summary.get('total_difference', 0) }}</strong>.
+  </p>
+</div>
+{% else %}
+<form method="post" action="/stock/sessions/{{ session.id }}/count">
+  {{ count_table(true) }}
+  <div class="actions-bar" style="margin-top: 1rem;">
+    <small class="muted">Boş bırakılan alanlar sayılmamış kabul edilir; tüm alanlar dolmadan sayım tamamlanamaz.</small>
+    <div class="actions-group">
+      <button type="submit" class="btn btn-primary">Miktarları Kaydet</button>
+    </div>
+  </div>
+</form>
+
+{% if session.status == 'review' %}
+<div class="card" style="border-color: #fde68a; background: #fffdf5;">
+  <h2 style="margin-top: 0;">Fark İncelemesi</h2>
+  {% if session.difference_lines > 0 %}
+  <p style="margin-top: 0;">
+    <strong>{{ session.difference_lines }}</strong> satırda fark bulundu. Sayımı tamamladığınızda
+    bu farklar stok düzeltme hareketi olarak kaydedilecektir. Farkların doğru olduğunu onaylamanız gerekir.
+  </p>
+  {% else %}
+  <p style="margin-top: 0;">Tüm sayılan miktarlar sistem stoğuyla aynı. Sayımı tamamlayabilirsiniz.</p>
+  {% endif %}
+  <form method="post" action="/stock/sessions/{{ session.id }}/complete">
+    {% if session.difference_lines > 0 %}
+    <label style="display: flex; gap: .5rem; align-items: flex-start; margin-bottom: 1rem;">
+      <input type="checkbox" name="acknowledge_differences" required>
+      <span>Farkları inceledim ve stok düzeltmelerinin uygulanmasını onaylıyorum.</span>
+    </label>
+    {% endif %}
+    <button type="submit" class="btn btn-primary">Sayımı Tamamla</button>
+  </form>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

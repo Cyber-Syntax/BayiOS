@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}Stok / Sayım{% endblock %}
+{% block content %}
+<div x-data="{ showSessionModal: false, showCategoryModal: false }">
+  {% if request.query_params.get('msg') == 'category_created' %}
+  <div class="alert alert-success">
+    <span><strong>Başarılı:</strong> Yeni kategori eklendi.</span>
+  </div>
+  {% endif %}
+
+  <div class="actions-bar">
+    <div>
+      <h1>Stok / Sayım</h1>
+      <p class="muted" style="margin: 0;">Fiziksel stok, açık rezervasyon, satılabilir stok ve kategori sayımları.</p>
+    </div>
+    <div class="actions-group">
+      <button type="button" class="btn" @click="showCategoryModal = true">Kategori Ekle</button>
+      <a class="btn" href="/stock/print{% if selected_category %}?category_id={{ selected_category }}{% endif %}" target="_blank">A4 Sayım Listesi</a>
+      <button type="button" class="btn btn-primary" @click="showSessionModal = true">Yeni Sayım Oturumu</button>
+    </div>
+  </div>
+
+  <div class="grid-stats">
+    <div class="stat-box">
+      <div class="stat-label">Listelenen Ürün</div>
+      <div class="stat-value">{{ total_products }}</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Açık / İncelemede Oturum</div>
+      <div class="stat-value">{{ sessions | selectattr('status', 'in', ['open', 'review']) | list | length }}</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Tamamlanan Oturum</div>
+      <div class="stat-value">{{ sessions | selectattr('status', 'equalto', 'completed') | list | length }}</div>
+    </div>
+  </div>
+
+  <div class="card" style="padding: 1rem;">
+    <form method="get" action="/stock">
+      <div class="search-toolbar">
+        <select name="category_id" class="form-control search-filter">
+          <option value="">Tüm Kategoriler</option>
+          {% for category in categories %}
+          <option value="{{ category.id }}" {% if selected_category == category.id %}selected{% endif %}>{{ category.name }}</option>
+          {% endfor %}
+        </select>
+        <input type="search" name="q" class="form-control search-input" placeholder="Ürün adı ile ara..." value="{{ q }}" autocomplete="off">
+        <button type="submit" class="btn btn-primary search-submit">Ara</button>
+        {% if q or selected_category %}
+        <a href="/stock" class="btn search-clear">Temizle</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Ürün Adı</th>
+          <th>Kategori</th>
+          <th>Fiziksel Stok</th>
+          <th>Açık Rezervasyon</th>
+          <th>Satılabilir Stok</th>
+          <th>Temin İhtiyacı</th>
+          <th>İşlem</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><a href="/products/{{ row.product.id }}"><strong>{{ row.product.name }}</strong></a></td>
+          <td>{{ category_names.get(row.product.category_id, '—') }}</td>
+          <td>{{ row.summary.physical }}</td>
+          <td>{{ row.summary.open_reservation }}</td>
+          <td>
+            {% if row.summary.sellable > 0 %}
+            <span class="badge badge-success">{{ row.summary.sellable }} adet</span>
+            {% else %}
+            <span class="badge badge-warning">0 adet</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if row.summary.supply_need > 0 %}
+            <span class="badge badge-danger">{{ row.summary.supply_need }} adet</span>
+            {% else %}
+            <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td><a class="btn btn-sm" href="/products/{{ row.product.id }}">Detay</a></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="muted" style="text-align: center; padding: 2rem;">
+            Bu filtrede ürün bulunmuyor.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Son Sayım Oturumları</h2>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Kategori</th>
+            <th>Durum</th>
+            <th>Başlangıç</th>
+            <th>Tamamlanma</th>
+            <th>Tamamlayan</th>
+            <th>İşlem</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for session in sessions %}
+          <tr>
+            <td>#{{ session.count_number }}</td>
+            <td>{{ category_names.get(session.category_id, 'Tüm Ürünler') }}</td>
+            <td>
+              {% if session.status == 'completed' %}
+              <span class="badge badge-success">Tamamlandı</span>
+              {% elif session.status == 'review' %}
+              <span class="badge badge-warning">Fark İncelemesi</span>
+              {% else %}
+              <span class="badge">Açık</span>
+              {% endif %}
+            </td>
+            <td>{{ session.started_at.strftime('%d.%m.%Y %H:%M') if session.started_at else '—' }}</td>
+            <td>{{ session.completed_at.strftime('%d.%m.%Y %H:%M') if session.completed_at else '—' }}</td>
+            <td>{{ session.completed_by_name or '—' }}</td>
+            <td><a class="btn btn-sm" href="/stock/sessions/{{ session.id }}">Aç</a></td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="muted" style="text-align: center; padding: 1.5rem;">Henüz sayım oturumu açılmadı.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div x-show="showSessionModal" class="modal-backdrop" x-cloak @click.self="showSessionModal = false">
+    <div class="modal-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="margin: 0; font-size: 1.25rem;">Yeni Sayım Oturumu</h2>
+        <button type="button" class="btn btn-sm" @click="showSessionModal = false">&times;</button>
+      </div>
+      <form method="post" action="/stock/sessions">
+        <div class="form-group">
+          <label for="session-category">Kategori</label>
+          <select id="session-category" name="category_id" class="form-control">
+            <option value="">Tüm Ürünler</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+          </select>
+          <small class="muted">Sayım açıldığında bu kategorideki ürünlerin fiziksel stokları sabitlenir.</small>
+        </div>
+        <div class="form-group">
+          <label for="session-note">Not</label>
+          <input type="text" id="session-note" name="note" class="form-control" placeholder="örn: Aylık depo sayımı">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: .5rem;">
+          <button type="button" class="btn" @click="showSessionModal = false">İptal</button>
+          <button type="submit" class="btn btn-primary">Sayımı Aç</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div x-show="showCategoryModal" class="modal-backdrop" x-cloak @click.self="showCategoryModal = false">
+    <div class="modal-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="margin: 0; font-size: 1.25rem;">Kategori Ekle</h2>
+        <button type="button" class="btn btn-sm" @click="showCategoryModal = false">&times;</button>
+      </div>
+      <form method="post" action="/stock/categories">
+        <div class="form-group">
+          <label for="category-name">Kategori Adı</label>
+          <input type="text" id="category-name" name="name" class="form-control" required placeholder="örn: Beyaz Eşya">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: .5rem;">
+          <button type="button" class="btn" @click="showCategoryModal = false">İptal</button>
+          <button type="submit" class="btn btn-primary">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

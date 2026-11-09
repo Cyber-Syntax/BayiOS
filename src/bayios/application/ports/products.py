@@ -7,6 +7,7 @@ from typing import Protocol
 from bayios.adapters.db.models.inventory import StockMovement
 from bayios.adapters.db.models.products import (
     Product,
+    ProductCategory,
     ProductImportBatch,
     ProductPriceHistory,
 )
@@ -39,6 +40,20 @@ class ProductRepository(Protocol):
     def add(self, product: Product) -> None: ...
 
     def get_all(self) -> Sequence[Product]: ...
+
+    def list_by_category(
+        self,
+        category_id: uuid.UUID | None,
+        include_archived: bool = False,
+    ) -> Sequence[Product]: ...
+
+    def get_categories(self) -> Sequence[ProductCategory]: ...
+
+    def get_category(self, category_id: uuid.UUID) -> ProductCategory | None: ...
+
+    def get_category_by_name(self, name: str) -> ProductCategory | None: ...
+
+    def add_category(self, category: ProductCategory) -> None: ...
 
     def get_price_history(self, product_id: uuid.UUID) -> Sequence[ProductPriceHistory]: ...
 

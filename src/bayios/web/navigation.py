@@ -18,7 +18,7 @@ NAV_ITEMS: tuple[NavItem, ...] = (
     NavItem("campaigns", "Kampanyalar", "/campaigns", icon="campaigns"),
     NavItem("offers", "Teklifler", "/offers", icon="offers"),
     NavItem("reservations", "Rezervasyonlar", "/reservations", icon="reservations"),
-    NavItem("stock", "Stok/Sayım", "/stock", icon="stock"),
+    NavItem("stock", "Stok/Sayım", "/stock", enabled=True, icon="stock"),
     NavItem("quick_deliveries", "Hızlı Teslim", "/quick-deliveries", icon="quick_deliveries"),
     NavItem("settings", "Ayarlar", "/settings", icon="settings"),
 )

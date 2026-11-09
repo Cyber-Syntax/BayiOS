@@ -10,6 +10,7 @@ from fastapi import APIRouter, Form, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from bayios.application.imports import _normalize_decimal
+from bayios.application.inventory import list_categories
 from bayios.application.products import (
     adjust_product_stock,
     archive_products,
@@ -34,6 +35,15 @@ def _parse_decimal_form(val: str | None) -> Decimal | None:
     if normalized is None:
         raise HTTPException(status_code=400, detail="Geçersiz fiyat formatı")
     return Decimal(normalized)
+
+
+def _parse_uuid_form(val: str | None) -> uuid.UUID | None:
+    if not val or not val.strip():
+        return None
+    try:
+        return uuid.UUID(val)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Geçersiz kategori") from exc
 
 
 def _safe_redirect(url: str | None, fallback: str, msg: str) -> str:
@@ -71,6 +81,7 @@ def list_products(
     context = {
         "active_nav": "products",
         "products": products,
+        "categories": list_categories(uow),
         "total_count": total_count,
         "q": q or "",
         "status": status,
@@ -96,6 +107,7 @@ def create_product_route(
     website_discounted_price: Annotated[str | None, Form()] = None,
     cost_price: Annotated[str | None, Form()] = None,
     physical_stock: Annotated[int, Form()] = 0,
+    category_id: Annotated[str | None, Form()] = None,
 ) -> Response:
     try:
         reg = _parse_decimal_form(regular_price)
@@ -108,6 +120,7 @@ def create_product_route(
             website_discounted_price=disc,
             cost_price=cost,
             physical_stock=physical_stock,
+            category_id=_parse_uuid_form(category_id),
             actor=actor,
         )
     except ValueError as exc:
@@ -181,6 +194,7 @@ def update_product_route(
     regular_price: Annotated[str | None, Form()] = None,
     website_discounted_price: Annotated[str | None, Form()] = None,
     cost_price: Annotated[str | None, Form()] = None,
+    category_id: Annotated[str | None, Form()] = None,
 ) -> Response:
     try:
         update_product(
@@ -190,6 +204,7 @@ def update_product_route(
             regular_price=_parse_decimal_form(regular_price),
             website_discounted_price=_parse_decimal_form(website_discounted_price),
             cost_price=_parse_decimal_form(cost_price),
+            category_id=_parse_uuid_form(category_id),
             actor=actor,
         )
     except ValueError as exc:
@@ -267,5 +282,6 @@ def product_detail(
             "sellable_stock": detail.sellable_stock,
             "open_reservation": detail.open_reservation,
             "supply_need": detail.supply_need,
+            "categories": list_categories(uow),
         },
     )
