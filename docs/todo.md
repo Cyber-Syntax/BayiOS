@@ -7,3 +7,9 @@
 - [ ] eğer boyut küçük olursa, ürünler sekmesinde tüm kartı boş alanlara tıklayınca seçebiliyorum ama eğer window boyutu büyük olursa sadece checkbox ile seçebiliyorum. Bunu değiştir; büyük olunca da kartta boş alana tıklayınca ürün seçilsin.
 - [ ] sadece seçilmiş ürünleri excel ile dışa aktar
 - [ ] sadece kategorisi seçilmiş ürünleri excel ile dışa aktar.
+- [ ] a4 sayım listesi, kategori seçince, o kategori için çıkartsın, tüm kategoride tüm kategori için a4 sayım listesi çıkartsın.
+- [ ] sayım geçmişi ve açık sayım oturumları yukarıda olsun ama yer kazanmak için iki tane iç sekme olarak görünsünler.
+
+## good-to-have
+
+- [ ] Bayi os resimlerini readme.md ekle
