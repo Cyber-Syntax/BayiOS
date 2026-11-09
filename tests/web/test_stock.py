@@ -47,7 +47,16 @@ def test_stock_page_lists_stock_summary(client: TestClient) -> None:
     assert "Stok / Sayım" in response.text
     assert "07325 A" in response.text
     assert "Beyaz Eşya" in response.text
-    assert "Satılabilir Stok" in response.text
+    assert "Fiziksel Stok" in response.text
+    assert "Satılabilir Stok" not in response.text
+
+
+def test_stock_page_htmx_returns_results_fragment(client: TestClient) -> None:
+    response = client.get("/stock", headers={"HX-Request": "true"})
+    assert response.status_code == 200
+    assert "07325 A" in response.text
+    assert "Listelenen Ürün" in response.text
+    assert "<!doctype html>" not in response.text
 
 
 def test_stock_count_flow_updates_stock_and_history(

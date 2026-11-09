@@ -14,11 +14,16 @@ from decimal import Decimal, InvalidOperation
 from bayios.adapters.db.models.inventory import StockMovement
 from bayios.adapters.db.models.products import (
     Product,
+    ProductCategory,
     ProductImportBatch,
     ProductPriceHistory,
 )
 from bayios.application.ports.unit_of_work import UnitOfWork
-from bayios.domain.products import ActorContext, normalize_product_name
+from bayios.domain.products import (
+    ActorContext,
+    normalize_category_name,
+    normalize_product_name,
+)
 
 
 @dataclass(frozen=True)
@@ -26,6 +31,7 @@ class ProductImportRow:
     row_number: int
     decision: str
     product_name: str | None = None
+    category_name: str | None = None
     regular_price: str | None = None
     website_discounted_price: str | None = None
     quantity: str | None = None
@@ -71,6 +77,9 @@ def preview_product_import(
             "website discounted price",
         )
         quantity = _value(raw_row, "quantity")
+        category_name = _value(raw_row, "category", "category_name", "kategori")
+        if category_name:
+            category_name = unicodedata.normalize("NFKC", category_name).strip()
         errors: list[str] = []
         warnings: list[str] = []
 
@@ -100,6 +109,7 @@ def preview_product_import(
                 row_number=row_number,
                 decision=decision,
                 product_name=product_name or None,
+                category_name=category_name or None,
                 regular_price=normalized_price,
                 website_discounted_price=normalized_discounted_price,
                 quantity=normalized_quantity,
@@ -155,6 +165,24 @@ def commit_product_import(
         existing_products = uow.products.get_by_normalized_names(normalized_names)
         existing_names = set(existing_products.keys())
 
+        categories = {c.name: c for c in uow.products.get_categories()}
+        categories_by_norm = {
+            normalize_category_name(name): category for name, category in categories.items()
+        }
+
+        def resolve_category(category_name: str | None) -> ProductCategory | None:
+            if not category_name:
+                return None
+            norm = normalize_category_name(category_name)
+            existing_category = categories_by_norm.get(norm)
+            if existing_category is not None:
+                return existing_category
+            category = ProductCategory(id=uuid.uuid4(), name=category_name.strip())
+            uow.products.add_category(category)
+            categories[category.name] = category
+            categories_by_norm[norm] = category
+            return category
+
         raw_preview = preview_product_import(source, existing_names=existing_names)
 
         created_count = 0
@@ -190,6 +218,7 @@ def commit_product_import(
                 qty = int(row.quantity) if row.quantity is not None else 0
 
                 prod_id = uuid.uuid4()
+                category = resolve_category(row.category_name)
                 product = Product(
                     id=prod_id,
                     name=row.product_name,
@@ -197,6 +226,7 @@ def commit_product_import(
                     regular_price=reg_price,
                     website_discounted_price=disc_price,
                     physical_stock=qty,
+                    category_id=category.id if category else None,
                     last_seen_at=now,
                     last_price_changed_at=now if (reg_price or disc_price) else None,
                 )
@@ -251,6 +281,10 @@ def commit_product_import(
             else:
                 # A product present in the current catalog file is active again.
                 existing.is_archived = False
+
+                if row.category_name:
+                    category = resolve_category(row.category_name)
+                    existing.category_id = category.id if category else None
 
                 if row.regular_price is not None:
                     new_reg = Decimal(row.regular_price)

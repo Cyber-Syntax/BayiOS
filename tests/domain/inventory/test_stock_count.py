@@ -10,11 +10,11 @@ from bayios.domain.inventory import (
 )
 
 
-def test_stock_summary_never_shows_negative_sellable_or_supply_need() -> None:
+def test_stock_summary_reports_physical_and_open_reservation() -> None:
     summary = StockSummary(physical=2, open_reservation=5)
 
-    assert summary.sellable == 0
-    assert summary.supply_need == 3
+    assert summary.physical == 2
+    assert summary.open_reservation == 5
 
 
 def test_stock_movement_types_distinguish_csv_delivery_and_count() -> None:

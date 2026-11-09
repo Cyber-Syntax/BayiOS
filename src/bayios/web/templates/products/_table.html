@@ -4,23 +4,23 @@
     <thead>
       <tr>
         <th style="width: 40px; text-align: center;">
-          <input type="checkbox" @click="toggleSelectAll()" :checked="selectAll" title="Tümünü Seç">
+          <input type="checkbox" class="product-checkbox-all" title="Tümünü Seç">
         </th>
         <th class="col-name">Ürün Adı</th>
         <th class="col-category">Kategori</th>
         <th class="col-price">Normal Fiyat</th>
         <th class="col-price">Oliz / Web İndirimli</th>
         <th class="col-stock">Fiziksel Stok</th>
-        <th class="col-stock">Satılabilir Stok</th>
         <th class="col-date">Son Fiyat Değişimi</th>
         <th class="col-actions">İşlem</th>
       </tr>
     </thead>
     <tbody>
       {% for product in products %}
-      <tr {% if product.is_archived %}style="opacity: 0.7; background: #fafafa;"{% endif %}>
+      <tr data-product-id="{{ product.id }}"
+          {% if product.is_archived %}style="opacity: 0.7; background: #fafafa;"{% endif %}>
         <td class="col-select" style="text-align: center;">
-          <input type="checkbox" class="product-checkbox" value="{{ product.id }}" @change="updateSelection()">
+          <input type="checkbox" class="product-checkbox" value="{{ product.id }}">
         </td>
         <td class="col-name" data-label="Ürün Adı">
           <a href="/products/{{ product.id }}"><strong>{{ product.name }}</strong></a>
@@ -60,9 +60,6 @@
           <span class="badge badge-danger">{{ product.physical_stock }} adet</span>
           {% endif %}
         </td>
-        <td class="col-stock" data-label="Satılabilir Stok">
-          <strong>{{ product.physical_stock }} adet</strong>
-        </td>
         <td class="col-date" data-label="Son Fiyat Değişimi">
           {% if product.last_price_changed_at %}
           <small class="muted">{{ product.last_price_changed_at.strftime('%d.%m.%Y %H:%M') }}</small>
@@ -83,7 +80,7 @@
       </tr>
       {% else %}
       <tr>
-        <td colspan="9" style="text-align: center; padding: 2.5rem;" class="muted">
+        <td colspan="8" style="text-align: center; padding: 2.5rem;" class="muted">
           {% if q %}
           "{{ q }}" aramasıyla eşleşen ürün bulunamadı.
           {% else %}

@@ -47,6 +47,15 @@ def _parse_uuid_form(val: str | None) -> uuid.UUID | None:
         raise HTTPException(status_code=400, detail="Geçersiz kategori") from exc
 
 
+def _parse_uuid_query(val: str | None) -> uuid.UUID | None:
+    if not val or not val.strip():
+        return None
+    try:
+        return uuid.UUID(val)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Geçersiz kategori") from exc
+
+
 def _safe_redirect(url: str | None, fallback: str, msg: str) -> str:
     if not url or not url.startswith("/") or url.startswith("//"):
         url = fallback
@@ -62,6 +71,7 @@ def list_products(
     uow: UnitOfWorkDep,
     q: Annotated[str | None, Query()] = None,
     status: Annotated[str, Query()] = "active",
+    category_id: Annotated[str | None, Query()] = None,
     page: int = 1,
     limit: int = 100,
 ) -> HTMLResponse:
@@ -70,10 +80,12 @@ def list_products(
     offset = (page - 1) * limit
     only_archived = status == "archived"
     include_archived = status == "all" or status == "archived"
+    selected_category = _parse_uuid_query(category_id)
 
     products, total_count = search_products(
         uow,
         query=q,
+        category_id=selected_category,
         limit=limit,
         offset=offset,
         include_archived=include_archived,
@@ -87,6 +99,7 @@ def list_products(
         products, total_count = search_products(
             uow,
             query=q,
+            category_id=selected_category,
             limit=limit,
             offset=offset,
             include_archived=include_archived,
@@ -102,6 +115,7 @@ def list_products(
         "total_count": total_count,
         "q": q or "",
         "status": status,
+        "selected_category": selected_category,
         "page": page,
         "limit": limit,
         "total_pages": total_pages,
@@ -316,9 +330,7 @@ def product_detail(
             "product": detail.product,
             "price_history": detail.price_history,
             "stock_movements": detail.stock_movements,
-            "sellable_stock": detail.sellable_stock,
             "open_reservation": detail.open_reservation,
-            "supply_need": detail.supply_need,
             "categories": categories,
             "category_name": category_names.get(detail.product.category_id),
         },

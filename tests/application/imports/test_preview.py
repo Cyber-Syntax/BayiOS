@@ -47,6 +47,19 @@ def test_preview_product_import_reads_xlsx_rows() -> None:
     assert result.rows[0].quantity == "1"
 
 
+def test_preview_product_import_parses_optional_category() -> None:
+    csv_bytes = (
+        b"product_name,category,regular_price,quantity\n"
+        b"07325 A,Buzdolabi,38099,5\n"
+        b"09470 HP,,52899,0\n"
+    )
+
+    result = preview_product_import(csv_bytes)
+
+    assert result.rows[0].category_name == "Buzdolabi"
+    assert result.rows[1].category_name is None
+
+
 def test_preview_product_import_parses_arcelik_csv_format() -> None:
     csv_bytes = (
         b"product_name,regular_price,website_discounted_price,quantity\n"

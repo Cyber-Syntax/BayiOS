@@ -19,6 +19,7 @@ class ProductRepository(Protocol):
     def search(
         self,
         query: str | None = None,
+        category_id: uuid.UUID | None = None,
         limit: int = 50,
         offset: int = 0,
         include_archived: bool = False,

@@ -73,25 +73,26 @@ def stock_index(
     completed_sessions = [s for s in sessions if s.status == "completed"]
     category_names = _category_index(categories)
 
-    return templates.TemplateResponse(
-        request,
-        "stock/index.html",
-        {
-            "active_nav": "stock",
-            "categories": categories,
-            "selected_category": selected_category,
-            "category_names": category_names,
-            "rows": rows,
-            "sessions": sessions,
-            "open_sessions": open_sessions,
-            "completed_sessions": completed_sessions,
-            "q": q or "",
-            "page": page,
-            "limit": limit,
-            "total_pages": total_pages,
-            "total_count": total_count,
-        },
-    )
+    context = {
+        "active_nav": "stock",
+        "categories": categories,
+        "selected_category": selected_category,
+        "category_names": category_names,
+        "rows": rows,
+        "sessions": sessions,
+        "open_sessions": open_sessions,
+        "completed_sessions": completed_sessions,
+        "q": q or "",
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages,
+        "total_count": total_count,
+    }
+
+    if request.headers.get("HX-Request") and not request.headers.get("HX-Boosted"):
+        return templates.TemplateResponse(request, "stock/_results.html", context)
+
+    return templates.TemplateResponse(request, "stock/index.html", context)
 
 
 @router.post("/categories")
@@ -255,8 +256,7 @@ def _render_session(
     limit = max(1, limit)
     total_items = len(view.items)
     total_pages = max(1, math.ceil(total_items / limit))
-    if page > total_pages:
-        page = total_pages
+    page = min(page, total_pages)
     offset = (page - 1) * limit
     page_items = view.items[offset : offset + limit]
 

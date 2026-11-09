@@ -55,6 +55,23 @@ def test_get_products_htmx_search_renders_partial_table(client: TestClient) -> N
     assert "<!doctype html>" not in response.text
 
 
+def test_get_products_category_filter_renders_partial(client: TestClient) -> None:
+    from bayios.adapters.db.models.products import ProductCategory
+
+    uow = client.app.dependency_overrides[get_unit_of_work]()
+    category = ProductCategory(id=uuid.uuid4(), name="Buzdolabı")
+    uow.products.add_category(category)
+    product = next(iter(uow.products.get_all()))
+    product.category_id = category.id
+
+    response = client.get(
+        f"/products?category_id={category.id}", headers={"HX-Request": "true"}
+    )
+    assert response.status_code == 200
+    assert "07325 A" in response.text
+    assert "<!doctype html>" not in response.text
+
+
 def test_get_product_detail(client: TestClient, fake_uow: FakeUnitOfWork) -> None:
     p = next(iter(fake_uow.products.get_all()))
     response = client.get(f"/products/{p.id}")
@@ -133,6 +150,7 @@ def test_export_endpoints(client: TestClient) -> None:
     assert csv_res.status_code == 200
     assert csv_res.headers["content-type"].startswith("text/csv")
     assert "07325 A" in csv_res.text
+    assert "category" in csv_res.text
 
     xlsx_res = client.get("/products/export/xlsx")
     assert xlsx_res.status_code == 200
@@ -182,6 +200,41 @@ def test_bulk_archive_and_unarchive_route(client: TestClient, fake_uow: FakeUnit
     assert fake_uow.committed
     assert "Seçilen ürün(ler) arşivden çıkarıldı." in client.get(res2.headers["location"]).text
     assert prod.is_archived is False
+
+
+def test_bulk_category_assigns_multiple_products(client: TestClient, fake_uow: FakeUnitOfWork) -> None:
+    from bayios.adapters.db.models.products import ProductCategory
+
+    category = ProductCategory(id=uuid.uuid4(), name="Buzdolabı")
+    fake_uow.products.add_category(category)
+
+    p1 = Product(
+        id=uuid.uuid4(),
+        name="07325 A",
+        name_normalized="07325 a",
+        regular_price=Decimal("38099.00"),
+        physical_stock=5,
+    )
+    p2 = Product(
+        id=uuid.uuid4(),
+        name="09325 A",
+        name_normalized="09325 a",
+        regular_price=Decimal("42199.00"),
+        physical_stock=3,
+    )
+    fake_uow.products.add(p1)
+    fake_uow.products.add(p2)
+
+    res = client.post(
+        "/products/bulk-category",
+        data={"product_ids": [str(p1.id), str(p2.id)], "category_id": str(category.id)},
+        follow_redirects=False,
+    )
+    assert res.status_code == 303
+    assert fake_uow.committed
+    assert "2 ürünün kategorisi güncellendi." in client.get(res.headers["location"]).text
+    assert p1.category_id == category.id
+    assert p2.category_id == category.id
 
 
 def test_bulk_delete_requires_confirmation_route(client: TestClient, fake_uow: FakeUnitOfWork) -> None:

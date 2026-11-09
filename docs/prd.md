@@ -38,7 +38,7 @@ MVP'nin başarılı sayılması için:
 
 - Çalışan bir ürünü adıyla hızlıca bulup normal fiyatı, Oliz fiyatını ve geçerli kampanya bilgisini görebilmelidir.
 - Ürün kataloğu CSV/Excel dosyasından güvenli biçimde güncellenebilmelidir.
-- Fiziksel stok, açık rezervasyon ve satılabilir miktar aynı ürün ekranında görülebilmelidir.
+- Fiziksel stok ve açık rezervasyon aynı ürün ekranında görülebilmelidir.
 - Rezervasyon açma, müşteri teslimat istediğinde depo sürecini izleme ve tamamlandığında stoktan düşme tek kayıt üzerinden yapılmalıdır.
 - Teklifler kaydedilmeli, daha sonra tekrar açılabilmeli ve A4 basılabilmelidir.
 - Rezervasyon, stok sayım listesi ve teklif çıktıları uygulama dışındaki çalışanlarca kullanılabilmelidir.
@@ -101,7 +101,7 @@ MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uyg
 2. Ürünlerin arşivlenmesi, arşivden çıkarılması ve iki aşamalı doğrulama (çift onay) ile veritabanından kalıcı silinmesi; birden fazla ürün seçilerek toplu arşivleme ve toplu silme.
 3. CSV/Excel ürün içe aktarma ve tüm ürünleri dışa aktarma (sorunlu satırların önizlemede en başta gösterilmesi, "Sorunluları Atla" butonu ve doğru işlem özeti).
 4. Ürün fiyat geçmişi ve CSV aktarım geçmişi.
-5. Fiziksel stok, açık rezervasyon miktarı, satılabilir stok, stok hareketleri ve ürünler sekmesinden doğrudan stok güncelleme.
+5. Fiziksel stok, açık rezervasyon miktarı, stok hareketleri ve ürünler sekmesinden doğrudan stok güncelleme.
 6. Kategori bazlı stok sayım oturumları ve A4 sayım listeleri.
 7. Rezervasyon kayıtları, çoklu ürün, durum akışı ve hatırlatma/erteleme.
 8. Şirket kampanyaları ve bayi özel fiyat/indirim rehberi.
@@ -178,23 +178,16 @@ Bayi nakit/kart fiyatları, hesaplanan komisyon fiyatından ayrı saklanır. Ça
 
 ### 4.4 Stok kavramları
 
-BayiOS stok ekranında birbirinden farklı üç kavramı gösterir:
+BayiOS stok ekranında birbirinden farklı iki kavramı gösterir:
 
-1. **Fiziksel stok:** Son fiziksel sayım, CSV aktarımı veya stok hareketlerinden sonra sistemin bildiği eldeki miktar.
+1. **Fiziksel stok:** Son fiziksel sayım, CSV aktarımı veya stok hareketlerinden sonra sistemin bildiği eldeki miktar. Fiziksel stok doğrudan satılabilir stoktur; ayrı türetilmiş bir "satılabilir stok" alanı yoktur.
 2. **Açık rezervasyon:** Müşteriye satılmış, teslimatı/kurulumu henüz tamamlanmamış ürün miktarı. Bu miktar raporlanır ve fiziksel stoktan ayrı gösterilir.
-3. **Satılabilir stok:** Fiziksel stoktan açık rezervasyon yükümlülükleri düşüldükten sonra kalan teorik miktar.
 
-Varsayılan hesap:
-
-`satilabilir_stok = max(fiziksel_stok - acik_rezervasyon_miktari, 0)`
-
-`temin_ihtiyaci = max(acik_rezervasyon_miktari - fiziksel_stok, 0)`
-
-Satılabilir stok sıfırsa bu ürün için yeni satış/rezervasyon teknik olarak engellenmez; ekranda temin ihtiyacı/uyarı gösterilir. Bayi ürünü başka bayiden veya başka bir kanaldan temin edebilir.
+Rezervasyonlar ürünleri fiziksel stoktan ayırmaz (rezerve etmez); bayi ürünü rezervasyona bağlı bekletmez. Müşteri rezervasyonunu almak istediğinde ürün fiziksel stoktan bulunur ve teslim edilir. Bu nedenle açık rezervasyon fiziksel stoktan düşülmez ve ayrı bir "satılabilir stok" veya "temin ihtiyacı" hesabı yapılmaz.
 
 **Fiziksel stoktan düşüm zamanı:**
 
-- Rezervasyon oluşturulunca fiziksel stok düşmez.
+- Rezervasyon oluşturulunca fiziksel stok düşmez ve ürün ayrılmaz.
 - Müşterinin teslimat istemesi fiziksel stok düşürmez.
 - Depocunun ürün çıkışına izin vermesi fiziksel stok düşürmez.
 - Servis atanması fiziksel stok düşürmez.
@@ -215,7 +208,7 @@ Açık rezervasyon miktarı, ürünün fiziksel olarak rafta ayrıldığı anlam
 - 13 ay dolduğunda tüm çalışanların ana ekranında uyarı görünür.
 - Uyarı otomatik iptal oluşturmaz.
 - Çalışan müşteriyle görüştükten sonra hatırlatmayı erteleyebilir. Varsayılan erteleme 1 aydır; tarih değiştirilebilir.
-- İptal edilirse açık rezervasyon miktarı azalır ve satılabilir stok hesabı yeniden yapılır; fiziksel stoktan çıkış yapılmaz.
+- İptal edilirse açık rezervasyon miktarı azalır; fiziksel stoktan çıkış yapılmaz.
 - Bir rezervasyonda birden fazla ürün olabileceğinden teslimat/kurulum durumu satır bazında izlenir. Kısmi teslimat desteklenir.
 
 ### 4.6 Rezervasyon durumları
@@ -329,7 +322,7 @@ Bu hesap, POS komisyonu kesintisi sonrasında maliyet + seçilen hedef kârı ka
 
 **FR-PROD-01 (P0):** Ürün listesi ürün adına göre aranabilmelidir; arama baştaki sıfırları korumalıdır.
 
-**FR-PROD-02 (P0):** Ürün detayında normal fiyat, Oliz fiyatı, alış maliyeti, fiziksel stok, açık rezervasyon, satılabilir stok ve temin ihtiyacı gösterilmelidir.
+**FR-PROD-02 (P0):** Ürün detayında normal fiyat, Oliz fiyatı, alış maliyeti, fiziksel stok ve açık rezervasyon gösterilmelidir.
 
 **FR-PROD-03 (P0):** Ürün detayında aktif kampanyalar ve bayi özel fiyatları gösterilmelidir.
 
@@ -355,7 +348,7 @@ Bu hesap, POS komisyonu kesintisi sonrasında maliyet + seçilen hedef kârı ka
 
 **FR-PROD-12 (P0):** `quantity` değeri fiziksel stok olarak yorumlanmalıdır. Her değişiklik stok hareketi geçmişine kaydedilmelidir.
 
-**FR-PROD-13 (P0):** CSV dışa aktarım ve Excel dışa aktarım tüm ürünleri kapsamalıdır.
+**FR-PROD-13 (P0):** CSV dışa aktarım ve Excel dışa aktarım tüm ürünleri kapsamalıdır ve kategori kolonunu içermelidir.
 
 **FR-PROD-14 (P1):** Filtrelenmiş ürün sonuçlarını dışa aktarma eklenebilir.
 
@@ -376,7 +369,7 @@ Bu hesap, POS komisyonu kesintisi sonrasında maliyet + seçilen hedef kârı ka
 2. Aşama: Kullanıcının silme niyetini teyit eden açık ikinci onay butonu veya teyit adımı ile işlem onaylanır.
 Açık rezervasyonda yer alan ürünlerin silinmesi engellenir ve kullanıcıya uyarı verilir; teklif veya tamamlanmış teslimat geçmişinde yer alan ürünlerde snapshot kuralı korunduğu için veri bütünlüğü aksatılmaz.
 
-**FR-PROD-22 (P0) — Ürünler Sekmesinden Doğrudan Stok Güncelleme:** Fiziksel stok miktarı ürünler sekmesinden (ürün detay kartından ve ürün listesindeki hızlı işlem üzerinden) doğrudan güncellenebilmelidir. Satılabilir stok türetilmiş bir metrik olduğundan (`satilabilir_stok = max(fiziksel_stok - acik_rezervasyon, 0)`), fiziksel stok değiştiğinde satılabilir stok otomatik olarak yansıtılır. Doğrudan stok değişikliği açıklamasıyla birlikte `stock_movements` tablosuna `manual_adjustment` olarak kaydedilir. (Bu işlev Stok Yönetimi Milestone 3 ekranı açıldıktan sonra tam merkezi stok entegrasyonuyla çalışır).
+**FR-PROD-22 (P0) — Ürünler Sekmesinden Doğrudan Stok Güncelleme:** Fiziksel stok miktarı ürünler sekmesinden (ürün detay kartından ve ürün listesindeki hızlı işlem üzerinden) doğrudan güncellenebilmelidir. Fiziksel stok doğrudan satılabilir stok olduğundan ayrı türetilmiş bir değer yoktur. Doğrudan stok değişikliği açıklamasıyla birlikte `stock_movements` tablosuna `manual_adjustment` olarak kaydedilir. (Bu işlev Stok Yönetimi Milestone 3 ekranı açıldıktan sonra tam merkezi stok entegrasyonuyla çalışır).
 
 **FR-PROD-23 (P0) — Ürün Arama Arayüzü Ergonomisi:** Ürünler sekmesindeki arama giriş kutusu (input box) ve yanındaki "Ara" butonu responsive düzende dikey kırılma olmadan yan yana kalmalıdır (`whitespace-nowrap`). Buton metninin `AR<br>a` şeklinde ikiye bölünmesi CSS/flex düzeni ile kesin olarak engellenmelidir.
 
@@ -384,32 +377,39 @@ Açık rezervasyonda yer alan ürünlerin silinmesi engellenir ve kullanıcıya 
 
 **FR-PROD-25 (P0) — Sayfalama ve Doğrudan Sayfa Geçişi:** Ürünler sekmesinde sayfalama önceki/sonraki butonlarıyla çalışmalı; kullanıcı ayrıca bir sayfa numarası girerek (örn. son sayfaya gitmek için `5`) doğrudan o sayfaya atlayabilmelidir. Sayfa numarası girişi mevcut arama ve durum filtrelerini korumalıdır. Aynı sayfalama ve doğrudan sayfa geçişi deseni stok sayfası ürün listesinde ve açık sayım oturumu satırlarında da kullanılmalıdır.
 
+**FR-PROD-26 (P0) — Ürünlerde Kategori Filtresi:** Ürünler sekmesinde kategori seçerek o kategorideki tüm ürünler listelenebilmelidir. Kategori filtresi, arama (`q`) ve durum (`status`) filtreleriyle birlikte çalışmalı, sayfalama ve HTMX aramasında korunmalıdır. Kategori seçimi sonuçları otomatik yeniler.
+
+**FR-PROD-27 (P0) — Kategori İçe/Dışa Aktarma:** Ürün içe aktarmada `category` kolonu opsiyoneldir; dışa aktarmada (CSV ve Excel) kategori her zaman bir kolon olarak bulunmalıdır. İçe aktarmada geçen bilinmeyen kategori adları otomatik oluşturulur; boş kategori mevcut ürünün kategorisini değiştirmez.
+
+**FR-PROD-28 (P1) — Karta Dokunarak Seçim:** Dar ekranda (<1024px) ürün kartına dokunmak, bağlantı/buton/giriş alanları dışında kalan alanda o satırın seçimini değiştirir.
+
 **Önerilen örnek CSV şeması ve gerçek bayi formatı (`arcelik-06-09-2026.csv`):**
 
 Gerçek bayi dosyasında fiyatlar `38.099 TL`, `475 TL` biçiminde binlik basamak ayracı olarak nokta (`.`) ve `TL` soneki içerir; bazı satırlarda 4. kolon (`quantity`) eksik veya boştur:
 
 ```csv
-product_name,regular_price,website_discounted_price,quantity
-0.58m  with Anderson cable,475 TL,
-07325 A,38.099 TL,34.099 TL
-09325 A,42.199 TL,38.199 TL
-09470 HP,52.899 TL,48.899 TL
-09605,38.399 TL,34.399 TL
+product_name,category,regular_price,website_discounted_price,quantity
+0.58m  with Anderson cable,,475 TL,
+07325 A,Buzdolabı,38.099 TL,34.099 TL
+09325 A,Buzdolabı,42.199 TL,38.199 TL
+09470 HP,Bulaşık Makinesi,52.899 TL,48.899 TL
+09605,Bulaşık Makinesi,38.399 TL,34.399 TL
 ```
 
 Temiz/sayısal standart format örneği:
 
 ```csv
-product_name,regular_price,website_discounted_price,quantity
-07325 A,38099,33099,5
-09325 A,42199,37199,
-09470 HP,52899,47899,0
-09570 HP,59499,49499,2
-09605,38399,33399,1
-1002 KMP HA,55599,,1
+product_name,category,regular_price,website_discounted_price,quantity
+07325 A,Buzdolabı,38099,33099,5
+09325 A,Buzdolabı,42199,37199,
+09470 HP,Bulaşık Makinesi,52899,47899,0
+09570 HP,Bulaşık Makinesi,59499,49499,2
+09605,Çamaşır Makinesi,38399,33399,1
+1002 KMP HA,Çamaşır Makinesi,55599,,1
 ```
 
 - `product_name`: metin. Baştaki sıfırlar (`07325 A`) korunur; NFKC ile normalize edilir ve ardışık boşluklar tek boşluğa indirilir.
+- `category`: opsiyonel metin. Dolu gelirse ada göre (NFKC + boşluk sadeleştirme + Türkçe `İ/ı` duyarsız) eşleştirilir; bilinmeyen adlar otomatik kategori olarak oluşturulur. Boş gelirse mevcut ürünün kategorisi korunur, yeni ürün kategorisiz açılır. Dışa aktarmada kategori her zaman bulunur.
 - `regular_price`: TL cinsinden sayı; `38.099 TL` gibi binlik nokta ve `TL` sonekleri ile `12,50` gibi virgüllü ondalıklar otomatik parse edilir.
 - `website_discounted_price`: boş olabilir; boş değer mevcut Oliz fiyatını koruma mı yoksa temizleme mi davranışı aktarım ekranında açıkça seçilmelidir. MVP varsayılanı: boş hücre mevcut değeri korur; fiyatı kaldırmak için ayrı “indirimli fiyatı temizle” seçeneği gerekir.
 - `quantity`: fiziksel stok; boşsa veya kolon eksikse mevcut stoğu korur, 0 ise sıfırlar ve stok hareketi oluşturur.
@@ -576,9 +576,9 @@ Teslim anında fiziksel stok yetersizse sistem uyarı göstermeli ancak onayla d
 
 ### 5.8 Stok sayımı ve stok hareketleri
 
-**FR-STOCK-01 (P0):** Ürün stok özeti fiziksel stok, açık rezervasyon, satılabilir stok ve temin ihtiyacını göstermelidir.
+**FR-STOCK-01 (P0):** Ürün stok özeti fiziksel stok ve açık rezervasyonu göstermelidir.
 
-**FR-STOCK-02 (P0):** Açık rezervasyon fiziksel stoktan hemen düşmemelidir.
+**FR-STOCK-02 (P0):** Açık rezervasyon fiziksel stoktan düşmez ve ürün rezerve etmez.
 
 **FR-STOCK-03 (P0):** Teslim edildi olarak işaretlenen miktar fiziksel stoktan düşmelidir.
 
@@ -609,6 +609,8 @@ Teslim anında fiziksel stok yetersizse sistem uyarı göstermeli ancak onayla d
 **FR-STOCK-16 (P0) — Stok Sayfası ve Sayım Satırlarında Sayfalama:** Stok özeti ürün listesi ve açık sayım oturumundaki ürün satırları, ürünler sekmesindeki gibi sayfalanmalıdır. Önceki/sonraki butonlarının yanında sayfa numarası girilerek doğrudan istenen sayfaya (örn. son sayfaya) atlanabilmelidir. Sayfalama mevcut kategori ve arama filtrelerini korumalıdır.
 
 **FR-STOCK-17 (P0) — Sabit "Miktarları Kaydet" Butonu:** Açık sayım oturumunda "Miktarları Kaydet" butonu uzun ürün listesinin en altında aranmamalıdır. Buton, ekranın altında sabit (sticky/fixed) bir eylem çubuğunda görünmeli ve sayfa kaydırılsa bile erişilebilir kalmalıdır. Yazdırma görünümünde bu eylem çubuğu basılmamalıdır.
+
+**FR-STOCK-18 (P0) — Otomatik Filtre:** Stok sayfasında kategori seçildiğinde veya arama kutusuna yazıldığında sonuçlar "Ara" butonuna basılmadan otomatik güncellenmelidir; kullanıcı verimliliği için anında sonuç gösterilmelidir.
 
 ### 5.9 Hızlı teslim ve Code 128
 
@@ -693,12 +695,12 @@ Ekranların adları kısa ve çalışanların alışık olduğu terimlerle yazı
 
 ### 6.2 Ürün bulma, manuel ekleme ve yönetim akışı
 
-1. Çalışan Ürünler ekranındaki arama alanına ürün adını yazar. Arama kutusu ve "Ara" butonu responsive düzende yan yana ve dikey kırılma olmadan görünür.
+1. Çalışan Ürünler ekranındaki arama alanına ürün adını yazar. Arama kutusu ve "Ara" butonu responsive düzende yan yana ve dikey kırılma olmadan görünür. Kategori filtresiyle o kategorideki tüm ürünler listelenebilir.
 2. Arama sonucu anında ürün kartlarını/tablosunu gösterir; baştaki sıfırlar ve boşluklar korunur.
 3. **Yeni Ürün Ekle:** Çalışan "Yeni Ürün Ekle" butonuna basarak modal/form açar; ürün adı, normal fiyat, indirimli fiyat, maliyet ve başlangıç fiziksel stok miktarını girip kaydeder.
 4. **Çoklu Seçim ve Arşivleme:** Çalışan listeden tek veya birden fazla ürünü checkbox ile seçip "Arşivle" butonuna tıklar. Arşivlenen ürünler normal aramada gizlenir; "Arşivdekileri Göster" filtresi ile incelenebilir veya geri çıkarılabilir.
 5. **Çift Onaylı Kalıcı Silme:** Çalışan tek bir ürün için veya çoklu seçim yaparak "Veritabanından Sil" butonuna tıklar. Sistem 1. onay modalında silinecek ürün sayısını ve risk uyarısını gösterir; kullanıcı devam ettiğinde 2. aşama teyit adımı ile kalıcı silme gerçekleştirilir. Açık rezervasyonu olan ürünler silinemez.
-6. **Doğrudan Stok Güncelleme:** Çalışan ürün detayından veya ürün satırındaki stok düzeltme alanından fiziksel stoku günceller; satılabilir stok otomatik yeniden hesaplanır ve stok hareket günlüğüne işlenir.
+6. **Doğrudan Stok Güncelleme:** Çalışan ürün detayından veya ürün satırındaki stok düzeltme alanından fiziksel stoku günceller; stok hareket günlüğüne işlenir.
 7. Ürün detayında kampanyalar, bayi nakit/kart minimum fiyatı, komisyon referansı ve fiyat/stok hareket geçmişi görülebilir.
 8. Çalışan ürün ekranından yeni teklif veya rezervasyon başlatabilir.
 9. **Kategori Atama:** Çalışan ürün detayındaki düzenleme formundan ürünün kategorisini seçebilir. Ürünler listesinde checkbox ile birden fazla ürün seçip toplu "Kategori Ata" işlemiyle ortak kategoriyi tek adımda uygulayabilir veya kategorisiz bırakabilir.
@@ -707,7 +709,7 @@ Ekranların adları kısa ve çalışanların alışık olduğu terimlerle yazı
 ### 6.3 CSV/Excel ürün güncelleme ve önizleme akışı
 
 1. Çalışan dosyayı seçer (sürükle-bırak veya dosya seçici).
-2. Sistem başlıkları tanır; virgül, noktalı virgül, Türkçe binlik nokta ve `TL` formatlarını parse eder.
+2. Sistem başlıkları tanır; virgül, noktalı virgül, Türkçe binlik nokta ve `TL` formatlarını parse eder. `category` kolonu opsiyoneldir; bilinmeyen kategori adları otomatik oluşturulur.
 3. **Sorunlu Satırların Önceliği:** Önizleme tablosunda hatalı (geçersiz fiyat/eksik kolon) ve çakışmalı kayıtlar listenin **en başında (en üstte)** gösterilir.
 4. **Toplu Kararlar:** "Tümünü güncelle" ve "Tümünü atla" butonlarının yanında **"Sorunluları Atla"** butonu sunulur. "Sorunluları Atla" tıklandığında yalnızca hatalı ve çakışmalı satırların kararı "Atla" (skip) olarak ayarlanır; sorunsuz satırlar geçerli durumunu korur.
 5. Boş quantity alanları mevcut stoğu korur; 0 sıfır stok anlamına gelir.
@@ -756,20 +758,21 @@ Ekranların adları kısa ve çalışanların alışık olduğu terimlerle yazı
 4. Servis atandığında `SERVICE_ASSIGNED` yapılır; servis tarihi isteğe bağlıdır.
 5. Servis/teslimat/kurulum tamamlandığında çalışan ilgili miktarı `DELIVERED` yapar.
 6. BayiOS o miktar kadar fiziksel stok çıkış hareketi oluşturur.
-7. Açık rezervasyon miktarı azalır ve satılabilir stok yeniden hesaplanır.
+7. Açık rezervasyon miktarı azalır; fiziksel stok teslim edilen miktar kadar düşer.
 8. Tüm satırlar tamamlandığında rezervasyon “Teslim edildi” olarak özetlenir.
 
 ### 6.8 Stok sayımı akışı
 
 1. Çalışan stok sayfasının üstünde açık/incelemedeki sayım oturumlarını görür; yeni oturum açar veya mevcut oturuma devam eder.
-2. Çalışan kategori seçer ve sayım oturumu açar.
-3. Sistem o kategorideki ürünlerin mevcut fiziksel stoklarını listeler; uzun liste sayfalanır ve sayfa numarasıyla doğrudan istenen sayfaya gidilebilir.
-4. A4 sayım listesi alınabilir.
-5. Depocu/çalışan sayılan miktarları kâğıttan veya doğrudan telefondan/bilgisayardan girer; "Miktarları Kaydet" butonu ekranın altında sabit durur.
-6. Sistem farkları hesaplar.
-7. Çalışan farkları kontrol edip onaylar.
-8. Stok düzeltmeleri hareket olarak uygulanır.
-9. Sayım oturumu kapanır; önceki değerler korunur.
+2. Çalışan stok listesinde kategori seçerek veya arama yazarak sonuçları anında filtreler ("Ara" butonuna gerek kalmadan).
+3. Çalışan kategori seçer ve sayım oturumu açar.
+4. Sistem o kategorideki ürünlerin mevcut fiziksel stoklarını listeler; uzun liste sayfalanır ve sayfa numarasıyla doğrudan istenen sayfaya gidilebilir.
+5. A4 sayım listesi alınabilir.
+6. Depocu/çalışan sayılan miktarları kâğıttan veya doğrudan telefondan/bilgisayardan girer; "Miktarları Kaydet" butonu ekranın altında sabit durur.
+7. Sistem farkları hesaplar.
+8. Çalışan farkları kontrol edip onaylar.
+9. Stok düzeltmeleri hareket olarak uygulanır.
+10. Sayım oturumu kapanır; önceki değerler korunur.
 
 ### 6.9 Hızlı Teslim barkod akışı
 
@@ -1025,7 +1028,7 @@ PDF/ek dosya tablosu MVP'de bulunmaz. Dosya özelliği sonraki fazda eklendiğin
 
 - Ürün listesi.
 - Ürün fiyat ve stok detayı.
-- Fiziksel stok / açık rezervasyon / satılabilir / temin ihtiyacı listesi.
+- Fiziksel stok / açık rezervasyon listesi.
 - Kategori bazlı stok sayım listesi.
 - Açık rezervasyonlar.
 - Gecikmiş rezervasyon hatırlatmaları.
@@ -1303,31 +1306,35 @@ Müşteri adı-soyadı kişisel veridir. MVP'de telefon isteğe bağlı ek kişi
 12. Manuel ürün oluşturma formundan eklenen ürün katalogda anında listelenir, başlangıç fiyat ve stok kaydı oluşur.
 13. Tek veya birden fazla ürün seçilerek arşivlendiğinde normal arama sonuçlarında gizlenir; arşiv filtresiyle listelenip geri alınabilir.
 14. Tek veya birden fazla ürün silinirken 2 aşamalı doğrulama zorunlu tutulur; 2. onay verilmeden veritabanından silinmez. Açık rezervasyonu olan ürünün silinmesi engellenir.
-15. Ürün ekranından doğrudan fiziksel stok güncellendiğinde satılabilir stok anında yeniden hesaplanır ve `manual_adjustment` stok hareketi oluşturulur.
+15. Ürün ekranından doğrudan fiziksel stok güncellendiğinde `manual_adjustment` stok hareketi oluşturulur.
 16. Ürünler sayfasındaki arama kutusu ve "Ara" butonu mobilde ve masaüstünde dikey kırılma (`AR<br>a`) olmadan tek satırda hizalı kalır.
 17. Ürün detayındaki düzenleme formundan kategori seçilip kaydedildiğinde ürünün kategorisi güncellenir; stok ve fiyat değişmez.
 18. Ürünler listesinde birden fazla ürün seçilip toplu kategori atandığında seçilen tüm ürünler aynı kategoriye geçer ve başarı bildirimi doğru ürün sayısını gösterir. "Kategorisiz" seçilerek kategori kaldırılabilir.
 19. Ürünler ve stok sayfalarında sayfa numarası girilerek doğrudan son sayfaya gidilebilir; önceki/sonraki butonları çalışır ve arama/kategori filtreleri korunur.
+20. Ürünler sayfasında kategori seçildiğinde o kategorideki tüm ürünler listelenir; filtre arama ve durum filtresiyle birlikte çalışır.
+21. İçe aktarmada `category` kolonu dolu gelirse ürün ilgili kategoriye atanır; bilinmeyen kategori otomatik oluşturulur; boş gelirse mevcut kategori korunur.
+22. CSV ve Excel dışa aktarma `category` kolonunu her zaman içerir.
 
 ### 13.2 Stok ve rezervasyon testleri
 
 Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 
-1. 2 adet rezervasyon açılır: fiziksel stok 5 kalır, açık rezervasyon 2 olur, satılabilir stok 3 olur.
+1. 2 adet rezervasyon açılır: fiziksel stok 5 kalır, açık rezervasyon 2 olur.
 2. Müşteri teslimat ister: fiziksel stok değişmez.
 3. Depocu çıkışa izin verir: fiziksel stok değişmez.
 4. Servis atanır: fiziksel stok değişmez.
-5. 1 adet teslim edildi işaretlenir: fiziksel stok 4, açık rezervasyon 1, satılabilir stok 3 olur.
-6. Kalan 1 adet daha sonra teslim edilirse fiziksel stok 3, açık rezervasyon 0, satılabilir stok 3 olur.
+5. 1 adet teslim edildi işaretlenir: fiziksel stok 4, açık rezervasyon 1 olur.
+6. Kalan 1 adet daha sonra teslim edilirse fiziksel stok 3, açık rezervasyon 0 olur.
 7. Teslim edildi işlemi aynı kalem için tekrar gönderilirse ikinci stok çıkışı oluşmaz.
 8. Rezervasyon iptal edilirse fiziksel stok değişmez, açık rezervasyon azalır.
-9. Fiziksel stok açık rezervasyon miktarından azsa satılabilir 0 ve temin ihtiyacı pozitif gösterilir.
+9. Rezervasyon açılışı fiziksel stoğu değiştirmez ve ürün rezerve etmez.
 10. 13 ay geçmiş rezervasyon uyarı verir ancak otomatik iptal olmaz.
 11. Erteleme varsayılan olarak 1 ay sonrasına yapılır ve tarihçe tutulur.
 12. Çok ürünlü rezervasyonda bir ürün teslim edildiğinde diğer ürün satırları açık kalabilir.
 13. Stok / Sayım sayfasında `open` ve `review` durumundaki oturumlar sayfanın üst bölümünde görünür; uzun ürün listesinin altına inmeden "Devam Et" ile açılabilir.
 14. Stok ürün listesi ve sayım satırları sayfalanır; sayfa numarası yazılarak doğrudan son sayfaya gidilebilir.
 15. Açık sayım oturumunda "Miktarları Kaydet" butonu sayfa kaydırılsa bile ekranın altında sabit kalır ve formu gönderir.
+16. Stok sayfasında kategori seçildiğinde veya arama yazıldığında sonuçlar "Ara" butonuna basılmadan otomatik güncellenir.
 
 ### 13.3 Kampanya testleri
 
@@ -1403,12 +1410,12 @@ POS hesaplayıcısı en son milestone olarak kalır. Sıralama, çalışanlara e
 
 ### Milestone 1 — Ürün kataloğu ve CSV/Excel
 
-- Ürün listesi, responsive arama alanı ("Ara" butonu tek satırda hizalı) ve filtreleme.
+- Ürün listesi, responsive arama alanı ("Ara" butonu tek satırda hizalı) ve kategori/durum filtreleme.
 - Manuel yeni ürün ekleme formu (fiyat, maliyet, kategori, başlangıç stoku).
 - Çoklu seçim checkbox'ları ile toplu arşivleme ve çift onaylı (iki aşamalı doğrulama) kalıcı silme.
 - Ürün detayından ve çoklu seçimle ürün listesinden kategori atama.
-- Ürün detay kartı ve doğrudan stok güncelleme (fiziksel/satılabilir stok ve hareket kaydı).
-- CSV/Excel ön izleme ve içe aktarma; sorunlu satırların en başta listelenmesi.
+- Ürün detay kartı ve doğrudan stok güncelleme (fiziksel stok ve hareket kaydı).
+- CSV/Excel ön izleme ve içe aktarma; sorunlu satırların en başta listelenmesi; kategori içe aktarma (opsiyonel) ve dışa aktarma (zorunlu).
 - "Sorunluları Atla" butonu ve aktarım sonrası doğru sonuç bilgi kutusu ({X} eklendi, {Y} güncellendi, {Z} atlandı).
 - Normal/Oliz fiyatı ve fiziksel stok eşleme.
 - Fiyat/stok geçmişi.
@@ -1430,7 +1437,7 @@ POS hesaplayıcısı en son milestone olarak kalır. Sıralama, çalışanlara e
 
 ### Milestone 3 — Stok sayımı ve stok özeti
 
-- Fiziksel/açık rezervasyon/satılabilir/temin ihtiyacı görünümü.
+- Fiziksel stok / açık rezervasyon görünümü.
 - Açık ve incelemedeki sayım oturumlarının sayfa üstünde gösterilmesi.
 - Kategori bazlı sayım oturumu.
 - Sayım farkı ve onay.
@@ -1537,6 +1544,8 @@ Bu PRD aşağıdaki kullanıcı kararlarını temel alır:
 - MVP'de barkod görseli kalıcı saklanmaz; doğrulanmış metin, müşteri, isteğe bağlı telefon, kaynak ve zaman saklanır.
 - Frontend kararı FastAPI + Jinja2 + HTMX + Alpine.js'tir.
 - Ürün kategorileri ürün detayından tek tek veya ürün listesinden çoklu seçimle atanabilir; kategori ataması stok/fiyat/arşiv durumunu değiştirmez.
+- Ürün içe aktarmada kategori opsiyoneldir; dışa aktarmada kategori her zaman bulunur. İçe aktarmada bilinmeyen kategori adları otomatik oluşturulur.
+- Fiziksel stok doğrudan satılabilir stoktur; ayrı "satılabilir stok" veya "temin ihtiyacı" hesabı yapılmaz. Rezervasyonlar fiziksel stoktan ürün ayırmaz.
 - Ürünler, stok listesi ve sayım satırları sayfalanır; sayfa numarası yazılarak doğrudan istenen sayfaya gidilebilir.
 - Açık sayım oturumları stok sayfasının üstünde gösterilir ve "Miktarları Kaydet" butonu ekran altında sabit durur.
 - Yedekleme döngüsü günlük, haftalık tam ve aylık uzun süreli yedek olarak uygulanır; aylık geri yükleme testi yapılır.
@@ -1551,7 +1560,7 @@ Bu maddeler ürün kapsamını değiştirmez; geliştirme sırasında örnek dos
 1. CSV/Excel formatı netleştirildi: `arcelik-06-09-2026.csv` gerçek verisiyle doğrulandı. `utf-8`/`utf-8-sig` ve `cp1254`, virgül ve noktalı virgül ayracı; `XX.XXX TL` binlik noktalı ve `TL` sonekli fiyatlar ile `,` ondalık ayracı desteklenir. Excel'de `.xlsx` geçerlidir.
 2. Ürün adı değiştiğinde mevcut ürünle eşleştirme için manuel eşleştirme ekranının ayrıntısı.
 3. Boş `website_discounted_price` alanının varsayılan olarak mevcut fiyatı koruması; indirimli fiyatı kaldırmak için açık temizleme seçeneği.
-4. Kategori verisinin mevcut CSV'de bulunup bulunmadığı; bulunmuyorsa uygulamada manuel kategori ataması.
+4. Kategori verisi içe aktarma dosyasında opsiyoneldir; bulunmadığında uygulamada manuel kategori ataması yapılabilir. Dışa aktarmada kategori her zaman bulunur.
 5. Komisyon oranlarının hangi taksit sayıları için girileceği ve aylık değişikliklerin yürürlük tarihi.
 6. Minimum kâr ayarının global mi, ürün bazlı mı, yoksa her ikisi mi kullanılacağı. Öneri: ikisini de desteklemek; ürün değeri global ayarı geçersiz kılsın.
 7. Code 128 decoder için mevcut Python scriptinin değerlendirilmesi ve backend entegrasyonunun doğrulanması.
@@ -1570,10 +1579,8 @@ Bu maddeler MVP'nin işlevlerini engelleyen ürün kararları değildir; uygulam
 | Oliz fiyatı | Şirket/web kampanyası sonrası ürün için bildirilen indirimli fiyat |
 | Bayi indirimi | Bayinin şirket fiyatına veya kampanya kuralına eklediği indirim |
 | Bayi minimum satış fiyatı | Patronun çalışanlara belirttiği, altına inilmemesi gereken nakit/kart fiyat referansı |
-| Fiziksel stok | Depocunun fiilen saydığı veya son stok hareketleriyle hesaplanan eldeki miktar |
-| Açık rezervasyon | Satılmış ancak teslimat/kurulumu tamamlanmamış ürün miktarı |
-| Satılabilir stok | Fiziksel stoktan açık rezervasyon miktarı düşüldükten sonra kalan teorik miktar |
-| Temin ihtiyacı | Açık rezervasyon miktarının fiziksel stoku aşan kısmı |
+| Fiziksel stok | Depocunun fiilen saydığı veya son stok hareketleriyle hesaplanan eldeki miktar; doğrudan satılabilir stoktur |
+| Açık rezervasyon | Satılmış ancak teslimat/kurulumu tamamlanmamış ürün miktarı; fiziksel stoktan düşülmez ve ürün rezerve etmez |
 | Depo hazır | Depocunun ilgili ürünün çıkışına izin verdiği durum |
 | Servis atandı | Servis süreci planlandı; henüz teslim/kurulum tamamlanmadı |
 | Teslim edildi | Ürün müşteriye ulaştı/kurulum tamamlandı; fiziksel stoktan düşüm tetiklenir |

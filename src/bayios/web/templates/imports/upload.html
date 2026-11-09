@@ -38,6 +38,7 @@
     <li><strong>Desteklenen Formatlar:</strong> Gerçek bayi CSV'si (<code>arcelik-06-09-2026.csv</code>), standart CSV (virgül veya noktalı virgül ayracı, <code>utf-8</code>, <code>cp1254</code>) ve Excel <code>.xlsx</code> dosyaları.</li>
     <li><strong>Fiyat Formatı:</strong> <code>38.099 TL</code>, <code>475 TL</code> gibi binlik noktalı ve <code>TL</code> sonekli fiyatlar ile <code>12,50</code> gibi virgüllü ondalıklar otomatik algılanır.</li>
     <li><strong>Stok Durumu:</strong> <code>quantity</code> kolonu boş veya eksik bırakılırsa mevcut fiziksel stok korunur; <code>0</code> girilirse fiziksel stok sıfırlanır.</li>
+    <li><strong>Kategori:</strong> <code>category</code> kolonu isteğe bağlıdır. Dolu gelirse ürün ilgili kategoriye atanır; bilinmeyen kategori adları otomatik oluşturulur. Boş gelirse mevcut kategori korunur. Dışa aktarmada kategori her zaman bulunur.</li>
     <li><strong>İndirimli Fiyat:</strong> Boş <code>website_discounted_price</code> mevcut Oliz fiyatını korur; fiyatı tamamen kaldırmak için önizleme ekranından "İndirimi Temizle" seçilmelidir.</li>
     <li><strong>Güvenlik ve Doğrulama:</strong> Önizleme onaylanmadan veritabanına hiçbir kayıt yazılmaz; dosyadaki ürünler atomik (tek transaction) olarak kaydedilir.</li>
   </ul>

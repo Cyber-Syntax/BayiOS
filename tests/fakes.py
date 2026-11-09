@@ -30,6 +30,7 @@ class FakeProductRepository:
     def search(
         self,
         query: str | None = None,
+        category_id: uuid.UUID | None = None,
         limit: int = 50,
         offset: int = 0,
         include_archived: bool = False,
@@ -40,6 +41,9 @@ class FakeProductRepository:
             results = [p for p in results if getattr(p, "is_archived", False)]
         elif not include_archived:
             results = [p for p in results if not getattr(p, "is_archived", False)]
+
+        if category_id is not None:
+            results = [p for p in results if p.category_id == category_id]
 
         if query and query.strip():
             normalized = normalize_product_name(query)

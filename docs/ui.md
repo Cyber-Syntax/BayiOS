@@ -46,10 +46,10 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 ### Ürünler
 
 - Başlık, ürün sayısı ve katalog açıklaması; "Yeni Ürün Ekle", "CSV / Excel İçe Aktar", "CSV Dışa Aktar" ve "Excel Dışa Aktar" eylemleri.
-- Arama kutusu ve "Ara" düğmesi mobilde ve masaüstünde aynı satırda kalır; metin dikey kırılmaz. Durum filtresi (Aktif / Arşivdekiler / Tümü) ve "Temizle" eylemi dar ekranda alt satıra geçebilir.
+- Arama kutusu ve "Ara" düğmesi mobilde ve masaüstünde aynı satırda kalır; metin dikey kırılmaz. Durum filtresi (Aktif / Arşivdekiler / Tümü), kategori filtresi ve "Temizle" eylemi dar ekranda alt satıra geçebilir.
 - Arama HTMX ile tabloyu yeniler ve URL'yi günceller; sonuçlar sayfalanır.
-- Satır seçimi checkbox ile yapılır; seçim varken toplu işlem çubuğu görünür. Seçilenler arşivlenebilir veya iki aşamalı onayla kalıcı olarak silinebilir.
-- Tablo kolonları: seçim, Ürün Adı, Normal Fiyat, Oliz / Web İndirimli, Fiziksel Stok, Satılabilir Stok, Son Fiyat Değişimi ve İşlem.
+- Satır seçimi checkbox ile yapılır; seçim varken toplu işlem çubuğu görünür. Seçilenler arşivlenebilir veya iki aşamalı onayla kalıcı olarak silinebilir. Dar ekranda karta dokunmak da satırı seçer (bağlantı, buton ve giriş alanları hariç).
+- Tablo kolonları: seçim, Ürün Adı, Kategori, Normal Fiyat, Oliz / Web İndirimli, Fiziksel Stok, Son Fiyat Değişimi ve İşlem.
 - Her satırda fiziksel stok alanı ve "Stok" düğmesi ile doğrudan güncelleme, ayrıca "Detay" bağlantısı bulunur.
 - Arşivdeki ürünler soluk gösterilir ve "Arşivde" rozeti taşır.
 - Boş sonuç ve arama eşleşmemesi durumları görünür metinle bildirilir.
@@ -58,7 +58,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 
 - Geniş ekranda (≥1024px) ürünler tablo olarak gösterilir; tablo gerekirse kendi kabında yatay kaydırılır ve sayfa gövdesi yatay kaymaz.
 - Masaüstü tabloda işlem kolonu sağa sabitlenir; "Stok" ve "Detay" eylemleri kaydırma sırasında görünür kalır.
-- Dar ekranda (<1024px) her ürün satırı kart görünümüne dönüşür. Kart; ürün adı, fiyatlar, fiziksel/satılabilir stok, son fiyat değişimi ve işlem eylemlerini etiketleriyle birlikte gösterir.
+- Dar ekranda (<1024px) her ürün satırı kart görünümüne dönüşür. Kart; ürün adı, kategori, fiyatlar, fiziksel stok, son fiyat değişimi ve işlem eylemlerini etiketleriyle birlikte gösterir.
 - Başlıklar ve metinler yalnızca kelime sınırlarında sarılır; kelimeler karakter karakter bölünmez.
 - Fiyat ve stok değerleri tek satırda kalır; tarih alanı gerekirse tarih ve saat olarak iki satıra ayrılır.
 - Dar ekranda hücre iç boşlukları azalır; "Stok" ve "Detay" düğmeleri sıkışmadan görünür kalır.
@@ -66,7 +66,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 ### Ürün Detayı
 
 - Ürün adı, kayıt numarası ve arşiv durumu; "Düzenle", "Stok Güncelle", "Arşivle / Arşivden Çıkar", "Sil" ve "Listeye Dön" eylemleri.
-- Özet kartları: Normal Fiyat, Oliz / Web İndirimli, Alış Maliyeti, Fiziksel Stok, Açık Rezervasyon, Satılabilir Stok ve Temin İhtiyacı.
+- Özet kartları: Normal Fiyat, Oliz / Web İndirimli, Alış Maliyeti, Fiziksel Stok ve Açık Rezervasyon.
 - Fiyat Geçmişi tablosu: tarih, fiyat türü, eski/yeni değer, kaynak ve işlemi yapan.
 - Stok Hareket Geçmişi tablosu: tarih, hareket türü, önceki miktar, değişim, yeni miktar, not ve işlemi yapan.
 - Düzenleme ve stok güncelleme modalları; stok güncellemede açıklama/not alanı.
@@ -85,7 +85,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 
 - Veri oturum boyunca mock state'te tutulmaz; kalıcı veritabanına yazılır.
 - Arama ve filtreleme sunucu tarafında çalışır; HTMX yalnızca tablo parçasını yeniler.
-- Rezervasyon oluşturmak fiziksel stoğu düşürmez. Satılabilir stok = fiziksel stok − açık rezervasyon. Teslimat fiziksel stoğu düşürür.
+- Rezervasyon oluşturmak fiziksel stoğu düşürmez ve ürün ayırmaz; fiziksel stok doğrudan satılabilir stoktur. Teslimat fiziksel stoğu düşürür.
 - Fiziksel stok ve fiyat değişiklikleri geçmiş tablolarına kaydedilir.
 - Arşivleme ürünü normal listeden gizler; kalıcı silme yalnızca iki aşamalı doğrulamadan sonra yapılır ve ilişkili geçmiş kayıtlarını da kaldırır.
 - Başarı, hata ve boş durumları yalnızca renkle değil, görünür metinle bildirilir.

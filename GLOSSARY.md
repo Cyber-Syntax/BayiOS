@@ -21,7 +21,7 @@ A commercial proposal containing one or more products and payment options that h
 _Avoid_: Quote, sale
 
 **Reservation**:
-A record that holds products for delivery, either from an accepted offer or directly; it reduces sellable stock but not physical stock.
+A record that tracks products and the customer for a confirmed sale, without reserving or reducing physical stock. Physical stock decreases only when a reservation line reaches Delivered.
 _Avoid_: Order, allocation
 
 **Delivered**:
@@ -43,16 +43,8 @@ The quantity physically present at the dealer.
 _Avoid_: Inventory balance
 
 **Open reservation**:
-The quantity held by reservations that have not reached Delivered.
+The quantity of products on reservations that have not yet reached Delivered. It is reported separately from physical stock and never subtracted from it.
 _Avoid_: Reserved inventory
-
-**Sellable stock**:
-Physical stock minus open reservation quantity.
-_Avoid_: Available stock
-
-**Temin ihtiyacı**:
-The quantity needed when sellable stock cannot satisfy a reservation or planned sale.
-_Avoid_: Shortage
 
 ## Operational concepts
 

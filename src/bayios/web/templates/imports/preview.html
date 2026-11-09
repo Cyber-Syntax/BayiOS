@@ -60,6 +60,7 @@
         <tr>
           <th>Satır</th>
           <th>Ürün Adı</th>
+          <th>Kategori</th>
           <th>Normal Fiyat</th>
           <th>Oliz / İndirimli</th>
           <th>Fiziksel Stok</th>
@@ -73,6 +74,13 @@
           <td>{{ row.row_number }}</td>
           <td>
             <strong>{{ row.product_name or '—' }}</strong>
+          </td>
+          <td>
+            {% if row.category_name %}
+            <span class="badge badge-info">{{ row.category_name }}</span>
+            {% else %}
+            <span class="muted">—</span>
+            {% endif %}
           </td>
           <td>
             {% if row.regular_price is not none %}

@@ -1,0 +1,51 @@
+{% from "_pagination.html" import pagination with context %}
+<div class="grid-stats">
+  <div class="stat-box">
+    <div class="stat-label">Listelenen Ürün</div>
+    <div class="stat-value">{{ total_count }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Açık / İncelemede Oturum</div>
+    <div class="stat-value">{{ open_sessions | length }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Tamamlanan Oturum</div>
+    <div class="stat-value">{{ completed_sessions | length }}</div>
+  </div>
+</div>
+
+<div class="table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Ürün Adı</th>
+        <th>Kategori</th>
+        <th>Fiziksel Stok</th>
+        <th>Açık Rezervasyon</th>
+        <th>İşlem</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td><a href="/products/{{ row.product.id }}"><strong>{{ row.product.name }}</strong></a></td>
+        <td>{{ category_names.get(row.product.category_id, '—') }}</td>
+        <td>{{ row.summary.physical }}</td>
+        <td>{{ row.summary.open_reservation }}</td>
+        <td><a class="btn btn-sm" href="/products/{{ row.product.id }}">Detay</a></td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" class="muted" style="text-align: center; padding: 2rem;">
+          Bu filtrede ürün bulunmuyor.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: .75rem; gap: .5rem; flex-wrap: wrap;">
+  <small class="muted">Toplam {{ total_count }} ürün</small>
+  {{ pagination(page, total_pages) }}
+</div>

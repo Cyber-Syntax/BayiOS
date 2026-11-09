@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from openpyxl import load_workbook
 
-from bayios.adapters.db.models.products import Product
+from bayios.adapters.db.models.products import Product, ProductCategory
 from bayios.application.products import (
     export_products_csv,
     export_products_xlsx,
@@ -67,6 +67,33 @@ def test_search_finds_by_turkish_normalized_name() -> None:
     assert count == 1
 
 
+def test_search_filters_by_category() -> None:
+    uow = FakeUnitOfWork()
+    category = ProductCategory(id=uuid.uuid4(), name="Bulaşık Makinesi")
+    uow.products.add_category(category)
+    p1 = Product(
+        id=uuid.uuid4(),
+        name="09470 HP",
+        name_normalized="09470 hp",
+        regular_price=Decimal(52899),
+        physical_stock=5,
+        category_id=category.id,
+    )
+    p2 = Product(
+        id=uuid.uuid4(),
+        name="07325 A",
+        name_normalized="07325 a",
+        regular_price=Decimal(38099),
+        physical_stock=3,
+    )
+    uow.products.add(p1)
+    uow.products.add(p2)
+
+    results, count = search_products(uow, category_id=category.id)
+    assert count == 1
+    assert results[0].name == "09470 HP"
+
+
 def test_get_product_detail_calculates_stock_correctly() -> None:
     uow = FakeUnitOfWork()
     prod_id = uuid.uuid4()
@@ -83,13 +110,13 @@ def test_get_product_detail_calculates_stock_correctly() -> None:
     detail = get_product_detail(uow, prod_id)
     assert detail is not None
     assert detail.product.name == "Buzdolabı"
-    assert detail.sellable_stock == 7
     assert detail.open_reservation == 0
-    assert detail.supply_need == 0
 
 
 def test_export_products_csv_and_xlsx() -> None:
     uow = FakeUnitOfWork()
+    category = ProductCategory(id=uuid.uuid4(), name="Buzdolabı")
+    uow.products.add_category(category)
     p1 = Product(
         id=uuid.uuid4(),
         name="07325 A",
@@ -97,6 +124,7 @@ def test_export_products_csv_and_xlsx() -> None:
         regular_price=Decimal("38099.00"),
         website_discounted_price=Decimal("34099.00"),
         physical_stock=5,
+        category_id=category.id,
     )
     p2 = Product(
         id=uuid.uuid4(),
@@ -113,8 +141,8 @@ def test_export_products_csv_and_xlsx() -> None:
     csv_bytes = export_products_csv(uow)
     assert csv_bytes.startswith(b"\xef\xbb\xbf")  # UTF-8 BOM
     csv_text = csv_bytes.decode("utf-8-sig")
-    assert "07325 A,38099.00,34099.00,5," in csv_text
-    assert "09325 A,42199.00,,0," in csv_text
+    assert "07325 A,Buzdolabı,38099.00,34099.00,5," in csv_text
+    assert "09325 A,,42199.00,,0," in csv_text
 
     # 2. Test XLSX export
     xlsx_bytes = export_products_xlsx(uow)
@@ -124,15 +152,17 @@ def test_export_products_csv_and_xlsx() -> None:
     rows = list(sheet.iter_rows(values_only=True))
     assert rows[0] == (
         "product_name",
+        "category",
         "regular_price",
         "website_discounted_price",
         "quantity",
         "cost_price",
     )
     assert rows[1][0] == "07325 A"
-    assert rows[1][1] == 38099.00
-    assert rows[1][2] == 34099.00
-    assert rows[1][3] == 5
+    assert rows[1][1] == "Buzdolabı"
+    assert rows[1][2] == 38099.00
+    assert rows[1][3] == 34099.00
+    assert rows[1][4] == 5
     wb.close()
 
 

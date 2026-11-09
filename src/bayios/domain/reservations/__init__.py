@@ -18,14 +18,6 @@ class StockPosition:
     physical: int
     open_reservation: int
 
-    @property
-    def sellable(self) -> int:
-        return max(0, self.physical - self.open_reservation)
-
-    @property
-    def supply_need(self) -> int:
-        return max(0, self.open_reservation - self.physical)
-
 
 @dataclass(frozen=True)
 class ReservationItem:

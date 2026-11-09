@@ -9,19 +9,18 @@ from bayios.domain.reservations import (
 )
 
 
-def test_reservation_reduces_sellable_stock_but_not_physical_stock() -> None:
+def test_reservation_does_not_reduce_physical_stock() -> None:
     position = StockPosition(physical=5, open_reservation=2)
 
     assert position.physical == 5
     assert position.open_reservation == 2
-    assert position.sellable == 3
 
 
-def test_sellable_stock_is_not_negative_and_exposes_supply_need() -> None:
+def test_stock_position_reports_physical_and_open_reservation_only() -> None:
     position = StockPosition(physical=1, open_reservation=3)
 
-    assert position.sellable == 0
-    assert position.supply_need == 2
+    assert position.physical == 1
+    assert position.open_reservation == 3
 
 
 def test_multi_product_reservation_keeps_open_quantities_independent() -> None:

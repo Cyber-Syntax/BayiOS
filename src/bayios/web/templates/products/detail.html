@@ -119,18 +119,6 @@
       {{ open_reservation }}
     </div>
   </div>
-  <div class="stat-box">
-    <div class="stat-label">Satılabilir Stok</div>
-    <div class="stat-value">
-      {{ sellable_stock }}
-    </div>
-  </div>
-  <div class="stat-box">
-    <div class="stat-label">Temin İhtiyacı</div>
-    <div class="stat-value" style="{% if supply_need > 0 %}color: #dc2626;{% endif %}">
-      {{ supply_need }}
-    </div>
-  </div>
 </div>
 
 <!-- Edit Product Modal -->
@@ -188,7 +176,7 @@
       <div style="margin-bottom: 1rem;">
         <label style="display: block; font-weight: 500; font-size: .85rem; margin-bottom: .25rem;">Yeni Fiziksel Stok *</label>
         <input type="number" name="physical_stock" class="form-control" value="{{ product.physical_stock }}" required>
-        <small class="muted">Satılabilir stok, açık rezervasyonlar düşüldükten sonra otomatik hesaplanacaktır.</small>
+        <small class="muted">Fiziksel stok doğrudan satılabilir stoktur; buraya girilen değer eldeki miktarı gösterir.</small>
       </div>
       <div style="margin-bottom: 1rem;">
         <label style="display: block; font-weight: 500; font-size: .85rem; margin-bottom: .25rem;">Açıklama / Not</label>

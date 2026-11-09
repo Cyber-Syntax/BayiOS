@@ -7,20 +7,67 @@
   deleteStep: 1,
   selectedIds: [],
   selectAll: false,
-  toggleSelectAll() {
-    this.selectAll = !this.selectAll;
-    const checkboxes = document.querySelectorAll('.product-checkbox');
-    this.selectedIds = [];
-    checkboxes.forEach(cb => {
-      cb.checked = this.selectAll;
-      if (this.selectAll) this.selectedIds.push(cb.value);
+  init() {
+    const container = document.getElementById('products-table-container');
+    if (container) {
+      container.addEventListener('change', (e) => {
+        const all = e.target.closest('.product-checkbox-all');
+        if (all) {
+          this.toggleSelectAll(all.checked);
+          return;
+        }
+        const cb = e.target.closest('.product-checkbox');
+        if (cb) this.toggleProduct(cb.value, cb.checked);
+      });
+      container.addEventListener('click', (e) => {
+        if (e.target.closest('a, button, input, select, textarea, form, label')) return;
+        if (!window.matchMedia('(max-width: 1023px)').matches) return;
+        const tr = e.target.closest('tr[data-product-id]');
+        if (!tr) return;
+        const cb = tr.querySelector('.product-checkbox');
+        if (!cb) return;
+        cb.checked = !cb.checked;
+        this.toggleProduct(cb.value, cb.checked);
+      });
+    }
+    window.addEventListener('htmx:afterSwap', (e) => {
+      if (e.target && e.target.id === 'products-table-container') {
+        this.syncVisibleCheckboxes();
+      }
     });
+    this.syncVisibleCheckboxes();
   },
-  updateSelection() {
-    const checkboxes = document.querySelectorAll('.product-checkbox:checked');
-    this.selectedIds = Array.from(checkboxes).map(cb => cb.value);
+  setSelected(id, checked) {
+    const index = this.selectedIds.indexOf(id);
+    if (checked && index === -1) this.selectedIds.push(id);
+    else if (!checked && index !== -1) this.selectedIds.splice(index, 1);
+  },
+  toggleProduct(id, checked) {
+    this.setSelected(id, checked);
+    this.syncVisibleCheckboxes();
+  },
+  toggleSelectAll(checked) {
+    document.querySelectorAll('.product-checkbox').forEach(cb => {
+      this.setSelected(cb.value, checked);
+    });
+    this.syncVisibleCheckboxes();
+  },
+  syncSelectAllState() {
     const all = document.querySelectorAll('.product-checkbox');
-    this.selectAll = all.length > 0 && checkboxes.length === all.length;
+    const checked = document.querySelectorAll('.product-checkbox:checked');
+    this.selectAll = all.length > 0 && checked.length === all.length;
+    const allCb = document.querySelector('.product-checkbox-all');
+    if (allCb) allCb.checked = this.selectAll;
+  },
+  syncVisibleCheckboxes() {
+    document.querySelectorAll('.product-checkbox').forEach(cb => {
+      cb.checked = this.selectedIds.includes(cb.value);
+    });
+    document.querySelectorAll('tr[data-product-id]').forEach(tr => {
+      const id = tr.getAttribute('data-product-id');
+      tr.classList.toggle('row-selected', this.selectedIds.includes(id));
+    });
+    this.syncSelectAllState();
   },
   openDeleteModal() {
     this.deleteStep = 1;
@@ -84,7 +131,7 @@
 <div class="card" style="padding: 1rem;">
   <form id="search-form" method="get" action="/products"
         hx-get="/products"
-        hx-trigger="keyup changed delay:300ms from:#product-search-input, search from:#product-search-input, change from:#status-filter"
+        hx-trigger="keyup changed delay:300ms from:#product-search-input, search from:#product-search-input, change from:#status-filter, change from:#category-filter"
         hx-target="#products-table-container"
         hx-push-url="true">
     <div class="search-toolbar">
@@ -100,8 +147,14 @@
         <option value="archived" {% if status == 'archived' %}selected{% endif %}>Arşivdekiler</option>
         <option value="all" {% if status == 'all' %}selected{% endif %}>Tümü (Arşiv Dahil)</option>
       </select>
+      <select id="category-filter" name="category_id" class="form-control search-filter">
+        <option value="">Tüm Kategoriler</option>
+        {% for category in categories %}
+        <option value="{{ category.id }}" {% if selected_category == category.id %}selected{% endif %}>{{ category.name }}</option>
+        {% endfor %}
+      </select>
       <button type="submit" class="btn btn-primary search-submit">Ara</button>
-      {% if q or status != 'active' %}
+      {% if q or status != 'active' or selected_category %}
       <a href="/products" class="btn search-clear">Temizle</a>
       {% endif %}
     </div>

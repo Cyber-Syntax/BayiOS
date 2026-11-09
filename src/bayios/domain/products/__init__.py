@@ -20,3 +20,10 @@ def normalize_product_name(raw_name: str) -> str:
     normalized = unicodedata.normalize("NFKC", raw_name).strip()
     normalized = _WHITESPACE.sub(" ", normalized)
     return normalized.translate(str.maketrans({"I": "ı", "İ": "i"})).lower()
+
+
+def normalize_category_name(raw_name: str) -> str:
+    """Return the canonical name used for category matching (case/space insensitive)."""
+    normalized = unicodedata.normalize("NFKC", raw_name).strip()
+    normalized = _WHITESPACE.sub(" ", normalized)
+    return normalized.translate(str.maketrans({"I": "ı", "İ": "i"})).lower()

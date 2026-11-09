@@ -46,6 +46,36 @@ def test_commit_creates_new_products_and_history_and_movements() -> None:
     assert movements[0].quantity_after == 5
 
 
+def test_commit_assigns_and_auto_creates_category() -> None:
+    uow = FakeUnitOfWork()
+    csv_bytes = (
+        b"product_name,category,regular_price,quantity\n"
+        b"07325 A,Buzdolabi,38099,5\n"
+        b"09470 HP,,52899,0\n"
+    )
+
+    result = commit_product_import(
+        uow=uow,
+        file_name="test.csv",
+        file_type="csv",
+        source=csv_bytes,
+        actor=ActorContext(worker_name="Ahmet"),
+    )
+
+    assert result.created_count == 2
+
+    p1 = uow.products.get_by_normalized_name("07325 a")
+    assert p1 is not None
+    assert p1.category_id is not None
+    category = uow.products.get_category(p1.category_id)
+    assert category is not None
+    assert category.name == "Buzdolabi"
+
+    p2 = uow.products.get_by_normalized_name("09470 hp")
+    assert p2 is not None
+    assert p2.category_id is None
+
+
 def test_commit_updates_existing_product_price_and_stock() -> None:
     uow = FakeUnitOfWork()
     csv1 = b"product_name,regular_price,website_discounted_price,quantity\n07325 A,38099,34099,5\n"

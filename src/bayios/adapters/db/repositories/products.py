@@ -23,6 +23,7 @@ class SqlAlchemyProductRepository:
     def search(
         self,
         query: str | None = None,
+        category_id: uuid.UUID | None = None,
         limit: int = 50,
         offset: int = 0,
         include_archived: bool = False,
@@ -37,6 +38,10 @@ class SqlAlchemyProductRepository:
         elif not include_archived:
             stmt = stmt.where(Product.is_archived.is_(False))
             count_stmt = count_stmt.where(Product.is_archived.is_(False))
+
+        if category_id is not None:
+            stmt = stmt.where(Product.category_id == category_id)
+            count_stmt = count_stmt.where(Product.category_id == category_id)
 
         if query and query.strip():
             normalized = normalize_product_name(query)

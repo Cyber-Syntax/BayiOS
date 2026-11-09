@@ -20,14 +20,13 @@ class ProductDetail:
     product: Product
     price_history: Sequence[ProductPriceHistory]
     stock_movements: Sequence[StockMovement]
-    sellable_stock: int
     open_reservation: int
-    supply_need: int
 
 
 def search_products(
     uow: UnitOfWork,
     query: str | None = None,
+    category_id: uuid.UUID | None = None,
     limit: int = 50,
     offset: int = 0,
     include_archived: bool = False,
@@ -36,6 +35,7 @@ def search_products(
     with uow:
         return uow.products.search(
             query=query,
+            category_id=category_id,
             limit=limit,
             offset=offset,
             include_archived=include_archived,
@@ -302,21 +302,21 @@ def get_product_detail(
             product=product,
             price_history=price_history,
             stock_movements=stock_movements,
-            sellable_stock=summary.sellable,
             open_reservation=summary.open_reservation,
-            supply_need=summary.supply_need,
         )
 
 
 def export_products_csv(uow: UnitOfWork) -> bytes:
     with uow:
         products = uow.products.get_all()
+        category_names = {c.id: c.name for c in uow.products.get_categories()}
 
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(
         [
             "product_name",
+            "category",
             "regular_price",
             "website_discounted_price",
             "quantity",
@@ -327,6 +327,7 @@ def export_products_csv(uow: UnitOfWork) -> bytes:
         writer.writerow(
             [
                 p.name,
+                category_names.get(p.category_id, ""),
                 format(p.regular_price, "f") if p.regular_price is not None else "",
                 format(p.website_discounted_price, "f")
                 if p.website_discounted_price is not None
@@ -343,6 +344,7 @@ def export_products_xlsx(uow: UnitOfWork) -> bytes:
 
     with uow:
         products = uow.products.get_all()
+        category_names = {c.id: c.name for c in uow.products.get_categories()}
 
     wb = Workbook()
     ws = wb.active
@@ -350,6 +352,7 @@ def export_products_xlsx(uow: UnitOfWork) -> bytes:
     ws.append(
         [
             "product_name",
+            "category",
             "regular_price",
             "website_discounted_price",
             "quantity",
@@ -360,6 +363,7 @@ def export_products_xlsx(uow: UnitOfWork) -> bytes:
         ws.append(
             [
                 p.name,
+                category_names.get(p.category_id, ""),
                 float(p.regular_price) if p.regular_price is not None else None,
                 float(p.website_discounted_price)
                 if p.website_discounted_price is not None

@@ -67,7 +67,7 @@ compose.yaml
 Saf domain fonksiyonları aşağıdaki türden işlemleri yapar:
 
 - ürün adını normalize etme ve kesin eşleşme kararını verme;
-- satılabilir stok ve temin ihtiyacını hesaplama;
+- stok görünümünü (fiziksel stok ve açık rezervasyon) üretme;
 - rezervasyon miktarlarını ve geçiş önkoşullarını doğrulama;
 - kampanya rehberi senaryosunu hesaplama;
 - komisyon ve minimum fiyat referansını `Decimal` ile hesaplama;
@@ -192,6 +192,7 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
    - `normalize_product_name`: Unicode NFKC, strip, whitespace collapse, baştaki sıfırları koruma, Türkçe `İ/ı` dönüşümü.
    - `_normalize_decimal`: Türkçe binlik nokta ve `TL` sonekli değerleri (`38.099 TL`, `475 TL`), kuruşlu değerleri (`12,50`), düz sayıları (`1200`) hatasız `Decimal` string'e çevirme.
    - `_normalize_quantity`: Boşluk, tam sayı ve negatif olmama kontrolü.
+   - `normalize_category_name`: Kategori eşleştirmesi için NFKC, strip, whitespace collapse ve Türkçe `İ/ı` duyarsızlaştırması.
    - Satır sınıflandırma politikası: `create` (yeni ürün), `update` (fiyat/stok değişimi), `skip` (fark yok veya kullanıcı kararı), `error` (eksik ad veya geçersiz sayı), `clear_discount` (indirimli fiyatı temizleme).
 2. **CSV/Excel içe aktarma önizlemesi ve sorunlu satır yönetimi (`PreviewProductImport`):**
    - `utf-8`, `utf-8-sig` (BOM), `cp1254` (Windows-1254) fallback ve otomatik virgül/noktalı virgül delimiter algılama.
@@ -205,6 +206,7 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
    - Yeni ürünler için `Product` insert, mevcutlar için update; atlanan satırlar için hiçbir yazma işlemi yapılmaz.
    - Yalnızca fiilen değişen fiyatlar için `ProductPriceHistory` kaydı (fiyat aynıysa gereksiz tarihçe oluşturulmaz).
    - Fiziksel stok değiştiğinde `StockMovement` kaydı (`movement_type='csv_update'`, `quantity_before`, `quantity_after`, `quantity_delta`, batch'e bağlı `idempotency_key`).
+   - **Kategori:** `category` kolonu opsiyoneldir. Dolu gelirse `normalize_category_name` ile mevcut kategorilerle eşleşir; bilinmeyen adlar otomatik oluşturulur. Boş gelirse mevcut ürünün kategorisi korunur, yeni ürün kategorisiz açılır.
    - **Doğru istatistik bildirimi:** Batch özeti (`created_count`, `updated_count`, `skipped_count`, `error_count`) fiilen icra edilen işlemlere göre hesaplanır. Önizlemede atlanan satırlar kesinlikle eklenen veya güncellenen sayılarına dahil edilmez. Özet bilgi kutusu: `{created_count} yeni ürün eklendi, {updated_count} ürün güncellendi, {skipped_count} satır atlandı` şeklinde gerçeği tam yansıtır.
 4. **Manuel yeni ürün oluşturma (`CreateProduct`):**
    - `CreateProduct` command'i: `product_name`, `regular_price`, `website_discounted_price`, `cost_price`, `physical_stock`, `category_id`.
@@ -219,15 +221,16 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
 6. **Ürünler sekmesinden doğrudan stok güncelleme (`AdjustProductStock`):**
    - Ürün detay kartında veya liste satırında fiziksel stok düzeltme girişi.
    - `movement_type='manual_adjustment'`, `quantity_delta` ve not ile stok hareketi yazılır.
-   - `satilabilir_stok = max(fiziksel_stok - acik_rezervasyon, 0)` formülüyle satılabilir stok otomatik güncellenir.
+   - Fiziksel stok doğrudan satılabilir stoktur; ayrı türetilmiş bir "satılabilir stok" alanı yoktur.
    - Bu akış Milestone 3'teki kapsamlı stok sayım modülü ile tam entegre çalışacak temeli oluşturur.
 7. **Ürün kataloğu arama, UI ergonomisi ve detay sorguları:**
-   - `SearchProducts`: Normalleştirilmiş ad ve baştaki sıfırları koruyan substring arama; sayfalama desteği; arşiv filtresi.
+   - `SearchProducts`: Normalleştirilmiş ad ve baştaki sıfırları koruyan substring arama; kategori ve arşiv filtresi; sayfalama desteği.
    - **Arama kutusu düzeni:** Arama input alanı ve yanındaki "Ara" butonu responsive flex yapısında yan yana kalır (`whitespace-nowrap shrink-0`); buton metninin `AR<br>a` şeklinde kırılması engellenir.
-   - `GetProductDetail`: Normal fiyat, Oliz fiyatı, maliyet, fiziksel stok, açık rezervasyon (M1'de 0), satılabilir stok, fiyat geçmişi ve stok hareket günlüğü.
+   - `GetProductDetail`: Normal fiyat, Oliz fiyatı, maliyet, fiziksel stok, açık rezervasyon (M1'de 0), fiyat geçmişi ve stok hareket günlüğü.
 8. **Katalog dışa aktarma (`ExportProducts`):**
    - Tüm ürünleri CSV (`utf-8-sig`) veya `.xlsx` olarak export etme.
-   - Kolonlar: `product_name`, `regular_price`, `website_discounted_price`, `quantity`, `cost_price`.
+   - Kolonlar: `product_name`, `category`, `regular_price`, `website_discounted_price`, `quantity`, `cost_price`.
+   - `category` içe aktarmada opsiyonel, dışa aktarmada her zaman bulunur.
    - Filtreli export MVP dışıdır.
 9. **Web arayüzü ve HTMX entegrasyonu:**
    - `/products`: Ürün listesi, responsive arama kutusu ("Ara" butonu tek satırda), "Yeni Ürün Ekle" butonu, checkbox seçim çubuğu ("Seçilenleri Arşivle", "Seçilenleri Sil", "Kategori Ata"), sayfalama.
@@ -244,7 +247,7 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
     - Başarı bildirimi güncellenen ürün sayısını gösterir.
 11. **Sayfalama ve doğrudan sayfa geçişi:**
     - Ürünler listesinde mevcut önceki/sonraki butonlarına ek olarak sayfa numarası girişi ve "Git" butonu bulunur.
-    - Sayfa geçişi `q`, `status` ve `limit` gibi mevcut filtre parametrelerini korur.
+    - Sayfa geçişi `q`, `status`, `category_id` ve `limit` gibi mevcut filtre parametrelerini korur.
     - Aynı ortak sayfalama bileşeni stok sayfası ve sayım satırlarında yeniden kullanılır.
 
 **Kod sözleşmesi**
@@ -269,7 +272,7 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
 - Manuel ürün ekleme formu geçerli verilerle yeni ürün kaydı açar; başlangıç fiyat ve stok geçmişi oluşturur.
 - Seçilen ürünler toplu olarak arşivlenebilir (`is_archived=True`); arşivdekiler varsayılan aramada gizlenir ve istendiğinde geri alınabilir.
 - Silme işlemi iki aşamalı doğrulama (çift onay) tamamlanmadan DB'den kayıt silmez; 2. onay verildiğinde kalıcı silinir. Açık rezervasyonu olan ürün için silme talebi reddedilir.
-- Ürün ekranından doğrudan stok güncellendiğinde fiziksel stok değişir, satılabilir stok otomatik yeniden hesaplanır ve `manual_adjustment` hareketi yazılır.
+- Ürün ekranından doğrudan stok güncellendiğinde fiziksel stok değişir ve `manual_adjustment` hareketi yazılır.
 - Ürün arama kutusu ve "Ara" butonu mobilde ve masaüstünde `whitespace-nowrap` ile tek satırda yan yana durur; metin bölünmesi (`AR<br>a`) oluşmaz.
 - Ürün detayından kategori seçilip kaydedildiğinde kategori güncellenir; stok ve fiyat değişmez.
 - Birden fazla ürün seçilip toplu kategori atandığında tüm seçilen ürünlerin `category_id` değeri aynı olur; "Kategorisiz" seçimi kategoriyi temizler ve bildirim doğru sayıyı gösterir.
@@ -300,7 +303,7 @@ Gerçek `arcelik-06-09-2026.csv` dosyası web arayüzünden veya API'den önizle
 
 **Davranış testleri**
 
-- Başlangıç fiziksel 5 iken 2 reservation sonrası physical 5, open 2, sellable 3.
+- Başlangıç fiziksel 5 iken 2 reservation sonrası physical 5, open 2 olur; fiziksel stok değişmez.
 - Delivery requested/depot ready/service assigned physical stock'u değiştirmez.
 - 1 teslim sonrası physical 4, open 1 olur; kalan teslim sonrası physical 3, open 0 olur.
 - Aynı idempotency key veya aynı teslim command retry'si ikinci movement üretmez.
@@ -315,7 +318,7 @@ Bir reservation uçtan uca takip edilir; duplicate stock deduction mümkün değ
 
 **Use-case akışları**
 
-- Product detail ve stock listesi physical/open/sellable/temin ihtiyacı query'sini aynı hesap policy'sinden alır.
+- Product detail ve stock listesi physical/open görünümünü aynı hesap policy'sinden alır.
 - Category ile count session açılır; sistem quantity snapshot'lanır.
 - Counted quantity girilir; difference kullanıcıya gösterilmeden complete edilemez.
 - Completion sırasında current stock version kontrol edilir; conflict varsa yeniden hesaplama/review istenir.
@@ -324,15 +327,15 @@ Bir reservation uçtan uca takip edilir; duplicate stock deduction mümkün değ
 **Kullanım kolaylığı gereksinimleri**
 
 1. Stok sayfası açıldığında `open` ve `review` durumundaki oturumlar ürün tablosunun üstünde ayrı bir "Açık Sayım Oturumları" bölümünde listelenir; her satırda "Devam Et" bağlantısı bulunur. Tamamlanmış oturum geçmişi sayfanın altında kalır.
-2. Stok ürün listesi `page`/`limit` parametreleriyle sayfalanır; arama (`q`) ve kategori filtresi korunur.
+2. Stok ürün listesi `page`/`limit` parametreleriyle sayfalanır; arama (`q`) ve kategori filtresi korunur. Kategori seçimi ve arama yazımı "Ara" butonuna gerek kalmadan sonuçları otomatik yeniler.
 3. Sayım oturumu ürün satırları da sayfalanır; sayılan miktar formu yalnızca görünen sayfadaki alanları gönderir, diğer sayfalardaki kayıtlı değerler korunur.
 4. Ortak sayfalama bileşeni önceki/sonraki butonları, sayfa numarası girişi ve "Git" butonu içerir; kullanıcı doğrudan son sayfaya atlayabilir.
 5. Açık sayım oturumunda "Miktarları Kaydet" butonu `position: fixed` eylem çubuğunda ekranın altında durur; içerik için alt boşluk bırakılır ve yazdırma CSS'inde gizlenir.
 
 **Davranış testleri**
 
-- Sellable negatif gösterilmez; temin ihtiyacı pozitif görünür.
 - CSV, delivery ve count movement türleri ayrıştırılır.
+- Rezervasyon açılışı fiziksel stoğu değiştirmez; yalnızca teslimat fiziksel stoğu düşürür.
 - Eşzamanlı movement sonrası eski count sessizce overwrite etmez.
 - Completed session tekrar complete edilince duplicate movement üretmez.
 - A4 kategori listesi elle yazılabilir alanları içerir.

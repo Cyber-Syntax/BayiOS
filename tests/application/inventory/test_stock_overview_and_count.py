@@ -66,8 +66,6 @@ def test_stock_overview_uses_shared_summary_policy() -> None:
     assert len(rows) == 1
     assert rows[0].summary.physical == 2
     assert rows[0].summary.open_reservation == 5
-    assert rows[0].summary.sellable == 0
-    assert rows[0].summary.supply_need == 3
 
 
 def test_open_session_snapshots_category_products_and_version() -> None:
