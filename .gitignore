@@ -1,5 +1,7 @@
+*.xlsx#
+*.xlsx
 # pdf
-.pdf
+*.pdf
 # ignore vscode
 .vscode
 
