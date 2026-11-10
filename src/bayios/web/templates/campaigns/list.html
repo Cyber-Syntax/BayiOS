@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Kampanyalar{% endblock %}
+{% block content %}
+{% set msg = request.query_params.get('msg') %}
+{% if msg == 'created' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Kampanya oluşturuldu.</span></div>
+{% elif msg == 'updated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Kampanya kaydedildi; değişiklik varsa yeni sürüm oluşturuldu.</span></div>
+{% elif msg == 'archived' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Kampanya arşivlendi.</span></div>
+{% elif msg == 'restored' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Kampanya arşivden çıkarıldı.</span></div>
+{% elif msg == 'dealer_discount_updated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Bayi indirimi varsayılanı güncellendi.</span></div>
+{% elif msg and msg.startswith('error:') %}
+<div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
+{% endif %}
+{% if error %}
+<div class="alert alert-danger"><span><strong>Hata:</strong> {{ error }}</span></div>
+{% endif %}
+
+<div class="actions-bar">
+  <div>
+    <h1>Kampanyalar</h1>
+    <p class="muted" style="margin: 0;">Kampanya rehberi ve bayi fiyat senaryoları.</p>
+  </div>
+  <div class="actions-group">
+    <a class="btn btn-primary" href="/campaigns/new">Yeni Kampanya</a>
+    <a class="btn" href="/campaigns/print?q={{ q | urlencode }}&campaign_type={{ campaign_type | urlencode }}&state={{ state | urlencode }}&date_from={{ date_from | urlencode }}&date_to={{ date_to | urlencode }}">A4 Liste</a>
+  </div>
+</div>
+
+<div class="card" style="padding: 1rem;">
+  <form method="get" action="/campaigns"
+        hx-get="/campaigns"
+        hx-trigger="keyup changed delay:300ms from:#campaign-search, search from:#campaign-search, change from:#campaign-type, change from:#campaign-state, change from:#campaign-date-from, change from:#campaign-date-to"
+        hx-target="#campaigns-table-container"
+        hx-push-url="true">
+    <div class="search-toolbar">
+      <input type="search"
+             id="campaign-search"
+             name="q"
+             class="form-control search-input"
+             placeholder="Kampanya adı veya açıklaması"
+             value="{{ q }}"
+             autocomplete="off">
+      <select id="campaign-type" name="campaign_type" class="form-control search-filter">
+        {% for value, label in type_filters %}
+        <option value="{{ value }}" {% if campaign_type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select id="campaign-state" name="state" class="form-control search-filter">
+        {% for value, label in state_filters %}
+        <option value="{{ value }}" {% if state == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <input type="date" id="campaign-date-from" name="date_from" class="form-control search-filter"
+             value="{{ date_from }}" data-date-picker data-date-preview="campaign-date-from-preview"
+             aria-label="Başlangıç tarihi filtresi">
+      <input type="date" id="campaign-date-to" name="date_to" class="form-control search-filter"
+             value="{{ date_to }}" data-date-picker data-date-preview="campaign-date-to-preview"
+             aria-label="Bitiş tarihi filtresi">
+      <button type="submit" class="btn btn-primary search-submit">Ara</button>
+      {% if q or campaign_type or state != 'active' or date_from or date_to %}
+      <a href="/campaigns" class="btn search-clear">Temizle</a>
+      {% endif %}
+    </div>
+    <small id="campaign-date-from-preview" class="muted"></small>
+    <small id="campaign-date-to-preview" class="muted"></small>
+  </form>
+</div>
+
+<div id="campaigns-table-container">
+  {% include "campaigns/_results.html" %}
+</div>
+
+{% include "campaigns/_dealer_discount_panel.html" %}
+{% endblock %}

@@ -1,0 +1,67 @@
+{% from "_pagination.html" import pagination %}
+<div class="card">
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="col-name">Kampanya</th>
+          <th style="width: 9rem;">Tip</th>
+          <th class="col-date" style="width: 11rem;">Geçerlilik</th>
+          <th style="width: 8rem;">Durum</th>
+          <th style="width: 11rem;">İndirim / Hediye</th>
+          <th style="width: 5rem;">Ürün</th>
+          <th class="col-actions" style="width: 6rem;">İşlem</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="col-name">
+            <a href="/campaigns/{{ row.id }}">{{ row.name }}</a>
+            {% if row.description %}<br><small class="muted">{{ row.description }}</small>{% endif %}
+          </td>
+          <td>{{ row.campaign_type_label }}</td>
+          <td class="col-date">{{ row.starts_at | tr_date }}<br><small class="muted">{{ row.ends_at | tr_date }}</small></td>
+          <td>
+            {% if row.state == 'active' %}
+            <span class="badge badge-success">{{ row.state_label }}</span>
+            {% elif row.state == 'scheduled' %}
+            <span class="badge badge-info">{{ row.state_label }}</span>
+            {% elif row.state == 'expired' %}
+            <span class="badge badge-warning">{{ row.state_label }}</span>
+            {% else %}
+            <span class="badge">{{ row.state_label }}</span>
+            {% endif %}
+            {% if row.is_archived %}<br><small class="muted">Arşivde</small>{% endif %}
+          </td>
+          <td>
+            {% if row.discount_type == 'percent' %}
+            {{ row.discount_value | tr_percent }}
+            {% elif row.discount_type in ('fixed_amount', 'special_price') %}
+            {{ row.discount_value | tr_money }} TL
+            {% else %}
+            {{ row.discount_type_label }}
+            {% if row.gift_description %}<br><small class="muted">{{ row.gift_description }}</small>{% endif %}
+            {% endif %}
+          </td>
+          <td>{{ row.product_count }}</td>
+          <td class="col-actions">
+            <a class="btn btn-sm" href="/campaigns/{{ row.id }}">Detay</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="muted" style="text-align: center; padding: 1.5rem;">
+            Bu filtreye uyan kampanya bulunmuyor.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if total_pages > 1 %}
+  <div style="padding: 0 1rem 1rem;">
+    {{ pagination(page, total_pages) }}
+  </div>
+  {% endif %}
+</div>

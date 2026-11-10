@@ -1,4 +1,13 @@
 from bayios.adapters.db.models.base import Base
+from bayios.adapters.db.models.campaigns import (
+    Campaign,
+    CampaignVersion,
+    CampaignVersionProduct,
+    DealerDiscountSetting,
+    DealerDiscountSettingHistory,
+    DealerPricing,
+    DealerPricingHistory,
+)
 from bayios.adapters.db.models.inventory import (
     StockCountItem,
     StockCountSession,
@@ -19,6 +28,13 @@ from bayios.adapters.db.models.reservations import (
 
 __all__ = [
     "Base",
+    "Campaign",
+    "CampaignVersion",
+    "CampaignVersionProduct",
+    "DealerDiscountSetting",
+    "DealerDiscountSettingHistory",
+    "DealerPricing",
+    "DealerPricingHistory",
     "Product",
     "ProductCategory",
     "ProductImportBatch",

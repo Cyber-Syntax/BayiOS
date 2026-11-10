@@ -5,7 +5,8 @@
   showDeleteModal: false,
   deleteStep: 1,
   showStockModal: false,
-  showEditModal: false
+  showEditModal: false,
+  showDealerModal: false
 }">
 
 {% if request.query_params.get('msg') == 'stock_updated' %}
@@ -23,6 +24,14 @@
 {% elif request.query_params.get('msg') == 'unarchived' %}
 <div class="alert alert-success">
   <span><strong>Başarılı:</strong> Ürün arşivden çıkarıldı.</span>
+</div>
+{% elif request.query_params.get('msg') == 'dealer_pricing_updated' %}
+<div class="alert alert-success">
+  <span><strong>Başarılı:</strong> Bayi nakit/kart taban fiyatları güncellendi.</span>
+</div>
+{% elif request.query_params.get('msg') and request.query_params.get('msg').startswith('error:') %}
+<div class="alert alert-danger">
+  <span><strong>İşlem yapılamadı:</strong> {{ request.query_params.get('msg')[6:] }}</span>
 </div>
 {% endif %}
 
@@ -122,6 +131,146 @@
   </div>
 </div>
 
+<div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+    <div>
+      <h2 style="margin: 0 0 .25rem; font-size: 1.1rem;">Bayi Fiyatı</h2>
+      <p class="muted" style="margin: 0; font-size: .9rem;">
+        Ürüne özel nakit/kart taban fiyatları genel bayi indirimi oranından ayrı tutulur ve değişiklik geçmişi saklanır.
+      </p>
+    </div>
+    <button type="button" class="btn" @click="showDealerModal = true">Fiyatları Güncelle</button>
+  </div>
+  <div class="grid-stats" style="margin-top: .75rem;">
+    <div class="stat-box">
+      <div class="stat-label">Nakit Taban</div>
+      <div class="stat-value">
+        {% if dealer_pricing and dealer_pricing.cash_floor_price is not none %}
+        {{ dealer_pricing.cash_floor_price | tr_money }} TL
+        {% else %}
+        —
+        {% endif %}
+      </div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Kart Taban</div>
+      <div class="stat-value">
+        {% if dealer_pricing and dealer_pricing.card_floor_price is not none %}
+        {{ dealer_pricing.card_floor_price | tr_money }} TL
+        {% else %}
+        —
+        {% endif %}
+      </div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Son Güncelleme</div>
+      <div class="stat-value" style="font-size: 1rem;">
+        {% if dealer_pricing and dealer_pricing.updated_at %}
+        {{ dealer_pricing.updated_at | tr_datetime }}
+        {% else %}
+        —
+        {% endif %}
+      </div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Güncelleyen</div>
+      <div class="stat-value" style="font-size: 1rem;">{{ dealer_pricing.updated_by_name if dealer_pricing and dealer_pricing.updated_by_name else '—' }}</div>
+    </div>
+  </div>
+  {% if dealer_pricing and dealer_pricing.note %}
+  <p class="muted" style="margin: .5rem 0 0;"><strong>Not:</strong> {{ dealer_pricing.note }}</p>
+  {% endif %}
+  {% if dealer_pricing and dealer_pricing.history %}
+  <details style="margin-top: .75rem;">
+    <summary class="muted">Fiyat Geçmişi ({{ dealer_pricing.history | length }})</summary>
+    <div class="table-container" style="margin-top: .5rem;">
+      <table class="data-table" style="min-width: 0;">
+        <thead>
+          <tr>
+            <th class="col-date">Tarih</th>
+            <th>Nakit Eski → Yeni</th>
+            <th>Kart Eski → Yeni</th>
+            <th>Not</th>
+            <th>İşlemi yapan</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in dealer_pricing.history %}
+          <tr>
+            <td class="col-date">{{ row.changed_at | tr_datetime }}</td>
+            <td>{{ row.old_cash_floor | tr_money }} → {{ row.new_cash_floor | tr_money }} TL</td>
+            <td>{{ row.old_card_floor | tr_money }} → {{ row.new_card_floor | tr_money }} TL</td>
+            <td>{{ row.note or '—' }}</td>
+            <td>{{ row.changed_by_name or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+  {% endif %}
+</div>
+
+<div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+  <h2 style="margin: 0 0 .25rem; font-size: 1.1rem;">Aktif Kampanyalar</h2>
+  <p class="muted" style="margin: 0 0 .75rem; font-size: .9rem;">
+    Bu ürünle ilişkili, tarihi geçerli ve arşivlenmemiş kampanyalar. Fiyat senaryoları varsayılan bayi indirimi ile gösterilir.
+  </p>
+  {% if active_campaigns %}
+  <div class="table-container">
+    <table class="data-table" style="min-width: 0;">
+      <thead>
+        <tr>
+          <th>Kampanya</th>
+          <th style="width: 9rem;">İlişki</th>
+          <th class="col-date" style="width: 10rem;">Geçerlilik</th>
+          <th style="width: 7rem;">Durum</th>
+          <th style="width: 10rem;">İndirim / Hediye</th>
+          <th>Bayi Senaryosu</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for campaign in active_campaigns %}
+        <tr>
+          <td><a href="/campaigns/{{ campaign.campaign_id }}">{{ campaign.campaign_name }}</a><br><small class="muted">v{{ campaign.version_no }}</small></td>
+          <td>{{ campaign.relation_label }}</td>
+          <td class="col-date">{{ campaign.starts_at | tr_date }}<br><small class="muted">{{ campaign.ends_at | tr_date }}</small></td>
+          <td><span class="badge badge-success">{{ campaign.state_label }}</span></td>
+          <td>
+            {% if campaign.discount_type == 'percent' %}
+            {{ campaign.discount_value | tr_percent }}
+            {% elif campaign.discount_type in ('fixed_amount', 'special_price') %}
+            {{ campaign.discount_value | tr_money }} TL
+            {% else %}
+            {{ campaign.discount_type_label }}
+            {% if campaign.gift_description %}<br><small class="muted">{{ campaign.gift_description }}</small>{% endif %}
+            {% endif %}
+          </td>
+          <td>
+            {% for scenario in campaign.scenarios %}
+            <div>
+              <small>{% if scenario.gift_present %}Hediye var{% else %}Hediye yok{% endif %}:</small>
+              {% if scenario.is_informational %}
+              <span class="muted">Bilgi</span>
+              {% else %}
+              <strong>{{ scenario.final_price | tr_money }} TL</strong>
+              {% endif %}
+              {% if scenario.warning %}<br><small class="muted">{{ scenario.warning }}</small>{% endif %}
+            </div>
+            {% else %}
+            <span class="muted">Senaryo yok</span>
+            {% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted" style="margin: 0;">Bu ürün için aktif kampanya bulunmuyor.</p>
+  {% endif %}
+</div>
+
 <!-- Edit Product Modal -->
 <div x-show="showEditModal" class="modal-backdrop" x-cloak @click.self="showEditModal = false">
   <div class="modal-box">
@@ -185,6 +334,41 @@
       </div>
       <div style="display: flex; justify-content: flex-end; gap: .5rem;">
         <button type="button" class="btn" @click="showStockModal = false">İptal</button>
+        <button type="submit" class="btn btn-primary">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Dealer Pricing Modal -->
+<div x-show="showDealerModal" class="modal-backdrop" x-cloak @click.self="showDealerModal = false">
+  <div class="modal-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h2 style="margin: 0; font-size: 1.25rem;">Bayi Taban Fiyatları</h2>
+      <button type="button" class="btn btn-sm" @click="showDealerModal = false">&times;</button>
+    </div>
+    <form method="post" action="/products/{{ product.id }}/dealer-pricing">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom: .75rem;">
+        <div>
+          <label style="display: block; font-weight: 500; font-size: .85rem; margin-bottom: .25rem;">Nakit Taban (TL)</label>
+          <input type="text" name="cash_floor_price" class="form-control"
+                 value="{{ dealer_pricing.cash_floor_price if dealer_pricing and dealer_pricing.cash_floor_price is not none else '' }}">
+        </div>
+        <div>
+          <label style="display: block; font-weight: 500; font-size: .85rem; margin-bottom: .25rem;">Kart Taban (TL)</label>
+          <input type="text" name="card_floor_price" class="form-control"
+                 value="{{ dealer_pricing.card_floor_price if dealer_pricing and dealer_pricing.card_floor_price is not none else '' }}">
+        </div>
+      </div>
+      <div style="margin-bottom: 1rem;">
+        <label style="display: block; font-weight: 500; font-size: .85rem; margin-bottom: .25rem;">Not</label>
+        <input type="text" name="note" class="form-control"
+               value="{{ dealer_pricing.note if dealer_pricing and dealer_pricing.note else '' }}"
+               placeholder="örn: Kasım ayı bayi fiyatı">
+        <small class="muted">Boş bırakılan taban fiyat temizlenir. Yalnızca değer değiştiğinde geçmiş kaydı oluşur.</small>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: .5rem;">
+        <button type="button" class="btn" @click="showDealerModal = false">İptal</button>
         <button type="submit" class="btn btn-primary">Kaydet</button>
       </div>
     </form>

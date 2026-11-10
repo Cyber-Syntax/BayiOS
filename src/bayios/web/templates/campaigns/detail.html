@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% set version = campaign.current_version %}
+{% block title %}{{ version.name }}{% endblock %}
+{% block content %}
+{% set msg = request.query_params.get('msg') %}
+{% if msg == 'created' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Kampanya oluşturuldu.</span></div>
+{% elif msg == 'updated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Kampanya kaydedildi.</span></div>
+{% elif msg == 'archived' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Kampanya arşivlendi.</span></div>
+{% elif msg == 'restored' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Kampanya arşivden çıkarıldı.</span></div>
+{% endif %}
+{% if error %}
+<div class="alert alert-danger"><span><strong>Hata:</strong> {{ error }}</span></div>
+{% endif %}
+
+<div class="actions-bar">
+  <div>
+    <div style="margin-bottom: .25rem;">
+      <a href="/campaigns" class="muted" style="text-decoration: none;">&larr; Kampanyalar</a>
+    </div>
+    <div style="display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;">
+      <h1 style="margin: 0;">{{ version.name }}</h1>
+      <span class="badge {% if campaign.state == 'active' %}badge-success{% elif campaign.state == 'scheduled' %}badge-info{% elif campaign.state == 'expired' %}badge-warning{% endif %}">{{ campaign.state_label }}</span>
+      {% if campaign.is_archived %}<span class="badge">Arşivde</span>{% endif %}
+    </div>
+    <small class="muted">Sürüm v{{ version.version_no }} · {{ version.campaign_type_label }}</small>
+  </div>
+  <div class="actions-group">
+    <a class="btn" href="/campaigns/{{ campaign.id }}/edit">Düzenle</a>
+    {% if campaign.is_archived %}
+    <form method="post" action="/campaigns/{{ campaign.id }}/restore">
+      <button type="submit" class="btn">Arşivden Çıkar</button>
+    </form>
+    {% else %}
+    <form method="post" action="/campaigns/{{ campaign.id }}/archive">
+      <button type="submit" class="btn">Arşivle</button>
+    </form>
+    {% endif %}
+    <a class="btn" href="/campaigns/{{ campaign.id }}/print">A4</a>
+    <a class="btn" href="/campaigns">Listeye Dön</a>
+  </div>
+</div>
+
+<div class="grid-stats">
+  <div class="stat-box">
+    <div class="stat-label">Kampanya Tipi</div>
+    <div class="stat-value" style="font-size: 1.1rem;">{{ version.campaign_type_label }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Geçerlilik</div>
+    <div class="stat-value" style="font-size: 1.1rem;">
+      {{ version.starts_at | tr_date }} – {{ version.ends_at | tr_date }}
+    </div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Fiyat Tabanı</div>
+    <div class="stat-value" style="font-size: 1.1rem;">{{ version.base_price_type_label }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">İndirim</div>
+    <div class="stat-value" style="font-size: 1.1rem;">
+      {% if version.discount_type == 'percent' %}
+      {{ version.discount_value | tr_percent }}
+      {% elif version.discount_type in ('fixed_amount', 'special_price') %}
+      {{ version.discount_value | tr_money }} TL
+      {% else %}
+      {{ version.discount_type_label }}
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Hediye</div>
+    <div class="stat-value" style="font-size: 1rem;">
+      {{ version.gift_description or '—' }}
+      {% if version.gift_optional %}<br><small class="muted">İsteğe bağlı</small>{% endif %}
+    </div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Sürüm</div>
+    <div class="stat-value">{{ version.version_no }}</div>
+  </div>
+</div>
+
+{% if version.description or version.employee_note %}
+<div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+  {% if version.description %}<p style="margin: 0 0 .5rem;"><strong>Açıklama:</strong> {{ version.description }}</p>{% endif %}
+  {% if version.employee_note %}<p class="muted" style="margin: 0;"><strong>Çalışan notu:</strong> {{ version.employee_note }}</p>{% endif %}
+</div>
+{% endif %}
+
+<div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+  <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Ürün İlişkileri</h2>
+  {% if version.products %}
+  <div class="table-container">
+    <table class="data-table" style="min-width: 0;">
+      <thead>
+        <tr>
+          <th>Ürün</th>
+          <th style="width: 10rem;">İlişki</th>
+          <th style="width: 7rem;">Gerekli Adet</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in version.products %}
+        <tr>
+          <td>
+            {% if product.product_id %}
+            <a href="/products/{{ product.product_id }}">{{ product.product_name }}</a>
+            {% else %}
+            {{ product.product_name }}
+            {% endif %}
+          </td>
+          <td>{{ product.relation_label }}</td>
+          <td>{{ product.quantity_required or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted" style="margin: 0;">Bu kampanyaya henüz ürün eklenmemiş.</p>
+  {% endif %}
+</div>
+
+{% include "campaigns/_scenario_panel.html" %}
+
+<div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+  <h2 style="margin: 0 0 .25rem; font-size: 1.1rem;">Sürüm Geçmişi</h2>
+  <p class="muted" style="margin: 0 0 .75rem; font-size: .9rem;">Her düzenleme değişmez bir sürüm olarak saklanır; eski sürümler sonradan değiştirilmez.</p>
+  {% for old_version in campaign.versions %}
+  <details {% if loop.first %}open{% endif %} style="margin-bottom: .5rem;">
+    <summary>
+      <strong>v{{ old_version.version_no }}</strong> · {{ old_version.name }}
+      · {{ old_version.starts_at | tr_date }} – {{ old_version.ends_at | tr_date }}
+      · <span class="badge {% if old_version.state == 'active' %}badge-success{% elif old_version.state == 'scheduled' %}badge-info{% elif old_version.state == 'expired' %}badge-warning{% endif %}">{{ old_version.state_label }}</span>
+      {% if old_version.created_by_name %}· {{ old_version.created_by_name }}{% endif %}
+      <span class="muted" style="font-size: .85rem;">{{ old_version.created_at | tr_datetime }}</span>
+    </summary>
+    <div style="padding: .5rem 0 0 1rem;">
+      <p style="margin: 0 0 .25rem;"><strong>{{ old_version.campaign_type_label }}</strong> · {{ old_version.base_price_type_label }} · {{ old_version.discount_type_label }}</p>
+      {% if old_version.description %}<p style="margin: 0 0 .25rem;">{{ old_version.description }}</p>{% endif %}
+      {% if old_version.gift_description %}<p style="margin: 0 0 .25rem;">Hediye: {{ old_version.gift_description }}{% if old_version.gift_optional %} (isteğe bağlı){% endif %}</p>{% endif %}
+      {% if old_version.products %}
+      <ul style="margin: .25rem 0 0 1rem; padding: 0;">
+        {% for product in old_version.products %}
+        <li>{{ product.product_name }} — {{ product.relation_label }}{% if product.quantity_required %} ({{ product.quantity_required }} adet){% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+  </details>
+  {% endfor %}
+</div>
+{% endblock %}

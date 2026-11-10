@@ -2,9 +2,19 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from types import TracebackType
 from typing import Self
 
+from bayios.adapters.db.models.campaigns import (
+    Campaign,
+    CampaignVersion,
+    CampaignVersionProduct,
+    DealerDiscountSetting,
+    DealerDiscountSettingHistory,
+    DealerPricing,
+    DealerPricingHistory,
+)
 from bayios.adapters.db.models.inventory import (
     StockCountItem,
     StockCountSession,
@@ -22,6 +32,7 @@ from bayios.adapters.db.models.reservations import (
     ReservationItemEvent,
     ReservationReminder,
 )
+from bayios.application.ports.campaigns import ActiveCampaignLink
 from bayios.domain.products import normalize_product_name
 
 
@@ -438,11 +449,240 @@ class FakeReservationRepository:
         return None
 
 
+class FakeCampaignRepository:
+    def __init__(self) -> None:
+        self.campaigns: dict[uuid.UUID, Campaign] = {}
+        self.versions: dict[uuid.UUID, CampaignVersion] = {}
+        self.version_products: dict[uuid.UUID, list[CampaignVersionProduct]] = {}
+
+    def add(self, campaign: Campaign) -> None:
+        if getattr(campaign, "id", None) is None:
+            campaign.id = uuid.uuid4()
+        self.campaigns[campaign.id] = campaign
+
+    def add_version(self, version: CampaignVersion) -> None:
+        if getattr(version, "id", None) is None:
+            version.id = uuid.uuid4()
+        self.versions[version.id] = version
+        self.version_products.setdefault(version.id, [])
+
+    def add_version_products(
+        self, products: Sequence[CampaignVersionProduct]
+    ) -> None:
+        for product in products:
+            if getattr(product, "id", None) is None:
+                product.id = uuid.uuid4()
+            self.version_products.setdefault(
+                product.campaign_version_id, []
+            ).append(product)
+
+    def get(self, campaign_id: uuid.UUID) -> Campaign | None:
+        return self.campaigns.get(campaign_id)
+
+    def get_for_update(self, campaign_id: uuid.UUID) -> Campaign | None:
+        return self.get(campaign_id)
+
+    def get_version(self, version_id: uuid.UUID) -> CampaignVersion | None:
+        return self.versions.get(version_id)
+
+    def get_current_version(
+        self, campaign_id: uuid.UUID
+    ) -> CampaignVersion | None:
+        campaign = self.campaigns.get(campaign_id)
+        if campaign is None or campaign.current_version_id is None:
+            return None
+        return self.versions.get(campaign.current_version_id)
+
+    def get_versions(self, campaign_id: uuid.UUID) -> Sequence[CampaignVersion]:
+        return sorted(
+            (
+                version
+                for version in self.versions.values()
+                if version.campaign_id == campaign_id
+            ),
+            key=lambda version: version.version_no,
+            reverse=True,
+        )
+
+    def get_version_products(
+        self, version_id: uuid.UUID
+    ) -> Sequence[CampaignVersionProduct]:
+        return sorted(
+            self.version_products.get(version_id, []),
+            key=lambda link: (link.relation_type, link.product_name_snapshot),
+        )
+
+    def get_version_products_for_versions(
+        self, version_ids: Sequence[uuid.UUID]
+    ) -> dict[uuid.UUID, Sequence[CampaignVersionProduct]]:
+        return {
+            version_id: self.get_version_products(version_id)
+            for version_id in version_ids
+        }
+
+    def set_current_version(
+        self, campaign_id: uuid.UUID, version_id: uuid.UUID
+    ) -> None:
+        campaign = self.campaigns.get(campaign_id)
+        if campaign is not None:
+            campaign.current_version_id = version_id
+
+    def set_archived(self, campaign_id: uuid.UUID, archived: bool) -> None:
+        campaign = self.campaigns.get(campaign_id)
+        if campaign is not None:
+            campaign.is_archived = archived
+
+    def list(
+        self,
+        *,
+        query: str | None = None,
+        campaign_type: str | None = None,
+        state: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        as_of: datetime | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> tuple[Sequence[tuple[Campaign, CampaignVersion]], int]:
+        reference = as_of or datetime.now(UTC)
+        rows: list[tuple[Campaign, CampaignVersion]] = []
+        for campaign in self.campaigns.values():
+            version = self.get_current_version(campaign.id)
+            if version is None:
+                continue
+            if state == "active" and (
+                campaign.is_archived or version.ends_at < reference
+            ):
+                continue
+            if state == "history" and not (
+                campaign.is_archived or version.ends_at < reference
+            ):
+                continue
+            if campaign_type and version.campaign_type != campaign_type:
+                continue
+            if query and query.strip():
+                clean = query.strip().lower()
+                if (
+                    clean not in version.name.lower()
+                    and clean not in (version.description or "").lower()
+                ):
+                    continue
+            if date_from is not None and version.ends_at < date_from:
+                continue
+            if date_to is not None and version.starts_at > date_to:
+                continue
+            rows.append((campaign, version))
+
+        rows.sort(
+            key=lambda pair: (
+                pair[1].starts_at,
+                pair[1].name,
+                str(pair[0].id),
+            ),
+            reverse=True,
+        )
+        total = len(rows)
+        return rows[offset : offset + limit], total
+
+    def active_for_product(
+        self, product_id: uuid.UUID, *, as_of: datetime
+    ) -> Sequence[ActiveCampaignLink]:
+        results: list[ActiveCampaignLink] = []
+        for campaign in self.campaigns.values():
+            if campaign.is_archived:
+                continue
+            version = self.get_current_version(campaign.id)
+            if version is None:
+                continue
+            if version.starts_at > as_of or version.ends_at < as_of:
+                continue
+            for link in self.version_products.get(version.id, []):
+                if link.product_id == product_id:
+                    results.append(
+                        ActiveCampaignLink(
+                            campaign=campaign,
+                            version=version,
+                            link=link,
+                        )
+                    )
+        results.sort(key=lambda item: (item.version.ends_at, item.version.name))
+        return results
+
+
+class FakeDealerPricingRepository:
+    def __init__(self) -> None:
+        self.pricing: dict[uuid.UUID, DealerPricing] = {}
+        self.pricing_history: list[DealerPricingHistory] = []
+        self.setting: DealerDiscountSetting | None = None
+        self.setting_history: list[DealerDiscountSettingHistory] = []
+
+    def get(self, product_id: uuid.UUID) -> DealerPricing | None:
+        return self.pricing.get(product_id)
+
+    def get_many(
+        self, product_ids: Sequence[uuid.UUID]
+    ) -> dict[uuid.UUID, DealerPricing]:
+        return {
+            product_id: self.pricing[product_id]
+            for product_id in product_ids
+            if product_id in self.pricing
+        }
+
+    def get_for_update(self, product_id: uuid.UUID) -> DealerPricing | None:
+        return self.get(product_id)
+
+    def add(self, pricing: DealerPricing) -> None:
+        if getattr(pricing, "id", None) is None:
+            pricing.id = uuid.uuid4()
+        self.pricing[pricing.product_id] = pricing
+
+    def add_history(self, history: DealerPricingHistory) -> None:
+        self.pricing_history.append(history)
+
+    def get_history(
+        self, product_id: uuid.UUID, limit: int = 50
+    ) -> Sequence[DealerPricingHistory]:
+        rows = [
+            history
+            for history in self.pricing_history
+            if history.product_id == product_id
+        ]
+        rows.sort(key=lambda history: history.changed_at, reverse=True)
+        return rows[:limit]
+
+    def get_setting(self) -> DealerDiscountSetting | None:
+        return self.setting
+
+    def get_setting_for_update(self) -> DealerDiscountSetting | None:
+        return self.setting
+
+    def add_setting(self, setting: DealerDiscountSetting) -> None:
+        if getattr(setting, "id", None) is None:
+            setting.id = uuid.uuid4()
+        self.setting = setting
+
+    def add_setting_history(self, history: DealerDiscountSettingHistory) -> None:
+        self.setting_history.append(history)
+
+    def get_setting_history(
+        self, setting_id: uuid.UUID, limit: int = 50
+    ) -> Sequence[DealerDiscountSettingHistory]:
+        rows = [
+            history
+            for history in self.setting_history
+            if history.dealer_discount_setting_id == setting_id
+        ]
+        rows.sort(key=lambda history: history.changed_at, reverse=True)
+        return rows[:limit]
+
+
 class FakeUnitOfWork:
     def __init__(self, repo: FakeProductRepository | None = None) -> None:
         self.products = repo or FakeProductRepository()
         self.stock_counts = FakeStockCountRepository(self.products)
         self.reservations = FakeReservationRepository(self.products)
+        self.campaigns = FakeCampaignRepository()
+        self.dealer_pricing = FakeDealerPricingRepository()
         self.committed = False
         self.rolled_back = False
         self._initial_state: tuple[object, ...] | None = None
@@ -516,6 +756,88 @@ class FakeUnitOfWork:
             ),
             len(self.reservations.events),
             len(self.reservations.reminders),
+            tuple(
+                sorted(
+                    (
+                        str(campaign.id),
+                        str(campaign.current_version_id),
+                        campaign.is_archived,
+                    )
+                    for campaign in self.campaigns.campaigns.values()
+                )
+            ),
+            tuple(
+                sorted(
+                    (
+                        str(version.id),
+                        str(version.campaign_id),
+                        version.version_no,
+                        version.name,
+                        version.campaign_type,
+                        str(version.starts_at),
+                        str(version.ends_at),
+                        version.discount_type,
+                        str(version.discount_value),
+                        version.gift_optional,
+                    )
+                    for version in self.campaigns.versions.values()
+                )
+            ),
+            tuple(
+                sorted(
+                    (
+                        str(link.id),
+                        str(link.campaign_version_id),
+                        str(link.product_id),
+                        link.product_name_snapshot,
+                        link.relation_type,
+                        str(link.quantity_required),
+                    )
+                    for bucket in self.campaigns.version_products.values()
+                    for link in bucket
+                )
+            ),
+            tuple(
+                sorted(
+                    (
+                        str(pricing.id),
+                        str(pricing.product_id),
+                        str(pricing.cash_floor_price),
+                        str(pricing.card_floor_price),
+                    )
+                    for pricing in self.dealer_pricing.pricing.values()
+                )
+            ),
+            tuple(
+                sorted(
+                    (
+                        str(history.id),
+                        str(history.product_id),
+                        str(history.old_cash_floor),
+                        str(history.new_cash_floor),
+                        str(history.old_card_floor),
+                        str(history.new_card_floor),
+                    )
+                    for history in self.dealer_pricing.pricing_history
+                )
+            ),
+            (
+                str(self.dealer_pricing.setting.id),
+                str(self.dealer_pricing.setting.default_percent),
+            )
+            if self.dealer_pricing.setting is not None
+            else None,
+            tuple(
+                sorted(
+                    (
+                        str(history.id),
+                        str(history.dealer_discount_setting_id),
+                        str(history.old_percent),
+                        str(history.new_percent),
+                    )
+                    for history in self.dealer_pricing.setting_history
+                )
+            ),
         )
 
     def __enter__(self) -> Self:

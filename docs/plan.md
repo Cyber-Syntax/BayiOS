@@ -364,17 +364,43 @@ Campaign modeli basit ve ürün ilişkili rehberdir: ad, açıklama, geçerlilik
 
 Genel rule engine, optimal sepet seçimi, WMS/POS entegrasyonu ve otomatik satış fiyatı uygulaması yapılmaz. Çalışan campaign'i rehberden seçer ve Offer snapshot'ına alır.
 
+**Domain ve veri**
+
+- **Sürümleme:** `campaigns` yalnızca kimliği, arşiv durumunu ve `current_version_id` işaretçisini taşır. Kampanya alanları ve ürün ilişkileri `campaign_versions` / `campaign_version_products` içinde değişmez sürümler olarak tutulur. Her düzenleme yeni sürüm üretir; eski sürüm hiçbir zaman güncellenmez. Fiili değişiklik yoksa yeni sürüm oluşturulmaz. Kampanya kalıcı silinmez, arşivlenir; sürüm geçmişi audit amaçlı korunur.
+- **Ürün ilişkisi:** Sürüm ürünlerinde `relation_type` (`qualifying`, `benefit`, `gift`, `related`) ve isteğe bağlı `quantity_required` bulunur. `product_id` nullable ve `ON DELETE SET NULL`'dır; `product_name_snapshot` sayesinde ürün silinse de sürüm geçmişi okunabilir kalır. Ürün grubu, aynı sürümde birden fazla ürün ilişkisiyle temsil edilir; kategori bazlı toplu ilişki kapsam dışıdır.
+- **Tipler:** `general`, `product_discount`, `bundle`, `gift`, `coupon`, `special` tiplerinin tamamı kaydedilebilir. İndirim türleri `percent`, `fixed_amount`, `special_price`, `gift`, `info_only`'dir. Fiyat senaryosu yalnızca yüzde, sabit tutar, özel fiyat ve hediye tiplerinde hesaplanır; `info_only` ve kupon tipi açıklama olarak gösterilir.
+- **Takvim:** `starts_at`–`ends_at` aralığı ve arşiv durumu aktif/geçmiş filtresini belirler. Tarihi geçmiş veya arşivlenmiş kampanya aktif listede görünmez, geçmiş filtresinde görünür. Aktif kampanya sorgusu güncel sürümün tarihleriyle yapılır; eski sürümler sorgu için zaman makinesi değildir.
+- **Senaryo:** Hediye varsa bayi indirimi normal fiyat üzerinden; hediye yoksa Oliz fiyatı varsa Oliz, yoksa normal fiyat üzerinden hesaplanır. Varsayılan oran `dealer_discount_settings` içinden gelir ve başlangıç değeri %10'dur; çalışan oranı %0–100 aralığında değiştirebilir. Hesap `Decimal` ve `ROUND_HALF_UP` ile iki hanede yapılır. Çalışanın girdiği oran yalnızca ekrandaki senaryoda kalır; kalıcı snapshot M5 teklifinde alınır.
+- **Bayi fiyatı:** Her ürün için tek güncel `dealer_pricing` kaydı (`cash_floor_price`, `card_floor_price`) tutulur. Her fiili değişiklik `dealer_pricing_history` içine eski/yeni değer, tarih, çalışan ve isteğe bağlı notla değişmez satır olarak yazılır. `valid_from`/`valid_until` kullanılmaz; değişiklik anında geçerli olur. Geçmiş, ileride eklenecek hesaplayıcı için korunur. Ürüne özel nakit/kart tabanları genel bayi indirimi oranıyla karıştırılmaz ve ayrı alanlarda gösterilir.
+- **Varsayılan oran:** `dealer_discount_settings` güncel varsayılan oranı, `dealer_discount_setting_history` ise değişiklik geçmişini tutar. Oran değişikliği de yalnızca fiili değişiklikte geçmişe yazılır.
+- **Kapsam dışı:** Kredi kartı taksit başına komisyon ve kart hesaplayıcısı M4'te yoktur; M5 ve sonrasına bırakılır. M4 yalnızca bu hesaplayıcının kullanacağı fiyat geçmişini güvenilir biçimde saklar.
+
+**Use-case akışları**
+
+1. Campaign create: ad, açıklama, tip, geçerlilik, fiyat tabanı, indirim/hediye alanları ve ürün ilişkileriyle ilk sürümü (`v1`) oluştur; `current_version_id` bu sürümü gösterir.
+2. Campaign update: alan veya ürün ilişkisi değiştiyse yeni değişmez sürüm ekle ve işaretçiyi güncelle; değişiklik yoksa mevcut sürümü koru.
+3. Campaign archive/restore: kampanyayı kalıcı silmeden arşivle veya geri al; sürümler korunur.
+4. Campaign list: arama, genel/ürün bazlı, aktif/geçmiş/tümü ve tarih aralığı filtreleriyle sayfalı liste; her satırda güncel sürümün özeti görünür.
+5. Campaign detail: güncel sürüm, sürüm geçmişi, ürün ilişkileri ve seçilen ürün için hediye var/yok fiyat senaryosu; çalışan oranı anlık değiştirebilir.
+6. Dealer pricing: ürün detayında nakit/kart tabanını güncelle; yalnızca değişen değer için history yaz; fiyat geçmişini göster.
+7. Default dealer discount: kampanyalar ekranındaki panelden varsayılan oranı güncelle; history'yi göster.
+8. Product detail: ürünle ilişkili aktif kampanyaları ve ürünün nakit/kart taban fiyatlarını göster.
+9. Print: kampanya listesi ve detayı A4'e basılabilir; senaryo ve fiyat tabanı okunaklı kalır.
+
 **Davranış testleri**
 
 - Tarih dışı campaign active listede görünmez, history filtresinde görünür.
 - Normal 25.999, Oliz 23.999 ve %10 örneği hediye var/yok senaryolarını doğru gösterir.
+- Oliz fiyatı olmayan üründe bayi indirimi normal fiyat üzerinden örneklenir.
 - %10 yalnızca default öneridir; çalışan %15 girebilir.
-- Campaign değişince eski Offer snapshot'ı değişmez.
+- Campaign değişince eski sürüm ve eski Offer snapshot'ı değişmez.
 - Ürün özel nakit/kart minimumları genel oranla karışmaz.
+- Değişiklik olmayan düzenleme yeni sürüm veya history satırı üretmez.
+- Bayi fiyatı geçmişi eski/yeni değeri, tarihi ve çalışanı korur; ürün silinse kampanya sürümü ürün adı snapshot'ıyla okunabilir kalır.
 
 **Çıkış kriteri**
 
-Çalışan aylık ürün campaign'lerini anlaşılır rehber olarak görür, senaryo seçimini Offer'a kaydeder; otomatik POS iddiası oluşmaz.
+Çalışan aylık ürün campaign'lerini anlaşılır rehber olarak görür, senaryo seçimini Offer'a kaydeder; otomatik POS iddiası oluşmaz. Kampanya düzenlemeleri değişmez sürümlerle izlenebilir; bayi nakit/kart tabanları ve varsayılan indirim oranı geçmişiyle birlikte yönetilir.
 
 ### Milestone 5 — Offer ve commissions
 

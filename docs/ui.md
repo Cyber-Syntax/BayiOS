@@ -15,7 +15,7 @@ MVP'de rol ve hesap yoktur. Her kullanıcı aynı sol navigasyonu görür:
 - Hızlı Teslim
 - Ayarlar
 
-Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya götürür. MVP'de Ana Sayfa, Ürünler, Stok/Sayım ve Rezervasyonlar aktiftir; diğer modüller navigasyonda "yakında" etiketiyle devre dışı görünür.
+Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya götürür. MVP'de Ana Sayfa, Ürünler, Kampanyalar, Stok/Sayım ve Rezervasyonlar aktiftir; diğer modüller navigasyonda "yakında" etiketiyle devre dışı görünür.
 
 ## Uygulama kabuğu
 
@@ -70,7 +70,19 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Fiyat Geçmişi tablosu: tarih, fiyat türü, eski/yeni değer, kaynak ve işlemi yapan.
 - Stok Hareket Geçmişi tablosu: tarih, hareket türü, önceki miktar, değişim, yeni miktar, not ve işlemi yapan.
 - Düzenleme ve stok güncelleme modalları; stok güncellemede açıklama/not alanı.
+- Ürüne özel bayi nakit/kart taban fiyatları ve değişiklik geçmişi; "Fiyatları Güncelle" modalı.
+- Ürünle ilişkili aktif kampanyalar ve hediye var/yok bayi fiyat senaryoları.
 - Silme iki aşamalı onay ister; ikinci adım açık teyit olmadan kalıcı silme yapılmaz.
+
+### Kampanyalar
+
+- Liste; kampanya adı/açıklaması araması, tip, aktif/geçmiş/tümü ve tarih aralığı filtreleri sunar; arama ve filtreler HTMX ile tabloyu yeniler, liste sayfalanır.
+- Satırlar kampanya adı, tip, geçerlilik, durum (Aktif / Yaklaşan / Süresi geçti / Arşivde), indirim veya hediye özeti ve ürün sayısını gösterir.
+- Yeni ve düzenleme formu; ad, tip, başlangıç/bitiş tarihi, açıklama, fiyat tabanı, indirim türü/değeri, hediye açıklaması ve hediye var/yok fiyat tabanı, çalışan notu ve ürün ilişkilerini (şart, fayda, hediye, ilgili) içerir.
+- Her fiili düzenleme değişmez yeni sürüm oluşturur; değişiklik yoksa yeni sürüm üretilmez. Detay ekranında sürüm geçmişi ve her sürümün ürün ilişkileri görünür.
+- Detay ekranı seçilen ürün için hediye var/yok bayi fiyat senaryosunu gösterir; varsayılan oran %10'dur ve çalışan tarafından değiştirilebilir. Ürüne özel nakit/kart taban fiyatları genel oranla karıştırılmaz.
+- Kampanyalar ekranında global bayi indirimi varsayılanı ve değişiklik geçmişi yönetilir.
+- Kampanya listesi ve detayı A4 basılabilir; çıktı otomatik fiyat uygulaması değil, çalışan rehberidir.
 
 ### Ürün Kataloğu İçe Aktarma
 
@@ -109,6 +121,9 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Rezervasyon satırında durum değiştirmek ve iptal etmek stok hareketi üretmez; yalnızca teslim edilen miktar `delivery_out` hareketiyle fiziksel stoktan düşer ve aynı işlem tekrar gönderildiğinde ikinci hareket oluşmaz.
 - Açık rezervasyonu olan ürün veritabanından silinemez; kullanıcıya bunun nedenini açıklayan uyarı gösterilir.
 - Fiziksel stok ve fiyat değişiklikleri geçmiş tablolarına kaydedilir.
+- Kampanya düzenlemeleri değişmez sürümler olarak saklanır; eski sürüm ve geçmiş teklif snapshot'ı sonradan değişmez.
+- Bayi nakit/kart taban fiyatı yalnızca fiili değer değişikliğinde geçmişe yazılır; global bayi indirimi oranından ayrı tutulur.
+- Kampanya rehberi otomatik POS fiyatı uygulamaz; senaryo sonucu yalnızca çalışanın gördüğü öneridir.
 - Arşivleme ürünü normal listeden gizler; kalıcı silme yalnızca iki aşamalı doğrulamadan sonra yapılır ve ilişkili geçmiş kayıtlarını da kaldırır.
 - Başarı, hata ve boş durumları yalnızca renkle değil, görünür metinle bildirilir.
 - Modal ve çekmece katmanları küçük ekranda taşmaz; uzun içerik dikey kaydırılır.
@@ -117,4 +132,4 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 
 ## Kapsam dışı
 
-Kimlik doğrulama, rol yönetimi, kamera/barkod çözümleme, kampanya/teklif/hızlı teslim modüllerinin tam ekranları ve bu modüllerin yazdırma şablonlarının detaylı tasarımı bu UI sözleşmesinin kapsamı dışındadır. Bu modüller navigasyonda devre dışı görünür ve ilgili milestone'larda açılır.
+Kimlik doğrulama, rol yönetimi, kamera/barkod çözümleme, teklif/hızlı teslim modüllerinin tam ekranları ve bu modüllerin yazdırma şablonlarının detaylı tasarımı bu UI sözleşmesinin kapsamı dışındadır. Bu modüller navigasyonda devre dışı görünür ve ilgili milestone'larda açılır.

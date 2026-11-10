@@ -8,6 +8,22 @@ BayiOS is a local dealer operations context for managing products, offers, reser
 A dated commercial promotion or pricing guide that may reference condition products, benefit products, discounts, gifts, and a price basis. In MVP it is a guide and scenario source, not a general basket optimization engine.
 _Avoid_: Scraped promotion, automatic POS campaign
 
+**Campaign version**:
+An immutable snapshot of a campaign's fields and product relations, created on each effective edit. The campaign row points to the current version; historical versions are retained for audit and offer snapshots.
+_Avoid_: Campaign edit log, mutable campaign snapshot
+
+**Campaign scenario**:
+A computed price example for a campaign, showing gift-present and gift-absent outcomes using the applicable price basis and dealer discount rate. It is a guide, not an automatically applied sale price.
+_Avoid_: POS price, automatic discount
+
+**Dealer floor price**:
+The product-specific minimum cash or card sale price for the dealer, stored and historically tracked separately from the general dealer discount rate.
+_Avoid_: Campaign price, offer price
+
+**Dealer discount setting**:
+The global default dealer discount percentage used by the campaign guide, defaulting to 10% and retaining a history of changes. It is a suggestion; a worker may override it per scenario.
+_Avoid_: Fixed dealer rate, commission rate
+
 **Customer**:
 A person or organization receiving an offer or delivery, identified by name and optionally by phone number.
 _Avoid_: Client, buyer, account

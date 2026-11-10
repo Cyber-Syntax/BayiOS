@@ -9,7 +9,16 @@ from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
 from fastapi import APIRouter, Form, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from bayios.application.errors import ProductHasOpenReservationsError
+from bayios.application.campaigns import list_active_campaigns_for_product
+from bayios.application.dealer_pricing import (
+    get_dealer_pricing,
+    update_dealer_pricing,
+)
+from bayios.application.errors import (
+    NotFoundError,
+    ProductHasOpenReservationsError,
+    ValidationError,
+)
 from bayios.application.imports import _normalize_decimal
 from bayios.application.inventory import list_categories
 from bayios.application.products import (
@@ -318,6 +327,35 @@ def export_xlsx(uow: UnitOfWorkDep) -> Response:
     )
 
 
+@router.post("/{product_id}/dealer-pricing")
+def update_dealer_pricing_route(
+    product_id: uuid.UUID,
+    uow: UnitOfWorkDep,
+    actor: ActorDep,
+    cash_floor_price: Annotated[str | None, Form()] = None,
+    card_floor_price: Annotated[str | None, Form()] = None,
+    note: Annotated[str | None, Form()] = None,
+) -> RedirectResponse:
+    try:
+        cash = _parse_decimal_form(cash_floor_price)
+        card = _parse_decimal_form(card_floor_price)
+        update_dealer_pricing(uow, product_id, cash, card, note, actor)
+    except HTTPException as exc:
+        query = urlencode({"msg": f"error:{exc.detail}"})
+        return RedirectResponse(
+            url=f"/products/{product_id}?{query}", status_code=303
+        )
+    except (ValidationError, NotFoundError) as exc:
+        query = urlencode({"msg": f"error:{exc}"})
+        return RedirectResponse(
+            url=f"/products/{product_id}?{query}", status_code=303
+        )
+    query = urlencode({"msg": "dealer_pricing_updated"})
+    return RedirectResponse(
+        url=f"/products/{product_id}?{query}", status_code=303
+    )
+
+
 @router.get("/{product_id}", response_class=HTMLResponse)
 def product_detail(
     request: Request,
@@ -345,5 +383,9 @@ def product_detail(
             "open_reservation": detail.open_reservation,
             "categories": categories,
             "category_name": category_names.get(detail.product.category_id),
+            "active_campaigns": list_active_campaigns_for_product(
+                uow, product_id
+            ),
+            "dealer_pricing": get_dealer_pricing(uow, product_id),
         },
     )

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import UTC, date, datetime, timedelta, timezone
+from decimal import Decimal
 from importlib.metadata import version
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -79,6 +80,22 @@ def iso_date(value: date | datetime | None) -> str:
     return value.strftime("%Y-%m-%d")
 
 
+def tr_money(value: Decimal | float | None) -> str:
+    """Turkish money display: 23.399,10 (no currency suffix)."""
+    if value is None:
+        return "—"
+    return (
+        f"{Decimal(value):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    )
+
+
+def tr_percent(value: Decimal | float | None) -> str:
+    """Turkish percentage display: 10,00 %."""
+    if value is None:
+        return "—"
+    return f"{Decimal(value):.2f}".replace(".", ",") + " %"
+
+
 def _asset_version() -> str:
     digest = hashlib.sha256()
     for path in sorted(STATIC_DIR.rglob("*")):
@@ -92,5 +109,7 @@ templates.env.filters.update(
     tr_date_long=tr_date_long,
     tr_datetime=tr_datetime,
     iso_date=iso_date,
+    tr_money=tr_money,
+    tr_percent=tr_percent,
 )
 templates.env.globals.update(nav_items=NAV_ITEMS, asset_version=_asset_version())

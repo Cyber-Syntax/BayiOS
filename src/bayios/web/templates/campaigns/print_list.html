@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}A4 Kampanya Listesi{% endblock %}
+{% block content %}
+<div class="actions-bar no-print">
+  <div>
+    <a href="/campaigns" class="muted" style="text-decoration: none;">&larr; Kampanyalar</a>
+    <h1 style="margin-top: .25rem;">A4 Kampanya Listesi</h1>
+  </div>
+  <div class="actions-group">
+    <button type="button" class="btn btn-primary" onclick="window.print()">Yazdır</button>
+  </div>
+</div>
+
+<div class="card print-copy">
+  <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+    <div>
+      <h2 style="margin: 0;">BayiOS Kampanya Rehberi</h2>
+      <p class="muted" style="margin: .25rem 0 0;">
+        Filtre: {{ state or 'tümü' }}{% if campaign_type %} · Tip: {{ campaign_type }}{% endif %}{% if q %} · Arama: {{ q }}{% endif %}
+        {% if date_from or date_to %} · Tarih: {{ date_from or '—' }} – {{ date_to or '—' }}{% endif %}
+      </p>
+    </div>
+    <div style="text-align: right; font-size: .85rem;">Tarih: {{ generated_at | tr_datetime }}</div>
+  </div>
+
+  <table class="data-table" style="min-width: 0;">
+    <thead>
+      <tr>
+        <th style="width: 3rem;">#</th>
+        <th>Kampanya</th>
+        <th style="width: 8rem;">Tip</th>
+        <th style="width: 10rem;">Geçerlilik</th>
+        <th style="width: 7rem;">Durum</th>
+        <th style="width: 10rem;">İndirim / Hediye</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>
+          {{ row.name }}
+          {% if row.description %}<br><small>{{ row.description }}</small>{% endif %}
+        </td>
+        <td>{{ row.campaign_type_label }}</td>
+        <td>{{ row.starts_at | tr_date_long }} – {{ row.ends_at | tr_date_long }}</td>
+        <td>{{ row.state_label }}{% if row.is_archived %} (arşivde){% endif %}</td>
+        <td>
+          {% if row.discount_type == 'percent' %}
+          {{ row.discount_value | tr_percent }}
+          {% elif row.discount_type in ('fixed_amount', 'special_price') %}
+          {{ row.discount_value | tr_money }} TL
+          {% else %}
+          {{ row.discount_type_label }}
+          {% if row.gift_description %}<br><small>{{ row.gift_description }}</small>{% endif %}
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted" style="text-align: center;">Kayıt bulunmuyor.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

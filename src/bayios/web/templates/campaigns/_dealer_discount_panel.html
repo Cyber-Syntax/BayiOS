@@ -1,0 +1,66 @@
+{% if dealer_setting %}
+<section class="card" style="padding: 1rem; margin-top: 1rem;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+    <div>
+      <h2 style="margin: 0 0 .25rem; font-size: 1.1rem;">Bayi İndirimi Varsayılanı</h2>
+      <p class="muted" style="margin: 0; font-size: .9rem;">
+        Kampanya rehberindeki hediye var/yok senaryolarında önerilen oran. Başlangıç değeri %10'dur; çalışan senaryoda değiştirebilir.
+      </p>
+    </div>
+    <div class="stat-box" style="min-width: 10rem;">
+      <div class="stat-label">Güncel Oran</div>
+      <div class="stat-value">{{ dealer_setting.default_percent | tr_percent }}</div>
+      <small class="muted">
+        {% if dealer_setting.updated_at %}
+        {{ dealer_setting.updated_at | tr_datetime }}{% if dealer_setting.updated_by_name %} · {{ dealer_setting.updated_by_name }}{% endif %}
+        {% else %}
+        Henüz değiştirilmedi
+        {% endif %}
+      </small>
+    </div>
+  </div>
+
+  <form method="post" action="/campaigns/dealer-discount" style="display: flex; align-items: flex-end; gap: .5rem; flex-wrap: wrap; margin-top: .75rem;">
+    <div class="form-group" style="margin-bottom: 0; min-width: 9rem;">
+      <label for="default-percent">Varsayılan Oran (%)</label>
+      <input type="number" id="default-percent" name="default_percent" class="form-control"
+             min="0" max="100" step="0.01" value="{{ dealer_setting.default_percent }}" required>
+    </div>
+    <div class="form-group" style="margin-bottom: 0; flex: 1 1 14rem;">
+      <label for="dealer-discount-note">Not</label>
+      <input type="text" id="dealer-discount-note" name="note" class="form-control" placeholder="İsteğe bağlı">
+    </div>
+    <button type="submit" class="btn btn-primary">Güncelle</button>
+  </form>
+
+  {% if dealer_setting.history %}
+  <details style="margin-top: .75rem;">
+    <summary class="muted">Değişiklik Geçmişi ({{ dealer_setting.history | length }})</summary>
+    <div class="table-container" style="margin-top: .5rem;">
+      <table class="data-table" style="min-width: 0;">
+        <thead>
+          <tr>
+            <th class="col-date">Tarih</th>
+            <th>Eski</th>
+            <th>Yeni</th>
+            <th>Not</th>
+            <th>İşlemi yapan</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in dealer_setting.history %}
+          <tr>
+            <td class="col-date">{{ row.changed_at | tr_datetime }}</td>
+            <td>{{ row.old_percent | tr_percent }}</td>
+            <td>{{ row.new_percent | tr_percent }}</td>
+            <td>{{ row.note or '—' }}</td>
+            <td>{{ row.changed_by_name or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+  {% endif %}
+</section>
+{% endif %}

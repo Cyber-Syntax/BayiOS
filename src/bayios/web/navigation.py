@@ -15,7 +15,7 @@ class NavItem:
 NAV_ITEMS: tuple[NavItem, ...] = (
     NavItem("home", "Ana Sayfa", "/", enabled=True, icon="home"),
     NavItem("products", "Ürünler", "/products", enabled=True, icon="products"),
-    NavItem("campaigns", "Kampanyalar", "/campaigns", icon="campaigns"),
+    NavItem("campaigns", "Kampanyalar", "/campaigns", enabled=True, icon="campaigns"),
     NavItem("offers", "Teklifler", "/offers", icon="offers"),
     NavItem("reservations", "Rezervasyonlar", "/reservations", enabled=True, icon="reservations"),
     NavItem("stock", "Stok/Sayım", "/stock", enabled=True, icon="stock"),

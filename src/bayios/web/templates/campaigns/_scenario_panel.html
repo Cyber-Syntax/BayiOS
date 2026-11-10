@@ -1,0 +1,86 @@
+{% set related_products = campaign.current_version.products | selectattr('product_id') | list %}
+<div class="card" id="scenario-panel" style="padding: 1rem; margin-bottom: 1rem;">
+  <h2 style="margin: 0 0 .25rem; font-size: 1.1rem;">Bayi Fiyat Senaryosu</h2>
+  <p class="muted" style="margin: 0 0 .75rem; font-size: .9rem;">
+    Hediye varsa normal fiyat, hediye yoksa Oliz fiyatı (tanımlı değilse normal fiyat) üzerinden hesaplanır. Oran yalnızca bu ekranda değişir; kalıcı teklif snapshot'ı teklif oluşturulurken alınır.
+  </p>
+
+  {% if error %}
+  <div class="alert alert-danger"><span><strong>Hesaplanamadı:</strong> {{ error }}</span></div>
+  {% endif %}
+
+  {% if related_products %}
+  <form method="get"
+        action="/campaigns/{{ campaign.id }}/scenario"
+        hx-get="/campaigns/{{ campaign.id }}/scenario"
+        hx-target="#scenario-panel"
+        hx-swap="outerHTML"
+        hx-trigger="change, keyup changed delay:500ms from:#dealer-percent"
+        style="display: flex; align-items: flex-end; gap: .5rem; flex-wrap: wrap;">
+    <div class="form-group" style="margin-bottom: 0; flex: 1 1 16rem;">
+      <label for="scenario-product">Ürün</label>
+      <select id="scenario-product" name="product_id" class="form-control">
+        {% for product in related_products %}
+        <option value="{{ product.product_id }}" {% if campaign.selected_product_id == product.product_id %}selected{% endif %}>
+          {{ product.product_name }} ({{ product.relation_label }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom: 0; width: 10rem;">
+      <label for="dealer-percent">Bayi İndirimi (%)</label>
+      <input type="number" id="dealer-percent" name="dealer_percent" class="form-control"
+             min="0" max="100" step="0.01" value="{{ dealer_percent_input }}">
+    </div>
+    <button type="submit" class="btn">Hesapla</button>
+  </form>
+
+  {% if campaign.selected_product_name %}
+  <p style="margin: .75rem 0 .25rem;"><strong>{{ campaign.selected_product_name }}</strong> için senaryolar:</p>
+  {% endif %}
+
+  {% if campaign.scenarios %}
+  <div class="table-container">
+    <table class="data-table" style="min-width: 0;">
+      <thead>
+        <tr>
+          <th>Senaryo</th>
+          <th>Taban</th>
+          <th>Taban Fiyat</th>
+          <th>Bayi Oranı</th>
+          <th>Son Fiyat</th>
+          <th>Nakit Taban</th>
+          <th>Kart Taban</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for scenario in campaign.scenarios %}
+        <tr>
+          <td>
+            {% if scenario.gift_present %}Hediye var{% else %}Hediye yok{% endif %}
+            {% if scenario.warning %}<br><small class="muted">{{ scenario.warning }}</small>{% endif %}
+          </td>
+          <td>{{ base_price_labels.get(scenario.base_price_type, scenario.base_price_type) }}</td>
+          <td>{{ scenario.base_price | tr_money }} TL</td>
+          <td>{% if scenario.is_informational %}—{% else %}{{ scenario.dealer_percent | tr_percent }}{% endif %}</td>
+          <td>
+            {% if scenario.is_informational %}
+            <span class="muted">Bilgi amaçlı</span>
+            {% else %}
+            <strong>{{ scenario.final_price | tr_money }} TL</strong>
+            {% endif %}
+          </td>
+          <td>{{ scenario.cash_floor_price | tr_money }} TL</td>
+          <td>{{ scenario.card_floor_price | tr_money }} TL</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted" style="margin: .75rem 0 0;">Seçilen ürün için senaryo üretilemedi; ürün fiyatı tanımlı olmayabilir.</p>
+  {% endif %}
+  {% else %}
+  <p class="muted" style="margin: 0;">Senaryo için kampanyaya ürün eklenmeli.</p>
+  {% endif %}
+</div>
