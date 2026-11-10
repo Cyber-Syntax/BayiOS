@@ -20,9 +20,9 @@
           <td class="col-name">
             <a href="/reservations/{{ row.id }}">{{ row.customer_name }}</a>
           </td>
-          <td class="col-date">{{ row.reservation_date.strftime('%d.%m.%Y') }}</td>
+          <td class="col-date">{{ row.reservation_date | tr_date }}</td>
           <td class="col-date">
-            {{ row.reminder_due_at.strftime('%d.%m.%Y') }}
+            {{ row.reminder_due_at | tr_date }}
             <br>
             <small class="badge {% if row.is_overdue %}badge-warning{% elif row.reminder_status == 'resolved' %}badge-success{% else %}badge-info{% endif %}">{{ row.reminder_label }}</small>
           </td>

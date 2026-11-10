@@ -244,7 +244,7 @@
       <tbody>
         {% for h in price_history %}
         <tr>
-          <td>{{ h.changed_at.strftime('%d.%m.%Y %H:%M') if h.changed_at else '—' }}</td>
+          <td>{{ h.changed_at | tr_datetime if h.changed_at else '—' }}</td>
           <td>
             {% if h.field_name == 'regular_price' %}
             Normal Fiyat
@@ -307,7 +307,7 @@
         } %}
         {% for m in stock_movements %}
         <tr>
-          <td>{{ m.created_at.strftime('%d.%m.%Y %H:%M') if m.created_at else '—' }}</td>
+          <td>{{ m.created_at | tr_datetime if m.created_at else '—' }}</td>
           <td><span class="badge">{{ movement_labels.get(m.movement_type, m.movement_type) }}</span></td>
           <td>{{ m.quantity_before }}</td>
           <td>

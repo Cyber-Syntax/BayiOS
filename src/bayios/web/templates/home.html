@@ -27,7 +27,7 @@
           <td>#{{ reminder.reservation_number }}</td>
           <td class="col-name"><a href="/reservations/{{ reminder.id }}">{{ reminder.customer_name }}</a></td>
           <td class="col-date">
-            {{ reminder.reminder_due_at.strftime('%d.%m.%Y') }}
+            {{ reminder.reminder_due_at | tr_date }}
             <br>
             <small class="badge {% if reminder.is_overdue %}badge-danger{% else %}badge-info{% endif %}">{{ reminder.reminder_label }}</small>
           </td>

@@ -43,3 +43,9 @@ tr { break-inside: avoid; }
   break-after: auto;
   page-break-after: auto;
 }
+
+/* Flatpickr is an on-screen control only. */
+.flatpickr-calendar,
+.flatpickr-tr-actions {
+  display: none !important;
+}

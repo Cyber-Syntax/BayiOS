@@ -43,7 +43,7 @@
           <span class="muted">—</span>
           {% endif %}
         </td>
-        <td>{{ item.applied_at.strftime('%d.%m.%Y %H:%M') if item.applied_at else '—' }}</td>
+        <td>{{ item.applied_at | tr_datetime if item.applied_at else '—' }}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -87,9 +87,9 @@
     </div>
     <small class="muted">
       Kategori: {{ session.category_name or 'Tüm Ürünler' }} ·
-      Başlangıç: {{ session.started_at.strftime('%d.%m.%Y %H:%M') if session.started_at else '—' }}
+      Başlangıç: {{ session.started_at | tr_datetime if session.started_at else '—' }}
       {% if session.completed_at %}
-      · Tamamlanma: {{ session.completed_at.strftime('%d.%m.%Y %H:%M') }}
+      · Tamamlanma: {{ session.completed_at | tr_datetime }}
       {% endif %}
       {% if session.completed_by_name %} · Tamamlayan: {{ session.completed_by_name }}{% endif %}
     </small>

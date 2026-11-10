@@ -27,8 +27,8 @@
       <a href="/reservations" class="muted" style="text-decoration: none;">&larr; Rezervasyonlar</a>
       <h1 style="margin-top: .25rem;">Rezervasyon #{{ reservation.reservation_number }} · {{ reservation.customer_name }}</h1>
       <p class="muted" style="margin: 0;">
-        {{ reservation.reservation_date.strftime('%d.%m.%Y') }} ·
-        Hatırlatma: {{ reservation.reminder_due_at.strftime('%d.%m.%Y') }}
+        {{ reservation.reservation_date | tr_date_long }} ·
+        Hatırlatma: {{ reservation.reminder_due_at | tr_date_long }}
         <span class="badge {% if reservation.is_overdue %}badge-warning{% elif reservation.reminder_status == 'resolved' %}badge-success{% else %}badge-info{% endif %}">{{ reservation.reminder_label }}</span>
       </p>
     </div>
@@ -81,7 +81,7 @@
             <td class="col-name">
               {{ item.product_name }}
               {% if item.product_id is none %}<br><small class="muted">Ürün kaydı silinmiş; geçmiş snapshot'tan gösteriliyor.</small>{% endif %}
-              {% if item.service_date %}<br><small class="muted">Servis tarihi: {{ item.service_date.strftime('%d.%m.%Y') }}</small>{% endif %}
+              {% if item.service_date %}<br><small class="muted">Servis tarihi: {{ item.service_date | tr_date_long }}</small>{% endif %}
               {% if item.other_dealer_note %}<br><small class="muted">Temin: {{ item.other_dealer_note }}</small>{% endif %}
             </td>
             <td>{{ item.quantity }}</td>
@@ -101,9 +101,9 @@
                     <option value="{{ value }}" {% if item.status == value %}disabled{% endif %}>{{ label }}</option>
                     {% endfor %}
                   </select>
-                  <input type="date" name="service_date" class="form-control" style="width: auto; min-height: 32px;" aria-label="Servis tarihi">
+                  <input type="date" name="service_date" class="form-control" style="width: auto; min-height: 32px;" aria-label="Servis tarihi" placeholder="Servis tarihi" data-date-picker>
                   <input type="text" name="other_dealer_note" class="form-control" style="width: 8rem; min-height: 32px;" placeholder="Temin notu">
-                  <button type="submit" class="btn btn-sm">Durum</button>
+                  <button type="submit" class="btn btn-sm">Durumu Güncelle</button>
                 </form>
 
                 <form method="post" action="/reservations/{{ reservation.id }}/items/{{ item.id }}/deliver"
@@ -147,7 +147,7 @@
                 <ul style="margin: .35rem 0 0; padding-left: 1rem; font-size: .8rem;">
                   {% for event in item.events %}
                   <li>
-                    {{ event.event_at.strftime('%d.%m.%Y %H:%M') }} ·
+                    {{ event.event_at | tr_datetime }} ·
                     {{ status_labels.get(event.old_status, '—') }} &rarr; {{ status_labels.get(event.new_status, event.new_status) }}
                     {% if event.quantity_delta %}({{ event.quantity_delta }}){% endif %}
                     {% if event.note %} · {{ event.note }}{% endif %}
@@ -181,8 +181,8 @@
     <ul style="margin: 0; padding-left: 1.1rem; font-size: .9rem;">
       {% for reminder in reservation.reminders %}
       <li>
-        {{ reminder.created_at.strftime('%d.%m.%Y %H:%M') }} ·
-        {{ reminder.previous_due_at.strftime('%d.%m.%Y') }} &rarr; {{ reminder.new_due_at.strftime('%d.%m.%Y') }}
+        {{ reminder.created_at | tr_datetime }} ·
+        {{ reminder.previous_due_at | tr_date_long }} &rarr; {{ reminder.new_due_at | tr_date_long }}
         {% if reminder.note %} · {{ reminder.note }}{% endif %}
         {% if reminder.created_by_name %} · {{ reminder.created_by_name }}{% endif %}
       </li>
@@ -206,7 +206,10 @@
         </div>
         <div class="form-group">
           <label for="edit-date">Rezervasyon Tarihi</label>
-          <input type="date" id="edit-date" name="reservation_date" class="form-control" value="{{ reservation.reservation_date.strftime('%Y-%m-%d') }}">
+          <input type="date" id="edit-date" name="reservation_date" class="form-control"
+                 value="{{ reservation.reservation_date | iso_date }}"
+                 data-date-picker data-date-preview="edit-date-preview">
+          <small id="edit-date-preview" class="muted">{{ reservation.reservation_date | tr_date_long }}</small>
         </div>
         <div class="form-group">
           <label for="edit-note">Not</label>
@@ -230,7 +233,10 @@
       <form method="post" action="/reservations/{{ reservation.id }}/reminder/snooze">
         <div class="form-group">
           <label for="snooze-date">Yeni Hatırlatma Tarihi</label>
-          <input type="date" id="snooze-date" name="new_due_at" class="form-control" value="{{ default_snooze }}">
+          <input type="date" id="snooze-date" name="new_due_at" class="form-control"
+                 value="{{ default_snooze | iso_date }}"
+                 data-date-picker data-date-preview="snooze-date-preview">
+          <small id="snooze-date-preview" class="muted">{{ default_snooze | tr_date_long }}</small>
         </div>
         <div class="form-group">
           <label for="snooze-note">Not</label>

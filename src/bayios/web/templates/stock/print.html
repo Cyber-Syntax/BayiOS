@@ -18,7 +18,7 @@
       <p class="muted" style="margin: .25rem 0 0;">Kategori: <strong>{{ category_name }}</strong></p>
     </div>
     <div style="text-align: right; font-size: .85rem;">
-      <div>Tarih: {{ generated_at.strftime('%d.%m.%Y %H:%M') }}</div>
+      <div>Tarih: {{ generated_at | tr_datetime }}</div>
       <div>Sayımı yapan: ____________________</div>
       <div>İmza: ____________________</div>
     </div>

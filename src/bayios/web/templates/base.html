@@ -5,9 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{% endblock %} · BayiOS</title>
   <link rel="stylesheet" href="/static/css/app.css?v={{ asset_version }}">
+  <link rel="stylesheet" href="/static/vendor/flatpickr/flatpickr.min.css?v={{ asset_version }}">
   <link rel="stylesheet" href="/static/css/print.css?v={{ asset_version }}" media="print">
   <script src="/static/vendor/htmx.min.js?v={{ asset_version }}" defer></script>
   <script src="/static/vendor/alpine.min.js?v={{ asset_version }}" defer></script>
+  <script src="/static/vendor/flatpickr/flatpickr.min.js?v={{ asset_version }}" defer></script>
+  <script src="/static/vendor/flatpickr/l10n/tr.js?v={{ asset_version }}" defer></script>
+  <script src="/static/js/date-picker.js?v={{ asset_version }}" defer></script>
 </head>
 <body>
   {% macro nav_icon(name) %}

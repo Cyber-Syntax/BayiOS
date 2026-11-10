@@ -21,11 +21,11 @@
       <h2 style="margin: 0;">BayiOS Rezervasyon · {{ title }}</h2>
       <p class="muted" style="margin: .25rem 0 0;">
         Rezervasyon No: <strong>#{{ reservation.reservation_number }}</strong> ·
-        Tarih: {{ reservation.reservation_date.strftime('%d.%m.%Y') }}
+        Tarih: {{ reservation.reservation_date | tr_date_long }}
       </p>
     </div>
     <div style="text-align: right; font-size: .85rem;">
-      <div>Yazdırma: {{ generated_at.strftime('%d.%m.%Y %H:%M') }}</div>
+      <div>Yazdırma: {{ generated_at | tr_datetime }}</div>
       <div>Müşteri: <strong>{{ reservation.customer_name }}</strong></div>
       <div>Durum: {{ reservation.summary.label }}</div>
     </div>
@@ -52,7 +52,7 @@
         <td>{{ loop.index }}</td>
         <td>
           {{ item.product_name }}
-          {% if item.service_date %}<br><small>Servis: {{ item.service_date.strftime('%d.%m.%Y') }}</small>{% endif %}
+          {% if item.service_date %}<br><small>Servis: {{ item.service_date | tr_date }}</small>{% endif %}
           {% if item.other_dealer_note %}<br><small>Temin: {{ item.other_dealer_note }}</small>{% endif %}
         </td>
         <td>{{ item.quantity }}</td>

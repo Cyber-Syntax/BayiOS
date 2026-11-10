@@ -1,4 +1,8 @@
 htmx 2.0.4
 alpinejs 3.14.8
+flatpickr 4.6.13 (MIT; dist/flatpickr.min.js, flatpickr.min.css and l10n/tr.js from the npm package)
 e209dda5c8235479f3166defc7750e1dbcd5a5c1808b7792fc2e6733768fb447  htmx.min.js
 b600e363d99d95444db54acbfb2deffec9ae792aa99a09229bcda078e5b55643  alpine.min.js
+1eeab1cb779471a0b0aaa93dd91c2eb1aa537d696f01ab05ea9dabc55e8525a1  flatpickr/flatpickr.min.js
+1b34a42552c96f10e4dfaaa4a367276b03868aacff63c1ac42ffe331352bc754  flatpickr/flatpickr.min.css
+d14f62d02aa45f08d81f271f8b8d99d094a9f738096e788fc8c69a341d094c5a  flatpickr/l10n/tr.js

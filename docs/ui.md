@@ -93,6 +93,14 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - A4 çıktısı depo ve bayi kopyasını tek yazdırmada (arada sayfa sonu) ya da tek kopya olarak verir; rezervasyon listesi de A4 basılabilir.
 - Ana ekranda gecikmiş ve önümüzdeki 30 gün içindeki hatırlatmalar görünür.
 
+### Tarih seçici
+
+- Takvim **Flatpickr 4.6.13** ile gelir ve `static/vendor/flatpickr/` altından yerel olarak servis edilir; CDN veya çalışma zamanı internet bağımlılığı yoktur. Lisans metni ve SHA-256 özetleri vendor klasöründe/`VERSIONS.txt` içinde tutulur.
+- Takvim dili tarayıcı dilinden bağımsız olarak Türkçedir: aylar (Ocak…Aralık), günler (Pzt…Paz), hafta Pazartesi başlar; `Bugün` ve `Temizle` düğmeleri bulunur. Mobil/dokunmatik cihazlarda da aynı Türkçe takvim açılır.
+- Alan görünürde sayısal `10.11.2026` biçimini gösterir; altında `10 Kasım 2026` önizlemesi canlı güncellenir. Forma gönderilen değer ISO (`2026-11-10`) kalır; elle `GG.AA.YYYY` yazımı da kabul edilir.
+- Takvim, modal içinde kırpılmadan açılır; Escape ile kapanır; yazdırma görünümünde basılmaz.
+- JS yüklenmezse native `<input type="date">` fallback'i çalışır; sunucu `GG.AA.YYYY`, `GG-AA-YYYY` ve `YYYY-MM-DD` biçimlerini kabul eder.
+
 ## Davranış sözleşmesi
 
 - Veri oturum boyunca mock state'te tutulmaz; kalıcı veritabanına yazılır.
@@ -105,6 +113,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Başarı, hata ve boş durumları yalnızca renkle değil, görünür metinle bildirilir.
 - Modal ve çekmece katmanları küçük ekranda taşmaz; uzun içerik dikey kaydırılır.
 - Hareket azaltma tercihine saygı gösterilir.
+- Tarihler `10.11.2026` ve `10 Kasım 2026` biçiminde, Europe/Istanbul saat diliminde gösterilir; tarih seçici tarayıcı dilinden bağımsız Türkçedir (bkz. Tarih seçici).
 
 ## Kapsam dışı
 

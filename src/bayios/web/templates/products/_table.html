@@ -62,7 +62,7 @@
         </td>
         <td class="col-date" data-label="Son Fiyat Değişimi">
           {% if product.last_price_changed_at %}
-          <small class="muted">{{ product.last_price_changed_at.strftime('%d.%m.%Y %H:%M') }}</small>
+          <small class="muted">{{ product.last_price_changed_at | tr_datetime }}</small>
           {% else %}
           <small class="muted">—</small>
           {% endif %}

@@ -16,3 +16,5 @@
 - [ ] tüm sayfalarda en yukarıdaki sidebar button, ürün ara input box sticky olması gerekiyor, aşağı scroll ederken kesinlikle yukarıda olması lazım ki hızlıca side bar kullanılabilsin, productive olsun.
 - [ ] rezervasyonlar için bildirim özelliği, en mantıklısı bildirimler sekmesi yapmak çünkü popup ile productivity bozulur, en mantıklısı yeni bir bildirimler sağ sidebar açarız, süre geçince oraya düşer.
 - [ ] belki kanban todo list eklenebilir?
+- [ ] sayım takviminde kasım/ekim tıklanınca ay seçme ekranı gelsin.
+- [ ] Sayım takvim seçiminde pek iyi değil, daha kaliteli bir alternatif veya daha düzgün seçme olmalı.

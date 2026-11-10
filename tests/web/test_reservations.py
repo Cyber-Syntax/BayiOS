@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
@@ -109,6 +109,78 @@ def test_create_requires_customer_name_in_ui(
 
     assert response.status_code == 400
     assert "Müşteri adı zorunludur." in response.text
+
+
+def test_dates_are_shown_in_turkish_format(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = _product(fake_uow)
+
+    response = client.post(
+        "/reservations",
+        data={
+            "customer_name": "Ayşe Yılmaz",
+            "reservation_date": "10.11.2026",
+            "product_id": str(product.id),
+            "quantity": "1",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    reservation = next(iter(fake_uow.reservations.reservations.values()))
+    assert reservation.reservation_date.date() == date(2026, 11, 10)
+
+    page = client.get(response.headers["location"])
+    assert page.status_code == 200
+    assert "10 Kasım 2026" in page.text
+    assert "10 Aralık 2027" in page.text
+
+
+def test_new_reservation_date_input_has_turkish_preview(
+    client: TestClient,
+) -> None:
+    page = client.get("/reservations/new")
+
+    assert page.status_code == 200
+    assert 'data-date-picker data-date-preview="reservation-date-preview"' in page.text
+    assert 'id="reservation-date-preview"' in page.text
+    assert 'name="reservation_date"' in page.text
+
+
+def test_detail_date_fields_use_turkish_picker(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = _product(fake_uow)
+    create_reservation(
+        fake_uow,
+        "Ayşe Yılmaz",
+        [NewReservationItem(product.id, 1)],
+        reservation_date=datetime(2026, 11, 10, 9, tzinfo=UTC),
+    )
+    reservation = next(iter(fake_uow.reservations.reservations.values()))
+
+    page = client.get(f"/reservations/{reservation.id}")
+
+    assert page.status_code == 200
+    assert 'name="service_date"' in page.text
+    assert 'placeholder="Servis tarihi"' in page.text
+    assert 'data-date-picker data-date-preview="edit-date-preview"' in page.text
+    assert 'id="edit-date-preview"' in page.text
+    assert "10 Kasım 2026" in page.text
+    assert 'data-date-picker data-date-preview="snooze-date-preview"' in page.text
+
+
+def test_layout_loads_local_turkish_picker_assets(client: TestClient) -> None:
+    page = client.get("/reservations")
+
+    assert page.status_code == 200
+    assert "/static/vendor/flatpickr/flatpickr.min.css" in page.text
+    assert "/static/vendor/flatpickr/flatpickr.min.js" in page.text
+    assert "/static/vendor/flatpickr/l10n/tr.js" in page.text
+    assert "/static/js/date-picker.js" in page.text
+    assert "unpkg.com" not in page.text
+    assert "cdn.jsdelivr" not in page.text
 
 
 def test_create_redirect_shows_success_banner(

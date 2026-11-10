@@ -58,13 +58,19 @@ def _optional_uuid(value: str | None) -> uuid.UUID | None:
         return None
 
 
+_DATE_FORMATS = ("%Y-%m-%d", "%d.%m.%Y", "%d-%m-%Y", "%d.%m.%y", "%d-%m-%y")
+
+
 def _parse_date(value: str | None) -> datetime | None:
     if not value or not value.strip():
         return None
-    try:
-        return datetime.strptime(value.strip(), "%Y-%m-%d").replace(tzinfo=UTC)
-    except ValueError as exc:
-        raise ValidationError("Tarih GG.AA.YYYY biçiminde olmalıdır.") from exc
+    text = value.strip()
+    for date_format in _DATE_FORMATS:
+        try:
+            return datetime.strptime(text, date_format).replace(tzinfo=UTC)
+        except ValueError:
+            continue
+    raise ValidationError("Tarih GG.AA.YYYY biçiminde olmalıdır.")
 
 
 def _parse_int(value: str | None, default: int | None = None) -> int | None:
@@ -513,9 +519,7 @@ def _render_detail(
             },
             "page_token": uuid.uuid4().hex,
             "today": datetime.now(UTC).date().isoformat(),
-            "default_snooze": default_snooze_due(datetime.now(UTC))
-            .date()
-            .isoformat(),
+            "default_snooze": default_snooze_due(datetime.now(UTC)),
             "error": error,
         },
         status_code=status_code,
