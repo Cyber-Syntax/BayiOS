@@ -71,7 +71,7 @@ def test_count_completion_requires_all_differences_to_be_reviewed() -> None:
         opened_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
 
-    with pytest.raises(ValueError, match="difference"):
+    with pytest.raises(ValueError, match="fark incelemesi"):
         complete_count_session(
             session,
             counted_quantities={"p1": 3},
@@ -91,7 +91,7 @@ def test_count_completion_rejects_stale_stock_version() -> None:
         opened_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
 
-    with pytest.raises(ValueError, match="stale"):
+    with pytest.raises(ValueError, match="güncel değil"):
         complete_count_session(
             session,
             counted_quantities={"p1": 5},
@@ -110,7 +110,7 @@ def test_count_session_requires_explicit_difference_acknowledgement() -> None:
         opened_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
 
-    with pytest.raises(ValueError, match="difference"):
+    with pytest.raises(ValueError, match="fark incelemesi"):
         complete_count_session(
             session,
             counted_quantities={"p1": 3},

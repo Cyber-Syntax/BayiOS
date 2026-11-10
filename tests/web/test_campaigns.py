@@ -227,6 +227,34 @@ def test_invalid_campaign_shows_form_error(
     assert "Kaydedilemedi" in response.text
 
 
+def test_invalid_gift_campaign_shows_turkish_errors(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = _product(fake_uow)
+
+    value_response = client.post(
+        "/campaigns",
+        data=_campaign_data(product.id, discount_value="5"),
+        follow_redirects=False,
+    )
+    assert value_response.status_code == 400
+    assert "Hediye indirimi değer almaz." in value_response.text
+    assert "does not take a value" not in value_response.text
+
+    description_response = client.post(
+        "/campaigns",
+        data=_campaign_data(
+            product.id, gift_description="", gift_optional=""
+        ),
+        follow_redirects=False,
+    )
+    assert description_response.status_code == 400
+    assert (
+        "Hediye kampanyalarında hediye açıklaması zorunludur."
+        in description_response.text
+    )
+
+
 def test_product_detail_shows_active_campaigns_and_dealer_pricing(
     client: TestClient, fake_uow: FakeUnitOfWork
 ) -> None:

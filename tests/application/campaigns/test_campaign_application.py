@@ -173,6 +173,29 @@ def test_missing_product_is_rejected(
         create_campaign(uow, _input(uuid.uuid4()))
 
 
+def test_campaign_validation_errors_are_turkish(
+    setup: tuple[FakeUnitOfWork, Product],
+) -> None:
+    uow, product = setup
+
+    with pytest.raises(ValidationError, match="Hediye indirimi değer almaz"):
+        create_campaign(
+            uow, _input(product.id, discount_value=Decimal(5))
+        )
+    with pytest.raises(
+        ValidationError,
+        match="Hediye kampanyalarında hediye açıklaması zorunludur",
+    ):
+        create_campaign(
+            uow,
+            _input(
+                product.id,
+                gift_description=None,
+                gift_optional=False,
+            ),
+        )
+
+
 def test_default_dealer_percent_is_used_and_can_be_overridden(
     setup: tuple[FakeUnitOfWork, Product],
 ) -> None:
@@ -302,7 +325,7 @@ def test_product_without_website_price_uses_regular(
     assert detail is not None
     assert detail.scenarios[1].final_price == Decimal("23399.10")
     assert detail.scenarios[1].warning is not None
-    assert "Website price" in detail.scenarios[1].warning
+    assert "Oliz fiyatı" in detail.scenarios[1].warning
 
 
 def test_invalid_dealer_percent_override_is_rejected(

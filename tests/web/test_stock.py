@@ -129,7 +129,7 @@ def test_complete_without_acknowledging_differences_returns_error(
     )
 
     assert response.status_code == 400
-    assert "difference" in response.text
+    assert "fark incelemesi" in response.text
     assert product.physical_stock == 5
 
 

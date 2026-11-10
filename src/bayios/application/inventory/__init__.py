@@ -344,7 +344,7 @@ def complete_stock_count_session(
                 completed_at=now,
             )
         except ValueError as exc:
-            if "stale" in str(exc):
+            if "güncel değil" in str(exc):
                 raise ConflictError(
                     "Sayım açıldıktan sonra stok değişti. Farkları yenileyip tekrar inceleyin."
                 ) from exc

@@ -83,9 +83,9 @@ def complete_count_session(
             movements=session.movements,
         )
     if current_version != session.stock_version:
-        raise ValueError("Cannot complete stale count session")
+        raise ValueError("Sayım oturumu güncel değil; tamamlanamaz.")
     if set(counted_quantities) != set(session.snapshots):
-        raise ValueError("Counted quantities must cover the category snapshot")
+        raise ValueError("Sayılan miktarlar kategori anlık görüntüsünü kapsamalıdır.")
 
     adjustments = {
         product_id: counted_quantities[product_id] - current_quantities[product_id]
@@ -93,7 +93,7 @@ def complete_count_session(
         if counted_quantities[product_id] != current_quantities[product_id]
     }
     if adjustments and not acknowledge_differences:
-        raise ValueError("difference review is required before completion")
+        raise ValueError("Tamamlamadan önce fark incelemesi yapılmalıdır.")
 
     movements = tuple(
         StockMovement(

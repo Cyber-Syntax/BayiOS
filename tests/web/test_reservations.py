@@ -251,11 +251,11 @@ def test_low_stock_delivery_error_is_shown(
     _product(fake_uow).physical_stock = 1
 
     response = client.get(
-        f"/reservations/{reservation_id}?msg=error:Fiziksel stok yetersiz; teslim için gerekçe giriniz."
+        f"/reservations/{reservation_id}?msg=error:Fiziksel stok yetersiz; teslim için gerekçe girilmelidir."
     )
 
     assert response.status_code == 200
-    assert "gerekçe giriniz" in response.text
+    assert "gerekçe girilmelidir" in response.text
 
 
 def test_failed_delivery_redirects_with_encoded_error(
@@ -276,7 +276,7 @@ def test_failed_delivery_redirects_with_encoded_error(
     assert "error%3A" in response.headers["location"]
     page = client.get(response.headers["location"])
     assert page.status_code == 200
-    assert "gerekçe giriniz" in page.text
+    assert "gerekçe girilmelidir" in page.text
 
 
 def test_snooze_shows_history_and_new_label(

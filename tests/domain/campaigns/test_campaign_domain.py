@@ -83,7 +83,7 @@ def test_missing_website_price_falls_back_to_regular() -> None:
 
     assert scenarios[1].final_price == Decimal("23399.10")
     assert scenarios[1].warning is not None
-    assert "Website price" in scenarios[1].warning
+    assert "Oliz fiyatı" in scenarios[1].warning
 
 
 def test_fixed_amount_and_special_price_scenarios() -> None:
@@ -129,11 +129,11 @@ def test_coupon_and_info_only_are_informational() -> None:
 
 
 def test_invalid_contracts_are_rejected() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Kampanya adı boş olamaz"):
         _gift_contract(name="  ")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Kampanya bitiş tarihi"):
         _gift_contract(ends_at=NOW - timedelta(days=1))
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Yüzde indirimi"):
         _gift_contract(
             campaign_type=CampaignType.PRODUCT_DISCOUNT,
             discount_type=DiscountType.PERCENT,
@@ -141,7 +141,7 @@ def test_invalid_contracts_are_rejected() -> None:
             gift_description=None,
             gift_optional=False,
         )
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="İndirim değeri negatif olamaz"):
         _gift_contract(
             campaign_type=CampaignType.PRODUCT_DISCOUNT,
             discount_type=DiscountType.FIXED_AMOUNT,
@@ -149,15 +149,25 @@ def test_invalid_contracts_are_rejected() -> None:
             gift_description=None,
             gift_optional=False,
         )
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="hediye açıklaması zorunludur"):
         _gift_contract(gift_description=None)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="aynı ürün ilişkisi"):
         _gift_contract(
             products=(
                 CampaignProductLink("p1", "Ürün", ProductRelationType.BENEFIT),
                 CampaignProductLink("p1", "Ürün", ProductRelationType.BENEFIT),
             )
         )
+
+
+def test_campaign_validation_messages_are_turkish() -> None:
+    with pytest.raises(ValueError, match="Hediye indirimi değer almaz"):
+        _gift_contract(discount_value=Decimal(5))
+    with pytest.raises(
+        ValueError,
+        match="Hediye kampanyalarında hediye açıklaması zorunludur",
+    ):
+        _gift_contract(gift_description=None, gift_optional=False)
 
 
 def test_classify_campaign_states() -> None:

@@ -16,13 +16,13 @@ def quantize_money(value: Decimal) -> Decimal:
 
 def validate_dealer_percent(value: Decimal) -> Decimal:
     if value < ZERO or value > HUNDRED:
-        raise ValueError("Dealer discount percent must be between 0 and 100")
+        raise ValueError("Bayi indirimi oranı %0 ile %100 arasında olmalıdır.")
     return value
 
 
 def validate_floor_price(value: Decimal | None) -> Decimal | None:
     if value is not None and value < ZERO:
-        raise ValueError("Dealer floor price cannot be negative")
+        raise ValueError("Bayi taban fiyatı negatif olamaz.")
     return value
 
 

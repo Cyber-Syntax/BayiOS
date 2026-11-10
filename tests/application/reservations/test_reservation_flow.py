@@ -260,9 +260,9 @@ def test_item_edit_and_removal_rules(
     assert view.items[0].events[-1].quantity_delta == 2
 
     deliver_item(uow, item_id, 2, idempotency_key="edit-1")
-    with pytest.raises(ValidationError, match="below delivered"):
+    with pytest.raises(ValidationError, match="altına inemez"):
         update_reservation_item_quantity(uow, item_id, 1)
-    with pytest.raises(ValidationError, match="cannot be removed"):
+    with pytest.raises(ValidationError, match="kaldırılamaz"):
         remove_reservation_item(uow, item_id)
 
     added_id = add_reservation_item(uow, reservation_id, second.id, 2)

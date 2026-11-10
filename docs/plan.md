@@ -101,6 +101,7 @@ Bu fonksiyonlar DB session'ı, HTTP request'i, global saat veya dosya sistemi al
 - `ActorContext`, `client_id` ve cihaz adını audit metadata olarak taşır; güvenlik veya yetkilendirme değildir.
 - Çalışan adı nullable açıklayıcı kayıt alanıdır.
 - Typed domain/application errors merkezi mapper ile HTTP ve HTMX cevaplarına çevrilir: validation, not found, conflict, stale version, duplicate barcode ve insufficient stock warning gibi sınıflar açıkça ayrılır.
+- Kullanıcıya gösterilen tüm validation, conflict ve warning metinleri Türkçedir. Domain katmanı kullanıcıya ulaşabilecek hata ve uyarıları Türkçe üretir; İngilizce teknik mesaj doğrudan UI'a taşınmaz.
 - Broad catch, sessiz fallback ve hatayı başarı gibi gösteren cevap kullanılmaz.
 
 ## 3. Test stratejisi
@@ -374,6 +375,7 @@ Genel rule engine, optimal sepet seçimi, WMS/POS entegrasyonu ve otomatik satı
 - **Bayi fiyatı:** Her ürün için tek güncel `dealer_pricing` kaydı (`cash_floor_price`, `card_floor_price`) tutulur. Her fiili değişiklik `dealer_pricing_history` içine eski/yeni değer, tarih, çalışan ve isteğe bağlı notla değişmez satır olarak yazılır. `valid_from`/`valid_until` kullanılmaz; değişiklik anında geçerli olur. Geçmiş, ileride eklenecek hesaplayıcı için korunur. Ürüne özel nakit/kart tabanları genel bayi indirimi oranıyla karıştırılmaz ve ayrı alanlarda gösterilir.
 - **Varsayılan oran:** `dealer_discount_settings` güncel varsayılan oranı, `dealer_discount_setting_history` ise değişiklik geçmişini tutar. Oran değişikliği de yalnızca fiili değişiklikte geçmişe yazılır.
 - **Kapsam dışı:** Kredi kartı taksit başına komisyon ve kart hesaplayıcısı M4'te yoktur; M5 ve sonrasına bırakılır. M4 yalnızca bu hesaplayıcının kullanacağı fiyat geçmişini güvenilir biçimde saklar.
+- **Dil:** Kullanıcıya gösterilen doğrulama hataları ve senaryo uyarıları dahil tüm metinler Türkçedir. Domain katmanı kullanıcıya ulaşabilecek mesajları Türkçe üretir; İngilizce teknik mesaj UI'a sızmaz.
 
 **Use-case akışları**
 

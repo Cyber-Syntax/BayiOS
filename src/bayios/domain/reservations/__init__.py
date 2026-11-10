@@ -80,11 +80,11 @@ class ReservationItem:
 
     def __post_init__(self) -> None:
         if self.quantity <= 0:
-            raise ValueError("Quantity must be positive")
+            raise ValueError("Miktar sıfırdan büyük olmalıdır.")
         if self.delivered_quantity < 0 or self.cancelled_quantity < 0:
-            raise ValueError("Delivered and cancelled quantities must be non-negative")
+            raise ValueError("Teslim ve iptal miktarları negatif olamaz.")
         if self.delivered_quantity + self.cancelled_quantity > self.quantity:
-            raise ValueError("Delivered and cancelled quantities exceed quantity")
+            raise ValueError("Teslim ve iptal miktarları toplam miktarı aşamaz.")
 
     @property
     def open_quantity(self) -> int:
@@ -101,16 +101,16 @@ class ReservationItem:
     def ensure_removable(self) -> None:
         if not self.is_removable:
             raise ValueError(
-                "A line with delivered or cancelled quantity cannot be removed"
+                "Teslim veya iptal miktarı olan satır kaldırılamaz."
             )
 
     def change_quantity(self, new_quantity: int) -> ReservationItem:
         if new_quantity <= 0:
-            raise ValueError("Quantity must be positive")
+            raise ValueError("Miktar sıfırdan büyük olmalıdır.")
         closed_quantity = self.delivered_quantity + self.cancelled_quantity
         if new_quantity < closed_quantity:
             raise ValueError(
-                "Quantity cannot be below delivered and cancelled quantities"
+                "Miktar, teslim ve iptal edilen miktarların altına inemez."
             )
         return replace(self, quantity=new_quantity)
 
@@ -129,14 +129,14 @@ class ReservationItem:
                 processed_idempotency_keys=processed_idempotency_keys,
             )
         if self.is_terminal:
-            raise ValueError("Terminal reservation line cannot be delivered")
+            raise ValueError("Tamamlanmış rezervasyon satırı teslim edilemez.")
         if quantity <= 0:
-            raise ValueError("Delivery quantity must be positive")
+            raise ValueError("Teslim miktarı sıfırdan büyük olmalıdır.")
         if quantity > self.open_quantity:
-            raise ValueError("Delivery quantity exceeds open quantity")
+            raise ValueError("Teslim miktarı açık miktarı aşamaz.")
         low_stock = quantity > physical_stock
         if low_stock and not low_stock_reason:
-            raise ValueError("A reason is required when physical stock is insufficient")
+            raise ValueError("Fiziksel stok yetersizken gerekçe girilmelidir.")
 
         delivered_quantity = self.delivered_quantity + quantity
         status = (
@@ -152,17 +152,17 @@ class ReservationItem:
             ),
             physical_stock=physical_stock - quantity,
             processed_idempotency_keys=processed_idempotency_keys | {idempotency_key},
-            warning="Physical stock is insufficient" if low_stock else None,
+            warning="Fiziksel stok yetersiz." if low_stock else None,
             reason=low_stock_reason,
         )
 
     def cancel(self, quantity: int) -> ReservationItem:
         if self.is_terminal:
-            raise ValueError("Terminal reservation line cannot be cancelled")
+            raise ValueError("Tamamlanmış rezervasyon satırı iptal edilemez.")
         if quantity <= 0:
-            raise ValueError("Cancellation quantity must be positive")
+            raise ValueError("İptal miktarı sıfırdan büyük olmalıdır.")
         if quantity > self.open_quantity:
-            raise ValueError("Cancellation quantity exceeds open quantity")
+            raise ValueError("İptal miktarı açık miktarı aşamaz.")
         cancelled_quantity = self.cancelled_quantity + quantity
         status = (
             ReservationStatus.CANCELLED
@@ -210,14 +210,14 @@ def transition_item(item: ReservationItem, target: ReservationStatus) -> Reserva
     """
     if item.status in TERMINAL_STATUSES:
         raise ValueError(
-            f"Terminal reservation line cannot change status: {item.status}"
+            f"Tamamlanmış rezervasyon satırının durumu değiştirilemez: {item.status}"
         )
     if target in TERMINAL_STATUSES:
-        raise ValueError(f"{target} must be produced by deliver or cancel")
+        raise ValueError(f"{target} yalnızca teslim veya iptal işlemiyle oluşturulur.")
     if target not in ACTIVE_STATUSES:
-        raise ValueError(f"Invalid reservation target status: {target}")
+        raise ValueError(f"Geçersiz rezervasyon hedef durumu: {target}")
     if target is item.status:
-        raise ValueError(f"Reservation line is already {target}")
+        raise ValueError(f"Rezervasyon satırı zaten {target} durumunda.")
     return replace(item, status=target)
 
 
@@ -229,7 +229,7 @@ def add_reservation_line(
     if item.product_id is not None and any(
         existing.product_id == item.product_id for existing in items
     ):
-        raise ValueError("Product already exists in the reservation")
+        raise ValueError("Ürün rezervasyonda zaten mevcut.")
     return (*items, item)
 
 
@@ -242,7 +242,7 @@ def remove_reservation_line(
         (existing for existing in items if existing.product_id == product_id), None
     )
     if target is None:
-        raise ValueError("Reservation line not found")
+        raise ValueError("Rezervasyon satırı bulunamadı.")
     target.ensure_removable()
     return tuple(existing for existing in items if existing is not target)
 

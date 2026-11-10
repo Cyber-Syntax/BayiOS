@@ -68,7 +68,7 @@ def test_full_cancellation_marks_line_cancelled() -> None:
 def test_cancellation_cannot_exceed_open_quantity() -> None:
     item = ReservationItem(product_id="product-1", quantity=2, delivered_quantity=1)
 
-    with pytest.raises(ValueError, match="exceeds open quantity"):
+    with pytest.raises(ValueError, match="açık miktarı aşamaz"):
         item.cancel(quantity=2)
 
 
@@ -129,7 +129,7 @@ def test_terminal_statuses_are_not_produced_by_transition(
 ) -> None:
     item = ReservationItem(product_id="product-1", quantity=1)
 
-    with pytest.raises(ValueError, match="deliver or cancel"):
+    with pytest.raises(ValueError, match="teslim veya iptal"):
         transition_item(item, target)
 
 
@@ -140,7 +140,7 @@ def test_terminal_line_rejects_status_changes() -> None:
         status=ReservationStatus.DELIVERED,
     )
 
-    with pytest.raises(ValueError, match="Terminal"):
+    with pytest.raises(ValueError, match="Tamamlanmış"):
         transition_item(item, ReservationStatus.DEPOT_READY)
 
 
@@ -192,7 +192,7 @@ def test_low_stock_delivery_requires_reason_and_records_warning() -> None:
         status=ReservationStatus.SERVICE_ASSIGNED,
     )
 
-    with pytest.raises(ValueError, match="reason"):
+    with pytest.raises(ValueError, match="gerekçe"):
         item.deliver(quantity=2, physical_stock=1, idempotency_key="delivery-1")
 
     delivered = item.deliver(
@@ -202,13 +202,13 @@ def test_low_stock_delivery_requires_reason_and_records_warning() -> None:
         low_stock_reason="Customer delivery approved",
     )
 
-    assert delivered.warning == "Physical stock is insufficient"
+    assert delivered.warning == "Fiziksel stok yetersiz."
     assert delivered.reason == "Customer delivery approved"
     assert delivered.physical_stock == -1
 
 
 def test_reservation_item_rejects_invalid_quantity_invariant() -> None:
-    with pytest.raises(ValueError, match="Delivered and cancelled"):
+    with pytest.raises(ValueError, match="Teslim ve iptal"):
         ReservationItem(
             product_id="product-1",
             quantity=1,
@@ -226,16 +226,16 @@ def test_quantity_cannot_drop_below_closed_quantity() -> None:
     )
 
     assert item.change_quantity(3).quantity == 3
-    with pytest.raises(ValueError, match="below delivered and cancelled"):
+    with pytest.raises(ValueError, match="altına inemez"):
         item.change_quantity(2)
-    with pytest.raises(ValueError, match="positive"):
+    with pytest.raises(ValueError, match="sıfırdan büyük"):
         item.change_quantity(0)
 
 
 def test_line_with_closed_quantity_cannot_be_removed() -> None:
     items = (ReservationItem(product_id="a", quantity=2, delivered_quantity=1),)
 
-    with pytest.raises(ValueError, match="cannot be removed"):
+    with pytest.raises(ValueError, match="kaldırılamaz"):
         remove_reservation_line(items, "a")
 
 
@@ -243,7 +243,7 @@ def test_open_line_can_be_removed_and_duplicate_product_rejected() -> None:
     item = ReservationItem(product_id="a", quantity=2)
 
     assert remove_reservation_line((item,), "a") == ()
-    with pytest.raises(ValueError, match="already exists"):
+    with pytest.raises(ValueError, match="zaten mevcut"):
         add_reservation_line((item,), ReservationItem(product_id="a", quantity=1))
 
 

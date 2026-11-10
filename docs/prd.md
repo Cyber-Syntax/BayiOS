@@ -1255,6 +1255,7 @@ Test koşulu: 5.000 ürünlük test verisi, 4 eşzamanlı sanal istemci (Locust)
 - Veritabanı yazma işlemleri transaction kullanmalıdır.
 - CSV aktarımı tamamlanmadan yarıda kesilirse kısmi ve tutarsız kayıt bırakmamalıdır; aktarım partisi atomik veya kontrollü batch mantığıyla yürütülmelidir.
 - Barkod çözülemezse kullanıcıya açık hata ve yeniden deneme sunulmalıdır; manuel kod girişi MVP'de bulunmaz.
+- Kullanıcıya gösterilen tüm doğrulama, çakışma, uyarı ve hata metinleri Türkçedir; İngilizce teknik hata metinleri arayüze taşınmaz. Domain katmanı da kullanıcıya ulaşabilecek mesajları Türkçe üretir.
 
 ---
 
@@ -1345,6 +1346,7 @@ Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 5. Ürüne özel bayi nakit/kart fiyatları genel ayardan ayrı görünür.
 6. Tarihi geçmiş kampanya aktif kampanya olarak gösterilmez; geçmiş filtrede bulunabilir.
 7. Kampanya değişince eski teklif snapshot bilgisi değişmez.
+8. Kampanya doğrulama hataları ve senaryo uyarıları Türkçe gösterilir; İngilizce teknik mesaj arayüze sızmaz.
 
 ### 13.4 Komisyon/teklif testleri
 

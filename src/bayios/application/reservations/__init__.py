@@ -523,8 +523,8 @@ def deliver_item(
             )
         except ValueError as exc:
             message = str(exc)
-            if "reason" in message:
-                message = "Fiziksel stok yetersiz; teslim için gerekçe giriniz."
+            if "gerekçe" in message:
+                message = "Fiziksel stok yetersiz; teslim için gerekçe girilmelidir."
             raise ValidationError(message) from exc
 
         line.delivered_quantity = outcome.item.delivered_quantity

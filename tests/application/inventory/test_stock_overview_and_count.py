@@ -114,7 +114,7 @@ def test_completion_requires_difference_acknowledgement() -> None:
     session = open_stock_count_session(uow, category_id=None)
     save_counted_quantities(uow, session.id, {product.id: 3})
 
-    with pytest.raises(ValidationError, match="difference"):
+    with pytest.raises(ValidationError, match="fark incelemesi"):
         complete_stock_count_session(uow, session.id)
 
     assert product.physical_stock == 5

@@ -100,9 +100,9 @@ class CampaignProductLink:
 
     def __post_init__(self) -> None:
         if not self.product_name.strip():
-            raise ValueError("Product name snapshot cannot be empty")
+            raise ValueError("Ürün adı anlık görüntüsü boş olamaz.")
         if self.quantity_required is not None and self.quantity_required <= 0:
-            raise ValueError("Required quantity must be positive")
+            raise ValueError("Gerekli adet sıfırdan büyük olmalıdır.")
 
 
 @dataclass(frozen=True)
@@ -126,15 +126,15 @@ class CampaignContract:
 
     def __post_init__(self) -> None:
         if not self.name.strip():
-            raise ValueError("Campaign name cannot be empty")
+            raise ValueError("Kampanya adı boş olamaz.")
         _validate_date_range(self.starts_at, self.ends_at)
         _validate_discount(self.discount_type, self.discount_value)
         if self.campaign_type is CampaignType.GIFT and not _has_text(self.gift_description):
-            raise ValueError("Gift campaigns require a gift description")
+            raise ValueError("Hediye kampanyalarında hediye açıklaması zorunludur.")
         if self.discount_type is DiscountType.GIFT and not _has_text(self.gift_description):
-            raise ValueError("Gift discounts require a gift description")
+            raise ValueError("Hediye indirimlerinde hediye açıklaması zorunludur.")
         if self.gift_optional and not _has_text(self.gift_description):
-            raise ValueError("Optional gifts require a gift description")
+            raise ValueError("İsteğe bağlı hediyelerde hediye açıklaması zorunludur.")
         _validate_product_links(self.products)
 
     def signature(self) -> tuple[object, ...]:
@@ -179,7 +179,7 @@ class CampaignVersion:
 
     def __post_init__(self) -> None:
         if self.version_no <= 0:
-            raise ValueError("Campaign version number must be positive")
+            raise ValueError("Kampanya sürüm numarası sıfırdan büyük olmalıdır.")
 
 
 def next_version_no(current_version_no: int | None) -> int:
@@ -187,7 +187,7 @@ def next_version_no(current_version_no: int | None) -> int:
     if current_version_no is None:
         return 1
     if current_version_no <= 0:
-        raise ValueError("Current campaign version number must be positive")
+        raise ValueError("Mevcut kampanya sürüm numarası sıfırdan büyük olmalıdır.")
     return current_version_no + 1
 
 
@@ -247,7 +247,7 @@ class CampaignPriceInput:
             self.manual_base_price,
         ):
             if value is not None and value < ZERO:
-                raise ValueError("Campaign price inputs cannot be negative")
+                raise ValueError("Kampanya fiyat girdileri negatif olamaz.")
 
 
 @dataclass(frozen=True)
@@ -355,7 +355,7 @@ def _build_scenario(
             dealer_percent=dealer_percent,
             discount_amount=None,
             final_price=None,
-            warning=_join_warnings(warning, "Base price is not defined"),
+            warning=_join_warnings(warning, "Taban fiyat tanımlı değil."),
             is_informational=informational,
             **floors,
         )
@@ -380,24 +380,24 @@ def _build_scenario(
     elif contract.discount_type is DiscountType.FIXED_AMOUNT:
         value = contract.discount_value
         if value is None:
-            raise ValueError("Fixed amount discount requires a value")
+            raise ValueError("Sabit tutar indirimi için değer girilmelidir.")
         if value > base_price:
             discount_amount = base_price
             final_price = ZERO
-            warning = _join_warnings(warning, "Fixed discount exceeds base price")
+            warning = _join_warnings(warning, "Sabit indirim taban fiyatı aşıyor.")
         else:
             discount_amount = quantize_money(value)
             final_price = quantize_money(base_price - discount_amount)
     elif contract.discount_type is DiscountType.SPECIAL_PRICE:
         value = contract.discount_value
         if value is None:
-            raise ValueError("Special price requires a value")
+            raise ValueError("Özel fiyat için değer girilmelidir.")
         final_price = quantize_money(value)
         discount_amount = quantize_money(base_price - final_price)
         if final_price > base_price:
-            warning = _join_warnings(warning, "Special price is above base price")
+            warning = _join_warnings(warning, "Özel fiyat taban fiyatın üzerinde.")
     else:
-        raise ValueError(f"Unsupported discount type: {contract.discount_type}")
+        raise ValueError(f"Desteklenmeyen indirim türü: {contract.discount_type}")
 
     return CampaignScenario(
         gift_present=gift_present,
@@ -420,10 +420,10 @@ def _resolve_base_price(
     if base_type is BasePriceType.MANUAL:
         if prices.manual_base_price is not None:
             return prices.manual_base_price, None
-        return prices.regular_price, "Manual price is not defined; regular price used"
+        return prices.regular_price, "Elle girilen fiyat tanımlı değil; normal fiyat kullanıldı."
     if prices.website_discounted_price is not None:
         return prices.website_discounted_price, None
-    return prices.regular_price, "Website price is not defined; regular price used"
+    return prices.regular_price, "Oliz fiyatı tanımlı değil; normal fiyat kullanıldı."
 
 
 def _maybe_quantize(value: Decimal | None) -> Decimal | None:
@@ -442,12 +442,12 @@ def _has_text(value: str | None) -> bool:
 def _validate_date_range(starts_at: datetime, ends_at: datetime) -> None:
     _ensure_comparable(starts_at, ends_at)
     if ends_at < starts_at:
-        raise ValueError("Campaign end date cannot precede its start date")
+        raise ValueError("Kampanya bitiş tarihi başlangıç tarihinden önce olamaz.")
 
 
 def _ensure_comparable(left: datetime, right: datetime) -> None:
     if (left.tzinfo is None) != (right.tzinfo is None):
-        raise ValueError("Campaign dates must share timezone awareness")
+        raise ValueError("Kampanya tarihleri aynı saat dilimi bilgisine sahip olmalıdır.")
 
 
 def _validate_discount(
@@ -455,16 +455,26 @@ def _validate_discount(
 ) -> None:
     if discount_type is DiscountType.PERCENT:
         if discount_value is None:
-            raise ValueError("Percent discount requires a value")
+            raise ValueError("Yüzde indirimi için değer girilmelidir.")
         if not (ZERO <= discount_value <= HUNDRED):
-            raise ValueError("Percent discount must be between 0 and 100")
+            raise ValueError("Yüzde indirimi %0 ile %100 arasında olmalıdır.")
     elif discount_type in (DiscountType.FIXED_AMOUNT, DiscountType.SPECIAL_PRICE):
         if discount_value is None:
-            raise ValueError(f"{discount_type.value} discount requires a value")
+            label = (
+                "Sabit tutar indirimi"
+                if discount_type is DiscountType.FIXED_AMOUNT
+                else "Özel fiyat"
+            )
+            raise ValueError(f"{label} için değer girilmelidir.")
         if discount_value < ZERO:
-            raise ValueError("Discount value cannot be negative")
+            raise ValueError("İndirim değeri negatif olamaz.")
     elif discount_value is not None:
-        raise ValueError(f"{discount_type.value} discount does not take a value")
+        label = (
+            "Hediye indirimi"
+            if discount_type is DiscountType.GIFT
+            else "Bilgi amaçlı indirim"
+        )
+        raise ValueError(f"{label} değer almaz.")
 
 
 def _validate_product_links(products: tuple[CampaignProductLink, ...]) -> None:
@@ -472,5 +482,5 @@ def _validate_product_links(products: tuple[CampaignProductLink, ...]) -> None:
     for link in products:
         key = (link.product_id or link.product_name, link.relation_type.value)
         if key in seen:
-            raise ValueError("Duplicate product relation in campaign version")
+            raise ValueError("Kampanya sürümünde aynı ürün ilişkisi tekrar edemez.")
         seen.add(key)
