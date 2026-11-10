@@ -111,6 +111,30 @@ def test_create_requires_customer_name_in_ui(
     assert "Müşteri adı zorunludur." in response.text
 
 
+def test_create_redirect_shows_success_banner(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = _product(fake_uow)
+
+    response = client.post(
+        "/reservations",
+        data={
+            "customer_name": "Ayşe Yılmaz",
+            "product_id": str(product.id),
+            "quantity": "1",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert "msg=created" in response.headers["location"]
+
+    page = client.get(response.headers["location"])
+    assert page.status_code == 200
+    assert "Rezervasyon oluşturuldu." in page.text
+    assert "İşlem yapılamadı" not in page.text
+
+
 def test_status_deliver_and_cancel_flow_through_ui(
     client: TestClient, fake_uow: FakeUnitOfWork
 ) -> None:

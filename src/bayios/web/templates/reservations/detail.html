@@ -1,24 +1,23 @@
 {% extends "base.html" %}
 {% block title %}Rezervasyon #{{ reservation.reservation_number }}{% endblock %}
 {% block content %}
-{% set msg = request.query_params.get('msg') or error %}
+{% set msg = request.query_params.get('msg') or error or '' %}
+{% set success_messages = {
+  'created': 'Rezervasyon oluşturuldu.',
+  'updated': 'Rezervasyon bilgileri güncellendi.',
+  'item_added': 'Rezervasyona satır eklendi.',
+  'quantity_updated': 'Satır miktarı güncellendi.',
+  'item_removed': 'Satır kaldırıldı.',
+  'status_changed': 'Satır durumu güncellendi.',
+  'delivered': 'Teslimat kaydedildi; fiziksel stok düşüldü.',
+  'cancelled': 'İptal kaydedildi; fiziksel stok değişmedi.',
+  'snoozed': 'Hatırlatma ertelendi.'
+} %}
 <div x-data="{ showEdit: false, showSnooze: false }">
-  {% if msg == 'updated' %}
-  <div class="alert alert-success"><span><strong>Başarılı:</strong> Rezervasyon bilgileri güncellendi.</span></div>
-  {% elif msg == 'item_added' %}
-  <div class="alert alert-success"><span><strong>Başarılı:</strong> Rezervasyona satır eklendi.</span></div>
-  {% elif msg == 'quantity_updated' %}
-  <div class="alert alert-success"><span><strong>Başarılı:</strong> Satır miktarı güncellendi.</span></div>
-  {% elif msg == 'item_removed' %}
-  <div class="alert alert-success"><span><strong>Başarılı:</strong> Satır kaldırıldı.</span></div>
-  {% elif msg == 'status_changed' %}
-  <div class="alert alert-success"><span><strong>Başarılı:</strong> Satır durumu güncellendi.</span></div>
-  {% elif msg == 'delivered' %}
-  <div class="alert alert-success"><span><strong>Başarılı:</strong> Teslimat kaydedildi; fiziksel stok düşüldü.</span></div>
-  {% elif msg == 'cancelled' %}
-  <div class="alert alert-success"><span><strong>Başarılı:</strong> İptal kaydedildi; fiziksel stok değişmedi.</span></div>
-  {% elif msg == 'snoozed' %}
-  <div class="alert alert-success"><span><strong>Başarılı:</strong> Hatırlatma ertelendi.</span></div>
+  {% if msg in success_messages %}
+  <div class="alert alert-success"><span><strong>Başarılı:</strong> {{ success_messages[msg] }}</span></div>
+  {% elif msg.startswith('error:') %}
+  <div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
   {% elif msg %}
   <div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg }}</span></div>
   {% endif %}
