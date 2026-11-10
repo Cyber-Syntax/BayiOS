@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}A4 Rezervasyon Listesi{% endblock %}
+{% block content %}
+<div class="actions-bar no-print">
+  <div>
+    <a href="/reservations" class="muted" style="text-decoration: none;">&larr; Rezervasyonlar</a>
+    <h1 style="margin-top: .25rem;">A4 Rezervasyon Listesi</h1>
+  </div>
+  <div class="actions-group">
+    <button type="button" class="btn btn-primary" onclick="window.print()">Yazdır</button>
+  </div>
+</div>
+
+<div class="card print-copy">
+  <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+    <div>
+      <h2 style="margin: 0;">BayiOS Rezervasyon Listesi</h2>
+      <p class="muted" style="margin: .25rem 0 0;">Filtre: {{ status or 'tümü' }}{% if q %} · Arama: {{ q }}{% endif %}</p>
+    </div>
+    <div style="text-align: right; font-size: .85rem;">Tarih: {{ generated_at.strftime('%d.%m.%Y %H:%M') }}</div>
+  </div>
+
+  <table class="data-table" style="min-width: 0;">
+    <thead>
+      <tr>
+        <th style="width: 3rem;">#</th>
+        <th>Rezervasyon</th>
+        <th>Müşteri</th>
+        <th>Tarih</th>
+        <th>Hatırlatma</th>
+        <th>Durum</th>
+        <th>Açık / Toplam</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>#{{ row.reservation_number }}</td>
+        <td>{{ row.customer_name }}</td>
+        <td>{{ row.reservation_date.strftime('%d.%m.%Y') }}</td>
+        <td>{{ row.reminder_due_at.strftime('%d.%m.%Y') }} ({{ row.reminder_label }})</td>
+        <td>{{ row.summary.label }}</td>
+        <td>{{ row.summary.open_quantity }} / {{ row.summary.total_quantity }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="muted" style="text-align: center;">Kayıt bulunmuyor.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

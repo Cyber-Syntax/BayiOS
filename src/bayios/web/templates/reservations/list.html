@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Rezervasyonlar{% endblock %}
+{% block content %}
+{% set msg = request.query_params.get('msg') %}
+{% if msg == 'created' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Rezervasyon oluşturuldu.</span></div>
+{% elif msg == 'updated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Rezervasyon bilgileri güncellendi.</span></div>
+{% elif msg == 'item_added' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Rezervasyona satır eklendi.</span></div>
+{% elif msg == 'quantity_updated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Satır miktarı güncellendi.</span></div>
+{% elif msg == 'item_removed' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Satır kaldırıldı.</span></div>
+{% elif msg == 'status_changed' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Satır durumu güncellendi.</span></div>
+{% elif msg == 'delivered' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Teslimat kaydedildi; fiziksel stok düşüldü.</span></div>
+{% elif msg == 'cancelled' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> İptal kaydedildi; fiziksel stok değişmedi.</span></div>
+{% elif msg == 'snoozed' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Hatırlatma ertelendi.</span></div>
+{% elif msg and msg.startswith('error:') %}
+<div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
+{% endif %}
+
+<div class="actions-bar">
+  <div>
+    <h1>Rezervasyonlar</h1>
+    <p class="muted" style="margin: 0;">Müşteriye satılan ürünlerin teslimat ve kurulum takibi.</p>
+  </div>
+  <div class="actions-group">
+    <a class="btn btn-primary" href="/reservations/new">Yeni Rezervasyon</a>
+    <a class="btn" href="/reservations/print?status={{ status | urlencode }}&q={{ q | urlencode }}">A4 Liste</a>
+  </div>
+</div>
+
+<div class="card" style="padding: 1rem;">
+  <form method="get" action="/reservations"
+        hx-get="/reservations"
+        hx-trigger="keyup changed delay:300ms from:#reservation-search, search from:#reservation-search, change from:#reservation-status"
+        hx-target="#reservations-table-container"
+        hx-push-url="true">
+    <div class="search-toolbar">
+      <input type="search"
+             id="reservation-search"
+             name="q"
+             class="form-control search-input"
+             placeholder="Müşteri adı ile ara"
+             value="{{ q }}"
+             autocomplete="off">
+      <select id="reservation-status" name="status" class="form-control search-filter">
+        {% for value, label in status_filters %}
+        <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary search-submit">Ara</button>
+      {% if q or status != 'open' %}
+      <a href="/reservations" class="btn search-clear">Temizle</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<div id="reservations-table-container">
+  {% include "reservations/_results.html" %}
+</div>
+{% endblock %}

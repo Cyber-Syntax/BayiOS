@@ -15,7 +15,7 @@ MVP'de rol ve hesap yoktur. Her kullanıcı aynı sol navigasyonu görür:
 - Hızlı Teslim
 - Ayarlar
 
-Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya götürür. MVP'de yalnızca Ana Sayfa ve Ürünler aktiftir; diğer modüller navigasyonda "yakında" etiketiyle devre dışı görünür.
+Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya götürür. MVP'de Ana Sayfa, Ürünler, Stok/Sayım ve Rezervasyonlar aktiftir; diğer modüller navigasyonda "yakında" etiketiyle devre dışı görünür.
 
 ## Uygulama kabuğu
 
@@ -81,11 +81,25 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Hatalı ve uyarılı satırlar görünür biçimde işaretlenir; önizleme onaylanmadan veritabanına yazılmaz.
 - Onay tek transaction içinde atomik olarak uygulanır; sonuç özeti ürünler ekranında bildirilir.
 
+### Rezervasyonlar
+
+- Liste; müşteri araması, durum filtresi (Açık / Teslim edildi / İptal / Hatırlatması geciken / Tümü) ve sayfalama sunar; arama HTMX ile tabloyu yeniler.
+- Satırlar rezervasyon numarası, müşteri, tarih, hatırlatma tarihi ve durumu, özet durum (Rezerve / Kısmi süreçte / Teslim edildi / İptal) ile açık/toplam miktarı gösterir.
+- Yeni rezervasyon ekranı müşteri adı (zorunlu), tarih, not ve ürün satırlarından oluşur; ürün aramasından "Ekle" ile satır eklenir, miktar satır bazında girilir ve aynı ürün ikinci kez eklenmez.
+- Detay ekranı satır bazında miktar, teslim, iptal, açık miktar, durum ve işlemleri (durum değiştir, teslim et, iptal et, miktar güncelle, satır sil, satır ekle) sunar; hareket ve erteleme geçmişi açılır bölümlerde görünür.
+- Durum adımları opsiyoneldir ve teslimden önce geri alınabilir; teslim her aktif durumdan yapılabilir. Teslim ve iptal kendi formlarından yürütülür.
+- Düşük stokta teslim, gerekçe girildiğinde onaylanır; fiziksel stok negatife düşebilir ve bu durum görünür metinle bildirilir.
+- Hatırlatma rezervasyon tarihinden 13 ay sonrasına otomatik atanır; varsayılan erteleme 1 aydır ve geçmişi tutulur. Tüm satırlar kapanınca hatırlatma "Tamamlandı" olur.
+- A4 çıktısı depo ve bayi kopyasını tek yazdırmada (arada sayfa sonu) ya da tek kopya olarak verir; rezervasyon listesi de A4 basılabilir.
+- Ana ekranda gecikmiş ve önümüzdeki 30 gün içindeki hatırlatmalar görünür.
+
 ## Davranış sözleşmesi
 
 - Veri oturum boyunca mock state'te tutulmaz; kalıcı veritabanına yazılır.
 - Arama ve filtreleme sunucu tarafında çalışır; HTMX yalnızca tablo parçasını yeniler.
 - Rezervasyon oluşturmak fiziksel stoğu düşürmez ve ürün ayırmaz; fiziksel stok doğrudan satılabilir stoktur. Teslimat fiziksel stoğu düşürür.
+- Rezervasyon satırında durum değiştirmek ve iptal etmek stok hareketi üretmez; yalnızca teslim edilen miktar `delivery_out` hareketiyle fiziksel stoktan düşer ve aynı işlem tekrar gönderildiğinde ikinci hareket oluşmaz.
+- Açık rezervasyonu olan ürün veritabanından silinemez; kullanıcıya bunun nedenini açıklayan uyarı gösterilir.
 - Fiziksel stok ve fiyat değişiklikleri geçmiş tablolarına kaydedilir.
 - Arşivleme ürünü normal listeden gizler; kalıcı silme yalnızca iki aşamalı doğrulamadan sonra yapılır ve ilişkili geçmiş kayıtlarını da kaldırır.
 - Başarı, hata ve boş durumları yalnızca renkle değil, görünür metinle bildirilir.
@@ -94,4 +108,4 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 
 ## Kapsam dışı
 
-Kimlik doğrulama, rol yönetimi, kamera/barkod çözümleme, kampanya/teklif/rezervasyon/stok sayımı/hızlı teslim modüllerinin tam ekranları ve yazdırma şablonlarının detaylı tasarımı bu UI sözleşmesinin kapsamı dışındadır. Bu modüller navigasyonda devre dışı görünür ve ilgili milestone'larda açılır.
+Kimlik doğrulama, rol yönetimi, kamera/barkod çözümleme, kampanya/teklif/hızlı teslim modüllerinin tam ekranları ve bu modüllerin yazdırma şablonlarının detaylı tasarımı bu UI sözleşmesinin kapsamı dışındadır. Bu modüller navigasyonda devre dışı görünür ve ilgili milestone'larda açılır.

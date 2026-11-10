@@ -78,7 +78,7 @@ def get_stock_overview(
     limit: int | None = None,
     offset: int = 0,
 ) -> tuple[tuple[StockOverviewRow, ...], int]:
-    reservations = open_reservations or {}
+    reservations = open_reservations
     with uow:
         products, total = uow.products.search_by_category(
             category_id=category_id,
@@ -86,6 +86,10 @@ def get_stock_overview(
             limit=limit or 10_000,
             offset=offset,
         )
+        if reservations is None:
+            reservations = uow.reservations.open_quantity_by_product(
+                [product.id for product in products]
+            )
         return (
             tuple(
                 StockOverviewRow(

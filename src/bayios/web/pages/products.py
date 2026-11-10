@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
 from fastapi import APIRouter, Form, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from bayios.application.errors import ProductHasOpenReservationsError
 from bayios.application.imports import _normalize_decimal
 from bayios.application.inventory import list_categories
 from bayios.application.products import (
@@ -23,6 +24,7 @@ from bayios.application.products import (
     search_products,
     update_product,
 )
+from bayios.application.reservations import get_open_reservation_totals
 from bayios.web.deps import ActorDep, UnitOfWorkDep
 from bayios.web.templating import templates
 
@@ -184,7 +186,10 @@ def bulk_delete_route(
             status_code=400, detail="Silme işlemi iki aşamalı doğrulama gerektirir."
         )
     uuids = [uuid.UUID(pid) for pid in product_ids if pid]
-    delete_products(uow, uuids)
+    try:
+        delete_products(uow, uuids)
+    except ProductHasOpenReservationsError:
+        return RedirectResponse(url="/products?msg=delete_blocked", status_code=303)
     return RedirectResponse(url=f"/products?msg=deleted&count={len(uuids)}", status_code=303)
 
 
@@ -286,7 +291,10 @@ def delete_single_product_route(
         raise HTTPException(
             status_code=400, detail="Silme işlemi iki aşamalı doğrulama gerektirir."
         )
-    delete_products(uow, [product_id])
+    try:
+        delete_products(uow, [product_id])
+    except ProductHasOpenReservationsError:
+        return RedirectResponse(url="/products?msg=delete_blocked", status_code=303)
     return RedirectResponse(url="/products?msg=deleted&count=1", status_code=303)
 
 
@@ -316,7 +324,11 @@ def product_detail(
     product_id: uuid.UUID,
     uow: UnitOfWorkDep,
 ) -> HTMLResponse:
-    detail = get_product_detail(uow, product_id)
+    detail = get_product_detail(
+        uow,
+        product_id,
+        open_reservations=get_open_reservation_totals(uow, [product_id]),
+    )
     if detail is None:
         raise HTTPException(status_code=404, detail="Ürün bulunamadı")
 

@@ -15,3 +15,7 @@ class NotFoundError(ApplicationError):
 
 class ConflictError(ApplicationError):
     """Concurrent change or stale snapshot prevents the operation."""
+
+
+class ProductHasOpenReservationsError(ApplicationError):
+    """Product cannot be hard deleted while a reservation line is still open."""

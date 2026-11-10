@@ -32,6 +32,10 @@ _Avoid_: Completed sale
 A quantity-bearing product line within a Reservation whose delivery and cancellation progress is tracked independently.
 _Avoid_: Order line, shipment line
 
+**Reservation reminder**:
+The due date at which a reservation's open quantity should be reviewed with the customer, defaulting to 13 months after the reservation date. Snoozing records history and never cancels the reservation automatically.
+_Avoid_: Expiry, auto-cancel
+
 ## Stock concepts
 
 **Stock movement**:

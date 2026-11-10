@@ -16,6 +16,12 @@ from bayios.adapters.db.models.products import (
     ProductImportBatch,
     ProductPriceHistory,
 )
+from bayios.adapters.db.models.reservations import (
+    Reservation,
+    ReservationItem,
+    ReservationItemEvent,
+    ReservationReminder,
+)
 from bayios.domain.products import normalize_product_name
 
 
@@ -244,10 +250,199 @@ class FakeStockCountRepository:
         )
 
 
+class FakeReservationRepository:
+    def __init__(self, products: FakeProductRepository) -> None:
+        self._products = products
+        self.reservations: dict[uuid.UUID, Reservation] = {}
+        self.items: dict[uuid.UUID, list[ReservationItem]] = {}
+        self.events: list[ReservationItemEvent] = []
+        self.reminders: list[ReservationReminder] = []
+        self._next_number = 1
+
+    def add(self, reservation: Reservation) -> None:
+        if getattr(reservation, "reservation_number", None) is None:
+            reservation.reservation_number = self._next_number
+            self._next_number += 1
+        self.reservations[reservation.id] = reservation
+
+    def add_item(self, item: ReservationItem) -> None:
+        self.items.setdefault(item.reservation_id, []).append(item)
+
+    def add_items(self, items: Sequence[ReservationItem]) -> None:
+        for item in items:
+            self.add_item(item)
+
+    def get(self, reservation_id: uuid.UUID) -> Reservation | None:
+        return self.reservations.get(reservation_id)
+
+    def get_items(self, reservation_id: uuid.UUID) -> Sequence[ReservationItem]:
+        return sorted(
+            self.items.get(reservation_id, []),
+            key=lambda item: (item.product_name_snapshot, str(item.id)),
+        )
+
+    def get_items_for_reservations(
+        self, reservation_ids: Sequence[uuid.UUID]
+    ) -> dict[uuid.UUID, Sequence[ReservationItem]]:
+        return {
+            reservation_id: self.get_items(reservation_id)
+            for reservation_id in reservation_ids
+        }
+
+    def get_item(self, item_id: uuid.UUID) -> ReservationItem | None:
+        for bucket in self.items.values():
+            for item in bucket:
+                if item.id == item_id:
+                    return item
+        return None
+
+    def lock_item(self, item_id: uuid.UUID) -> ReservationItem | None:
+        return self.get_item(item_id)
+
+    def lock_product(self, product_id: uuid.UUID) -> Product | None:
+        return self._products.get_by_id(product_id)
+
+    def delete_item(self, item: ReservationItem) -> None:
+        bucket = self.items.get(item.reservation_id, [])
+        if item in bucket:
+            bucket.remove(item)
+        self.events = [
+            event
+            for event in self.events
+            if event.reservation_item_id != item.id
+        ]
+
+    def list(
+        self,
+        *,
+        status: str | None = None,
+        query: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+        now=None,
+    ) -> tuple[Sequence[Reservation], int]:
+        from datetime import UTC, datetime
+
+        reference = now or datetime.now(UTC)
+        results = sorted(
+            self.reservations.values(),
+            key=lambda reservation: (
+                reservation.reservation_date,
+                reservation.reservation_number,
+            ),
+            reverse=True,
+        )
+
+        def line_bucket(reservation: Reservation) -> list[ReservationItem]:
+            return self.items.get(reservation.id, [])
+
+        def has_open(reservation: Reservation) -> bool:
+            return any(
+                item.quantity - item.delivered_quantity - item.cancelled_quantity > 0
+                for item in line_bucket(reservation)
+            )
+
+        if status == "open":
+            results = [reservation for reservation in results if has_open(reservation)]
+        elif status == "delivered":
+            results = [
+                reservation
+                for reservation in results
+                if not has_open(reservation)
+                and any(item.delivered_quantity > 0 for item in line_bucket(reservation))
+            ]
+        elif status == "cancelled":
+            results = [
+                reservation
+                for reservation in results
+                if not has_open(reservation)
+                and not any(
+                    item.delivered_quantity > 0 for item in line_bucket(reservation)
+                )
+                and bool(line_bucket(reservation))
+            ]
+        elif status == "overdue":
+            results = [
+                reservation
+                for reservation in results
+                if reservation.reminder_status != "resolved"
+                and reservation.reminder_due_at <= reference
+            ]
+
+        if query and query.strip():
+            clean = query.strip().lower()
+            results = [
+                reservation
+                for reservation in results
+                if clean in reservation.customer_name.lower()
+            ]
+        total = len(results)
+        return results[offset : offset + limit], total
+
+    def list_reminders(
+        self, *, due_before, limit: int = 50
+    ) -> Sequence[Reservation]:
+        results = [
+            reservation
+            for reservation in self.reservations.values()
+            if reservation.reminder_status != "resolved"
+            and reservation.reminder_due_at <= due_before
+        ]
+        results.sort(key=lambda reservation: reservation.reminder_due_at)
+        return results[:limit]
+
+    def add_event(self, event: ReservationItemEvent) -> None:
+        self.events.append(event)
+
+    def get_events(self, reservation_id: uuid.UUID) -> Sequence[ReservationItemEvent]:
+        item_ids = {item.id for item in self.items.get(reservation_id, [])}
+        return [event for event in self.events if event.reservation_item_id in item_ids]
+
+    def add_reminder(self, reminder: ReservationReminder) -> None:
+        self.reminders.append(reminder)
+
+    def get_reminders(
+        self, reservation_id: uuid.UUID
+    ) -> Sequence[ReservationReminder]:
+        return [
+            reminder
+            for reminder in reversed(self.reminders)
+            if reminder.reservation_id == reservation_id
+        ]
+
+    def open_quantity_by_product(
+        self, product_ids: Sequence[uuid.UUID]
+    ) -> dict[uuid.UUID, int]:
+        target = set(product_ids)
+        totals: dict[uuid.UUID, int] = {}
+        for bucket in self.items.values():
+            for item in bucket:
+                if item.product_id not in target:
+                    continue
+                open_quantity = (
+                    item.quantity - item.delivered_quantity - item.cancelled_quantity
+                )
+                if open_quantity > 0:
+                    totals[item.product_id] = (
+                        totals.get(item.product_id, 0) + open_quantity
+                    )
+        return totals
+
+    def open_product_ids(self, product_ids: Sequence[uuid.UUID]) -> set[uuid.UUID]:
+        return set(self.open_quantity_by_product(product_ids))
+
+    def find_stock_movement(self, idempotency_key: str):
+        for movement in self._products.stock_movements:
+            if movement.idempotency_key == idempotency_key:
+                return movement
+        return None
+
+
 class FakeUnitOfWork:
     def __init__(self, repo: FakeProductRepository | None = None) -> None:
         self.products = repo or FakeProductRepository()
         self.stock_counts = FakeStockCountRepository(self.products)
+        self.reservations = FakeReservationRepository(self.products)
         self.committed = False
         self.rolled_back = False
         self._initial_state: tuple[object, ...] | None = None
@@ -292,6 +487,35 @@ class FakeUnitOfWork:
                     for item in bucket
                 )
             ),
+            tuple(
+                sorted(
+                    (
+                        str(reservation.id),
+                        reservation.customer_name,
+                        reservation.reminder_status,
+                        str(reservation.reminder_due_at),
+                    )
+                    for reservation in self.reservations.reservations.values()
+                )
+            ),
+            tuple(
+                sorted(
+                    (
+                        str(item.id),
+                        str(item.reservation_id),
+                        str(item.product_id),
+                        item.product_name_snapshot,
+                        item.quantity,
+                        item.delivered_quantity,
+                        item.cancelled_quantity,
+                        item.status,
+                    )
+                    for bucket in self.reservations.items.values()
+                    for item in bucket
+                )
+            ),
+            len(self.reservations.events),
+            len(self.reservations.reminders),
         )
 
     def __enter__(self) -> Self:

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Rezervasyon #{{ reservation.reservation_number }} · A4{% endblock %}
+{% block content %}
+<div class="actions-bar no-print">
+  <div>
+    <a href="/reservations/{{ reservation.id }}" class="muted" style="text-decoration: none;">&larr; Rezervasyon</a>
+    <h1 style="margin-top: .25rem;">A4 Rezervasyon Çıktısı</h1>
+  </div>
+  <div class="actions-group">
+    <a class="btn{% if copy == 'both' %} btn-primary{% endif %}" href="/reservations/{{ reservation.id }}/print?copy=both">Depo + Bayi</a>
+    <a class="btn{% if copy == 'depot' %} btn-primary{% endif %}" href="/reservations/{{ reservation.id }}/print?copy=depot">Sadece Depo</a>
+    <a class="btn{% if copy == 'dealer' %} btn-primary{% endif %}" href="/reservations/{{ reservation.id }}/print?copy=dealer">Sadece Bayi</a>
+    <button type="button" class="btn" onclick="window.print()">Yazdır</button>
+  </div>
+</div>
+
+{% for key, title in copies %}
+<div class="card print-copy{% if not loop.last %} print-page-break{% endif %}">
+  <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+    <div>
+      <h2 style="margin: 0;">BayiOS Rezervasyon · {{ title }}</h2>
+      <p class="muted" style="margin: .25rem 0 0;">
+        Rezervasyon No: <strong>#{{ reservation.reservation_number }}</strong> ·
+        Tarih: {{ reservation.reservation_date.strftime('%d.%m.%Y') }}
+      </p>
+    </div>
+    <div style="text-align: right; font-size: .85rem;">
+      <div>Yazdırma: {{ generated_at.strftime('%d.%m.%Y %H:%M') }}</div>
+      <div>Müşteri: <strong>{{ reservation.customer_name }}</strong></div>
+      <div>Durum: {{ reservation.summary.label }}</div>
+    </div>
+  </div>
+
+  {% if reservation.note %}
+  <p style="margin: 0 0 .75rem;"><strong>Not:</strong> {{ reservation.note }}</p>
+  {% endif %}
+
+  <table class="data-table" style="min-width: 0;">
+    <thead>
+      <tr>
+        <th style="width: 3rem;">#</th>
+        <th>Ürün Adı</th>
+        <th style="width: 5rem;">Miktar</th>
+        <th style="width: 5rem;">Teslim</th>
+        <th style="width: 5rem;">Kalan</th>
+        <th style="width: 8rem;">Durum</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in reservation.items %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>
+          {{ item.product_name }}
+          {% if item.service_date %}<br><small>Servis: {{ item.service_date.strftime('%d.%m.%Y') }}</small>{% endif %}
+          {% if item.other_dealer_note %}<br><small>Temin: {{ item.other_dealer_note }}</small>{% endif %}
+        </td>
+        <td>{{ item.quantity }}</td>
+        <td>{{ item.delivered_quantity }}</td>
+        <td>{{ item.open_quantity }}</td>
+        <td>{{ item.status_label }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; font-size: .85rem;">
+    <div>Toplam: {{ reservation.summary.total_quantity }} · Teslim: {{ reservation.summary.delivered_quantity }} · Kalan: {{ reservation.summary.open_quantity }}</div>
+    <div>Teslim eden: ____________________ &nbsp;&nbsp; İmza: ____________________</div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

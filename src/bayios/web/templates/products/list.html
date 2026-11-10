@@ -103,6 +103,10 @@
 <div class="alert alert-success">
   <span><strong>Başarılı:</strong> Ürün stoku güncellendi.</span>
 </div>
+{% elif request.query_params.get('msg') == 'delete_blocked' %}
+<div class="alert alert-danger">
+  <span><strong>Silinemedi:</strong> Seçilen ürünlerden en az biri açık rezervasyonda. Önce ilgili rezervasyon satırlarını teslim edin veya iptal edin.</span>
+</div>
 {% endif %}
 
 <div class="actions-bar">

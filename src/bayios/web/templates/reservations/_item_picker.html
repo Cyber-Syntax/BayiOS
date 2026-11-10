@@ -1,0 +1,30 @@
+{% if products %}
+<div class="table-container" style="max-height: 20rem; overflow-y: auto;">
+  <table class="data-table" style="min-width: 0;">
+    <thead>
+      <tr>
+        <th>Ürün Adı</th>
+        <th style="width: 7rem;">Fiziksel Stok</th>
+        <th style="width: 11rem;">Miktar / Ekle</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in products %}
+      <tr>
+        <td class="col-name">{{ product.name }}</td>
+        <td class="col-stock">{{ product.physical_stock }}</td>
+        <td>
+          <form method="post" action="/reservations/{{ reservation_id }}/items" style="display: flex; gap: .25rem; align-items: center;">
+            <input type="hidden" name="product_id" value="{{ product.id }}">
+            <input type="number" name="quantity" class="form-control stock-input" min="1" value="1" aria-label="Miktar">
+            <button type="submit" class="btn btn-sm">Ekle</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="muted" style="margin: 0;">Eşleşen ürün bulunamadı.</p>
+{% endif %}

@@ -6,6 +6,9 @@ from typing import Self
 from sqlalchemy.orm import Session, sessionmaker
 
 from bayios.adapters.db.repositories.products import SqlAlchemyProductRepository
+from bayios.adapters.db.repositories.reservations import (
+    SqlAlchemyReservationRepository,
+)
 from bayios.adapters.db.repositories.stock_counts import (
     SqlAlchemyStockCountRepository,
 )
@@ -17,6 +20,7 @@ class SqlAlchemyUnitOfWork:
         self._session: Session | None = None
         self._products: SqlAlchemyProductRepository | None = None
         self._stock_counts: SqlAlchemyStockCountRepository | None = None
+        self._reservations: SqlAlchemyReservationRepository | None = None
         self._committed = False
 
     @property
@@ -37,12 +41,19 @@ class SqlAlchemyUnitOfWork:
             raise RuntimeError("UnitOfWork is not active; use it as a context manager")
         return self._stock_counts
 
+    @property
+    def reservations(self) -> SqlAlchemyReservationRepository:
+        if self._reservations is None:
+            raise RuntimeError("UnitOfWork is not active; use it as a context manager")
+        return self._reservations
+
     def __enter__(self) -> Self:
         if self._session is not None:
             raise RuntimeError("UnitOfWork is already active")
         self._session = self._session_factory()
         self._products = SqlAlchemyProductRepository(self._session)
         self._stock_counts = SqlAlchemyStockCountRepository(self._session)
+        self._reservations = SqlAlchemyReservationRepository(self._session)
         self._committed = False
         return self
 
@@ -64,6 +75,7 @@ class SqlAlchemyUnitOfWork:
             self._session = None
             self._products = None
             self._stock_counts = None
+            self._reservations = None
 
     def commit(self) -> None:
         self.session.commit()

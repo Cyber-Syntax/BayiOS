@@ -10,6 +10,7 @@ from decimal import Decimal
 
 from bayios.adapters.db.models.inventory import StockMovement
 from bayios.adapters.db.models.products import Product, ProductPriceHistory
+from bayios.application.errors import ProductHasOpenReservationsError
 from bayios.application.ports.unit_of_work import UnitOfWork
 from bayios.domain.inventory import StockSummary
 from bayios.domain.products import ActorContext, normalize_product_name
@@ -21,6 +22,11 @@ class ProductDetail:
     price_history: Sequence[ProductPriceHistory]
     stock_movements: Sequence[StockMovement]
     open_reservation: int
+
+
+def get_product(uow: UnitOfWork, product_id: uuid.UUID) -> Product | None:
+    with uow:
+        return uow.products.get_by_id(product_id)
 
 
 def search_products(
@@ -225,6 +231,12 @@ def archive_products(
 
 def delete_products(uow: UnitOfWork, product_ids: Sequence[uuid.UUID]) -> int:
     with uow:
+        blocked = uow.reservations.open_product_ids(list(product_ids))
+        if blocked:
+            raise ProductHasOpenReservationsError(
+                f"{len(blocked)} ürün açık rezervasyonda olduğu için silinemez. "
+                "Önce ilgili rezervasyon satırlarını teslim edin veya iptal edin."
+            )
         count = uow.products.delete_products(product_ids)
         uow.commit()
         return count
@@ -293,9 +305,14 @@ def get_product_detail(
         price_history = uow.products.get_price_history(product_id)
         stock_movements = uow.products.get_stock_movements(product_id)
 
+        if open_reservations is None:
+            open_reservations = dict(
+                uow.reservations.open_quantity_by_product([product.id])
+            )
+
         summary = StockSummary(
             physical=product.physical_stock,
-            open_reservation=(open_reservations or {}).get(product.id, 0),
+            open_reservation=open_reservations.get(product.id, 0),
         )
 
         return ProductDetail(

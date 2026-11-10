@@ -3,6 +3,44 @@
 {% block content %}
 <h1>Ana Sayfa</h1>
 <p class="muted">Modüller ilgili milestone tamamlandıkça açılır.</p>
+
+{% if reminders %}
+<section class="card" style="padding: 1rem; margin-bottom: 1rem;">
+  <h2 style="margin: 0 0 .25rem; font-size: 1.1rem;">Rezervasyon Hatırlatmaları</h2>
+  <p class="muted" style="margin: 0 0 .75rem; font-size: .9rem;">
+    Gecikmiş ve önümüzdeki 30 gün içinde hatırlatması olan rezervasyonlar. Hatırlatma otomatik iptal oluşturmaz.
+  </p>
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Rezervasyon</th>
+          <th class="col-name">Müşteri</th>
+          <th class="col-date">Hatırlatma</th>
+          <th>Durum</th>
+          <th class="col-stock">Açık Miktar</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reminder in reminders %}
+        <tr>
+          <td>#{{ reminder.reservation_number }}</td>
+          <td class="col-name"><a href="/reservations/{{ reminder.id }}">{{ reminder.customer_name }}</a></td>
+          <td class="col-date">
+            {{ reminder.reminder_due_at.strftime('%d.%m.%Y') }}
+            <br>
+            <small class="badge {% if reminder.is_overdue %}badge-danger{% else %}badge-info{% endif %}">{{ reminder.reminder_label }}</small>
+          </td>
+          <td><span class="badge {% if reminder.summary.label == 'Kısmi süreçte' %}badge-warning{% else %}badge-info{% endif %}">{{ reminder.summary.label }}</span></td>
+          <td class="col-stock">{{ reminder.summary.open_quantity }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
 <ul class="tiles">
   {% for item in nav_items if item.key != "home" %}
   <li class="tile">

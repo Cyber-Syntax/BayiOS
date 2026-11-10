@@ -10,6 +10,12 @@ from bayios.adapters.db.models.products import (
     ProductImportBatch,
     ProductPriceHistory,
 )
+from bayios.adapters.db.models.reservations import (
+    Reservation,
+    ReservationItem,
+    ReservationItemEvent,
+    ReservationReminder,
+)
 
 __all__ = [
     "Base",
@@ -17,6 +23,10 @@ __all__ = [
     "ProductCategory",
     "ProductImportBatch",
     "ProductPriceHistory",
+    "Reservation",
+    "ReservationItem",
+    "ReservationItemEvent",
+    "ReservationReminder",
     "StockCountItem",
     "StockCountSession",
     "StockMovement",

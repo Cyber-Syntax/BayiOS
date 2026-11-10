@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Rezervasyon #{{ reservation.reservation_number }}{% endblock %}
+{% block content %}
+{% set msg = request.query_params.get('msg') or error %}
+<div x-data="{ showEdit: false, showSnooze: false }">
+  {% if msg == 'updated' %}
+  <div class="alert alert-success"><span><strong>Başarılı:</strong> Rezervasyon bilgileri güncellendi.</span></div>
+  {% elif msg == 'item_added' %}
+  <div class="alert alert-success"><span><strong>Başarılı:</strong> Rezervasyona satır eklendi.</span></div>
+  {% elif msg == 'quantity_updated' %}
+  <div class="alert alert-success"><span><strong>Başarılı:</strong> Satır miktarı güncellendi.</span></div>
+  {% elif msg == 'item_removed' %}
+  <div class="alert alert-success"><span><strong>Başarılı:</strong> Satır kaldırıldı.</span></div>
+  {% elif msg == 'status_changed' %}
+  <div class="alert alert-success"><span><strong>Başarılı:</strong> Satır durumu güncellendi.</span></div>
+  {% elif msg == 'delivered' %}
+  <div class="alert alert-success"><span><strong>Başarılı:</strong> Teslimat kaydedildi; fiziksel stok düşüldü.</span></div>
+  {% elif msg == 'cancelled' %}
+  <div class="alert alert-success"><span><strong>Başarılı:</strong> İptal kaydedildi; fiziksel stok değişmedi.</span></div>
+  {% elif msg == 'snoozed' %}
+  <div class="alert alert-success"><span><strong>Başarılı:</strong> Hatırlatma ertelendi.</span></div>
+  {% elif msg %}
+  <div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg }}</span></div>
+  {% endif %}
+
+  <div class="actions-bar">
+    <div>
+      <a href="/reservations" class="muted" style="text-decoration: none;">&larr; Rezervasyonlar</a>
+      <h1 style="margin-top: .25rem;">Rezervasyon #{{ reservation.reservation_number }} · {{ reservation.customer_name }}</h1>
+      <p class="muted" style="margin: 0;">
+        {{ reservation.reservation_date.strftime('%d.%m.%Y') }} ·
+        Hatırlatma: {{ reservation.reminder_due_at.strftime('%d.%m.%Y') }}
+        <span class="badge {% if reservation.is_overdue %}badge-warning{% elif reservation.reminder_status == 'resolved' %}badge-success{% else %}badge-info{% endif %}">{{ reservation.reminder_label }}</span>
+      </p>
+    </div>
+    <div class="actions-group">
+      <a class="btn" href="/reservations/{{ reservation.id }}/print?copy=both">A4 (Depo + Bayi)</a>
+      <a class="btn" href="/reservations/{{ reservation.id }}/print?copy=depot">Depo Kopyası</a>
+      <a class="btn" href="/reservations/{{ reservation.id }}/print?copy=dealer">Bayi Kopyası</a>
+      <button type="button" class="btn" @click="showEdit = true">Düzenle</button>
+      <button type="button" class="btn" @click="showSnooze = true">Hatırlatmayı Ertele</button>
+    </div>
+  </div>
+
+  <div class="grid-stats" style="margin-bottom: 1rem;">
+    <div class="stat-box">
+      <div class="stat-label">Durum</div>
+      <div class="stat-value" style="font-size: 1.1rem;">
+        <span class="badge {% if reservation.summary.label == 'Teslim edildi' %}badge-success{% elif reservation.summary.label == 'İptal' %}badge-danger{% elif reservation.summary.label == 'Kısmi süreçte' %}badge-warning{% else %}badge-info{% endif %}">{{ reservation.summary.label }}</span>
+      </div>
+    </div>
+    <div class="stat-box"><div class="stat-label">Toplam Miktar</div><div class="stat-value">{{ reservation.summary.total_quantity }}</div></div>
+    <div class="stat-box"><div class="stat-label">Teslim Edilen</div><div class="stat-value">{{ reservation.summary.delivered_quantity }}</div></div>
+    <div class="stat-box"><div class="stat-label">İptal Edilen</div><div class="stat-value">{{ reservation.summary.cancelled_quantity }}</div></div>
+    <div class="stat-box"><div class="stat-label">Açık</div><div class="stat-value">{{ reservation.summary.open_quantity }}</div></div>
+  </div>
+
+  {% if reservation.note %}
+  <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+    <strong>Not:</strong> {{ reservation.note }}
+  </div>
+  {% endif %}
+
+  <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+    <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Rezervasyon Satırları</h2>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="col-name">Ürün</th>
+            <th style="width: 4.5rem;">Miktar</th>
+            <th style="width: 4.5rem;">Teslim</th>
+            <th style="width: 4.5rem;">İptal</th>
+            <th style="width: 4.5rem;">Açık</th>
+            <th style="width: 8rem;">Durum</th>
+            <th style="min-width: 22rem;">İşlemler</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in reservation.items %}
+          <tr>
+            <td class="col-name">
+              {{ item.product_name }}
+              {% if item.product_id is none %}<br><small class="muted">Ürün kaydı silinmiş; geçmiş snapshot'tan gösteriliyor.</small>{% endif %}
+              {% if item.service_date %}<br><small class="muted">Servis tarihi: {{ item.service_date.strftime('%d.%m.%Y') }}</small>{% endif %}
+              {% if item.other_dealer_note %}<br><small class="muted">Temin: {{ item.other_dealer_note }}</small>{% endif %}
+            </td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.delivered_quantity }}</td>
+            <td>{{ item.cancelled_quantity }}</td>
+            <td>{{ item.open_quantity }}</td>
+            <td>
+              <span class="badge {% if item.status == 'delivered' %}badge-success{% elif item.status == 'cancelled' %}badge-danger{% elif item.status == 'reserved' %}badge-info{% else %}badge-warning{% endif %}">{{ item.status_label }}</span>
+            </td>
+            <td class="col-actions" style="text-align: left;">
+              {% if not item.is_terminal and item.product_id is not none %}
+              <div style="display: grid; gap: .4rem;">
+                <form method="post" action="/reservations/{{ reservation.id }}/items/{{ item.id }}/status"
+                      style="display: flex; gap: .25rem; flex-wrap: wrap; align-items: center;">
+                  <select name="target_status" class="form-control" style="width: auto; min-height: 32px; padding: .2rem .4rem;" aria-label="Yeni durum">
+                    {% for value, label in status_options %}
+                    <option value="{{ value }}" {% if item.status == value %}disabled{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                  <input type="date" name="service_date" class="form-control" style="width: auto; min-height: 32px;" aria-label="Servis tarihi">
+                  <input type="text" name="other_dealer_note" class="form-control" style="width: 8rem; min-height: 32px;" placeholder="Temin notu">
+                  <button type="submit" class="btn btn-sm">Durum</button>
+                </form>
+
+                <form method="post" action="/reservations/{{ reservation.id }}/items/{{ item.id }}/deliver"
+                      style="display: flex; gap: .25rem; flex-wrap: wrap; align-items: center;">
+                  <label class="muted" style="font-size: .75rem;">Teslim</label>
+                  <input type="number" name="quantity" class="form-control stock-input" min="1"
+                         max="{{ item.open_quantity }}" value="{{ item.open_quantity }}" aria-label="Teslim miktarı" required>
+                  <input type="text" name="low_stock_reason" class="form-control"
+                         style="width: 9rem; min-height: 32px;" placeholder="Stok yetersizse gerekçe">
+                  <input type="hidden" name="idempotency_key" value="{{ item.id }}-{{ page_token }}">
+                  <button type="submit" class="btn btn-sm btn-primary">Teslim Et</button>
+                </form>
+
+                <form method="post" action="/reservations/{{ reservation.id }}/items/{{ item.id }}/cancel"
+                      style="display: flex; gap: .25rem; flex-wrap: wrap; align-items: center;">
+                  <label class="muted" style="font-size: .75rem;">İptal</label>
+                  <input type="number" name="quantity" class="form-control stock-input" min="1"
+                         max="{{ item.open_quantity }}" value="{{ item.open_quantity }}" aria-label="İptal miktarı" required>
+                  <input type="text" name="note" class="form-control" style="width: 9rem; min-height: 32px;" placeholder="İptal notu">
+                  <button type="submit" class="btn btn-sm btn-danger">İptal Et</button>
+                </form>
+
+                <form method="post" action="/reservations/{{ reservation.id }}/items/{{ item.id }}/quantity"
+                      style="display: flex; gap: .25rem; flex-wrap: wrap; align-items: center;">
+                  <label class="muted" style="font-size: .75rem;">Miktar</label>
+                  <input type="number" name="quantity" class="form-control stock-input" min="1"
+                         value="{{ item.quantity }}" aria-label="Yeni miktar" required>
+                  <input type="text" name="note" class="form-control" style="width: 9rem; min-height: 32px;" placeholder="Değişiklik notu">
+                  <button type="submit" class="btn btn-sm">Kaydet</button>
+                  {% if item.delivered_quantity == 0 and item.cancelled_quantity == 0 %}
+                  <button type="submit" class="btn btn-sm btn-danger" formaction="/reservations/{{ reservation.id }}/items/{{ item.id }}/remove" formnovalidate>Satırı Sil</button>
+                  {% endif %}
+                </form>
+              </div>
+              {% else %}
+              <span class="muted">İşlem kapalı</span>
+              {% endif %}
+
+              <details style="margin-top: .5rem;">
+                <summary class="muted" style="font-size: .8rem; cursor: pointer;">Hareket geçmişi ({{ item.events|length }})</summary>
+                <ul style="margin: .35rem 0 0; padding-left: 1rem; font-size: .8rem;">
+                  {% for event in item.events %}
+                  <li>
+                    {{ event.event_at.strftime('%d.%m.%Y %H:%M') }} ·
+                    {{ status_labels.get(event.old_status, '—') }} &rarr; {{ status_labels.get(event.new_status, event.new_status) }}
+                    {% if event.quantity_delta %}({{ event.quantity_delta }}){% endif %}
+                    {% if event.note %} · {{ event.note }}{% endif %}
+                    {% if event.created_by_name %} · {{ event.created_by_name }}{% endif %}
+                  </li>
+                  {% endfor %}
+                </ul>
+              </details>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+    <h2 style="margin: 0 0 .5rem; font-size: 1.1rem;">Satır Ekle</h2>
+    <input type="search" name="q" class="form-control" style="max-width: 24rem;"
+           placeholder="Ürün adı ile ara (örn: 07325 A)" autocomplete="off"
+           hx-get="/reservations/{{ reservation.id }}/items/picker"
+           hx-trigger="keyup changed delay:300ms, search"
+           hx-target="#add-item-results"
+           hx-include="this">
+    <div id="add-item-results" style="margin-top: .75rem;"></div>
+  </div>
+
+  <div class="card" style="padding: 1rem;">
+    <h2 style="margin: 0 0 .5rem; font-size: 1.1rem;">Hatırlatma Geçmişi</h2>
+    {% if reservation.reminders %}
+    <ul style="margin: 0; padding-left: 1.1rem; font-size: .9rem;">
+      {% for reminder in reservation.reminders %}
+      <li>
+        {{ reminder.created_at.strftime('%d.%m.%Y %H:%M') }} ·
+        {{ reminder.previous_due_at.strftime('%d.%m.%Y') }} &rarr; {{ reminder.new_due_at.strftime('%d.%m.%Y') }}
+        {% if reminder.note %} · {{ reminder.note }}{% endif %}
+        {% if reminder.created_by_name %} · {{ reminder.created_by_name }}{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted" style="margin: 0;">Henüz erteleme yapılmadı.</p>
+    {% endif %}
+  </div>
+
+  <div x-show="showEdit" class="modal-backdrop" x-cloak @click.self="showEdit = false">
+    <div class="modal-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="margin: 0; font-size: 1.2rem;">Rezervasyonu Düzenle</h2>
+        <button type="button" class="btn btn-sm" @click="showEdit = false">&times;</button>
+      </div>
+      <form method="post" action="/reservations/{{ reservation.id }}/edit">
+        <div class="form-group">
+          <label for="edit-customer">Müşteri Adı Soyadı *</label>
+          <input type="text" id="edit-customer" name="customer_name" class="form-control" required value="{{ reservation.customer_name }}">
+        </div>
+        <div class="form-group">
+          <label for="edit-date">Rezervasyon Tarihi</label>
+          <input type="date" id="edit-date" name="reservation_date" class="form-control" value="{{ reservation.reservation_date.strftime('%Y-%m-%d') }}">
+        </div>
+        <div class="form-group">
+          <label for="edit-note">Not</label>
+          <input type="text" id="edit-note" name="note" class="form-control" value="{{ reservation.note or '' }}">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: .5rem;">
+          <button type="button" class="btn" @click="showEdit = false">Vazgeç</button>
+          <button type="submit" class="btn btn-primary">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div x-show="showSnooze" class="modal-backdrop" x-cloak @click.self="showSnooze = false">
+    <div class="modal-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="margin: 0; font-size: 1.2rem;">Hatırlatmayı Ertele</h2>
+        <button type="button" class="btn btn-sm" @click="showSnooze = false">&times;</button>
+      </div>
+      <p class="muted" style="margin-top: 0; font-size: .9rem;">Varsayılan erteleme bir aydır; tarihi değiştirebilirsiniz.</p>
+      <form method="post" action="/reservations/{{ reservation.id }}/reminder/snooze">
+        <div class="form-group">
+          <label for="snooze-date">Yeni Hatırlatma Tarihi</label>
+          <input type="date" id="snooze-date" name="new_due_at" class="form-control" value="{{ default_snooze }}">
+        </div>
+        <div class="form-group">
+          <label for="snooze-note">Not</label>
+          <input type="text" id="snooze-note" name="note" class="form-control" placeholder="örn: Müşteri arandı, teslimat ertelendi">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: .5rem;">
+          <button type="button" class="btn" @click="showSnooze = false">Vazgeç</button>
+          <button type="submit" class="btn btn-primary">Ertele</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

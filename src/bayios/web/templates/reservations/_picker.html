@@ -1,0 +1,27 @@
+{% if products %}
+<div class="table-container" style="max-height: 22rem; overflow-y: auto;">
+  <table class="data-table" style="min-width: 0;">
+    <thead>
+      <tr>
+        <th>Ürün Adı</th>
+        <th style="width: 7rem;">Fiziksel Stok</th>
+        <th style="width: 6rem;"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in products %}
+      <tr>
+        <td class="col-name">{{ product.name }}</td>
+        <td class="col-stock">{{ product.physical_stock }}</td>
+        <td>
+          <button type="button" class="btn btn-sm"
+                  @click='add("{{ product.id }}", {{ product.name | tojson }})'>Ekle</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="muted" style="margin: 0;">Eşleşen ürün bulunamadı.</p>
+{% endif %}

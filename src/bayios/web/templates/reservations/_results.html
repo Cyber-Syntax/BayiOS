@@ -1,0 +1,52 @@
+{% from "_pagination.html" import pagination %}
+<div class="card">
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 6rem;">Rezervasyon</th>
+          <th class="col-name">Müşteri</th>
+          <th class="col-date" style="width: 8rem;">Tarih</th>
+          <th class="col-date" style="width: 10rem;">Hatırlatma</th>
+          <th style="width: 9rem;">Durum</th>
+          <th class="col-stock" style="width: 7rem;">Açık / Toplam</th>
+          <th class="col-actions" style="width: 6rem;">İşlem</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>#{{ row.reservation_number }}</td>
+          <td class="col-name">
+            <a href="/reservations/{{ row.id }}">{{ row.customer_name }}</a>
+          </td>
+          <td class="col-date">{{ row.reservation_date.strftime('%d.%m.%Y') }}</td>
+          <td class="col-date">
+            {{ row.reminder_due_at.strftime('%d.%m.%Y') }}
+            <br>
+            <small class="badge {% if row.is_overdue %}badge-warning{% elif row.reminder_status == 'resolved' %}badge-success{% else %}badge-info{% endif %}">{{ row.reminder_label }}</small>
+          </td>
+          <td>
+            <span class="badge {% if row.summary.label == 'Teslim edildi' %}badge-success{% elif row.summary.label == 'İptal' %}badge-danger{% elif row.summary.label == 'Kısmi süreçte' %}badge-warning{% else %}badge-info{% endif %}">{{ row.summary.label }}</span>
+          </td>
+          <td class="col-stock">{{ row.summary.open_quantity }} / {{ row.summary.total_quantity }}</td>
+          <td class="col-actions">
+            <a class="btn btn-sm" href="/reservations/{{ row.id }}">Detay</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="muted" style="text-align: center; padding: 1.5rem;">
+            Bu filtreye uyan rezervasyon bulunmuyor.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if total_pages > 1 %}
+  <div style="padding: 0 1rem 1rem;">
+    {{ pagination(page, total_pages) }}
+  </div>
+  {% endif %}
+</div>

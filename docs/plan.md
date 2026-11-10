@@ -289,17 +289,25 @@ Gerçek `arcelik-06-09-2026.csv` dosyası web arayüzünden veya API'den önizle
 **Domain ve veri**
 
 - Reservation aggregate; reservation item; item event ve reminder history tabloları.
-- `quantity`, `delivered_quantity`, `cancelled_quantity` gerçek miktar alanlarıdır.
-- `status` yalnızca geçerli operasyon state'lerini temsil eder; `delivered + cancelled <= quantity` her write'ta korunur.
+- `quantity`, `delivered_quantity`, `cancelled_quantity` gerçek miktar alanlarıdır; `quantity > 0` ve `delivered + cancelled <= quantity` her write'ta korunur.
+- `reservation_items.product_id` nullable ve `ON DELETE SET NULL`'dır: açık rezervasyon satırı olan ürün silinemez, teslim/iptal edilmiş satır ise ürün silinse de `product_name_snapshot` ile geçmişte kalır. Rezervasyonda telefon alanı yoktur (PRD 4.5).
+- **Durum politikası:** `RESERVED`, `DELIVERY_REQUESTED`, `DEPOT_READY`, `SERVICE_ASSIGNED` arasında ileri atlama serbesttir ve teslimden önce bir önceki duruma dönüş serbesttir; bu geçişlerin hiçbiri stoğa dokunmaz. `DELIVERED` ve `CANCELLED` terminaldir ve yalnızca deliver/cancel use-case'leriyle üretilir. Teslim, herhangi bir aktif durumdan yapılabilir; `SERVICE_ASSIGNED` önkoşulu yoktur.
+- **Düzenleme:** müşteri adı/not güncellenebilir; açık satırın miktarı değiştirilebilir; satır eklenebilir veya silinebilir. Teslim veya iptal miktarı bulunan satırda miktar `delivered + cancelled` altına inemez ve satır silinemez.
+- **İptal:** kalem bazında kısmi miktar iptali, isteğe bağlı notla yapılır; fiziksel stoktan düşüm veya stok hareketi üretmez. Teslim edilmiş miktar iptal edilemez.
+- **Takvim:** 13 aylık varsayılan hatırlatma ve 1 aylık varsayılan erteleme takvimsel ay aritmetiğidir ve ay sonunda kırpılır (31 Ocak + 1 ay → 28/29 Şubat). Tüm satırlar terminal olduğunda hatırlatma otomatik `resolved` olur. Teslim edilmiş miktarın ters hareketle geri alınması M2 kapsamı dışıdır.
+- Açık rezervasyon toplamı `quantity - delivered_quantity - cancelled_quantity` üzerinden hesaplanır ve ürün detayı, stok özeti ve ana ekran aynı policy'yi kullanır.
+- M5 teklif→rezervasyon dönüşümü aynı `CreateReservation` use-case'ini ürün/miktar girdisiyle kullanacak; rezervasyonda fiyat snapshot'ı tutulmaz.
 
 **Use-case akışları**
 
-1. Reservation create: fiziksel stok düşmeden open reservation artır.
-2. Item event: `RESERVED → DELIVERY_REQUESTED → DEPOT_READY → SERVICE_ASSIGNED`; servis tarihi/notları taşı.
-3. Deliver: kalan miktarı doğrula, düşük stokta açık uyarı ve gerekçe iste, movement + event + idempotency'yi atomik yaz.
-4. Cancel: açık miktarı azalt, fiziksel stoktan çıkış yapma.
-5. Remind/snooze: 13 aylık default ve 1 aylık snooze tarihçesi.
-6. Print: depot ve dealer copy ayrı başlıklarla, `@media print` ile A4.
+1. Reservation create: müşteri adı zorunlu, en az bir satır; fiziksel stok düşmeden open reservation artır; 13 aylık hatırlatma tarihi atanır. Arşivli ürün de rezervasyona girebilir.
+2. Reservation edit: müşteri adı/not, açık satır miktarı, satır ekleme/silme; her değişiklik item event geçmişine yazılır.
+3. Item status: aktif durumlar arasında opsiyonel ileri atlama ve geri dönüş; servis tarihi/notları taşınır; canlı durum değişikliği stok hareketi üretmez.
+4. Deliver: istenen miktarı açık miktara karşı doğrula, düşük stokta gerekçe iste, `delivery_out` movement + item event + idempotency kaydını tek transaction'da yaz; item ve ürün satırları kilitlenir.
+5. Cancel: kalan miktardan düş, stoktan çıkış yapma, item event yaz.
+6. Remind/snooze: 13 aylık default, 1 aylık snooze tarihçesi; terminal satırlarda otomatik resolved; ana ekranda gecikmiş/yaklaşan uyarı.
+7. Print: tek çıktıda depo + bayi kopyası (arada sayfa sonu) ve `copy=depot|dealer` tekil kopya; rezervasyon listesi ve detayı `@media print` ile A4.
+8. Entegrasyon: ürün detayı/stok özeti açık rezervasyon toplamını gösterir; açık rezervasyonu olan ürünün hard delete'i `ProductHasOpenReservationsError` ile engellenir.
 
 **Davranış testleri**
 
