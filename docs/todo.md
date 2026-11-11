@@ -21,3 +21,7 @@
 - [ ] Sayım takvim seçiminde pek iyi değil, daha kaliteli bir alternatif veya daha düzgün seçme olmalı.
 - [ ] ürünlere tekliften tıklanınca popup ile düzenleme, detay açılabilsin?
 - [ ] tekliflerde satır başı komisyon detayı gösteriyor, onları altta kısaca ghost text olarak gösterebiliriz.
+
+## bir ara düzelt
+
+1. "5cd2c026-165a-48dd-abda-f3b099fdb8d5?msg=error%3ABu+komisyon+oranı+bu+dönem+için+zaten+tanımlı.+Mevcut+satırı+düzenleyin." -> detay göstermek yerine, error vs. bir şey yazsa url clean olur.

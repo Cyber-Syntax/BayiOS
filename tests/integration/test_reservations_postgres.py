@@ -93,11 +93,11 @@ def _persist(
     session: Session, reservation: Reservation, lines: list[ReservationItem]
 ) -> SqlAlchemyReservationRepository:
     repository = SqlAlchemyReservationRepository(session)
+    session.add(reservation)
+    session.flush()  # assign reservation.id (uuid_pk default) before linking lines
     for line in lines:
         if line.reservation_id is None:
             line.reservation_id = reservation.id
-    session.add(reservation)
-    session.flush()
     repository.add_items(lines)
     session.commit()
     return repository
@@ -139,6 +139,9 @@ def test_hard_deleted_product_keeps_closed_line_snapshot(session: Session) -> No
 
     stored = session.get(ReservationItem, lines[0].id)
     assert stored is not None
+    # expire_on_commit=False keeps the stale FK in the identity map; re-read the
+    # ON DELETE SET NULL the database applied to the product_id column.
+    session.refresh(stored)
     assert stored.product_id is None
     assert stored.product_name_snapshot == "09470 HP"
 

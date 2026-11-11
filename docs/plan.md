@@ -456,7 +456,7 @@ Teklifler fiyat katmanlarını ve önerileri gösterir; nihai nakit/kart birim f
 
 Komisyon dönemleri aylık yönetilir ve geçmiş korunur; teklifler fiyat/komisyon snapshot'ıyla bağımsızdır; örnek hesaplar ve limitler doğrudur; müşteri çıktısı iç veri içermez; kabul edilen teklif idempotent biçimde rezervasyona dönüşür.
 
-### Milestone 6 — Hızlı Teslim / Code 128
+### Milestone 6 — Hızlı Teslim / Code 128 (BACKLOG)
 
 **Sınır**
 
@@ -499,4 +499,3 @@ Her milestone şu sırayla teslim edilir:
 7. Milestone çıkış kriteriyle manuel pilot doğrulaması.
 
 Final release öncesi 5.000 ürün ve 4 concurrent client ile PRD p95 hedefleri Locust'ta ölçülür. Hedef aşılırsa yeni özellik eklenmez; query/index/host kararı alınır.
-

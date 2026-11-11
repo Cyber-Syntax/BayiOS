@@ -1,0 +1,50 @@
+name: bayios
+
+services:
+  app:
+    build: .
+    image: bayios:latest
+    restart: unless-stopped
+    environment:
+      # App binds 0.0.0.0 inside the container; only its HTTP port is published below.
+      BAYIOS_HOST: 0.0.0.0
+      BAYIOS_PORT: 8000
+      BAYIOS_LOG_LEVEL: ${BAYIOS_LOG_LEVEL:-INFO}
+      BAYIOS_LOG_FORMAT: ${BAYIOS_LOG_FORMAT:-console}
+      # POSTGRES_PASSWORD comes from the project .env (single source of truth).
+      DATABASE_URL: postgresql+psycopg://bayios:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/bayios
+    ports:
+      # Only the app HTTP port is published on the LAN interface.
+      - "${BAYIOS_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status == 200 else 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  postgres:
+    image: docker.io/library/postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bayios
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: bayios
+    # No host port: PostgreSQL is reachable only on the Compose internal network.
+    volumes:
+      - bayios_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bayios -d bayios"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  bayios_pgdata:
