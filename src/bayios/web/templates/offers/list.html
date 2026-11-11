@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Teklifler{% endblock %}
+{% block content %}
+{% set msg = request.query_params.get('msg') %}
+{% if msg == 'created' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif oluşturuldu.</span></div>
+{% elif msg == 'updated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif güncellendi.</span></div>
+{% elif msg == 'status' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif durumu güncellendi.</span></div>
+{% elif msg and msg.startswith('error:') %}
+<div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
+{% endif %}
+
+<div class="actions-bar">
+  <div>
+    <h1>Teklifler</h1>
+    <p class="muted" style="margin: 0;">Müşteri teklifleri, fiyat katmanları ve komisyon referansları.</p>
+  </div>
+  <div class="actions-group"><a class="btn btn-primary" href="/offers/new">Yeni Teklif</a></div>
+</div>
+
+<div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+  <form method="get" action="/offers"
+        hx-get="/offers"
+        hx-trigger="keyup changed delay:300ms from:#offer-search, search from:#offer-search, change from:#offer-status"
+        hx-target="#offers-table-container"
+        hx-push-url="true"
+        style="display: flex; gap: .5rem; flex-wrap: wrap; align-items: flex-end;">
+    <div class="form-group" style="margin-bottom: 0; flex: 1 1 16rem;">
+      <label for="offer-search">Müşteri / Telefon</label>
+      <input type="search" id="offer-search" name="q" class="form-control" value="{{ q }}" placeholder="Müşteri adı veya telefon" autocomplete="off">
+    </div>
+    <div class="form-group" style="margin-bottom: 0;">
+      <label for="offer-status">Durum</label>
+      <select id="offer-status" name="status" class="form-control">
+        {% for value, label in status_filters %}<option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Ara</button>
+  </form>
+</div>
+
+<div id="offers-table-container">
+  {% include "offers/_results.html" %}
+</div>
+{% endblock %}

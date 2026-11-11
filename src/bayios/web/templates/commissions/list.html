@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Komisyonlar{% endblock %}
+{% block content %}
+{% set msg = request.query_params.get('msg') %}
+{% if msg == 'activated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Komisyon dönemi aktifleştirildi.</span></div>
+{% elif msg == 'deleted' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Komisyon dönemi silindi.</span></div>
+{% elif msg and msg.startswith('error:') %}
+<div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
+{% endif %}
+
+<div class="actions-bar">
+  <div>
+    <h1>Komisyonlar</h1>
+    <p class="muted" style="margin: 0;">Aylık POS, Ödero ve Chippin komisyon dönemleri.</p>
+  </div>
+</div>
+
+<div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+  <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Yeni Dönem</h2>
+  <form method="post" action="/commissions" style="display: flex; align-items: flex-end; gap: .5rem; flex-wrap: wrap;">
+    <div class="form-group" style="margin-bottom: 0; width: 8rem;">
+      <label for="period-year">Yıl</label>
+      <input type="number" id="period-year" name="year" class="form-control" value="{{ now.year }}" required>
+    </div>
+    <div class="form-group" style="margin-bottom: 0; width: 7rem;">
+      <label for="period-month">Ay</label>
+      <input type="number" id="period-month" name="month" class="form-control" min="1" max="12" value="{{ now.month }}" required>
+    </div>
+    <div class="form-group" style="margin-bottom: 0; flex: 1 1 16rem;">
+      <label for="copy-from">Önceki Dönemden Kopyala</label>
+      <select id="copy-from" name="copy_from_id" class="form-control">
+        <option value="">Boş dönem</option>
+        {% for period in periods %}
+        <option value="{{ period.id }}">{{ period.period_key }} · {{ status_labels.get(period.status, period.status) }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Dönem Oluştur</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Dönem</th>
+          <th>Geçerlilik</th>
+          <th>Durum</th>
+          <th>Kopyalandığı Dönem</th>
+          <th class="col-actions">İşlem</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for period in periods %}
+        <tr>
+          <td><a href="/commissions/{{ period.id }}">{{ period.period_key }}</a></td>
+          <td>{{ period.valid_from | tr_date }} – {{ period.valid_until | tr_date }}</td>
+          <td><span class="badge {% if period.status == 'active' %}badge-success{% elif period.status == 'draft' %}badge-info{% endif %}">{{ status_labels.get(period.status, period.status) }}</span></td>
+          <td>{% if period.copied_from_id %}{{ period.copied_from_id }}{% else %}—{% endif %}</td>
+          <td class="col-actions">
+            <a class="btn btn-sm" href="/commissions/{{ period.id }}">Detay</a>
+            {% if period.status in ('draft', 'inactive') %}
+            <form method="post" action="/commissions/{{ period.id }}/activate" style="display: inline;">
+              <button type="submit" class="btn btn-sm btn-primary">Aktifleştir</button>
+            </form>
+            {% elif period.status == 'active' %}
+            <form method="post" action="/commissions/{{ period.id }}/deactivate" style="display: inline;">
+              <button type="submit" class="btn btn-sm">Pasifleştir</button>
+            </form>
+            {% endif %}
+            <form method="post" action="/commissions/{{ period.id }}/delete" style="display: inline;" onsubmit="return confirm('Bu dönem ve tüm oran/limit kayıtları silinecek. Emin misiniz?');">
+              <button type="submit" class="btn btn-sm btn-danger">Sil</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="muted" style="text-align: center; padding: 1.5rem;">Henüz komisyon dönemi oluşturulmadı.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

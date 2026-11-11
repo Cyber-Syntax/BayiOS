@@ -82,6 +82,7 @@
     <div class="stat-value" style="font-size: 1.1rem;">
       {% if category_name %}
       {{ category_name }}
+      {% if category_group_label %}<br><small class="muted">{{ category_group_label }}</small>{% endif %}
       {% else %}
       <span class="muted" style="font-size: .95rem;">Kategorisiz</span>
       {% endif %}
@@ -306,6 +307,11 @@
           <option value="{{ category.id }}" {% if product.category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
           {% endfor %}
         </select>
+      </div>
+      <div style="margin-bottom: 1rem;">
+        <label style="display: block; font-weight: 500; font-size: .85rem; margin-bottom: .25rem;">Yeni Kategori</label>
+        <input type="text" name="new_category_name" class="form-control" placeholder="örn: Klima">
+        <small class="muted">Boş bırakılırsa mevcut kategori kullanılır; kategori adına göre komisyon grubu otomatik atanır.</small>
       </div>
       <div style="display: flex; justify-content: flex-end; gap: .5rem;">
         <button type="button" class="btn" @click="showEditModal = false">İptal</button>

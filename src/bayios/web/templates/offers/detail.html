@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Teklif #{{ detail.offer.offer_number }}{% endblock %}
+{% block content %}
+<div x-data="{ lineModal: null }">
+{% set msg = request.query_params.get('msg') %}
+{% if msg == 'created' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif oluşturuldu.</span></div>
+{% elif msg == 'updated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif güncellendi.</span></div>
+{% elif msg == 'status' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif durumu güncellendi.</span></div>
+{% elif msg and msg.startswith('error:') %}
+<div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
+{% endif %}
+{% set offer = detail.offer %}
+
+<div class="actions-bar">
+  <div>
+    <a href="/offers" class="muted" style="text-decoration: none;">&larr; Teklifler</a>
+    <div style="display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;">
+      <h1 style="margin: 0;">Teklif #{{ offer.offer_number }}</h1>
+      <span class="badge {% if offer.status == 'accepted' %}badge-success{% elif offer.status == 'lost' or offer.status == 'expired' %}badge-danger{% else %}badge-info{% endif %}">{{ status_labels.get(offer.status, offer.status) }}</span>
+    </div>
+    <small class="muted">{{ offer.created_at | tr_datetime }}</small>
+  </div>
+  <div class="actions-group">
+    {% if offer.status == 'draft' %}<a class="btn" href="/offers/{{ offer.id }}/edit">Düzenle</a>{% endif %}
+    <a class="btn" href="/offers/{{ offer.id }}/print">A4</a>
+    {% if offer.status == 'draft' %}
+    <form method="post" action="/offers/{{ offer.id }}/status"><input type="hidden" name="target_status" value="presented"><button class="btn btn-primary">Sunuldu</button></form>
+    {% elif offer.status == 'presented' %}
+    <form method="post" action="/offers/{{ offer.id }}/status"><input type="hidden" name="target_status" value="accepted"><button class="btn btn-primary">Kabul Edildi</button></form>
+    {% endif %}
+    {% if offer.status in ('draft', 'presented') %}
+    <form method="post" action="/offers/{{ offer.id }}/status"><input type="hidden" name="target_status" value="lost"><button class="btn">Kaybedildi</button></form>
+    <form method="post" action="/offers/{{ offer.id }}/status"><input type="hidden" name="target_status" value="expired"><button class="btn">Geçersiz</button></form>
+    {% endif %}
+    {% if offer.status == 'accepted' and not offer.converted_reservation_id %}
+    <form method="post" action="/offers/{{ offer.id }}/convert"><button class="btn btn-primary">Rezervasyona Dönüştür</button></form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid-stats">
+  <div class="stat-box"><div class="stat-label">Müşteri</div><div class="stat-value" style="font-size: 1rem;">{{ offer.customer_name or '—' }}{% if offer.customer_phone %}<br><small class="muted">{{ offer.customer_phone }}</small>{% endif %}</div></div>
+  <div class="stat-box"><div class="stat-label">Ödeme</div><div class="stat-value" style="font-size: 1rem;">{{ payment_labels.get(offer.payment_type, offer.payment_type) }}{% if offer.channel %}<br><small class="muted">{{ channel_labels.get(offer.channel, offer.channel) }}{% if offer.installment_count %} · {{ offer.installment_count }} taksit{% endif %}{% if offer.card_type %} · {{ card_labels.get(offer.card_type, offer.card_type) }}{% endif %}</small>{% endif %}</div></div>
+  <div class="stat-box"><div class="stat-label">Bayi İndirimi</div><div class="stat-value">{{ offer.dealer_discount_percent | tr_percent }}</div></div>
+  <div class="stat-box"><div class="stat-label">Komisyon</div><div class="stat-value" style="font-size: 1.1rem;">{% if offer.commission_percent_snapshot is not none %}{{ offer.commission_percent_snapshot | tr_percent }}{% else %}—{% endif %}</div></div>
+  <div class="stat-box"><div class="stat-label">Nakit Toplam</div><div class="stat-value">{{ offer.cash_total | tr_money }} TL</div></div>
+  <div class="stat-box"><div class="stat-label">Kart Toplam</div><div class="stat-value">{{ offer.card_total | tr_money }} TL</div></div>
+  <div class="stat-box"><div class="stat-label">Seçili Toplam</div><div class="stat-value" style="color: #2563eb;">{{ offer.selected_total | tr_money }} TL</div></div>
+</div>
+
+<div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+  <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Teklif Satırları</h2>
+  <div class="table-container">
+    <table class="data-table">
+      <thead><tr><th>Ürün</th><th>Adet</th><th>Normal</th><th>Oliz</th><th>Kampanya</th><th>Taban</th><th>Nakit</th><th>Kart</th><th>Satır Toplamı</th><th>Detay</th></tr></thead>
+      <tbody>
+        {% for item in detail.items %}
+        <tr>
+          <td>{{ item.product_name_snapshot }}{% if item.warning_text %}<br><small class="muted">{{ item.warning_text }}</small>{% endif %}</td>
+          <td>{{ item.quantity }}</td>
+          <td>{{ item.regular_price_snapshot | tr_money }}</td>
+          <td>{{ item.website_price_snapshot | tr_money }}</td>
+          <td>{{ item.campaign_name_snapshot or '—' }}{% if item.campaign_gift_present is not none %}<br><small class="muted">{% if item.campaign_gift_present %}Hediye var{% else %}Hediye yok{% endif %}</small>{% endif %}</td>
+          <td>{{ item.base_price_used | tr_money }}</td>
+          <td><strong>{{ item.unit_price_cash | tr_money }}</strong></td>
+          <td><strong>{{ item.unit_price_card | tr_money }}</strong></td>
+          <td>{{ item.line_total_cash | tr_money }} / {{ item.line_total_card | tr_money }}</td>
+          <td><button type="button" class="btn btn-sm" @click="lineModal = {{ loop.index }}">Detay</button></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" class="muted" style="text-align: center; padding: 1.5rem;">Teklif satırı yok.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="padding: 1rem;">
+  <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Durum Geçmişi</h2>
+  <div class="table-container">
+    <table class="data-table" style="min-width: 0;">
+      <thead><tr><th>Tarih</th><th>Eski</th><th>Yeni</th><th>Not</th><th>İşlemi yapan</th></tr></thead>
+      <tbody>
+        {% for row in detail.history %}
+        <tr><td>{{ row.changed_at | tr_datetime }}</td><td>{{ status_labels.get(row.old_status, row.old_status or '—') }}</td><td>{{ status_labels.get(row.new_status, row.new_status) }}</td><td>{{ row.note or '—' }}</td><td>{{ row.changed_by_name or '—' }}</td></tr>
+        {% else %}
+        <tr><td colspan="5" class="muted" style="text-align: center;">Geçmiş yok.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% for analysis in line_analyses %}
+<div x-show="lineModal === {{ loop.index }}" x-cloak class="modal-backdrop" @click.self="lineModal = null">
+  <div class="modal-box" style="max-width: 70rem; width: min(70rem, 95vw);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.2rem;">{{ analysis.item.product_name_snapshot }} · Kâr Detayı</h2>
+        <p class="muted" style="margin: .25rem 0 0; font-size: .85rem;">
+          Değerler birim başınadır. Bayi hakediş oranı: <strong>{{ (offer.dealer_share_percent_snapshot or 85) | tr_percent }}</strong>.
+          Bayi indirimi bu hesaba dahil edilmez.
+        </p>
+      </div>
+      <button type="button" class="btn btn-sm" @click="lineModal = null">&times;</button>
+    </div>
+
+    {% if analysis.installments %}
+    <div class="table-container">
+      <table class="data-table" style="min-width: 0;">
+        <thead>
+          <tr>
+            <th>Taksit</th>
+            <th>Komisyon</th>
+            <th>Komisyon Sonrası</th>
+            <th>Kampanya Hakedişi</th>
+            <th>Oliz Hakedişi</th>
+            <th>Toplam Gelir</th>
+            <th>Maliyet</th>
+            <th>Kâr / Zarar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in analysis.installments %}
+          <tr>
+            <td>{% if row.installment_count == 0 %}Nakit{% else %}{{ row.installment_count }}{% endif %}</td>
+            <td>{{ row.commission_percent | tr_percent }}</td>
+            <td>{{ row.net_after_commission | tr_money }} TL</td>
+            <td>{{ row.campaign_share | tr_money }} TL</td>
+            <td>{{ row.oliz_share | tr_money }} TL</td>
+            <td><strong>{{ row.total_revenue | tr_money }} TL</strong></td>
+            <td>{{ row.cost | tr_money }} TL</td>
+            <td>
+              {% if row.profit is none %}
+              —
+              {% else %}
+              <strong style="color: {% if row.profit < 0 %}#dc2626{% else %}#059669{% endif %};">{{ row.profit | tr_money }} TL</strong>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="muted">Fiyat girilmediği için kâr detayı hesaplanamadı.</p>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+</div>
+{% endblock %}

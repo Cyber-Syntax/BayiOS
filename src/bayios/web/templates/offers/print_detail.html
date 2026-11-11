@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Teklif #{{ detail.offer.offer_number }} · A4{% endblock %}
+{% block content %}
+{% set offer = detail.offer %}
+<div class="actions-bar no-print">
+  <div>
+    <a href="/offers/{{ offer.id }}" class="muted" style="text-decoration: none;">&larr; Teklif</a>
+    <h1 style="margin-top: .25rem;">Müşteri Teklifi</h1>
+  </div>
+  <div class="actions-group"><button type="button" class="btn btn-primary" onclick="window.print()">Yazdır</button></div>
+</div>
+
+<div class="card print-copy">
+  <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+    <div>
+      <h2 style="margin: 0;">BayiOS Teklif</h2>
+      <p class="muted" style="margin: .25rem 0 0;">Teklif No: <strong>#{{ offer.offer_number }}</strong> · {{ offer.created_at | tr_date_long }}</p>
+    </div>
+    <div style="text-align: right; font-size: .85rem;">
+      <div>Müşteri: <strong>{{ offer.customer_name or '—' }}</strong></div>
+      {% if offer.customer_phone %}<div>Telefon: {{ offer.customer_phone }}</div>{% endif %}
+      <div>Ödeme: {{ payment_labels.get(offer.payment_type, offer.payment_type) }}{% if offer.channel %} · {{ offer.channel }}{% if offer.installment_count %} · {{ offer.installment_count }} taksit{% endif %}{% endif %}</div>
+    </div>
+  </div>
+
+  <table class="data-table" style="min-width: 0;">
+    <thead><tr><th>#</th><th>Ürün</th><th>Adet</th><th>Birim Fiyat</th><th>Toplam</th><th>Kampanya</th></tr></thead>
+    <tbody>
+      {% for item in detail.items %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ item.product_name_snapshot }}</td>
+        <td>{{ item.quantity }}</td>
+        <td>{% if offer.payment_type == 'cash' %}{{ item.unit_price_cash | tr_money }}{% else %}{{ item.unit_price_card | tr_money }}{% endif %} TL</td>
+        <td>{% if offer.payment_type == 'cash' %}{{ item.line_total_cash | tr_money }}{% else %}{{ item.line_total_card | tr_money }}{% endif %} TL</td>
+        <td>{{ item.campaign_name_snapshot or '—' }}{% if item.campaign_gift_present is not none %} ({% if item.campaign_gift_present %}hediye var{% else %}hediye yok{% endif %}){% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; font-size: .9rem;">
+    <div>{% if offer.note %}<strong>Not:</strong> {{ offer.note }}{% endif %}</div>
+    <div style="text-align: right;"><strong>Toplam: {{ offer.selected_total | tr_money }} TL</strong></div>
+  </div>
+  <p class="muted" style="margin-top: 1rem; font-size: .8rem;">Bu teklif bilgilendirme amaçlıdır; stok ve kampanya koşulları değişebilir.</p>
+</div>
+{% endblock %}

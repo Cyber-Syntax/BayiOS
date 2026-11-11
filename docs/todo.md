@@ -9,6 +9,7 @@
 - [ ] sadece kategorisi seçilmiş ürünleri excel ile dışa aktar.
 - [ ] a4 sayım listesi, kategori seçince, o kategori için çıkartsın, tüm kategoride tüm kategori için a4 sayım listesi çıkartsın.
 - [ ] sayım geçmişi ve açık sayım oturumları yukarıda olsun ama yer kazanmak için iki tane iç sekme olarak görünsünler.
+- [ ] tekliflerde aynı zamanda yukarıda toplam komisyonlu detayı göstermemiz lazım, örnek toplam kazanç, toplam komisyonlar çıkınca bayiinin hakedişler ile toplam kazancı.
 
 ## good-to-have
 
@@ -18,3 +19,5 @@
 - [ ] belki kanban todo list eklenebilir?
 - [ ] sayım takviminde kasım/ekim tıklanınca ay seçme ekranı gelsin.
 - [ ] Sayım takvim seçiminde pek iyi değil, daha kaliteli bir alternatif veya daha düzgün seçme olmalı.
+- [ ] ürünlere tekliften tıklanınca popup ile düzenleme, detay açılabilsin?
+- [ ] tekliflerde satır başı komisyon detayı gösteriyor, onları altta kısaca ghost text olarak gösterebiliriz.

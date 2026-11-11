@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{% if offer_id %}Teklif Düzenle{% else %}Yeni Teklif{% endif %}{% endblock %}
+{% block content %}
+<div x-data='{ ...offerBuilder({{ initial_items | tojson }}), paymentType: {{ values.payment_type | tojson }} }'>
+  <div class="actions-bar">
+    <div>
+      <a href="/offers" class="muted" style="text-decoration: none;">&larr; Teklifler</a>
+      <h1 style="margin-top: .25rem;">{% if offer_id %}Teklif Düzenle{% else %}Yeni Teklif{% endif %}</h1>
+    </div>
+  </div>
+
+  {% if error %}<div class="alert alert-danger"><span><strong>Kaydedilemedi:</strong> {{ error }}</span></div>{% endif %}
+
+  <form method="post" action="{% if offer_id %}/offers/{{ offer_id }}/edit{% else %}/offers{% endif %}">
+    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .75rem;">
+        <div class="form-group" style="margin-bottom: 0;"><label for="offer-customer">Müşteri Adı</label><input type="text" id="offer-customer" name="customer_name" class="form-control" value="{{ values.customer_name }}"></div>
+        <div class="form-group" style="margin-bottom: 0;"><label for="offer-phone">Telefon</label><input type="text" id="offer-phone" name="customer_phone" class="form-control" value="{{ values.customer_phone }}"></div>
+        <div class="form-group" style="margin-bottom: 0;"><label for="offer-payment">Ödeme Tipi</label><select id="offer-payment" name="payment_type" class="form-control" x-model="paymentType"><option value="cash" {% if values.payment_type == 'cash' %}selected{% endif %}>Nakit</option><option value="card" {% if values.payment_type == 'card' %}selected{% endif %}>Kart</option></select></div>
+        <div class="form-group" style="margin-bottom: 0;"><label for="offer-discount">Bayi İndirimi (%)</label><input type="text" id="offer-discount" name="dealer_discount_percent" class="form-control" value="{{ values.dealer_discount_percent }}"></div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: .75rem; margin-top: .75rem;" x-show="paymentType === 'card'">
+        <div class="form-group" style="margin-bottom: 0;"><label for="offer-channel">Kanal</label><select id="offer-channel" name="channel" class="form-control"><option value="">—</option>{% for value, label in channel_options %}<option value="{{ value }}" {% if values.channel == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group" style="margin-bottom: 0;"><label for="offer-bank">Banka</label><select id="offer-bank" name="bank_id" class="form-control"><option value="">—</option>{% for bank in banks %}<option value="{{ bank.id }}" {% if values.bank_id == (bank.id | string) %}selected{% endif %}>{{ bank.name }}</option>{% endfor %}</select></div>
+        <div class="form-group" style="margin-bottom: 0;"><label for="offer-installment">Taksit</label><input type="number" id="offer-installment" name="installment_count" class="form-control" min="1" value="{{ values.installment_count }}"></div>
+        <div class="form-group" style="margin-bottom: 0;"><label for="offer-card-type">Kart Tipi</label><select id="offer-card-type" name="card_type" class="form-control"><option value="">—</option>{% for value, label in card_options %}<option value="{{ value }}" {% if values.card_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="form-group" style="margin-top: .75rem; margin-bottom: 0;"><label for="offer-note">Not</label><input type="text" id="offer-note" name="note" class="form-control" value="{{ values.note }}"></div>
+    </div>
+
+    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+      <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Ürünler</h2>
+      <template x-for="(item, index) in items" :key="item.key">
+        <div style="display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; padding: .5rem; border: 1px solid var(--border, #e5e7eb); border-radius: .5rem; margin-bottom: .5rem;">
+          <input type="hidden" name="product_id" :value="item.product_id">
+          <span style="flex: 1 1 12rem; font-weight: 500;" x-text="item.product_name"></span>
+          <input type="number" name="quantity" class="form-control" style="max-width: 6rem;" min="1" x-model="item.quantity">
+          <select name="campaign_id" class="form-control" style="max-width: 13rem;" x-model="item.campaign_id">
+            <option value="auto">Otomatik (ürünün aktif kampanyası)</option>
+            <option value="">Kampanya yok</option>
+            {% for campaign in campaigns %}<option value="{{ campaign.id }}">{{ campaign.name }}</option>{% endfor %}
+          </select>
+          <select name="gift_present" class="form-control" style="max-width: 9rem;" x-model="item.gift_present">
+            <option value="">—</option><option value="1">Hediye var</option><option value="0">Hediye yok</option>
+          </select>
+          <input type="text" name="unit_price_cash" class="form-control" style="max-width: 8rem;" placeholder="Nakit" x-model="item.unit_price_cash">
+          <input type="text" name="unit_price_card" class="form-control" style="max-width: 8rem;" placeholder="Kart" x-model="item.unit_price_card">
+          <button type="button" class="btn btn-sm btn-danger" @click="remove(index)">Çıkar</button>
+        </div>
+      </template>
+      <p class="muted" x-show="items.length === 0" style="margin: 0;">Henüz ürün eklenmedi.</p>
+    </div>
+
+    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+      <h2 style="margin: 0 0 .5rem; font-size: 1.1rem;">Ürün Ekle</h2>
+      <input type="search" name="q" class="form-control" placeholder="Ürün adı ile ara" autocomplete="off"
+             hx-get="/offers/picker" hx-trigger="keyup changed delay:300ms, search" hx-target="#offer-picker" hx-include="this">
+      <div id="offer-picker" style="margin-top: .75rem;">{% include "offers/_picker.html" %}</div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: .5rem;">
+      <a href="/offers" class="btn">Vazgeç</a>
+      <button type="submit" class="btn btn-primary">{% if offer_id %}Kaydet{% else %}Teklif Oluştur{% endif %}</button>
+    </div>
+  </form>
+</div>
+<script>
+  function offerBuilder(initialItems) {
+    return {
+      items: initialItems.map((item, index) => ({
+        product_id: item.product_id,
+        product_name: item.product_name,
+        quantity: item.quantity || 1,
+        campaign_id: item.campaign_id || 'auto',
+        gift_present: item.gift_present || '',
+        unit_price_cash: item.unit_price_cash || '',
+        unit_price_card: item.unit_price_card || '',
+        key: `${item.product_id || item.product_name}-${index}`,
+      })),
+      addProduct(id, name) {
+        if (this.items.some((item) => item.product_id === id)) return;
+        this.items.push({ product_id: id, product_name: name, quantity: 1, campaign_id: 'auto', gift_present: '', unit_price_cash: '', unit_price_card: '', key: `${id}-${Date.now()}` });
+      },
+      remove(index) { this.items.splice(index, 1); },
+    };
+  }
+</script>
+{% endblock %}

@@ -295,6 +295,11 @@ Bu hesap, POS komisyonu kesintisi sonrasında maliyet + seçilen hedef kârı ka
 - Yuvarlama yöntemi ekranda/çıktıda tutarlı olmalıdır; kuruş hassasiyeti saklanır, TL sunumu iki ondalık basamak gösterebilir.
 - Hesaplanan fiyat ile patronun girdiği bayi minimum fiyatı ayrı gösterilir. MVP'de otomatik fiyat engeli uygulanmaz; uyarı ve karşılaştırma gösterilir.
 - Nakit fiyatında POS komisyonu yoktur; bayi nakit alt sınırı ayrıca saklanır.
+- Komisyon kanalları POS, Ödero (mail order) ve Chippin'dir. POS ve Ödero banka bazlıdır; Chippin bankadan bağımsızdır.
+- Ürün komisyon grupları Klima, TV ve diğerleridir. Klima ayrı oran grubudur; TV standart oranı kullanır ancak en fazla 4 taksit, diğerleri en fazla 5 taksit, Chippin en fazla 6 taksit, business kart en fazla 2 taksit olabilir. Yapı Kredi POS en fazla 8, Ödero en fazla 2 taksit verir.
+- Ödero komisyonu 20.000 TL altı ve üstü olarak ayrılır; eşik sepet toplamına uygulanır.
+- Etkin taksit üst sınırı kanal, banka/kanal, ürün grubu, kart tipi ve mevcut oran satırlarının minimumudur.
+- Komisyonlar aylık dönemler halinde tutulur; yeni dönem önceki ayı kopyalayarak açılır, geçmiş dönem değişmez ve teklifler kendi komisyon snapshot'ını taşır.
 
 ---
 
@@ -490,6 +495,16 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 
 **FR-FIN-12 (P2):** Birden fazla banka/taksit seçeneğini yan yana karşılaştırma eklenebilir.
 
+**FR-FIN-13 (P0):** Komisyonlar POS, Ödero ve Chippin kanalları için ayrı tutulabilmelidir; POS ve Ödero banka bazlı, Chippin bankadan bağımsız olmalıdır.
+
+**FR-FIN-14 (P0):** Klima ayrı komisyon grubu olmalı; TV standart oranı kullanmalı ancak en fazla 4 taksit, diğer ürünler en fazla 5, Chippin en fazla 6, business kart en fazla 2 taksit olmalıdır.
+
+**FR-FIN-15 (P0):** Ödero komisyonu 20.000 TL altı ve üstü sepet toplamına göre ayrı tanımlanabilmelidir.
+
+**FR-FIN-16 (P0):** Komisyonlar aylık dönemler halinde yönetilmeli; yeni dönem önceki ayı kopyalayarak açılabilmeli, geçmiş dönem değişmemelidir.
+
+**FR-FIN-17 (P0):** Etkin taksit üst sınırı kanal, banka, ürün grubu, kart tipi ve mevcut oran satırlarının minimumu olarak hesaplanmalıdır.
+
 ### 5.6 Teklifler
 
 **FR-OFFER-01 (P0):** Teklif ürün seçiminde katalogdaki tüm ürünler aranabilir ve checkbox ile çoklu seçilebilir olmalıdır; seçilen her ürün için miktar girilebilmelidir.
@@ -515,6 +530,16 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 **FR-OFFER-11 (P1):** Kabul edilmiş tekliften rezervasyon oluşturma kolay yolu eklenmelidir; tekrar ürün girişi gerektirmemelidir.
 
 **FR-OFFER-12 (P1):** Teklif için takip tarihi/notu eklenebilmelidir.
+
+**FR-OFFER-13 (P0):** Teklif satırında toptan vadeli alış, normal fiyat, Oliz fiyatı, varsa seçilen kampanya fiyatı, bayi indirimi ve komisyon referansı birlikte gösterilmelidir; nihai nakit/kart birim fiyatını çalışan girmelidir.
+
+**FR-OFFER-14 (P0):** Kampanya satır bazında tek seçilmeli; kampanya seçildiğinde Oliz uygulanmamalı ve iki kampanya birleşmemelidir. Bayi indirimi teklif genelinde tek oran olarak teklif başına değiştirilebilmelidir.
+
+**FR-OFFER-15 (P0):** Nihai fiyat ürün nakit/kart tabanının veya kâr referansının altında kalırsa uyarı gösterilmeli; kayıt engellenmemelidir.
+
+**FR-OFFER-16 (P0):** Ürünle ilişkili aktif kampanya teklif satırına otomatik atanmalı; çalışan kampanyayı değiştirebilmeli veya “Kampanya yok” seçebilmelidir. Otomatik atama ürün-kampanya ilişkisinden gelir; kampanyalar birleşmez.
+
+**FR-OFFER-17 (P0):** Teklif listesi araması yazarken otomatik çalışmalı; “Ara” butonuna basılmadan sonuçlar HTMX ile güncellenmeli ve URL korunmalıdır.
 
 ### 5.7 Rezervasyonlar
 
@@ -898,12 +923,26 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 
 - `id`, `name`, `is_active`, `created_at`, `updated_at`
 
-**bank_installment_commissions**
+**commission_periods**
 
-- `id`, `bank_id`, `installment_count`
-- `commission_percent`
-- `valid_from`, `valid_until` (nullable)
-- `created_at`, `updated_at`, `updated_by_name` (nullable)
+- `id`, `period_key` (`YYYY-MM`), `valid_from`, `valid_until`
+- `status` (`draft`, `active`, `archived`), `copied_from_id` (nullable)
+- `note`, `created_at`, `updated_at`, `created_by_name` (nullable)
+
+**commission_rates**
+
+- `id`, `period_id`, `channel` (`pos`, `odero`, `chippin`)
+- `bank_id` (nullable; Chippin'de null), `product_group` (`klima`, `other`)
+- `amount_tier` (`under_20000`, `over_20000`, nullable; yalnızca Ödero)
+- `installment_count`, `commission_percent`
+- `scope_key` (dönem içinde tekil), `created_at`, `updated_at`
+
+**commission_limits**
+
+- `id`, `period_id`
+- `channel`, `bank_id`, `product_group`, `card_type` (nullable kapsam alanları)
+- `max_installments`, `scope_key` (dönem içinde tekil)
+- `created_at`, `updated_at`, `created_by_name` (nullable)
 
 **profit_targets**
 
@@ -918,23 +957,30 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 **offers**
 
 - `id`, `offer_number` (unique readable sequence)
-- `customer_name` (nullable)
+- `customer_name` (nullable), `customer_phone` (nullable)
 - `status` (`draft`, `presented`, `accepted`, `lost`, `expired`)
-- `payment_type` (`cash`, `card`, `mixed`)
-- `bank_id`, `installment_count`, `commission_snapshot_percent` (nullable)
+- `payment_type` (`cash`, `card`)
+- `channel` (`pos`, `odero`, `chippin`, nullable), `bank_id`, `installment_count`, `card_type` (`consumer`, `business`, nullable)
+- `commission_percent_snapshot` (nullable)
+- `dealer_discount_percent`
 - `cash_total`, `card_total`, `selected_total`
 - `note`, `follow_up_at` (nullable)
-- `created_at`, `updated_at`, `created_by_name` (nullable)
+- `converted_reservation_id` (nullable, unique)
+- `created_at`, `updated_at`, `created_by_name` (nullable), `created_by_device` (nullable)
 
 **offer_items**
 
 - `id`, `offer_id`, `product_id` (nullable if product later archived/deleted; product should normally be retained)
 - `product_name_snapshot`
 - `quantity`
-- `regular_price_snapshot`, `website_price_snapshot`, `cost_snapshot` (nullable)
+- `regular_price_snapshot`, `website_price_snapshot`, `cost_price_snapshot` (nullable)
+- `campaign_version_id`, `campaign_name_snapshot`, `campaign_snapshot_json` (nullable)
+- `campaign_gift_present` (nullable)
+- `base_price_used`, `dealer_discount_percent`
+- `suggested_cash_price`, `suggested_card_price`
 - `unit_price_cash`, `unit_price_card`
-- `campaign_snapshot_json` (nullable)
 - `line_total_cash`, `line_total_card`
+- `warning_text` (nullable), `position`
 
 **offer_history**
 
@@ -1356,6 +1402,13 @@ Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 4. Komisyon dönem değişimi eski teklifin komisyon snapshot değerini değiştirmez.
 5. Teklif çok ürünlü olabilir ve her kalemin fiyat snapshot'ı saklanır.
 6. Teklif A4 yazdırılır; alış maliyeti veya iç kâr bilgisi müşteri kopyasında görünmez.
+7. Yapı Kredi POS 2 taksit %4, 3 taksit %4,67 olarak çözümlenir.
+8. Ödero 20.000 TL altı ve üstü farklı komisyon oranı kullanır; eşik sepet toplamına uygulanır.
+9. Business kart en fazla 2, TV en fazla 4, Klima en fazla 10, Chippin en fazla 6 taksit kabul eder; etkin sınır minimumdur.
+10. Kampanya seçilince Oliz uygulanmaz ve iki kampanya birleşmez.
+11. Manuel nakit/kart fiyatı floor veya kâr referansının altında kalırsa uyarı gösterilir; kayıt engellenmez.
+12. Komisyon dönemi değişince eski teklifin snapshot'ı değişmez.
+13. Kabul edilmiş tekliften rezervasyon dönüşümü retry edildiğinde duplicate rezervasyon oluşmaz.
 
 ### 13.5 Hızlı teslim testleri
 

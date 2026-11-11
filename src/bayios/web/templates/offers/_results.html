@@ -1,0 +1,26 @@
+{% from "_pagination.html" import pagination %}
+<div class="card">
+  <div class="table-container">
+    <table class="data-table">
+      <thead><tr><th>Teklif</th><th>Müşteri</th><th>Tarih</th><th>Durum</th><th>Ödeme</th><th>Toplam</th><th class="col-actions">İşlem</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>#{{ row.offer_number }}</td>
+          <td><a href="/offers/{{ row.id }}">{{ row.customer_name or '—' }}</a></td>
+          <td>{{ row.created_at | tr_date }}</td>
+          <td><span class="badge {% if row.status == 'accepted' %}badge-success{% elif row.status == 'lost' or row.status == 'expired' %}badge-danger{% else %}badge-info{% endif %}">{{ status_labels.get(row.status, row.status) }}</span></td>
+          <td>{{ payment_labels.get(row.payment_type, row.payment_type) }}</td>
+          <td>{{ row.selected_total | tr_money }} TL</td>
+          <td class="col-actions"><a class="btn btn-sm" href="/offers/{{ row.id }}">Detay</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="muted" style="text-align: center; padding: 1.5rem;">Teklif bulunmuyor.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if total_pages > 1 %}
+  <div style="padding: 0 1rem 1rem;">{{ pagination(page, total_pages) }}</div>
+  {% endif %}
+</div>

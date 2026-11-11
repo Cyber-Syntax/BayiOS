@@ -1,0 +1,19 @@
+{% if products %}
+<div class="table-container">
+  <table class="data-table" style="min-width: 0;">
+    <thead><tr><th>Ürün</th><th>Normal</th><th>Oliz</th><th></th></tr></thead>
+    <tbody>
+      {% for product in products %}
+      <tr>
+        <td>{{ product.name }}</td>
+        <td>{{ product.regular_price | tr_money }} TL</td>
+        <td>{{ product.website_discounted_price | tr_money }} TL</td>
+        <td><button type="button" class="btn btn-sm" @click='addProduct("{{ product.id }}", {{ product.name | tojson }})'>Ekle</button></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="muted" style="margin: 0;">Ürün bulunamadı.</p>
+{% endif %}

@@ -15,7 +15,7 @@ MVP'de rol ve hesap yoktur. Her kullanıcı aynı sol navigasyonu görür:
 - Hızlı Teslim
 - Ayarlar
 
-Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya götürür. MVP'de Ana Sayfa, Ürünler, Kampanyalar, Stok/Sayım ve Rezervasyonlar aktiftir; diğer modüller navigasyonda "yakında" etiketiyle devre dışı görünür.
+Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya götürür. MVP'de Ana Sayfa, Ürünler, Kampanyalar, Teklifler, Komisyonlar, Stok/Sayım ve Rezervasyonlar aktiftir; diğer modüller navigasyonda "yakında" etiketiyle devre dışı görünür.
 
 ## Uygulama kabuğu
 
@@ -84,6 +84,24 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Kampanyalar ekranında global bayi indirimi varsayılanı ve değişiklik geçmişi yönetilir.
 - Kampanya listesi ve detayı A4 basılabilir; çıktı otomatik fiyat uygulaması değil, çalışan rehberidir.
 
+### Teklifler
+
+- Liste; müşteri/durum/tarih filtreleri ve teklif numarası, müşteri, tarih, durum, ödeme tipi, seçili toplam kolonlarıyla sayfalanır.
+- Yeni/düzenleme ekranı müşteri adı, telefon, not, ödeme tipi (nakit/kart), kartta kanal (POS/Ödero/Chippin), banka, taksit, kart tipi (bireysel/business) ve teklif genelinde bayi indirimi içerir.
+- Ürün satırlarında ürün arama, miktar, satır bazında tek kampanya ve hediye var/yok seçimi bulunur. Kampanya seçilirse Oliz uygulanmaz; iki kampanya birleşmez.
+- Her satırda toptan vadeli alış, normal fiyat, Oliz, seçilen kampanya fiyatı, bayi indirimi, önerilen nakit ve komisyonlu kart referansı gösterilir; nihai nakit/kart birim fiyatını çalışan girer. Floor veya kâr referansı altında uyarı verilir, kayıt engellenmez.
+- Detay ekranı toplamları, komisyon snapshot'ını, durum geçmişini ve iç kâr özetini gösterir; müşteri A4 çıktısında maliyet, iç kâr ve komisyon detayı bulunmaz.
+- Taslak teklif düzenlenebilir; sunuldu/kabul/lost/expired sonrası fiyat snapshot'ı değişmez. Kabul edilen tekliften rezervasyona dönüşüm retry edildiğinde aynı rezervasyon döner.
+
+### Komisyonlar
+
+- Aylık komisyon dönemleri listelenir; yeni dönem önceki dönemi kopyalayarak açılır, düzenlenir ve aktifleştirilir. Geçmiş dönem değişmez.
+- Kanal sekmeleri POS, Ödero ve Chippin'dir. POS ve Ödero banka bazlı, Chippin bankadan bağımsızdır.
+- Matris; ürün komisyon grubu ve taksit kolonlarıyla oran girişi sunar. Klima ayrı gruptur; TV standart oranı kullanır ama max 4 taksit, diğerleri max 5, Chippin max 6, business kart max 2 taksit olarak sınırlanır.
+- Ödero için 20.000 TL altı/üstü tutar bantları ayrı düzenlenir; eşik sepet toplamına uygulanır.
+- Limitler paneli kanal, banka/kanal, ürün grubu ve kart tipi limitlerini gösterir; etkin üst sınır canlı önizlenir.
+- Kategori komisyon grubu eşlemesi, değişiklik geçmişi ve P1 komisyon A4 listesi bulunur.
+
 ### Ürün Kataloğu İçe Aktarma
 
 - CSV ve Excel (.xlsx) dosyası yükleme; desteklenen format, fiyat, stok ve indirim kuralları ekranda açıklanır.
@@ -132,4 +150,4 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 
 ## Kapsam dışı
 
-Kimlik doğrulama, rol yönetimi, kamera/barkod çözümleme, teklif/hızlı teslim modüllerinin tam ekranları ve bu modüllerin yazdırma şablonlarının detaylı tasarımı bu UI sözleşmesinin kapsamı dışındadır. Bu modüller navigasyonda devre dışı görünür ve ilgili milestone'larda açılır.
+Kimlik doğrulama, rol yönetimi, kamera/barkod çözümleme, hızlı teslim modülünün tam ekranı ve yazdırma şablonunun detaylı tasarımı bu UI sözleşmesinin kapsamı dışındadır. Bu modül navigasyonda devre dışı görünür ve ilgili milestone'da açılır.

@@ -14,9 +14,18 @@ from bayios.adapters.db.models.base import MONEY, Base, uuid_pk
 
 class ProductCategory(Base):
     __tablename__ = "product_categories"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "commission_group IN ('klima', 'tv', 'other')",
+            name="commission_group_valid",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     name: Mapped[str] = mapped_column(sa.Text, unique=True)
+    commission_group: Mapped[str] = mapped_column(
+        sa.Text, server_default=sa.text("'other'")
+    )
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True), server_default=sa.func.now()
     )

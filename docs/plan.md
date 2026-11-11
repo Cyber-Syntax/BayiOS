@@ -406,27 +406,55 @@ Genel rule engine, optimal sepet seçimi, WMS/POS entegrasyonu ve otomatik satı
 
 ### Milestone 5 — Offer ve commissions
 
+**MVP sınırı**
+
+Komisyonlar aylık dönemler halinde yönetilir. POS ve Ödero banka bazlıdır; Chippin bankadan bağımsızdır. Klima ayrı komisyon grubudur; TV standart komisyon oranını kullanır ancak taksit limiti farklıdır. Ödero komisyonu sepet toplamına göre 20.000 TL altı/üstü olarak ayrılır. Business kart yalnızca taksit üst sınırını 2'ye indirir.
+
+Teklifler fiyat katmanlarını ve önerileri gösterir; nihai nakit/kart birim fiyatını çalışan girer. Kampanya satır bazında tek seçilir; kampanya seçilirse Oliz uygulanmaz ve iki kampanya birleşmez. Bayi indirimi teklif genelinde tek orandır ve teklif başına override edilebilir.
+
+Çoklu banka/taksit yan yana karşılaştırma, karma ödeme, otomatik POS fiyatı uygulaması ve genel kâr optimizasyonu M5 dışıdır.
+
+**Domain ve veri**
+
+- `commission_periods`: `period_key` (`YYYY-MM`), `valid_from`, `valid_until`, durum (`draft`, `active`, `archived`) ve `copied_from_id`. Ay başında yeni dönem önceki dönemi kopyalayarak açılır; geçmiş dönem değişmez.
+- `commission_rates`: dönem, kanal (`pos`, `odero`, `chippin`), banka (Chippin'de null), ürün grubu (`klima`, `other`), taksit ve Ödero tutar bandı (`under_20000`, `over_20000`); yüzde oran. TV oranı `other` grubunu kullanır.
+- `commission_limits`: dönem, kanal, banka, ürün grubu ve kart tipi için nullable kapsam alanları ve `max_installments`. Etkin üst sınır, eşleşen tüm limitlerin ve mevcut oran satırlarının minimumudur. Başlangıç limitleri: Yapı Kredi POS 8, Yapı Kredi Ödero 2, Ödero 5, Chippin 6, Klima 10, TV 4, diğer 5, business 2.
+- `profit_targets`: global veya ürün kapsamında yüzde/TL hedef; tanımsızsa referans fiyat üretilmez ve açık uyarı gösterilir.
+- `product_categories.commission_group`: `klima`, `tv`, `other`; Klima/TV kategori adlarıyla backfill edilir.
+- `offers`: teklif numarası, müşteri, durum, ödeme tipi, kanal, banka, taksit, kart tipi, bayi indirimi, komisyon snapshot'ı, toplamlar, not ve `converted_reservation_id`.
+- `offer_items`: ürün snapshot'ı, miktar, normal/Oliz/maliyet snapshot'ı, seçilen kampanya sürümü ve snapshot'ı, hediye var/yok, fiyat tabanı, önerilen ve nihai nakit/kart fiyatları, satır toplamları ve uyarı metni. Kampanya seçilirse Oliz kullanılmaz.
+- `offer_history`: durum değişiklikleri; sunuldu/kabul/lost/expired sonrası fiyat snapshot'ı değişmez.
+
 **Use-case akışları**
 
-1. Bank/taksit commission period CRUD.
-2. `CalculateReferencePrice`: cost + target profit / `(1 - commission)`; `Decimal`, `%0` ve undefined target profit guard'ları.
-3. Çok ürünlü Offer create/update; her kalemde fiyatlama, campaign, commission ve ürün adı snapshot'ı.
-4. Nakit/kart seçimi; tek bank/taksit constraint'i.
-5. Offer history ve A4 customer copy; cost/internal profit müşteri çıktısında yok.
-6. Açık `ConvertOfferToReservation` command'i; Offer immutable kalır, yeni Reservation snapshot'tan doğar ve retry idempotent'tir.
+1. Komisyon dönemi: yeni dönem aç, önceki ayı kopyala, matris ve limitleri düzenle, dönemi aktifleştir.
+2. Komisyon çözümleme: kanal + banka + ürün grubu + taksit + kart tipi + Ödero bandına göre oran ve etkin üst sınır; seçilen taksit geçersizse açık hata.
+3. `CalculateReferencePrice`: `(maliyet + hedef kâr) / (1 - komisyon)`; `%0` ve tanımsız hedef kâr guard'ları; `Decimal`, iki hane `ROUND_HALF_UP`.
+4. Teklif oluştur: müşteri/ödeme bilgisi, ürün ve miktarlar, satır bazında kampanya ve hediye seçimi; ürünün aktif kampanyası otomatik atanır, çalışan değiştirebilir veya kapatabilir; fiyat katmanlarını ve önerileri hesapla; manuel nakit/kart fiyatlarını al; toplamları kaydet.
+5. Teklif güncelle: yalnızca taslakta; satır ekle/çıkar ve fiyatları değiştir. Sunuldu ve sonrası fiyat snapshot'ı değişmez.
+6. Durum geçişi: `draft → presented → accepted | lost | expired`; her geçiş history'ye yazılır.
+7. A4: müşteri kopyasında maliyet, iç kâr ve komisyon detayı yok; ürün, miktar, birim/toplam fiyat, ödeme biçimi, banka/taksit ve kampanya açıklaması bulunur.
+8. `ConvertOfferToReservation`: kabul edilmiş teklif snapshot'ından rezervasyon üret; offer immutable kalır; retry aynı rezervasyonu döndürür.
+9. Komisyon ayarları: dönem listesi, kanal sekmeleri, matris, limitler, Ödero eşiği, kategori grup eşlemesi ve değişiklik geçmişi.
+10. Teklif listesi araması yazarken otomatik çalışır; sonuçlar HTMX ile Ara butonuna basılmadan güncellenir.
 
 **Davranış testleri**
 
-- 30.000 + 1.500 hedef ve %5 commission sonucu 33.157,89 TL'dir.
-- %0 commission sonucu cost + profit'tir.
-- Tanımsız hedef kâr açık uyarıdır.
-- Commission değişince eski Offer değişmez.
-- Multi-item Offer ve müşteri A4 çıktısı iç kâr sızdırmaz.
-- Conversion retry duplicate Reservation oluşturmaz.
+- 30.000 maliyet + 1.500 hedef kâr ve %5 komisyon → 33.157,89 TL.
+- %0 komisyon → maliyet + hedef kâr; tanımsız hedef kâr açık uyarı.
+- Yapı Kredi POS 2 taksit %4, 3 taksit %4,67.
+- Ödero 20.000 TL altı/üstü farklı oran; eşik sepet toplamına uygulanır.
+- Business kart max 2; TV max 4; Klima max 10; Chippin max 6; Yapı Kredi POS max 8, Ödero max 2; etkin sınır minimumdur.
+- Kampanya seçilince Oliz uygulanmaz; iki kampanya birleşmez. Ürünün aktif kampanyası teklif satırına otomatik atanır; çalışan değiştirebilir.
+- Teklif listesi araması yazarken otomatik çalışır; “Ara” butonuna basmadan sonuçlar güncellenir.
+- 50.000 normal / 46.000 Oliz / 45.000 düğün örneğinde %10 bayi indirimi 40.500 TL önerir; çalışan 40.000 veya 36.000 girebilir ve floor uyarısı engellemez.
+- Dönem/oran değişince eski teklif değişmez.
+- Multi-item teklif ve müşteri A4 çıktısı maliyet/iç kâr sızdırmaz.
+- Conversion retry duplicate rezervasyon oluşturmaz.
 
 **Çıkış kriteri**
 
-Offer geçmişi fiyat/commission değişimlerinden bağımsızdır; örnek hesaplar geçer; müşteri çıktısı iç verileri içermez.
+Komisyon dönemleri aylık yönetilir ve geçmiş korunur; teklifler fiyat/komisyon snapshot'ıyla bağımsızdır; örnek hesaplar ve limitler doğrudur; müşteri çıktısı iç veri içermez; kabul edilen teklif idempotent biçimde rezervasyona dönüşür.
 
 ### Milestone 6 — Hızlı Teslim / Code 128
 

@@ -8,9 +8,13 @@ from sqlalchemy.orm import Session, sessionmaker
 from bayios.adapters.db.repositories.campaigns import (
     SqlAlchemyCampaignRepository,
 )
+from bayios.adapters.db.repositories.commissions import (
+    SqlAlchemyCommissionRepository,
+)
 from bayios.adapters.db.repositories.dealer_pricing import (
     SqlAlchemyDealerPricingRepository,
 )
+from bayios.adapters.db.repositories.offers import SqlAlchemyOfferRepository
 from bayios.adapters.db.repositories.products import SqlAlchemyProductRepository
 from bayios.adapters.db.repositories.reservations import (
     SqlAlchemyReservationRepository,
@@ -29,6 +33,8 @@ class SqlAlchemyUnitOfWork:
         self._reservations: SqlAlchemyReservationRepository | None = None
         self._campaigns: SqlAlchemyCampaignRepository | None = None
         self._dealer_pricing: SqlAlchemyDealerPricingRepository | None = None
+        self._commissions: SqlAlchemyCommissionRepository | None = None
+        self._offers: SqlAlchemyOfferRepository | None = None
         self._committed = False
 
     @property
@@ -67,6 +73,18 @@ class SqlAlchemyUnitOfWork:
             raise RuntimeError("UnitOfWork is not active; use it as a context manager")
         return self._dealer_pricing
 
+    @property
+    def commissions(self) -> SqlAlchemyCommissionRepository:
+        if self._commissions is None:
+            raise RuntimeError("UnitOfWork is not active; use it as a context manager")
+        return self._commissions
+
+    @property
+    def offers(self) -> SqlAlchemyOfferRepository:
+        if self._offers is None:
+            raise RuntimeError("UnitOfWork is not active; use it as a context manager")
+        return self._offers
+
     def __enter__(self) -> Self:
         if self._session is not None:
             raise RuntimeError("UnitOfWork is already active")
@@ -76,6 +94,8 @@ class SqlAlchemyUnitOfWork:
         self._reservations = SqlAlchemyReservationRepository(self._session)
         self._campaigns = SqlAlchemyCampaignRepository(self._session)
         self._dealer_pricing = SqlAlchemyDealerPricingRepository(self._session)
+        self._commissions = SqlAlchemyCommissionRepository(self._session)
+        self._offers = SqlAlchemyOfferRepository(self._session)
         self._committed = False
         return self
 
@@ -100,6 +120,8 @@ class SqlAlchemyUnitOfWork:
             self._reservations = None
             self._campaigns = None
             self._dealer_pricing = None
+            self._commissions = None
+            self._offers = None
 
     def commit(self) -> None:
         self.session.commit()

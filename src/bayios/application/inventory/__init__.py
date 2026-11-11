@@ -13,6 +13,7 @@ from bayios.adapters.db.models.inventory import (
 from bayios.adapters.db.models.products import Product, ProductCategory
 from bayios.application.errors import ConflictError, NotFoundError, ValidationError
 from bayios.application.ports.unit_of_work import UnitOfWork
+from bayios.domain.commissions import commission_group_for_category_name
 from bayios.domain.inventory import CountSession, StockSummary, complete_count_session
 from bayios.domain.products import ActorContext
 
@@ -110,17 +111,44 @@ def list_categories(uow: UnitOfWork) -> Sequence[ProductCategory]:
         return uow.products.get_categories()
 
 
-def create_product_category(uow: UnitOfWork, name: str) -> ProductCategory:
+def create_product_category(
+    uow: UnitOfWork,
+    name: str,
+    commission_group: str | None = None,
+) -> ProductCategory:
     clean_name = name.strip()
     if not clean_name:
         raise ValidationError("Kategori adı boş olamaz.")
+    if commission_group is None:
+        commission_group = commission_group_for_category_name(clean_name).value
+    if commission_group not in {"klima", "tv", "other"}:
+        raise ValidationError("Geçersiz komisyon grubu.")
     with uow:
         if uow.products.get_category_by_name(clean_name) is not None:
             raise ValidationError(f"'{clean_name}' adında bir kategori zaten mevcut.")
-        category = ProductCategory(id=uuid.uuid4(), name=clean_name)
+        category = ProductCategory(
+            id=uuid.uuid4(),
+            name=clean_name,
+            commission_group=commission_group,
+        )
         uow.products.add_category(category)
         uow.commit()
         return category
+
+
+def update_product_category_group(
+    uow: UnitOfWork,
+    category_id: uuid.UUID,
+    commission_group: str,
+) -> None:
+    if commission_group not in {"klima", "tv", "other"}:
+        raise ValidationError("Geçersiz komisyon grubu.")
+    with uow:
+        category = uow.products.get_category(category_id)
+        if category is None:
+            raise NotFoundError("Kategori bulunamadı.")
+        category.commission_group = commission_group
+        uow.commit()
 
 
 def open_stock_count_session(

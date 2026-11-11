@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from decimal import Decimal
 from types import TracebackType
 from typing import Self
 
@@ -676,6 +677,216 @@ class FakeDealerPricingRepository:
         return rows[:limit]
 
 
+class FakeCommissionRepository:
+    def __init__(self) -> None:
+        self.periods: dict[uuid.UUID, object] = {}
+        self.rates: dict[uuid.UUID, list[object]] = {}
+        self.limits: dict[uuid.UUID, list[object]] = {}
+        self.banks: dict[uuid.UUID, object] = {}
+        self.targets: list[object] = []
+
+    def add_period(self, period: object) -> None:
+        self.periods[period.id] = period  # type: ignore[attr-defined]
+        self.rates.setdefault(period.id, [])  # type: ignore[attr-defined]
+        self.limits.setdefault(period.id, [])  # type: ignore[attr-defined]
+
+    def get_period(self, period_id: uuid.UUID) -> object | None:
+        return self.periods.get(period_id)
+
+    def get_period_by_key(self, period_key: str) -> object | None:
+        return next(
+            (
+                period
+                for period in self.periods.values()
+                if period.period_key == period_key  # type: ignore[attr-defined]
+            ),
+            None,
+        )
+
+    def get_active_period(self, as_of) -> object | None:
+        for period in self.periods.values():
+            if (
+                period.status == "active"  # type: ignore[attr-defined]
+                and period.valid_from <= as_of <= period.valid_until  # type: ignore[attr-defined]
+            ):
+                return period
+        return None
+
+    def list_periods(self, limit: int = 24) -> list[object]:
+        return sorted(
+            self.periods.values(),
+            key=lambda period: period.valid_from,  # type: ignore[attr-defined]
+            reverse=True,
+        )[:limit]
+
+    def set_period_status(self, period_id: uuid.UUID, status: str) -> None:
+        period = self.periods.get(period_id)
+        if period is not None:
+            period.status = status  # type: ignore[attr-defined]
+
+    def delete_period(self, period_id: uuid.UUID) -> None:
+        self.periods.pop(period_id, None)
+        self.rates.pop(period_id, None)
+        self.limits.pop(period_id, None)
+
+    def get_rates(self, period_id: uuid.UUID) -> list[object]:
+        return list(self.rates.get(period_id, []))
+
+    def get_rate(self, rate_id: uuid.UUID) -> object | None:
+        for bucket in self.rates.values():
+            for rate in bucket:
+                if rate.id == rate_id:  # type: ignore[attr-defined]
+                    return rate
+        return None
+
+    def add_rate(self, rate: object) -> None:
+        self.rates.setdefault(rate.period_id, []).append(rate)  # type: ignore[attr-defined]
+
+    def update_rate(self, rate_id: uuid.UUID, commission_percent: Decimal) -> None:
+        rate = self.get_rate(rate_id)
+        if rate is not None:
+            rate.commission_percent = commission_percent  # type: ignore[attr-defined]
+
+    def delete_rate(self, rate_id: uuid.UUID) -> None:
+        for period_id, bucket in self.rates.items():
+            self.rates[period_id] = [
+                rate for rate in bucket if rate.id != rate_id  # type: ignore[attr-defined]
+            ]
+
+    def delete_rates(self, period_id: uuid.UUID) -> None:
+        self.rates[period_id] = []
+
+    def get_limits(self, period_id: uuid.UUID) -> list[object]:
+        return list(self.limits.get(period_id, []))
+
+    def get_limit(self, limit_id: uuid.UUID) -> object | None:
+        for bucket in self.limits.values():
+            for limit in bucket:
+                if limit.id == limit_id:  # type: ignore[attr-defined]
+                    return limit
+        return None
+
+    def add_limit(self, limit: object) -> None:
+        self.limits.setdefault(limit.period_id, []).append(limit)  # type: ignore[attr-defined]
+
+    def update_limit(self, limit_id: uuid.UUID, max_installments: int) -> None:
+        limit = self.get_limit(limit_id)
+        if limit is not None:
+            limit.max_installments = max_installments  # type: ignore[attr-defined]
+
+    def delete_limit(self, limit_id: uuid.UUID) -> None:
+        for period_id, bucket in self.limits.items():
+            self.limits[period_id] = [
+                limit for limit in bucket if limit.id != limit_id  # type: ignore[attr-defined]
+            ]
+
+    def delete_limits(self, period_id: uuid.UUID) -> None:
+        self.limits[period_id] = []
+
+    def get_banks(self, active_only: bool = True) -> list[object]:
+        banks = sorted(self.banks.values(), key=lambda bank: bank.name)  # type: ignore[attr-defined]
+        if active_only:
+            banks = [bank for bank in banks if bank.is_active]  # type: ignore[attr-defined]
+        return banks
+
+    def add_bank(self, bank: object) -> None:
+        self.banks[bank.id] = bank  # type: ignore[attr-defined]
+
+    def get_profit_target(
+        self, *, scope_type: str, scope_id: uuid.UUID | None, as_of
+    ) -> object | None:
+        matches = [
+            target
+            for target in self.targets
+            if target.scope_type == scope_type  # type: ignore[attr-defined]
+            and target.scope_id == scope_id  # type: ignore[attr-defined]
+            and target.valid_from <= as_of  # type: ignore[attr-defined]
+            and (
+                target.valid_until is None  # type: ignore[attr-defined]
+                or target.valid_until >= as_of  # type: ignore[attr-defined]
+            )
+        ]
+        matches.sort(key=lambda target: target.valid_from, reverse=True)  # type: ignore[attr-defined]
+        return matches[0] if matches else None
+
+    def add_profit_target(self, target: object) -> None:
+        self.targets.append(target)
+
+    def set_category_group(
+        self, category_id: uuid.UUID, commission_group: str
+    ) -> None:
+        return None
+
+
+class FakeOfferRepository:
+    def __init__(self) -> None:
+        self.offers: dict[uuid.UUID, object] = {}
+        self.items: dict[uuid.UUID, list[object]] = {}
+        self.history: list[object] = []
+        self._next_number = 1
+
+    def add(self, offer: object) -> None:
+        if getattr(offer, "offer_number", None) is None:
+            offer.offer_number = self._next_number  # type: ignore[attr-defined]
+            self._next_number += 1
+        self.offers[offer.id] = offer  # type: ignore[attr-defined]
+        self.items.setdefault(offer.id, [])  # type: ignore[attr-defined]
+
+    def add_items(self, items) -> None:
+        for item in items:
+            self.items.setdefault(item.offer_id, []).append(item)
+
+    def get(self, offer_id: uuid.UUID):
+        return self.offers.get(offer_id)
+
+    def get_for_update(self, offer_id: uuid.UUID):
+        return self.get(offer_id)
+
+    def get_items(self, offer_id: uuid.UUID):
+        return list(self.items.get(offer_id, []))
+
+    def delete_items(self, offer_id: uuid.UUID) -> None:
+        self.items[offer_id] = []
+
+    def save(self, offer: object) -> None:
+        self.offers[offer.id] = offer  # type: ignore[attr-defined]
+
+    def list(self, *, status=None, query=None, limit=50, offset=0):
+        rows = sorted(
+            self.offers.values(),
+            key=lambda offer: (offer.created_at, offer.offer_number),  # type: ignore[attr-defined]
+            reverse=True,
+        )
+        if status:
+            rows = [row for row in rows if row.status == status]  # type: ignore[attr-defined]
+        if query and query.strip():
+            clean = query.strip().lower()
+            rows = [
+                row
+                for row in rows
+                if clean in (row.customer_name or "").lower()  # type: ignore[attr-defined]
+                or clean in (row.customer_phone or "").lower()  # type: ignore[attr-defined]
+            ]
+        total = len(rows)
+        return rows[offset : offset + limit], total
+
+    def add_history(self, history: object) -> None:
+        self.history.append(history)
+
+    def get_history(self, offer_id: uuid.UUID):
+        return [
+            row
+            for row in reversed(self.history)
+            if row.offer_id == offer_id  # type: ignore[attr-defined]
+        ]
+
+    def find_by_converted_reservation(self, reservation_id: uuid.UUID):
+        for offer in self.offers.values():
+            if offer.converted_reservation_id == reservation_id:  # type: ignore[attr-defined]
+                return offer
+        return None
+
+
 class FakeUnitOfWork:
     def __init__(self, repo: FakeProductRepository | None = None) -> None:
         self.products = repo or FakeProductRepository()
@@ -683,6 +894,8 @@ class FakeUnitOfWork:
         self.reservations = FakeReservationRepository(self.products)
         self.campaigns = FakeCampaignRepository()
         self.dealer_pricing = FakeDealerPricingRepository()
+        self.commissions = FakeCommissionRepository()
+        self.offers = FakeOfferRepository()
         self.committed = False
         self.rolled_back = False
         self._initial_state: tuple[object, ...] | None = None
@@ -838,6 +1051,11 @@ class FakeUnitOfWork:
                     for history in self.dealer_pricing.setting_history
                 )
             ),
+            len(self.commissions.periods),
+            len(self.commissions.targets),
+            len(self.offers.offers),
+            sum(len(bucket) for bucket in self.offers.items.values()),
+            len(self.offers.history),
         )
 
     def __enter__(self) -> Self:

@@ -363,3 +363,33 @@ def test_commit_with_all_skipped_shows_accurate_message(client: TestClient) -> N
     assert res.status_code == 200
     # Shows 0 new, 0 updated, 1 skipped!
     assert "0 yeni ürün eklendi, 0 ürün güncellendi, 1 satır atlandı" in res.text
+
+
+def test_product_edit_creates_category_with_commission_group(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = next(iter(fake_uow.products.get_all()))
+
+    response = client.post(
+        f"/products/{product.id}/edit",
+        data={
+            "name": product.name,
+            "regular_price": "38099",
+            "website_discounted_price": "34099",
+            "cost_price": "",
+            "category_id": "",
+            "new_category_name": "Klima",
+            "new_category_group": "klima",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    category = fake_uow.products.get_category_by_name("Klima")
+    assert category is not None
+    assert category.commission_group == "klima"
+    assert product.category_id == category.id
+
+    page = client.get(f"/products/{product.id}")
+    assert page.status_code == 200
+    assert "Klima" in page.text

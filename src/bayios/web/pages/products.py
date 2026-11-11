@@ -20,7 +20,10 @@ from bayios.application.errors import (
     ValidationError,
 )
 from bayios.application.imports import _normalize_decimal
-from bayios.application.inventory import list_categories
+from bayios.application.inventory import (
+    create_product_category,
+    list_categories,
+)
 from bayios.application.products import (
     adjust_product_stock,
     archive_products,
@@ -34,6 +37,7 @@ from bayios.application.products import (
     update_product,
 )
 from bayios.application.reservations import get_open_reservation_totals
+from bayios.domain.commissions import PRODUCT_GROUP_LABELS, ProductCommissionGroup
 from bayios.web.deps import ActorDep, UnitOfWorkDep
 from bayios.web.templating import templates
 
@@ -258,8 +262,13 @@ def update_product_route(
     website_discounted_price: Annotated[str | None, Form()] = None,
     cost_price: Annotated[str | None, Form()] = None,
     category_id: Annotated[str | None, Form()] = None,
+    new_category_name: Annotated[str | None, Form()] = None,
 ) -> Response:
     try:
+        resolved_category_id = _parse_uuid_form(category_id)
+        if new_category_name and new_category_name.strip():
+            category = create_product_category(uow, new_category_name)
+            resolved_category_id = category.id
         update_product(
             uow=uow,
             product_id=product_id,
@@ -267,10 +276,10 @@ def update_product_route(
             regular_price=_parse_decimal_form(regular_price),
             website_discounted_price=_parse_decimal_form(website_discounted_price),
             cost_price=_parse_decimal_form(cost_price),
-            category_id=_parse_uuid_form(category_id),
+            category_id=resolved_category_id,
             actor=actor,
         )
-    except ValueError as exc:
+    except (ValueError, ValidationError, NotFoundError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return RedirectResponse(
@@ -372,6 +381,24 @@ def product_detail(
 
     categories = list_categories(uow)
     category_names = {category.id: category.name for category in categories}
+    selected_category = next(
+        (
+            category
+            for category in categories
+            if category.id == detail.product.category_id
+        ),
+        None,
+    )
+    selected_category_group = (
+        getattr(selected_category, "commission_group", "other")
+        if selected_category is not None
+        else "other"
+    )
+    category_group_options = tuple(
+        (group.value, PRODUCT_GROUP_LABELS[group])
+        for group in ProductCommissionGroup
+    )
+    category_group_labels = dict(category_group_options)
     return templates.TemplateResponse(
         request,
         "products/detail.html",
@@ -383,6 +410,9 @@ def product_detail(
             "open_reservation": detail.open_reservation,
             "categories": categories,
             "category_name": category_names.get(detail.product.category_id),
+            "category_group_label": category_group_labels.get(
+                selected_category_group
+            ),
             "active_campaigns": list_active_campaigns_for_product(
                 uow, product_id
             ),

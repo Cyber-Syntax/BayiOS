@@ -24,6 +24,22 @@ _Avoid_: Campaign price, offer price
 The global default dealer discount percentage used by the campaign guide, defaulting to 10% and retaining a history of changes. It is a suggestion; a worker may override it per scenario.
 _Avoid_: Fixed dealer rate, commission rate
 
+**Commission period**:
+A monthly, effective-dated set of card commission rates and installment limits. A new period is normally copied from the previous month; past periods are immutable and offers keep their own commission snapshot.
+_Avoid_: Live commission table, editable history
+
+**Payment channel**:
+The route used for a card payment: physical POS, Ödero mail order, or Chippin. POS and Ödero rates vary by bank; Chippin is a bank-independent provider.
+_Avoid_: Payment method, bank
+
+**Product commission group**:
+The product classification used for commission rates and installment limits. Klima is a separate commission group; TV shares the standard commission rate but has a lower installment limit; other products form the standard group.
+_Avoid_: Category, campaign type
+
+**Offer snapshot**:
+The immutable record of product prices, selected campaign version, dealer discount, commission rate and final offer lines captured when an offer is created or updated.
+_Avoid_: Live offer recalculation, current price view
+
 **Customer**:
 A person or organization receiving an offer or delivery, identified by name and optionally by phone number.
 _Avoid_: Client, buyer, account

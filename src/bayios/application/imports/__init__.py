@@ -19,6 +19,7 @@ from bayios.adapters.db.models.products import (
     ProductPriceHistory,
 )
 from bayios.application.ports.unit_of_work import UnitOfWork
+from bayios.domain.commissions import commission_group_for_category_name
 from bayios.domain.products import (
     ActorContext,
     normalize_category_name,
@@ -177,7 +178,13 @@ def commit_product_import(
             existing_category = categories_by_norm.get(norm)
             if existing_category is not None:
                 return existing_category
-            category = ProductCategory(id=uuid.uuid4(), name=category_name.strip())
+            category = ProductCategory(
+                id=uuid.uuid4(),
+                name=category_name.strip(),
+                commission_group=commission_group_for_category_name(
+                    category_name
+                ).value,
+            )
             uow.products.add_category(category)
             categories[category.name] = category
             categories_by_norm[norm] = category

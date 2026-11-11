@@ -8,11 +8,19 @@ from bayios.adapters.db.models.campaigns import (
     DealerPricing,
     DealerPricingHistory,
 )
+from bayios.adapters.db.models.commissions import (
+    Bank,
+    CommissionLimit,
+    CommissionPeriod,
+    CommissionRate,
+    ProfitTarget,
+)
 from bayios.adapters.db.models.inventory import (
     StockCountItem,
     StockCountSession,
     StockMovement,
 )
+from bayios.adapters.db.models.offers import Offer, OfferHistory, OfferItem
 from bayios.adapters.db.models.products import (
     Product,
     ProductCategory,
@@ -27,18 +35,26 @@ from bayios.adapters.db.models.reservations import (
 )
 
 __all__ = [
+    "Bank",
     "Base",
     "Campaign",
     "CampaignVersion",
     "CampaignVersionProduct",
+    "CommissionLimit",
+    "CommissionPeriod",
+    "CommissionRate",
     "DealerDiscountSetting",
     "DealerDiscountSettingHistory",
     "DealerPricing",
     "DealerPricingHistory",
+    "Offer",
+    "OfferHistory",
+    "OfferItem",
     "Product",
     "ProductCategory",
     "ProductImportBatch",
     "ProductPriceHistory",
+    "ProfitTarget",
     "Reservation",
     "ReservationItem",
     "ReservationItemEvent",
