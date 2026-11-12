@@ -15,8 +15,11 @@
 - [ ] feat: teklif detayları excel ile iç/dış aktar
 - [ ] feat: rezervasyon detaylarını excel ile iç/dış aktar
 - [ ] teklif üzerinden otomatik rezerve açma
+- [ ] feat: teklif silme
 - [ ] tekliften otomatik ürün satışı yaparak stok düşme
 - [ ] ürünler detayında kapalı rezervasyonlar olarak gösterebiliriz.
+- [ ] feat: database backup otomatikleştirmek
+- [ ] feat: hızlı tüm komisyon, ürün vb. bilgilerin hepsini tek bir kerette excel ile dışarı almak, tüm excel dosyalarını. Ayarlar backup'a eklenebilir. Buna mantıksal veri dışa/içe aktarma json veya excel. Aynı zamanda json auto backup ile wsl backup yaparız, günlük, saatlik?
 
 ## in-progress
 
@@ -25,6 +28,7 @@
 
 ## good-to-have
 
+- [ ] style: mobilde responsive ui araştırması yap, belki excel gibi olmak yerine başka alternatif productive vardır.
 - [ ] ürün stok hareket geçmişindeden teklifi açıp görebilme özeliği eklenmeli
 - [ ] ürün eklerken, seçme box'ta kategori ekleyebilme
 - [ ] rezervasyonlar daha düzgün filtrelensin, şu an ilginç bir filtreleme var.
