@@ -9,6 +9,10 @@
 <div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif güncellendi.</span></div>
 {% elif msg == 'status' %}
 <div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif durumu güncellendi.</span></div>
+{% elif msg == 'reserved' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif için rezervasyon açıldı.</span></div>
+{% elif msg == 'sold' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif teslim edildi; fiziksel stok düşüldü.</span></div>
 {% elif msg and msg.startswith('error:') %}
 <div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
 {% endif %}
@@ -35,8 +39,21 @@
     <form method="post" action="/offers/{{ offer.id }}/status"><input type="hidden" name="target_status" value="lost"><button class="btn">Kaybedildi</button></form>
     <form method="post" action="/offers/{{ offer.id }}/status"><input type="hidden" name="target_status" value="expired"><button class="btn">Geçersiz</button></form>
     {% endif %}
-    {% if offer.status == 'accepted' and not offer.converted_reservation_id %}
-    <form method="post" action="/offers/{{ offer.id }}/convert"><button class="btn btn-primary">Rezervasyona Dönüştür</button></form>
+    {% if offer.converted_reservation_id %}
+    <a class="btn" href="/reservations/{{ offer.converted_reservation_id }}">Rezervasyonu Gör</a>
+    {% endif %}
+    {% if offer.status not in ('lost', 'expired') %}
+    {% if not offer.converted_reservation_id %}
+    <form method="post" action="/offers/{{ offer.id }}/reserve">
+      <button class="btn btn-primary" type="submit">Rezervasyon Aç</button>
+    </form>
+    {% endif %}
+    <form method="post" action="/offers/{{ offer.id }}/sell" style="display: flex; gap: .35rem; align-items: center; flex-wrap: wrap;">
+      <input type="text" name="low_stock_reason" class="form-control"
+             placeholder="Stok yetersizse gerekçe (ops.)"
+             style="width: 12rem; min-height: 32px; padding: .2rem .5rem;">
+      <button class="btn btn-danger" type="submit">Teslim Et (Hızlı Sat)</button>
+    </form>
     {% endif %}
   </div>
 </div>

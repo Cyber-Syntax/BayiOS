@@ -95,3 +95,50 @@ def test_create_cash_offer_from_ui(
     printed = client.get(f"{location.split('?')[0]}/print")
     assert printed.status_code == 200
     assert "Müşteri Teklifi" in printed.text
+
+
+def test_offer_detail_quick_reserve_and_sell_buttons(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = next(iter(fake_uow.products.get_all()))
+    created = client.post(
+        "/offers",
+        data={
+            "customer_name": "Ayşe Yılmaz",
+            "customer_phone": "555",
+            "payment_type": "cash",
+            "dealer_discount_percent": "10",
+            "product_id": str(product.id),
+            "quantity": "1",
+            "campaign_id": "",
+            "gift_present": "",
+            "unit_price_cash": "",
+            "unit_price_card": "",
+        },
+        follow_redirects=False,
+    )
+    assert created.status_code == 303
+    offer_id = created.headers["location"].split("?")[0].rsplit("/", 1)[-1]
+
+    detail = client.get(f"/offers/{offer_id}")
+    assert "Rezervasyon Aç" in detail.text
+    assert "Teslim Et (Hızlı Sat)" in detail.text
+
+    reserved = client.post(
+        f"/offers/{offer_id}/reserve", follow_redirects=False
+    )
+    assert reserved.status_code == 303
+    assert "msg=reserved" in reserved.headers["location"]
+    assert product.physical_stock == 1
+
+    sold = client.post(
+        f"/offers/{offer_id}/sell",
+        data={"low_stock_reason": ""},
+        follow_redirects=False,
+    )
+    assert sold.status_code == 303
+    assert "msg=sold" in sold.headers["location"]
+    assert product.physical_stock == 0
+
+    detail = client.get(f"/offers/{offer_id}")
+    assert "Rezervasyonu Gör" in detail.text

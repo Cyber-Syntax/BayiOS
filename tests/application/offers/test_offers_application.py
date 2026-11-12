@@ -184,3 +184,76 @@ def test_offer_auto_assigns_active_campaign() -> None:
     assert detail is not None
     assert detail.items[0].campaign_snapshot is not None
     assert detail.items[0].campaign_name_snapshot == "Düğün"
+
+
+def _quick_offer_fixture(stock: int = 5, quantity: int = 2):
+    uow = FakeUnitOfWork()
+    product = Product(
+        id=uuid.uuid4(),
+        name="Buzdolabı",
+        name_normalized="buzdolabı",
+        regular_price=Decimal("50000.00"),
+        cost_price=Decimal("36000.00"),
+        physical_stock=stock,
+    )
+    uow.products.add(product)
+    offer_id = create_offer(
+        uow,
+        OfferInput(
+            customer_name="Ayşe",
+            customer_phone=None,
+            payment_type=PaymentType.CASH,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product.id, quantity),),
+        ),
+    )
+    return uow, product, offer_id
+
+
+def test_reserve_offer_is_quick_and_idempotent() -> None:
+    from bayios.application.offers import reserve_offer
+
+    uow, product, offer_id = _quick_offer_fixture()
+    reservation_id = reserve_offer(uow, offer_id)
+    retry_id = reserve_offer(uow, offer_id)
+
+    assert retry_id == reservation_id
+    detail = get_offer_detail(uow, offer_id)
+    assert detail is not None
+    assert detail.offer.status == OfferStatus.ACCEPTED.value
+    assert detail.offer.converted_reservation_id == reservation_id
+    reservation = uow.reservations.get(reservation_id)
+    assert reservation is not None
+    assert len(uow.reservations.get_items(reservation_id)) == 1
+    assert product.physical_stock == 5
+
+
+def test_sell_offer_delivers_all_lines_and_reduces_stock() -> None:
+    from bayios.application.offers import sell_offer
+
+    uow, product, offer_id = _quick_offer_fixture(stock=5, quantity=2)
+    reservation_id = sell_offer(uow, offer_id)
+    retry_id = sell_offer(uow, offer_id)
+
+    assert retry_id == reservation_id
+    assert product.physical_stock == 3
+    lines = uow.reservations.get_items(reservation_id)
+    assert len(lines) == 1
+    assert lines[0].delivered_quantity == 2
+    assert lines[0].status == "delivered"
+    assert len(uow.products.get_stock_movements(product.id)) == 1
+
+
+def test_sell_offer_requires_reason_when_stock_is_insufficient() -> None:
+    from bayios.application.offers import sell_offer
+
+    uow, product, offer_id = _quick_offer_fixture(stock=1, quantity=2)
+    with pytest.raises(ValidationError, match="gerekçe"):
+        sell_offer(uow, offer_id)
+
+    reservation_id = sell_offer(
+        uow, offer_id, low_stock_reason="Müşteriye özel sipariş"
+    )
+    assert product.physical_stock == -1
+    lines = uow.reservations.get_items(reservation_id)
+    assert lines[0].delivered_quantity == 2

@@ -11,7 +11,11 @@ from bayios.application.campaigns import _contract_from_row
 from bayios.application.commissions import resolve_commission
 from bayios.application.errors import NotFoundError, ValidationError
 from bayios.application.ports.unit_of_work import UnitOfWork
-from bayios.application.reservations import NewReservationItem, create_reservation
+from bayios.application.reservations import (
+    NewReservationItem,
+    create_reservation,
+    deliver_item,
+)
 from bayios.domain.campaigns import CampaignPriceInput, campaign_scenarios
 from bayios.domain.commissions import (
     CardType,
@@ -584,6 +588,154 @@ def convert_offer_to_reservation(
             uow.offers.save(offer)
             uow.commit()
     return view.id
+
+
+def reserve_offer(
+    uow: UnitOfWork,
+    offer_id: uuid.UUID,
+    actor: ActorContext | None = None,
+) -> uuid.UUID:
+    """Create a reservation from an offer and mark the offer accepted.
+
+    This is the quick path from the offer detail screen. It is idempotent: an
+    offer that already has a converted reservation returns the same id.
+    """
+    actor = actor or ActorContext()
+    with uow:
+        offer = uow.offers.get_for_update(offer_id)
+        if offer is None:
+            raise NotFoundError("Teklif bulunamadı.")
+        if offer.converted_reservation_id is not None:
+            return offer.converted_reservation_id
+        if offer.status in (OfferStatus.LOST.value, OfferStatus.EXPIRED.value):
+            raise ValidationError(
+                "Kaybedilmiş veya geçersiz teklif rezervasyona dönüştürülemez."
+            )
+        items = uow.offers.get_items(offer_id)
+        reservation_items: list[NewReservationItem] = []
+        for item in items:
+            if item.product_id is None:
+                raise ValidationError(
+                    "Ürünü silinmiş teklif satırı rezervasyona dönüştürülemez."
+                )
+            reservation_items.append(
+                NewReservationItem(item.product_id, item.quantity)
+            )
+        if not reservation_items:
+            raise ValidationError("Teklifte rezervasyona alınacak ürün yok.")
+        customer_name = offer.customer_name or "Teklif müşterisi"
+        offer_number = offer.offer_number
+        note = f"Teklif #{offer_number} rezervasyonu"
+
+    view = create_reservation(
+        uow,
+        customer_name=customer_name,
+        items=reservation_items,
+        note=note,
+        actor=actor,
+    )
+    with uow:
+        offer = uow.offers.get_for_update(offer_id)
+        if offer is not None:
+            offer.converted_reservation_id = view.id
+            if offer.status != OfferStatus.ACCEPTED.value:
+                old_status = offer.status
+                offer.status = OfferStatus.ACCEPTED.value
+                uow.offers.add_history(
+                    OfferHistory(
+                        id=uuid.uuid4(),
+                        offer_id=offer.id,
+                        old_status=old_status,
+                        new_status=OfferStatus.ACCEPTED.value,
+                        note=f"Rezervasyon açıldı: #{view.reservation_number}",
+                        changed_at=datetime.now(UTC),
+                        changed_by_name=actor.worker_name,
+                        changed_by_device=actor.device_name,
+                    )
+                )
+            uow.offers.save(offer)
+            uow.commit()
+    return view.id
+
+
+def sell_offer(
+    uow: UnitOfWork,
+    offer_id: uuid.UUID,
+    *,
+    low_stock_reason: str | None = None,
+    actor: ActorContext | None = None,
+) -> uuid.UUID:
+    """Create a reservation from the offer and immediately deliver all lines.
+
+    Stock is reduced through the normal reservation delivery path so stock
+    movements and reservation events stay consistent. Repeated clicks are
+    idempotent per reservation line.
+    """
+    actor = actor or ActorContext()
+    reason = _clean(low_stock_reason)
+    with uow:
+        offer = uow.offers.get(offer_id)
+        if offer is None:
+            raise NotFoundError("Teklif bulunamadı.")
+        if offer.status in (OfferStatus.LOST.value, OfferStatus.EXPIRED.value):
+            raise ValidationError(
+                "Kaybedilmiş veya geçersiz teklif teslim edilemez."
+            )
+        offer_number = offer.offer_number
+
+    reservation_id = reserve_offer(uow, offer_id, actor)
+    with uow:
+        if uow.reservations.get(reservation_id) is None:
+            raise NotFoundError("Rezervasyon bulunamadı.")
+        lines = uow.reservations.get_items(reservation_id)
+        quantities: dict[uuid.UUID, int] = {}
+        for line in lines:
+            open_quantity = (
+                line.quantity - line.delivered_quantity - line.cancelled_quantity
+            )
+            if open_quantity <= 0:
+                continue
+            if line.product_id is None:
+                raise ValidationError(
+                    "Ürün kaydı silinmiş; teslimat yapılamaz."
+                )
+            quantities[line.product_id] = (
+                quantities.get(line.product_id, 0) + open_quantity
+            )
+        products = {
+            product.id: product
+            for product in uow.products.get_by_ids(list(quantities))
+        }
+        for product_id, quantity in quantities.items():
+            product = products.get(product_id)
+            if product is None:
+                raise ValidationError(
+                    "Ürün kaydı silinmiş; teslimat yapılamaz."
+                )
+            if quantity > product.physical_stock and reason is None:
+                raise ValidationError(
+                    "Fiziksel stok yetersiz; teslim için gerekçe girilmelidir."
+                )
+        actions = [
+            (
+                line.id,
+                line.quantity - line.delivered_quantity - line.cancelled_quantity,
+            )
+            for line in lines
+            if line.quantity - line.delivered_quantity - line.cancelled_quantity > 0
+        ]
+
+    for line_id, quantity in actions:
+        deliver_item(
+            uow,
+            line_id,
+            quantity=quantity,
+            idempotency_key=f"offer-sale:{offer_id}:{line_id}",
+            low_stock_reason=reason,
+            note=f"Teklif #{offer_number} hızlı satış",
+            actor=actor,
+        )
+    return reservation_id
 
 
 def _prepare_items(

@@ -21,6 +21,8 @@ from bayios.application.offers import (
     create_offer,
     get_offer_detail,
     list_offers,
+    reserve_offer,
+    sell_offer,
     set_offer_status,
     update_offer,
 )
@@ -235,6 +237,48 @@ def convert_offer_route(
             status_code=303,
         )
     return RedirectResponse(url=f"/reservations/{reservation_id}", status_code=303)
+
+
+@router.post("/{offer_id}/reserve")
+def reserve_offer_route(
+    offer_id: uuid.UUID, uow: UnitOfWorkDep, actor: ActorDep
+) -> RedirectResponse:
+    try:
+        reserve_offer(uow, offer_id, actor)
+    except (ValidationError, NotFoundError) as exc:
+        return RedirectResponse(
+            url=f"/offers/{offer_id}?{urlencode({'msg': f'error:{exc}'})}",
+            status_code=303,
+        )
+    return RedirectResponse(
+        url=f"/offers/{offer_id}?{urlencode({'msg': 'reserved'})}",
+        status_code=303,
+    )
+
+
+@router.post("/{offer_id}/sell")
+def sell_offer_route(
+    offer_id: uuid.UUID,
+    uow: UnitOfWorkDep,
+    actor: ActorDep,
+    low_stock_reason: Annotated[str | None, Form()] = None,
+) -> RedirectResponse:
+    try:
+        sell_offer(
+            uow,
+            offer_id,
+            low_stock_reason=low_stock_reason,
+            actor=actor,
+        )
+    except (ValidationError, NotFoundError) as exc:
+        return RedirectResponse(
+            url=f"/offers/{offer_id}?{urlencode({'msg': f'error:{exc}'})}",
+            status_code=303,
+        )
+    return RedirectResponse(
+        url=f"/offers/{offer_id}?{urlencode({'msg': 'sold'})}",
+        status_code=303,
+    )
 
 
 @router.get("/{offer_id}/print", response_class=HTMLResponse)

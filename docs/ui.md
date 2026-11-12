@@ -95,6 +95,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Detay ekranı toplamları, komisyon snapshot'ını, durum geçmişini ve iç kâr özetini gösterir; müşteri A4 çıktısında maliyet, iç kâr ve komisyon detayı bulunmaz.
 - Taslak teklif düzenlenebilir; sunuldu/kabul/lost/expired sonrası fiyat snapshot'ı değişmez. Kabul edilen tekliften rezervasyona dönüşüm retry edildiğinde aynı rezervasyon döner.
 - Detay ekranında "Kâr / Komisyon Özeti" kartı her zaman görünür; seçili taksitin komisyonu, kampanya/Oliz hakedişi, maliyet, kâr ve marjı gösterir. A4 müşteri çıktısında bu bilgiler yer almaz.
+- Teklif detayında iki hızlı işlem vardır: "Rezervasyon Aç" teklifi kabul edildi durumuna alıp rezervasyon oluşturur; "Teslim Et (Hızlı Sat)" aynı rezervasyonu açar ve tüm satırları teslim ederek fiziksel stoktan düşer. Stok yetersizse gerekçe alanı kullanılır; işlemler tekrar edildiğinde aynı rezervasyon kullanılır.
 - Listede "Excel İçe Aktar" ve "Excel Dışa Aktar" eylemleri vardır; dışa aktarılan çalışma kitabı Teklifler, Teklif Satırları ve Kâr Detayı sayfalarını içerir. İçe aktarma yalnızca taslak teklif oluşturur/günceller.
 
 ### Komisyonlar

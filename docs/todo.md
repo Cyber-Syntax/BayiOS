@@ -25,6 +25,7 @@
 
 ## good-to-have
 
+- [ ] ürün stok hareket geçmişindeden teklifi açıp görebilme özeliği eklenmeli
 - [ ] ürün eklerken, seçme box'ta kategori ekleyebilme
 - [ ] rezervasyonlar daha düzgün filtrelensin, şu an ilginç bir filtreleme var.
 - [ ] style: excel komisyon butonları oranlar solda, limitler sağda olsun
