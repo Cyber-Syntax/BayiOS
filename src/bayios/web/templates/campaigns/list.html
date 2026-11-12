@@ -12,6 +12,11 @@
 <div class="alert alert-success"><span><strong>Başarılı:</strong> Kampanya arşivden çıkarıldı.</span></div>
 {% elif msg == 'dealer_discount_updated' %}
 <div class="alert alert-success"><span><strong>Başarılı:</strong> Bayi indirimi varsayılanı güncellendi.</span></div>
+{% elif msg == 'import_success' %}
+<div class="alert alert-success">
+  <span><strong>Başarılı:</strong> Excel içe aktarıldı: {{ request.query_params.get('created', 0) }} yeni, {{ request.query_params.get('updated', 0) }} güncellenen, {{ request.query_params.get('skipped', 0) }} atlanan kayıt.</span>
+  {% if request.query_params.get('errors', '0') != '0' %}<span class="muted"> {{ request.query_params.get('errors') }} hatalı satır atlandı.</span>{% endif %}
+</div>
 {% elif msg and msg.startswith('error:') %}
 <div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
 {% endif %}
@@ -26,6 +31,8 @@
   </div>
   <div class="actions-group">
     <a class="btn btn-primary" href="/campaigns/new">Yeni Kampanya</a>
+    <a class="btn" href="/imports/campaigns">Excel İçe Aktar</a>
+    <a class="btn" href="/campaigns/export/xlsx?q={{ q | urlencode }}&campaign_type={{ campaign_type | urlencode }}&state={{ state | urlencode }}&date_from={{ date_from | urlencode }}&date_to={{ date_to | urlencode }}">Excel Dışa Aktar</a>
     <a class="btn" href="/campaigns/print?q={{ q | urlencode }}&campaign_type={{ campaign_type | urlencode }}&state={{ state | urlencode }}&date_from={{ date_from | urlencode }}&date_to={{ date_to | urlencode }}">A4 Liste</a>
   </div>
 </div>

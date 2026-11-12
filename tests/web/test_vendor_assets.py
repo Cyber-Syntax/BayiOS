@@ -51,3 +51,15 @@ def test_picker_copies_ghost_text_to_the_visible_input() -> None:
 
     assert "input.getAttribute(\"placeholder\")" in script
     assert "altInput.placeholder = placeholder" in script
+
+
+def test_sticky_table_scroll_asset_is_present_and_used_by_import_preview() -> None:
+    from bayios.web.templating import TEMPLATES_DIR
+
+    script = (STATIC_DIR / "js" / "table-scroll.js").read_text(encoding="utf-8")
+    assert "data-table-scroll" in script
+    assert "table-scroll-bar" in script
+    template = (TEMPLATES_DIR / "imports" / "preview.html").read_text(
+        encoding="utf-8"
+    )
+    assert "data-table-scroll" in template

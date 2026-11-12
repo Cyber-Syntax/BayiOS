@@ -98,60 +98,88 @@ def update_dealer_pricing(
         if product is None:
             raise NotFoundError("Ürün bulunamadı.")
 
-        pricing = uow.dealer_pricing.get_for_update(product_id)
-        if pricing is None:
-            pricing = DealerPricing(
-                id=uuid.uuid4(),
-                product_id=product_id,
-                cash_floor_price=cash,
-                card_floor_price=card,
-                note=_clean_text(note),
-                created_at=now,
-                updated_at=now,
-                updated_by_name=actor.worker_name,
-                updated_by_device=actor.device_name,
-            )
-            uow.dealer_pricing.add(pricing)
-            if cash is not None or card is not None:
-                uow.dealer_pricing.add_history(
-                    _pricing_history(
-                        product_id,
-                        old_cash=None,
-                        new_cash=cash,
-                        old_card=None,
-                        new_card=card,
-                        note=_clean_text(note),
-                        actor=actor,
-                        now=now,
-                    )
-                )
-        else:
-            old_cash = pricing.cash_floor_price
-            old_card = pricing.card_floor_price
-            changed = old_cash != cash or old_card != card
-            pricing.cash_floor_price = cash
-            pricing.card_floor_price = card
-            pricing.note = _clean_text(note)
-            pricing.updated_at = now
-            pricing.updated_by_name = actor.worker_name
-            pricing.updated_by_device = actor.device_name
-            if changed:
-                uow.dealer_pricing.add_history(
-                    _pricing_history(
-                        product_id,
-                        old_cash=old_cash,
-                        new_cash=cash,
-                        old_card=old_card,
-                        new_card=card,
-                        note=_clean_text(note),
-                        actor=actor,
-                        now=now,
-                    )
-                )
-
+        pricing = apply_dealer_pricing_values(
+            uow,
+            product_id=product_id,
+            cash_floor_price=cash,
+            card_floor_price=card,
+            note=note,
+            actor=actor,
+            now=now,
+        )
         uow.commit()
         history = uow.dealer_pricing.get_history(product_id)
         return _pricing_view(product_id, pricing, history)
+
+
+def apply_dealer_pricing_values(
+    uow: UnitOfWork,
+    *,
+    product_id: uuid.UUID,
+    cash_floor_price: Decimal | None,
+    card_floor_price: Decimal | None,
+    note: str | None,
+    actor: ActorContext,
+    now: datetime,
+) -> DealerPricing:
+    """Apply cash/card floor prices inside an active unit of work.
+
+    The caller owns the transaction; this helper never commits. It is shared by
+    the manual form and the Excel import so both write identical history rows.
+    """
+    pricing = uow.dealer_pricing.get_for_update(product_id)
+    clean_note = _clean_text(note)
+    if pricing is None:
+        pricing = DealerPricing(
+            id=uuid.uuid4(),
+            product_id=product_id,
+            cash_floor_price=cash_floor_price,
+            card_floor_price=card_floor_price,
+            note=clean_note,
+            created_at=now,
+            updated_at=now,
+            updated_by_name=actor.worker_name,
+            updated_by_device=actor.device_name,
+        )
+        uow.dealer_pricing.add(pricing)
+        if cash_floor_price is not None or card_floor_price is not None:
+            uow.dealer_pricing.add_history(
+                _pricing_history(
+                    product_id,
+                    old_cash=None,
+                    new_cash=cash_floor_price,
+                    old_card=None,
+                    new_card=card_floor_price,
+                    note=clean_note,
+                    actor=actor,
+                    now=now,
+                )
+            )
+        return pricing
+
+    old_cash = pricing.cash_floor_price
+    old_card = pricing.card_floor_price
+    changed = old_cash != cash_floor_price or old_card != card_floor_price
+    pricing.cash_floor_price = cash_floor_price
+    pricing.card_floor_price = card_floor_price
+    pricing.note = clean_note
+    pricing.updated_at = now
+    pricing.updated_by_name = actor.worker_name
+    pricing.updated_by_device = actor.device_name
+    if changed:
+        uow.dealer_pricing.add_history(
+            _pricing_history(
+                product_id,
+                old_cash=old_cash,
+                new_cash=cash_floor_price,
+                old_card=old_card,
+                new_card=card_floor_price,
+                note=clean_note,
+                actor=actor,
+                now=now,
+            )
+        )
+    return pricing
 
 
 def get_default_dealer_discount(

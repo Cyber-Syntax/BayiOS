@@ -16,6 +16,7 @@ from bayios.adapters.db.models.campaigns import (
     DealerPricing,
     DealerPricingHistory,
 )
+from bayios.adapters.db.models.imports import DataImportBatch
 from bayios.adapters.db.models.inventory import (
     StockCountItem,
     StockCountSession,
@@ -845,6 +846,12 @@ class FakeOfferRepository:
     def get_items(self, offer_id: uuid.UUID):
         return list(self.items.get(offer_id, []))
 
+    def get_items_for_offers(self, offer_ids):
+        return {
+            offer_id: list(self.items.get(offer_id, []))
+            for offer_id in offer_ids
+        }
+
     def delete_items(self, offer_id: uuid.UUID) -> None:
         self.items[offer_id] = []
 
@@ -887,6 +894,31 @@ class FakeOfferRepository:
         return None
 
 
+class FakeImportBatchRepository:
+    def __init__(self) -> None:
+        self.batches: dict[str, DataImportBatch] = {}
+
+    def get_by_token(self, commit_token: str) -> DataImportBatch | None:
+        for batch in self.batches.values():
+            if batch.commit_token == commit_token:
+                return batch
+        return None
+
+    def get_by_checksum(
+        self, module: str, source_checksum: str
+    ) -> DataImportBatch | None:
+        for batch in self.batches.values():
+            if (
+                batch.module == module
+                and batch.source_checksum == source_checksum
+            ):
+                return batch
+        return None
+
+    def add(self, batch: DataImportBatch) -> None:
+        self.batches[str(batch.id)] = batch
+
+
 class FakeUnitOfWork:
     def __init__(self, repo: FakeProductRepository | None = None) -> None:
         self.products = repo or FakeProductRepository()
@@ -896,6 +928,7 @@ class FakeUnitOfWork:
         self.dealer_pricing = FakeDealerPricingRepository()
         self.commissions = FakeCommissionRepository()
         self.offers = FakeOfferRepository()
+        self.import_batches = FakeImportBatchRepository()
         self.committed = False
         self.rolled_back = False
         self._initial_state: tuple[object, ...] | None = None
@@ -1056,6 +1089,7 @@ class FakeUnitOfWork:
             len(self.offers.offers),
             sum(len(bucket) for bucket in self.offers.items.values()),
             len(self.offers.history),
+            len(self.import_batches.batches),
         )
 
     def __enter__(self) -> Self:

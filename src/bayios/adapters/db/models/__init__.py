@@ -15,6 +15,7 @@ from bayios.adapters.db.models.commissions import (
     CommissionRate,
     ProfitTarget,
 )
+from bayios.adapters.db.models.imports import DataImportBatch
 from bayios.adapters.db.models.inventory import (
     StockCountItem,
     StockCountSession,
@@ -43,6 +44,7 @@ __all__ = [
     "CommissionLimit",
     "CommissionPeriod",
     "CommissionRate",
+    "DataImportBatch",
     "DealerDiscountSetting",
     "DealerDiscountSettingHistory",
     "DealerPricing",

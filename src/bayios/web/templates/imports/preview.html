@@ -54,16 +54,20 @@
     </div>
   </div>
 
-  <div class="table-container">
+  <div class="table-container" data-table-scroll>
     <table class="data-table">
       <thead>
         <tr>
           <th>Satır</th>
           <th>Ürün Adı</th>
           <th>Kategori</th>
-          <th>Normal Fiyat</th>
+          <th>Perakende</th>
           <th>Oliz / İndirimli</th>
           <th>Fiziksel Stok</th>
+          <th>Alış</th>
+          <th>Kart Taban</th>
+          <th>Nakit Taban</th>
+          <th>Aktif Kampanya</th>
           <th>Karar</th>
           <th>Hata / Uyarı</th>
         </tr>
@@ -105,6 +109,14 @@
             <small class="muted">(Değişmez)</small>
             {% endif %}
           </td>
+          <td>{% if row.cost_price %}{{ row.cost_price }} TL{% elif row.clear_cost_price %}<span class="muted">Temizle</span>{% else %}<small class="muted">(Değişmez)</small>{% endif %}</td>
+          <td>{% if row.card_floor_price %}{{ row.card_floor_price }} TL{% elif row.clear_card_floor_price %}<span class="muted">Temizle</span>{% else %}<small class="muted">(Değişmez)</small>{% endif %}</td>
+          <td>{% if row.cash_floor_price %}{{ row.cash_floor_price }} TL{% elif row.clear_cash_floor_price %}<span class="muted">Temizle</span>{% else %}<small class="muted">(Değişmez)</small>{% endif %}</td>
+          <td>{% if row.active_campaigns %}{{ row.active_campaigns }}{% else %}<small class="muted">—</small>{% endif %}</td>
+          <td>{% if row.cost_price %}{{ row.cost_price }} TL{% elif row.clear_cost_price %}<span class="muted">Temizle</span>{% else %}<small class="muted">(Değişmez)</small>{% endif %}</td>
+          <td>{% if row.card_floor_price %}{{ row.card_floor_price }} TL{% elif row.clear_card_floor_price %}<span class="muted">Temizle</span>{% else %}<small class="muted">(Değişmez)</small>{% endif %}</td>
+          <td>{% if row.cash_floor_price %}{{ row.cash_floor_price }} TL{% elif row.clear_cash_floor_price %}<span class="muted">Temizle</span>{% else %}<small class="muted">(Değişmez)</small>{% endif %}</td>
+          <td>{% if row.active_campaigns %}{{ row.active_campaigns }}{% else %}<small class="muted">—</small>{% endif %}</td>
           <td>
             {% if row.errors %}
             <select class="form-control decision-select"

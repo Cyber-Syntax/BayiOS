@@ -18,7 +18,14 @@ from bayios.adapters.db.models.products import (
     ProductImportBatch,
     ProductPriceHistory,
 )
+from bayios.application.dealer_pricing import apply_dealer_pricing_values
 from bayios.application.ports.unit_of_work import UnitOfWork
+from bayios.application.tabular import (
+    ColumnSpec,
+    SheetSpec,
+    normalize_header,
+    write_xlsx,
+)
 from bayios.domain.commissions import commission_group_for_category_name
 from bayios.domain.products import (
     ActorContext,
@@ -36,6 +43,14 @@ class ProductImportRow:
     regular_price: str | None = None
     website_discounted_price: str | None = None
     quantity: str | None = None
+    cost_price: str | None = None
+    cash_floor_price: str | None = None
+    card_floor_price: str | None = None
+    active_campaigns: str | None = None
+    clear_cost_price: bool = False
+    clear_cash_floor_price: bool = False
+    clear_card_floor_price: bool = False
+    clear_website_discounted_price: bool = False
     errors: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
 
@@ -65,38 +80,88 @@ def preview_product_import(
     rows: list[ProductImportRow] = []
 
     for row_number, raw_row in enumerate(_source_rows(source), start=2):
-        raw_product_name = _value(raw_row, "product_name", "name")
+        raw_product_name = _value(
+            raw_row, "product_name", "product name", "name", "ürün adı", "urun adi"
+        )
         product_name = (
             unicodedata.normalize("NFKC", raw_product_name).strip()
             if raw_product_name
             else ""
         )
-        regular_price = _value(raw_row, "regular_price", "regular price")
+        regular_price = _value(
+            raw_row,
+            "regular_price",
+            "regular price",
+            "perakende fiyat",
+            "normal fiyat",
+        )
         discounted_price = _value(
             raw_row,
             "website_discounted_price",
             "website discounted price",
+            "oliz indirimli fiyat",
+            "oliz fiyatı",
+            "indirimli fiyat",
         )
-        quantity = _value(raw_row, "quantity")
+        quantity = _value(
+            raw_row, "quantity", "fiziksel stok", "stok", "adet"
+        )
         category_name = _value(raw_row, "category", "category_name", "kategori")
+        cost_raw = _value(
+            raw_row, "cost_price", "cost price", "alış fiyatı", "alis fiyati", "maliyet"
+        )
+        cash_raw = _value(
+            raw_row,
+            "cash_floor_price",
+            "cash floor price",
+            "nakit taban fiyatı",
+            "nakit taban fiyati",
+        )
+        card_raw = _value(
+            raw_row,
+            "card_floor_price",
+            "card floor price",
+            "kredi kartı taban fiyatı",
+            "kart taban fiyatı",
+        )
+        active_campaigns = _value(
+            raw_row,
+            "active_campaigns",
+            "active campaign",
+            "aktif kampanya",
+            "kampanya",
+        )
         if category_name:
             category_name = unicodedata.normalize("NFKC", category_name).strip()
         errors: list[str] = []
         warnings: list[str] = []
 
         if not product_name:
-            errors.append("Name is required")
+            errors.append("Ürün adı zorunludur.")
         elif not re.fullmatch(r"[0-9A-Z]+(?: [0-9A-Z]+)*", product_name.upper()):
-            warnings.append("Name format may need review")
+            warnings.append("Ürün adı biçimi kontrol edilmeli.")
         normalized_price = _normalize_decimal(regular_price)
         if regular_price and normalized_price is None:
-            errors.append("Regular Price must be a number")
-        normalized_discounted_price = _normalize_decimal(discounted_price)
-        if discounted_price and normalized_discounted_price is None:
-            errors.append("Website Discounted Price must be a number")
+            errors.append("Perakende fiyat sayısal olmalıdır.")
+        normalized_discounted_price, clear_discounted = _optional_price(
+            discounted_price, "Oliz indirimli fiyat", errors
+        )
         normalized_quantity = _normalize_quantity(quantity)
         if quantity and normalized_quantity is None:
-            errors.append("Quantity must be a non-negative integer")
+            errors.append("Fiziksel stok negatif olmayan tam sayı olmalıdır.")
+        normalized_cost, clear_cost = _optional_price(
+            cost_raw, "Alış fiyatı", errors
+        )
+        normalized_cash, clear_cash = _optional_price(
+            cash_raw, "Nakit taban fiyatı", errors
+        )
+        normalized_card, clear_card = _optional_price(
+            card_raw, "Kredi kartı taban fiyatı", errors
+        )
+        if active_campaigns:
+            warnings.append(
+                "Aktif Kampanya salt okunurdur; kampanyalar sekmesinden yönetilir."
+            )
 
         if errors:
             decision = "error"
@@ -114,6 +179,14 @@ def preview_product_import(
                 regular_price=normalized_price,
                 website_discounted_price=normalized_discounted_price,
                 quantity=normalized_quantity,
+                cost_price=normalized_cost,
+                cash_floor_price=normalized_cash,
+                card_floor_price=normalized_card,
+                active_campaigns=active_campaigns or None,
+                clear_cost_price=clear_cost,
+                clear_cash_floor_price=clear_cash,
+                clear_card_floor_price=clear_card,
+                clear_website_discounted_price=clear_discounted,
                 errors=tuple(errors),
                 warnings=tuple(warnings),
             )
@@ -121,6 +194,36 @@ def preview_product_import(
 
     rows.sort(key=lambda r: (0 if r.is_problematic else 1, r.row_number))
     return ProductImportPreview(rows=tuple(rows))
+
+
+def product_import_template() -> bytes:
+    sheet = SheetSpec(
+        title="Ürünler",
+        columns=(
+            ColumnSpec("Ürün Adı", "product_name", "text", 32),
+            ColumnSpec("Kategori", "category", "text", 22),
+            ColumnSpec("Perakende Fiyat", "regular_price", "money", 16),
+            ColumnSpec("Oliz İndirimli Fiyat", "website_discounted_price", "money", 18),
+            ColumnSpec("Fiziksel Stok", "physical_stock", "int", 14),
+            ColumnSpec("Alış Fiyatı", "cost_price", "money", 14),
+            ColumnSpec("Kredi Kartı Taban Fiyatı", "card_floor_price", "money", 22),
+            ColumnSpec("Nakit Taban Fiyatı", "cash_floor_price", "money", 20),
+            ColumnSpec("Aktif Kampanya", "active_campaigns", "text", 34),
+        ),
+        rows=(),
+        instructions=(
+            ("Ürün Adı", "Zorunlu", "Ürün kimliği; baştaki sıfırlar korunur."),
+            ("Kategori", "Opsiyonel", "Boşsa mevcut kategori korunur; yeni ad otomatik oluşturulur."),
+            ("Perakende Fiyat", "Opsiyonel", "Boşsa korunur; - yazılırsa temizlenir."),
+            ("Oliz İndirimli Fiyat", "Opsiyonel", "Boşsa korunur; - yazılırsa temizlenir."),
+            ("Fiziksel Stok", "Opsiyonel", "Boşsa korunur; 0 stoğu sıfırlar."),
+            ("Alış Fiyatı", "Opsiyonel", "Maliyet fiyatı; boşsa korunur, - temizler."),
+            ("Kredi Kartı Taban Fiyatı", "Opsiyonel", "Boşsa korunur; - temizler."),
+            ("Nakit Taban Fiyatı", "Opsiyonel", "Boşsa korunur; - temizler."),
+            ("Aktif Kampanya", "Salt okunur", "İçe aktarmada kullanılmaz."),
+        ),
+    )
+    return write_xlsx((sheet,), include_instructions=True)
 
 
 def commit_product_import(
@@ -157,7 +260,10 @@ def commit_product_import(
 
         # First fetch existing products for matching by reading names
         raw_rows = list(_source_rows(source))
-        raw_names = [_value(r, "product_name", "name") for r in raw_rows]
+        raw_names = [
+            _value(r, "product_name", "product name", "name", "ürün adı", "urun adi")
+            for r in raw_rows
+        ]
         normalized_names = [
             normalize_product_name(unicodedata.normalize("NFKC", n).strip())
             for n in raw_names
@@ -222,6 +328,13 @@ def commit_product_import(
                     if row.website_discounted_price
                     else None
                 )
+                cost_price = Decimal(row.cost_price) if row.cost_price else None
+                cash_floor = (
+                    Decimal(row.cash_floor_price) if row.cash_floor_price else None
+                )
+                card_floor = (
+                    Decimal(row.card_floor_price) if row.card_floor_price else None
+                )
                 qty = int(row.quantity) if row.quantity is not None else 0
 
                 prod_id = uuid.uuid4()
@@ -232,10 +345,15 @@ def commit_product_import(
                     name_normalized=norm_name,
                     regular_price=reg_price,
                     website_discounted_price=disc_price,
+                    cost_price=cost_price,
                     physical_stock=qty,
                     category_id=category.id if category else None,
                     last_seen_at=now,
-                    last_price_changed_at=now if (reg_price or disc_price) else None,
+                    last_price_changed_at=(
+                        now
+                        if (reg_price or disc_price or cost_price)
+                        else None
+                    ),
                 )
                 uow.products.add(product)
                 existing_products[norm_name] = product
@@ -268,6 +386,30 @@ def commit_product_import(
                             changed_by_name=actor.worker_name,
                             changed_by_device=actor.device_name,
                         )
+                    )
+                if cost_price is not None:
+                    uow.products.add_price_history(
+                        ProductPriceHistory(
+                            id=uuid.uuid4(),
+                            product_id=prod_id,
+                            field_name="cost_price",
+                            old_value=None,
+                            new_value=cost_price,
+                            source="csv_import",
+                            changed_at=now,
+                            changed_by_name=actor.worker_name,
+                            changed_by_device=actor.device_name,
+                        )
+                    )
+                if cash_floor is not None or card_floor is not None:
+                    apply_dealer_pricing_values(
+                        uow,
+                        product_id=prod_id,
+                        cash_floor_price=cash_floor,
+                        card_floor_price=card_floor,
+                        note=f"Excel içe aktarma: {file_name}",
+                        actor=actor,
+                        now=now,
                     )
                 if qty > 0:
                     uow.products.add_stock_movement(
@@ -312,7 +454,10 @@ def commit_product_import(
                         existing.regular_price = new_reg
                         existing.last_price_changed_at = now
 
-                if chosen_decision == "clear_discount":
+                if (
+                    chosen_decision == "clear_discount"
+                    or row.clear_website_discounted_price
+                ):
                     if existing.website_discounted_price is not None:
                         uow.products.add_price_history(
                             ProductPriceHistory(
@@ -347,6 +492,128 @@ def commit_product_import(
                         )
                         existing.website_discounted_price = new_disc
                         existing.last_price_changed_at = now
+
+                new_cost: Decimal | None = existing.cost_price
+                if row.clear_cost_price:
+                    new_cost = None
+                elif row.cost_price is not None:
+                    new_cost = Decimal(row.cost_price)
+                if new_cost != existing.cost_price:
+                    uow.products.add_price_history(
+                        ProductPriceHistory(
+                            id=uuid.uuid4(),
+                            product_id=existing.id,
+                            field_name="cost_price",
+                            old_value=existing.cost_price,
+                            new_value=new_cost,
+                            source="csv_import",
+                            changed_at=now,
+                            changed_by_name=actor.worker_name,
+                            changed_by_device=actor.device_name,
+                        )
+                    )
+                    existing.cost_price = new_cost
+                    existing.last_price_changed_at = now
+
+                current_pricing = uow.dealer_pricing.get(existing.id)
+                new_cash = (
+                    current_pricing.cash_floor_price
+                    if current_pricing is not None
+                    else None
+                )
+                new_card = (
+                    current_pricing.card_floor_price
+                    if current_pricing is not None
+                    else None
+                )
+                floor_touched = False
+                if row.clear_cash_floor_price:
+                    new_cash = None
+                    floor_touched = True
+                elif row.cash_floor_price is not None:
+                    new_cash = Decimal(row.cash_floor_price)
+                    floor_touched = True
+                if row.clear_card_floor_price:
+                    new_card = None
+                    floor_touched = True
+                elif row.card_floor_price is not None:
+                    new_card = Decimal(row.card_floor_price)
+                    floor_touched = True
+                if floor_touched and (
+                    current_pricing is not None
+                    or new_cash is not None
+                    or new_card is not None
+                ):
+                    apply_dealer_pricing_values(
+                        uow,
+                        product_id=existing.id,
+                        cash_floor_price=new_cash,
+                        card_floor_price=new_card,
+                        note=f"Excel içe aktarma: {file_name}",
+                        actor=actor,
+                        now=now,
+                    )
+
+                new_cost: Decimal | None = existing.cost_price
+                if row.clear_cost_price:
+                    new_cost = None
+                elif row.cost_price is not None:
+                    new_cost = Decimal(row.cost_price)
+                if new_cost != existing.cost_price:
+                    uow.products.add_price_history(
+                        ProductPriceHistory(
+                            id=uuid.uuid4(),
+                            product_id=existing.id,
+                            field_name="cost_price",
+                            old_value=existing.cost_price,
+                            new_value=new_cost,
+                            source="csv_import",
+                            changed_at=now,
+                            changed_by_name=actor.worker_name,
+                            changed_by_device=actor.device_name,
+                        )
+                    )
+                    existing.cost_price = new_cost
+                    existing.last_price_changed_at = now
+
+                current_pricing = uow.dealer_pricing.get(existing.id)
+                new_cash = (
+                    current_pricing.cash_floor_price
+                    if current_pricing is not None
+                    else None
+                )
+                new_card = (
+                    current_pricing.card_floor_price
+                    if current_pricing is not None
+                    else None
+                )
+                floor_touched = False
+                if row.clear_cash_floor_price:
+                    new_cash = None
+                    floor_touched = True
+                elif row.cash_floor_price is not None:
+                    new_cash = Decimal(row.cash_floor_price)
+                    floor_touched = True
+                if row.clear_card_floor_price:
+                    new_card = None
+                    floor_touched = True
+                elif row.card_floor_price is not None:
+                    new_card = Decimal(row.card_floor_price)
+                    floor_touched = True
+                if floor_touched and (
+                    current_pricing is not None
+                    or new_cash is not None
+                    or new_card is not None
+                ):
+                    apply_dealer_pricing_values(
+                        uow,
+                        product_id=existing.id,
+                        cash_floor_price=new_cash,
+                        card_floor_price=new_card,
+                        note=f"Excel içe aktarma: {file_name}",
+                        actor=actor,
+                        now=now,
+                    )
 
                 if row.quantity is not None:
                     new_qty = int(row.quantity)
@@ -434,11 +701,29 @@ def _detect_delimiter(text: str) -> str:
 
 
 def _value(row: dict[str, str | None], *headers: str) -> str:
+    normalized_headers = {normalize_header(header) for header in headers}
     for key, value in row.items():
-        normalized_key = key.strip().casefold().replace(" ", "_") if key else ""
-        if normalized_key in headers:
+        if key and normalize_header(key) in normalized_headers:
             return (value or "").strip()
     return ""
+
+
+def _is_clear(value: str) -> bool:
+    cleaned = value.strip().casefold()
+    return cleaned in {"-", "temizle", "clear", "yok", "sil"}
+
+
+def _optional_price(
+    value: str, label: str, errors: list[str]
+) -> tuple[str | None, bool]:
+    if not value:
+        return None, False
+    if _is_clear(value):
+        return None, True
+    normalized = _normalize_decimal(value)
+    if normalized is None:
+        errors.append(f"{label} sayısal olmalıdır.")
+    return normalized, False
 
 
 def _normalize_decimal(value: str) -> str | None:

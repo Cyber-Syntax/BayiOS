@@ -14,6 +14,7 @@ from bayios.adapters.db.repositories.commissions import (
 from bayios.adapters.db.repositories.dealer_pricing import (
     SqlAlchemyDealerPricingRepository,
 )
+from bayios.adapters.db.repositories.imports import SqlAlchemyImportBatchRepository
 from bayios.adapters.db.repositories.offers import SqlAlchemyOfferRepository
 from bayios.adapters.db.repositories.products import SqlAlchemyProductRepository
 from bayios.adapters.db.repositories.reservations import (
@@ -35,6 +36,7 @@ class SqlAlchemyUnitOfWork:
         self._dealer_pricing: SqlAlchemyDealerPricingRepository | None = None
         self._commissions: SqlAlchemyCommissionRepository | None = None
         self._offers: SqlAlchemyOfferRepository | None = None
+        self._import_batches: SqlAlchemyImportBatchRepository | None = None
         self._committed = False
 
     @property
@@ -85,6 +87,12 @@ class SqlAlchemyUnitOfWork:
             raise RuntimeError("UnitOfWork is not active; use it as a context manager")
         return self._offers
 
+    @property
+    def import_batches(self) -> SqlAlchemyImportBatchRepository:
+        if self._import_batches is None:
+            raise RuntimeError("UnitOfWork is not active; use it as a context manager")
+        return self._import_batches
+
     def __enter__(self) -> Self:
         if self._session is not None:
             raise RuntimeError("UnitOfWork is already active")
@@ -96,6 +104,7 @@ class SqlAlchemyUnitOfWork:
         self._dealer_pricing = SqlAlchemyDealerPricingRepository(self._session)
         self._commissions = SqlAlchemyCommissionRepository(self._session)
         self._offers = SqlAlchemyOfferRepository(self._session)
+        self._import_batches = SqlAlchemyImportBatchRepository(self._session)
         self._committed = False
         return self
 
@@ -122,6 +131,7 @@ class SqlAlchemyUnitOfWork:
             self._dealer_pricing = None
             self._commissions = None
             self._offers = None
+            self._import_batches = None
 
     def commit(self) -> None:
         self.session.commit()

@@ -22,6 +22,7 @@ from bayios.application.inventory import (
     refresh_stock_count_session,
     save_counted_quantities,
 )
+from bayios.application.inventory.io import export_stock_xlsx
 from bayios.application.ports.unit_of_work import UnitOfWork
 from bayios.web.deps import ActorDep, UnitOfWorkDep
 from bayios.web.templating import templates
@@ -211,6 +212,22 @@ def complete_session_route(
         return _render_session(request, uow, session_id, error=str(exc), status_code=400)
     return RedirectResponse(
         url=f"/stock/sessions/{session_id}?msg=completed", status_code=303
+    )
+
+
+@router.get("/export/xlsx")
+def export_stock_route(
+    uow: UnitOfWorkDep,
+    category_id: Annotated[str | None, Query()] = None,
+    q: Annotated[str | None, Query()] = None,
+) -> Response:
+    content = export_stock_xlsx(
+        uow, category_id=_optional_uuid(category_id), query=q
+    )
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=bayios-stok.xlsx"},
     )
 
 

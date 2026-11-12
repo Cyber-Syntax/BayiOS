@@ -17,6 +17,10 @@ class ConflictError(ApplicationError):
     """Concurrent change or stale snapshot prevents the operation."""
 
 
+class ImportFormatError(ValidationError):
+    """An uploaded tabular file cannot be parsed or lacks required headers."""
+
+
 class ProductAlreadyExistsError(ValidationError):
     """A product with the same normalized name is already in the catalog."""
 

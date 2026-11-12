@@ -244,3 +244,63 @@ def test_commit_duplicate_checksum_is_idempotent() -> None:
     assert r2.created_count == 1
     assert r2.batch_id == r1.batch_id
     assert len(uow.products.get_all()) == 1
+
+
+def test_commit_parses_turkish_cost_and_dealer_floor_prices() -> None:
+    uow = FakeUnitOfWork()
+    csv_bytes = (
+        "Ürün Adı,Kategori,Perakende Fiyat,Oliz İndirimli Fiyat,Fiziksel Stok,Alış Fiyatı,Kredi Kartı Taban Fiyatı,Nakit Taban Fiyatı,Aktif Kampanya\n"
+        "OCD T 601-1 EG,,38099,34099,5,25000,37000,36000,Kasım İndirimi\n"
+    ).encode()
+
+    result = commit_product_import(
+        uow=uow,
+        file_name="urunler.csv",
+        file_type="csv",
+        source=csv_bytes,
+    )
+
+    assert result.created_count == 1
+    product = uow.products.get_by_normalized_name("ocd t 601-1 eg")
+    assert product is not None
+    assert product.cost_price == Decimal(25000)
+    pricing = uow.dealer_pricing.get(product.id)
+    assert pricing is not None
+    assert pricing.cash_floor_price == Decimal(36000)
+    assert pricing.card_floor_price == Decimal(37000)
+    assert {row.field_name for row in uow.products.get_price_history(product.id)} == {
+        "regular_price",
+        "website_discounted_price",
+        "cost_price",
+    }
+
+
+def test_commit_clears_cost_and_floor_prices_with_dash() -> None:
+    uow = FakeUnitOfWork()
+    commit_product_import(
+        uow=uow,
+        file_name="ilk.csv",
+        file_type="csv",
+        source=(
+            "Ürün Adı,Perakende Fiyat,Alış Fiyatı,Kredi Kartı Taban Fiyatı,Nakit Taban Fiyatı\n"
+            "OCD T 601-1 EG,38099,25000,37000,36000\n"
+        ).encode(),
+    )
+    product = uow.products.get_by_normalized_name("ocd t 601-1 eg")
+    assert product is not None
+
+    commit_product_import(
+        uow=uow,
+        file_name="ikinci.csv",
+        file_type="csv",
+        source=(
+            "Ürün Adı,Alış Fiyatı,Kredi Kartı Taban Fiyatı,Nakit Taban Fiyatı\n"
+            "OCD T 601-1 EG,-,-,-\n"
+        ).encode(),
+    )
+
+    assert product.cost_price is None
+    pricing = uow.dealer_pricing.get(product.id)
+    assert pricing is not None
+    assert pricing.cash_floor_price is None
+    assert pricing.card_floor_price is None

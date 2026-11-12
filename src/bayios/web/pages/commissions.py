@@ -6,7 +6,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Annotated
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, Form, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from bayios.application.commissions import (
@@ -23,6 +23,10 @@ from bayios.application.commissions import (
     list_commission_periods,
     update_commission_limit,
     update_commission_rate,
+)
+from bayios.application.commissions.io import (
+    export_commission_limits_xlsx,
+    export_commission_rates_xlsx,
 )
 from bayios.application.errors import NotFoundError, ValidationError
 from bayios.domain.commissions import (
@@ -82,6 +86,40 @@ def create_period_route(
             status_code=303,
         )
     return RedirectResponse(url=f"/commissions/{period.id}", status_code=303)
+
+
+@router.get("/export/rates.xlsx")
+def export_rates_route(
+    uow: UnitOfWorkDep,
+    period_id: Annotated[str | None, Query()] = None,
+) -> Response:
+    content = export_commission_rates_xlsx(
+        uow, period_id=_optional_uuid(period_id)
+    )
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": "attachment; filename=bayios-komisyon-oranlari.xlsx"
+        },
+    )
+
+
+@router.get("/export/limits.xlsx")
+def export_limits_route(
+    uow: UnitOfWorkDep,
+    period_id: Annotated[str | None, Query()] = None,
+) -> Response:
+    content = export_commission_limits_xlsx(
+        uow, period_id=_optional_uuid(period_id)
+    )
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": "attachment; filename=bayios-taksit-limitleri.xlsx"
+        },
+    )
 
 
 @router.get("/{period_id}", response_class=HTMLResponse)

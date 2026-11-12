@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Protocol
 
 from bayios.adapters.db.models.offers import Offer, OfferHistory, OfferItem
@@ -17,6 +17,10 @@ class OfferRepository(Protocol):
     def get_for_update(self, offer_id: uuid.UUID) -> Offer | None: ...
 
     def get_items(self, offer_id: uuid.UUID) -> Sequence[OfferItem]: ...
+
+    def get_items_for_offers(
+        self, offer_ids: Sequence[uuid.UUID]
+    ) -> Mapping[uuid.UUID, Sequence[OfferItem]]: ...
 
     def delete_items(self, offer_id: uuid.UUID) -> None: ...
 

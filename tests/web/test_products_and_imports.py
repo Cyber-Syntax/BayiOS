@@ -176,7 +176,7 @@ def test_export_endpoints(client: TestClient) -> None:
     assert csv_res.status_code == 200
     assert csv_res.headers["content-type"].startswith("text/csv")
     assert "07325 A" in csv_res.text
-    assert "category" in csv_res.text
+    assert "Kategori" in csv_res.text
 
     xlsx_res = client.get("/products/export/xlsx")
     assert xlsx_res.status_code == 200

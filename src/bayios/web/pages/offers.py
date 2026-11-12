@@ -16,7 +16,7 @@ from bayios.application.errors import NotFoundError, ValidationError
 from bayios.application.offers import (
     OfferInput,
     OfferItemInput,
-    build_offer_line_analyses,
+    build_offer_profit_summary,
     convert_offer_to_reservation,
     create_offer,
     get_offer_detail,
@@ -24,6 +24,7 @@ from bayios.application.offers import (
     set_offer_status,
     update_offer,
 )
+from bayios.application.offers.io import export_offers_xlsx
 from bayios.application.products import search_products
 from bayios.domain.commissions import (
     CARD_TYPE_LABELS,
@@ -86,6 +87,21 @@ def offers_page(
     return templates.TemplateResponse(request, "offers/list.html", context)
 
 
+@router.get("/export/xlsx")
+def export_offers_route(
+    uow: UnitOfWorkDep,
+    status: Annotated[str, Query()] = "",
+    q: Annotated[str | None, Query()] = None,
+) -> Response:
+    selected = status if status in {value for value, _ in STATUS_FILTERS} else ""
+    content = export_offers_xlsx(uow, status=selected or None, query=q)
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=bayios-teklifler.xlsx"},
+    )
+
+
 @router.get("/new", response_class=HTMLResponse)
 def new_offer_page(request: Request, uow: UnitOfWorkDep) -> HTMLResponse:
     return _render_form(request, uow, offer_id=None)
@@ -139,7 +155,7 @@ def offer_detail_page(
         {
             "active_nav": "offers",
             "detail": detail,
-            "line_analyses": build_offer_line_analyses(detail),
+            "profit_summary": build_offer_profit_summary(detail),
             "status_labels": OFFER_STATUS_LABELS,
             "payment_labels": PAYMENT_TYPE_LABELS,
             "channel_labels": CHANNEL_LABELS,

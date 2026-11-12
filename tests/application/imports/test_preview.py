@@ -9,9 +9,9 @@ def test_preview_product_import_classifies_new_and_invalid_rows() -> None:
     # Problematic rows are sorted to the top
     assert [row.decision for row in result.rows] == ["error", "create"]
     assert result.rows[0].errors == (
-        "Name is required",
-        "Regular Price must be a number",
-        "Quantity must be a non-negative integer",
+        "Ürün adı zorunludur.",
+        "Perakende fiyat sayısal olmalıdır.",
+        "Fiziksel stok negatif olmayan tam sayı olmalıdır.",
     )
     assert result.rows[1].product_name == "New Product"
     assert result.rows[1].regular_price == "1200"

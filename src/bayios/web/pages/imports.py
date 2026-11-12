@@ -8,7 +8,11 @@ from typing import Annotated
 from fastapi import APIRouter, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from bayios.application.imports import commit_product_import, preview_product_import
+from bayios.application.imports import (
+    commit_product_import,
+    preview_product_import,
+    product_import_template,
+)
 from bayios.web.deps import ActorDep, UnitOfWorkDep
 from bayios.web.templating import templates
 
@@ -21,6 +25,17 @@ def upload_page(request: Request) -> HTMLResponse:
         request,
         "imports/upload.html",
         {"active_nav": "products"},
+    )
+
+
+@router.get("/template")
+def download_template() -> Response:
+    return Response(
+        content=product_import_template(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": "attachment; filename=bayios-sablon-urunler.xlsx"
+        },
     )
 
 

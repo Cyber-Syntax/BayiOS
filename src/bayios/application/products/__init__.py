@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import csv
-import io
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -15,6 +13,12 @@ from bayios.application.errors import (
     ProductHasOpenReservationsError,
 )
 from bayios.application.ports.unit_of_work import UnitOfWork
+from bayios.application.tabular import (
+    ColumnSpec,
+    SheetSpec,
+    write_csv,
+    write_xlsx,
+)
 from bayios.domain.inventory import StockSummary
 from bayios.domain.products import ActorContext, normalize_product_name
 
@@ -330,72 +334,113 @@ def get_product_detail(
         )
 
 
-def export_products_csv(uow: UnitOfWork) -> bytes:
-    with uow:
-        products = uow.products.get_all()
-        category_names = {c.id: c.name for c in uow.products.get_categories()}
+PRODUCT_EXPORT_HEADERS = (
+    "Ürün Adı",
+    "Kategori",
+    "Perakende Fiyat",
+    "Oliz İndirimli Fiyat",
+    "Fiziksel Stok",
+    "Alış Fiyatı",
+    "Kredi Kartı Taban Fiyatı",
+    "Nakit Taban Fiyatı",
+    "Aktif Kampanya",
+)
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(
+
+def export_products_csv(uow: UnitOfWork) -> bytes:
+    rows = _product_export_rows(uow)
+    return write_csv(
+        PRODUCT_EXPORT_HEADERS,
         [
-            "product_name",
-            "category",
-            "regular_price",
-            "website_discounted_price",
-            "quantity",
-            "cost_price",
-        ]
+            (
+                row["product_name"],
+                row["category"],
+                row["regular_price"],
+                row["website_discounted_price"],
+                row["physical_stock"],
+                row["cost_price"],
+                row["card_floor_price"],
+                row["cash_floor_price"],
+                row["active_campaigns"],
+            )
+            for row in rows
+        ],
     )
-    for p in products:
-        writer.writerow(
-            [
-                p.name,
-                category_names.get(p.category_id, ""),
-                format(p.regular_price, "f") if p.regular_price is not None else "",
-                format(p.website_discounted_price, "f")
-                if p.website_discounted_price is not None
-                else "",
-                p.physical_stock,
-                format(p.cost_price, "f") if p.cost_price is not None else "",
-            ]
-        )
-    return output.getvalue().encode("utf-8-sig")
 
 
 def export_products_xlsx(uow: UnitOfWork) -> bytes:
-    from openpyxl import Workbook
+    rows = _product_export_rows(uow)
+    sheet = SheetSpec(
+        title="Ürünler",
+        columns=(
+            ColumnSpec("Ürün Adı", "product_name", "text", 32),
+            ColumnSpec("Kategori", "category", "text", 22),
+            ColumnSpec("Perakende Fiyat", "regular_price", "money", 16),
+            ColumnSpec("Oliz İndirimli Fiyat", "website_discounted_price", "money", 18),
+            ColumnSpec("Fiziksel Stok", "physical_stock", "int", 14),
+            ColumnSpec("Alış Fiyatı", "cost_price", "money", 14),
+            ColumnSpec("Kredi Kartı Taban Fiyatı", "card_floor_price", "money", 22),
+            ColumnSpec("Nakit Taban Fiyatı", "cash_floor_price", "money", 20),
+            ColumnSpec("Aktif Kampanya", "active_campaigns", "text", 34),
+        ),
+        rows=rows,
+        instructions=(
+            ("Ürün Adı", "Zorunlu", "Ürün kimliği; baştaki sıfırlar korunur."),
+            ("Kategori", "Opsiyonel", "Boşsa mevcut kategori korunur; yeni ad otomatik oluşturulur."),
+            ("Perakende Fiyat", "Opsiyonel", "Boşsa korunur; - yazılırsa temizlenir."),
+            ("Oliz İndirimli Fiyat", "Opsiyonel", "Boşsa korunur; - yazılırsa temizlenir."),
+            ("Fiziksel Stok", "Opsiyonel", "Boşsa korunur; 0 stoğu sıfırlar."),
+            ("Alış Fiyatı", "Opsiyonel", "Maliyet fiyatı; boşsa korunur, - temizler."),
+            ("Kredi Kartı Taban Fiyatı", "Opsiyonel", "Boşsa korunur; - temizler."),
+            ("Nakit Taban Fiyatı", "Opsiyonel", "Boşsa korunur; - temizler."),
+            ("Aktif Kampanya", "Salt okunur", "Sadece bilgi amaçlıdır; içe aktarmada kullanılmaz."),
+        ),
+    )
+    return write_xlsx((sheet,))
 
+
+def _product_export_rows(uow: UnitOfWork) -> list[dict[str, object]]:
+    now = datetime.now(UTC)
     with uow:
         products = uow.products.get_all()
         category_names = {c.id: c.name for c in uow.products.get_categories()}
-
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Ürünler"
-    ws.append(
-        [
-            "product_name",
-            "category",
-            "regular_price",
-            "website_discounted_price",
-            "quantity",
-            "cost_price",
-        ]
-    )
-    for p in products:
-        ws.append(
-            [
-                p.name,
-                category_names.get(p.category_id, ""),
-                float(p.regular_price) if p.regular_price is not None else None,
-                float(p.website_discounted_price)
-                if p.website_discounted_price is not None
-                else None,
-                p.physical_stock,
-                float(p.cost_price) if p.cost_price is not None else None,
-            ]
+        pricing = uow.dealer_pricing.get_many([product.id for product in products])
+        campaigns, _ = uow.campaigns.list(
+            state="active", as_of=now, limit=10_000
         )
-    stream = io.BytesIO()
-    wb.save(stream)
-    return stream.getvalue()
+        links_by_version = uow.campaigns.get_version_products_for_versions(
+            [version.id for _, version in campaigns]
+        )
+        active_campaigns: dict[uuid.UUID, set[str]] = {}
+        for _campaign, version in campaigns:
+            if not (version.starts_at <= now <= version.ends_at):
+                continue
+            for link in links_by_version.get(version.id, ()):
+                if link.product_id is not None:
+                    active_campaigns.setdefault(link.product_id, set()).add(
+                        version.name
+                    )
+
+    rows: list[dict[str, object]] = []
+    for product in products:
+        dealer = pricing.get(product.id)
+        rows.append(
+            {
+                "product_name": product.name,
+                "category": category_names.get(product.category_id, ""),
+                "regular_price": product.regular_price,
+                "website_discounted_price": product.website_discounted_price,
+                "physical_stock": product.physical_stock,
+                "cost_price": product.cost_price,
+                "card_floor_price": (
+                    dealer.card_floor_price if dealer is not None else None
+                ),
+                "cash_floor_price": (
+                    dealer.cash_floor_price if dealer is not None else None
+                ),
+                "active_campaigns": "; ".join(
+                    sorted(active_campaigns.get(product.id, set()))
+                ),
+            }
+        )
+    return rows

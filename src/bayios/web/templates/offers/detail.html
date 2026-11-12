@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Teklif #{{ detail.offer.offer_number }}{% endblock %}
 {% block content %}
-<div x-data="{ lineModal: null }">
+<div>
 {% set msg = request.query_params.get('msg') %}
 {% if msg == 'created' %}
 <div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif oluşturuldu.</span></div>
@@ -51,11 +51,74 @@
   <div class="stat-box"><div class="stat-label">Seçili Toplam</div><div class="stat-value" style="color: #2563eb;">{{ offer.selected_total | tr_money }} TL</div></div>
 </div>
 
+<div class="card" style="padding: 1rem; margin-bottom: 1rem; border-color: #bfdbfe; background: #f8fbff;">
+  <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap;">
+    <h2 style="margin: 0; font-size: 1.1rem;">Kâr / Komisyon Özeti</h2>
+    <span class="muted" style="font-size: .8rem;">Seçili ödeme tipine göre birim başına hesaplanır.</span>
+  </div>
+  {% if profit_summary.has_missing_cost %}
+  <div class="alert alert-warning" style="margin: .75rem 0;"><span>Bazı satırlarda maliyet tanımlı değil; toplam kâr yalnızca maliyeti bilinen satırları kapsar.</span></div>
+  {% endif %}
+  <div class="table-container" style="margin-top: .75rem;">
+    <table class="data-table" style="min-width: 0;">
+      <thead>
+        <tr>
+          <th>Ürün</th>
+          <th>Satış Fiyatı</th>
+          <th>Taksit</th>
+          <th>Komisyon</th>
+          <th>Komisyon Sonrası</th>
+          <th>Kampanya Hakedişi</th>
+          <th>Oliz Hakedişi</th>
+          <th>Toplam Gelir</th>
+          <th>Maliyet</th>
+          <th>Kâr / Zarar</th>
+          <th>Marj</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in profit_summary.lines %}
+        <tr>
+          <td>{{ line.item.product_name_snapshot }}</td>
+          <td>{{ line.sale_price | tr_money }} TL</td>
+          <td>{% if line.installment_count == 0 %}Nakit{% else %}{{ line.installment_count }}{% endif %}</td>
+          <td>{{ line.commission_percent | tr_percent }}</td>
+          <td>{{ line.net_after_commission | tr_money }} TL</td>
+          <td>{{ line.campaign_share | tr_money }} TL</td>
+          <td>{{ line.oliz_share | tr_money }} TL</td>
+          <td><strong>{{ line.total_revenue | tr_money }} TL</strong></td>
+          <td>{% if line.cost is not none %}{{ line.cost | tr_money }} TL{% else %}<span class="muted">Eksik</span>{% endif %}</td>
+          <td>
+            {% if line.profit is none %}—{% else %}
+            <strong style="color: {% if line.profit < 0 %}#dc2626{% else %}#059669{% endif %};">{{ line.profit | tr_money }} TL</strong>
+            {% endif %}
+          </td>
+          <td>{% if line.margin_percent is not none %}{{ line.margin_percent | tr_percent }}{% else %}—{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="11" class="muted" style="text-align: center; padding: 1rem;">Kâr detayı için fiyat ve maliyet bilgisi yok.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if profit_summary.lines %}
+      <tfoot>
+        <tr>
+          <th colspan="7" style="text-align: right;">Toplam</th>
+          <th>{{ profit_summary.total_revenue | tr_money }} TL</th>
+          <th>{{ profit_summary.total_cost | tr_money }} TL</th>
+          <th><strong>{{ profit_summary.total_profit | tr_money }} TL</strong></th>
+          <th>{% if profit_summary.margin_percent is not none %}{{ profit_summary.margin_percent | tr_percent }}{% else %}—{% endif %}</th>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+
 <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
   <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Teklif Satırları</h2>
   <div class="table-container">
     <table class="data-table">
-      <thead><tr><th>Ürün</th><th>Adet</th><th>Normal</th><th>Oliz</th><th>Kampanya</th><th>Taban</th><th>Nakit</th><th>Kart</th><th>Satır Toplamı</th><th>Detay</th></tr></thead>
+      <thead><tr><th>Ürün</th><th>Adet</th><th>Normal</th><th>Oliz</th><th>Kampanya</th><th>Taban</th><th>Nakit</th><th>Kart</th><th>Satır Toplamı</th></tr></thead>
       <tbody>
         {% for item in detail.items %}
         <tr>
@@ -68,10 +131,9 @@
           <td><strong>{{ item.unit_price_cash | tr_money }}</strong></td>
           <td><strong>{{ item.unit_price_card | tr_money }}</strong></td>
           <td>{{ item.line_total_cash | tr_money }} / {{ item.line_total_card | tr_money }}</td>
-          <td><button type="button" class="btn btn-sm" @click="lineModal = {{ loop.index }}">Detay</button></td>
         </tr>
         {% else %}
-        <tr><td colspan="10" class="muted" style="text-align: center; padding: 1.5rem;">Teklif satırı yok.</td></tr>
+        <tr><td colspan="9" class="muted" style="text-align: center; padding: 1.5rem;">Teklif satırı yok.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -94,62 +156,5 @@
   </div>
 </div>
 
-{% for analysis in line_analyses %}
-<div x-show="lineModal === {{ loop.index }}" x-cloak class="modal-backdrop" @click.self="lineModal = null">
-  <div class="modal-box" style="max-width: 70rem; width: min(70rem, 95vw);">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem;">
-      <div>
-        <h2 style="margin: 0; font-size: 1.2rem;">{{ analysis.item.product_name_snapshot }} · Kâr Detayı</h2>
-        <p class="muted" style="margin: .25rem 0 0; font-size: .85rem;">
-          Değerler birim başınadır. Bayi hakediş oranı: <strong>{{ (offer.dealer_share_percent_snapshot or 85) | tr_percent }}</strong>.
-          Bayi indirimi bu hesaba dahil edilmez.
-        </p>
-      </div>
-      <button type="button" class="btn btn-sm" @click="lineModal = null">&times;</button>
-    </div>
-
-    {% if analysis.installments %}
-    <div class="table-container">
-      <table class="data-table" style="min-width: 0;">
-        <thead>
-          <tr>
-            <th>Taksit</th>
-            <th>Komisyon</th>
-            <th>Komisyon Sonrası</th>
-            <th>Kampanya Hakedişi</th>
-            <th>Oliz Hakedişi</th>
-            <th>Toplam Gelir</th>
-            <th>Maliyet</th>
-            <th>Kâr / Zarar</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in analysis.installments %}
-          <tr>
-            <td>{% if row.installment_count == 0 %}Nakit{% else %}{{ row.installment_count }}{% endif %}</td>
-            <td>{{ row.commission_percent | tr_percent }}</td>
-            <td>{{ row.net_after_commission | tr_money }} TL</td>
-            <td>{{ row.campaign_share | tr_money }} TL</td>
-            <td>{{ row.oliz_share | tr_money }} TL</td>
-            <td><strong>{{ row.total_revenue | tr_money }} TL</strong></td>
-            <td>{{ row.cost | tr_money }} TL</td>
-            <td>
-              {% if row.profit is none %}
-              —
-              {% else %}
-              <strong style="color: {% if row.profit < 0 %}#dc2626{% else %}#059669{% endif %};">{{ row.profit | tr_money }} TL</strong>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <p class="muted">Fiyat girilmediği için kâr detayı hesaplanamadı.</p>
-    {% endif %}
-  </div>
-</div>
-{% endfor %}
 </div>
 {% endblock %}

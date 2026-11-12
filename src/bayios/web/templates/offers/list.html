@@ -8,6 +8,11 @@
 <div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif güncellendi.</span></div>
 {% elif msg == 'status' %}
 <div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif durumu güncellendi.</span></div>
+{% elif msg == 'import_success' %}
+<div class="alert alert-success">
+  <span><strong>Başarılı:</strong> Excel içe aktarıldı: {{ request.query_params.get('created', 0) }} yeni, {{ request.query_params.get('updated', 0) }} güncellenen, {{ request.query_params.get('skipped', 0) }} atlanan teklif.</span>
+  {% if request.query_params.get('errors', '0') != '0' %}<span class="muted"> {{ request.query_params.get('errors') }} hatalı teklif atlandı.</span>{% endif %}
+</div>
 {% elif msg and msg.startswith('error:') %}
 <div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
 {% endif %}
@@ -17,7 +22,11 @@
     <h1>Teklifler</h1>
     <p class="muted" style="margin: 0;">Müşteri teklifleri, fiyat katmanları ve komisyon referansları.</p>
   </div>
-  <div class="actions-group"><a class="btn btn-primary" href="/offers/new">Yeni Teklif</a></div>
+  <div class="actions-group">
+    <a class="btn btn-primary" href="/offers/new">Yeni Teklif</a>
+    <a class="btn" href="/imports/offers">Excel İçe Aktar</a>
+    <a class="btn" href="/offers/export/xlsx?q={{ q | urlencode }}&status={{ status | urlencode }}">Excel Dışa Aktar</a>
+  </div>
 </div>
 
 <div class="card" style="padding: 1rem; margin-bottom: 1rem;">

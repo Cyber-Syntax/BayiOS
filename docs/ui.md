@@ -83,6 +83,8 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Detay ekranı seçilen ürün için hediye var/yok bayi fiyat senaryosunu gösterir; varsayılan oran %10'dur ve çalışan tarafından değiştirilebilir. Ürüne özel nakit/kart taban fiyatları genel oranla karıştırılmaz.
 - Kampanyalar ekranında global bayi indirimi varsayılanı ve değişiklik geçmişi yönetilir.
 - Kampanya listesi ve detayı A4 basılabilir; çıktı otomatik fiyat uygulaması değil, çalışan rehberidir.
+- Listede "Excel İçe Aktar" ve "Excel Dışa Aktar" eylemleri vardır; içe aktarma önizlemesi kampanya başlığı ve ürün ilişkilerini ayrı satırlarda gösterir.
+- Kampanya detayında da "Excel İçe Aktar" ve "Excel Dışa Aktar" bulunur. Detay dışa aktarması yalnızca **Ürün Adı, İlişki Türü, Gerekli Adet** kolonlarını içeren "Kampanya Ürünleri" sayfasını indirir; 100'e kadar ürün satırı bu sayfaya eklenebilir. Detaydan açılan içe aktarma yalnızca o kampanyayı günceller; ürün satırları kampanya başlığı tekrar edilmeden yüklenebilir.
 
 ### Teklifler
 
@@ -92,6 +94,8 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Her satırda toptan vadeli alış, normal fiyat, Oliz, seçilen kampanya fiyatı, bayi indirimi, önerilen nakit ve komisyonlu kart referansı gösterilir; nihai nakit/kart birim fiyatını çalışan girer. Floor veya kâr referansı altında uyarı verilir, kayıt engellenmez.
 - Detay ekranı toplamları, komisyon snapshot'ını, durum geçmişini ve iç kâr özetini gösterir; müşteri A4 çıktısında maliyet, iç kâr ve komisyon detayı bulunmaz.
 - Taslak teklif düzenlenebilir; sunuldu/kabul/lost/expired sonrası fiyat snapshot'ı değişmez. Kabul edilen tekliften rezervasyona dönüşüm retry edildiğinde aynı rezervasyon döner.
+- Detay ekranında "Kâr / Komisyon Özeti" kartı her zaman görünür; seçili taksitin komisyonu, kampanya/Oliz hakedişi, maliyet, kâr ve marjı gösterir. A4 müşteri çıktısında bu bilgiler yer almaz.
+- Listede "Excel İçe Aktar" ve "Excel Dışa Aktar" eylemleri vardır; dışa aktarılan çalışma kitabı Teklifler, Teklif Satırları ve Kâr Detayı sayfalarını içerir. İçe aktarma yalnızca taslak teklif oluşturur/günceller.
 
 ### Komisyonlar
 
@@ -101,6 +105,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Ödero için 20.000 TL altı/üstü tutar bantları ayrı düzenlenir; eşik sepet toplamına uygulanır.
 - Limitler paneli kanal, banka/kanal, ürün grubu ve kart tipi limitlerini gösterir; etkin üst sınır canlı önizlenir.
 - Kategori komisyon grubu eşlemesi, değişiklik geçmişi ve P1 komisyon A4 listesi bulunur.
+- Komisyon oranları ve taksit limitleri ayrı Excel dosyalarıyla içe/dışa aktarılır; dönem detayında döneme özel, listede tüm dönemler için export butonları bulunur.
 
 ### Ürün Kataloğu İçe Aktarma
 
@@ -121,7 +126,20 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Düşük stokta teslim, gerekçe girildiğinde onaylanır; fiziksel stok negatife düşebilir ve bu durum görünür metinle bildirilir.
 - Hatırlatma rezervasyon tarihinden 13 ay sonrasına otomatik atanır; varsayılan erteleme 1 aydır ve geçmişi tutulur. Tüm satırlar kapanınca hatırlatma "Tamamlandı" olur.
 - A4 çıktısı depo ve bayi kopyasını tek yazdırmada (arada sayfa sonu) ya da tek kopya olarak verir; rezervasyon listesi de A4 basılabilir.
+- Listede "Excel İçe Aktar" ve "Excel Dışa Aktar" eylemleri vardır; export müşteri, tarih, hatırlatma, durum ve ürün başına teslim/iptal/açık miktarlarını iki sayfada verir. Import yeni açık rezervasyon oluşturur; mevcut numaraları ve geçmiş teslim/iptal alanlarını atlar.
 - Ana ekranda gecikmiş ve önümüzdeki 30 gün içindeki hatırlatmalar görünür.
+
+### Excel İçe/Dışa Aktarma
+
+- Ürünler, Kampanyalar, Teklifler, Komisyonlar ve Rezervasyonlar için Türkçe başlıklı Excel (.xlsx) export vardır; Ürünler ayrıca CSV export/import destekler.
+- Yeni modüllerin import ekranlarında "Şablon İndir" bağlantısı bulunur; şablonun "Kullanım" sayfası kolonları, zorunlulukları ve kabul edilen değerleri açıklar.
+- Import akışı: dosya seç → önizleme (hatalı/uyarılı satırlar üstte, yeni/güncellenecek/hatalı sayaçları) → satır veya toplu karar → tek transaction commit. Önizleme onaylanmadan veritabanına yazılmaz.
+- Ürün import'unda Alış Fiyatı, Kredi Kartı Taban Fiyatı ve Nakit Taban Fiyatı güncellenebilir; boş hücre mevcut değeri korur, `-` temizler. Aktif Kampanya salt okunurdur.
+- Kampanya import'u kampanya başlığı + ürün ilişkisi satırlarını kabul eder; başlangıç/bitiş tarihi zorunludur. Aynı sözleşme yeni sürüm oluşturmaz.
+- Komisyon oranları ve taksit limitleri ayrı dosya/ekranlarda içe ve dışa aktarılır; dönem yoksa taslak dönem oluşturulur.
+- Rezervasyon import'u yalnızca yeni açık rezervasyon oluşturur; mevcut Rezervasyon No atlanır. Teslim/iptal geçmişi import edilmez.
+- Aynı dosyanın çift gönderimi import token'ı ile engellenir; sonuç listelerde Türkçe özet bandıyla gösterilir.
+- Geniş tablolarda yatay kaydırma gerekliyse tablo kabı `data-table-scroll` ile işaretlenir. [table-scroll.js](../src/bayios/web/static/js/table-scroll.js) tablonun altına yapışan, her zaman görünür bir yatay scrollbar ve "Yatay kaydır" ipucu ekler. Yeni geniş tablolarda aynı desen kullanılmalıdır; kullanıcı scrollbar'ı fark etmek için tabloyu ayrıca keşfetmek zorunda kalmaz.
 
 ### Tarih seçici
 

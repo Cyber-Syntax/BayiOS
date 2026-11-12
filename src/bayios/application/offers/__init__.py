@@ -89,6 +89,31 @@ class OfferLineAnalysis:
     installments: tuple[InstallmentProfit, ...]
 
 
+@dataclass(frozen=True)
+class OfferProfitLine:
+    item: OfferItem
+    sale_price: Decimal | None
+    installment_count: int
+    commission_percent: Decimal
+    net_after_commission: Decimal
+    campaign_share: Decimal
+    oliz_share: Decimal
+    total_revenue: Decimal
+    cost: Decimal | None
+    profit: Decimal | None
+    margin_percent: Decimal | None
+
+
+@dataclass(frozen=True)
+class OfferProfitSummary:
+    lines: tuple[OfferProfitLine, ...]
+    total_revenue: Decimal
+    total_cost: Decimal
+    total_profit: Decimal
+    margin_percent: Decimal | None
+    has_missing_cost: bool
+
+
 def build_offer_line_analyses(
     detail: OfferDetail,
 ) -> tuple[OfferLineAnalysis, ...]:
@@ -166,6 +191,71 @@ def build_offer_line_analyses(
             )
         )
     return tuple(analyses)
+
+
+def build_offer_profit_summary(detail: OfferDetail) -> OfferProfitSummary:
+    offer = detail.offer
+    lines: list[OfferProfitLine] = []
+    for analysis in build_offer_line_analyses(detail):
+        if not analysis.installments:
+            continue
+        selected = analysis.installments[0]
+        if offer.payment_type == PaymentType.CARD.value and offer.installment_count:
+            selected = next(
+                (
+                    row
+                    for row in analysis.installments
+                    if row.installment_count == offer.installment_count
+                ),
+                selected,
+            )
+        elif offer.payment_type == PaymentType.CASH.value:
+            selected = analysis.installments[0]
+        margin = (
+            (selected.profit / selected.total_revenue * Decimal(100))
+            if selected.profit is not None and selected.total_revenue
+            else None
+        )
+        lines.append(
+            OfferProfitLine(
+                item=analysis.item,
+                sale_price=(
+                    analysis.sale_price_cash
+                    if offer.payment_type == PaymentType.CASH.value
+                    else analysis.sale_price_card
+                ),
+                installment_count=selected.installment_count,
+                commission_percent=selected.commission_percent,
+                net_after_commission=selected.net_after_commission,
+                campaign_share=selected.campaign_share,
+                oliz_share=selected.oliz_share,
+                total_revenue=selected.total_revenue,
+                cost=selected.cost,
+                profit=selected.profit,
+                margin_percent=quantize_money(margin) if margin is not None else None,
+            )
+        )
+    total_revenue = sum((line.total_revenue for line in lines), Decimal(0))
+    total_cost = sum(
+        (line.cost for line in lines if line.cost is not None), Decimal(0)
+    )
+    total_profit = sum(
+        (line.profit for line in lines if line.profit is not None), Decimal(0)
+    )
+    has_missing_cost = any(line.cost is None for line in lines)
+    margin = (
+        quantize_money(total_profit / total_revenue * Decimal(100))
+        if total_revenue and not has_missing_cost
+        else None
+    )
+    return OfferProfitSummary(
+        lines=tuple(lines),
+        total_revenue=quantize_money(total_revenue),
+        total_cost=quantize_money(total_cost),
+        total_profit=quantize_money(total_profit),
+        margin_percent=margin,
+        has_missing_cost=has_missing_cost,
+    )
 
 
 def _campaign_share(

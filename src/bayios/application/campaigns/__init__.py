@@ -163,22 +163,34 @@ def create_campaign(
     actor = actor or ActorContext()
     now = datetime.now(UTC)
     with uow:
-        contract = _build_contract(uow, data)
-        campaign = Campaign(
-            id=uuid.uuid4(),
-            is_archived=False,
-            created_at=now,
-            updated_at=now,
-            created_by_name=actor.worker_name,
-            created_by_device=actor.device_name,
-        )
-        uow.campaigns.add(campaign)
-        version = _version_row(contract, campaign.id, 1, actor, now)
-        uow.campaigns.add_version(version)
-        uow.campaigns.add_version_products(_link_rows(contract, version.id))
-        uow.campaigns.set_current_version(campaign.id, version.id)
+        campaign = create_campaign_in_uow(uow, data, actor=actor, now=now)
         uow.commit()
         return campaign.id
+
+
+def create_campaign_in_uow(
+    uow: UnitOfWork,
+    data: CampaignInput,
+    *,
+    actor: ActorContext,
+    now: datetime,
+) -> Campaign:
+    """Create a campaign inside an active unit of work; the caller commits."""
+    contract = _build_contract(uow, data)
+    campaign = Campaign(
+        id=uuid.uuid4(),
+        is_archived=False,
+        created_at=now,
+        updated_at=now,
+        created_by_name=actor.worker_name,
+        created_by_device=actor.device_name,
+    )
+    uow.campaigns.add(campaign)
+    version = _version_row(contract, campaign.id, 1, actor, now)
+    uow.campaigns.add_version(version)
+    uow.campaigns.add_version_products(_link_rows(contract, version.id))
+    uow.campaigns.set_current_version(campaign.id, version.id)
+    return campaign
 
 
 def update_campaign(
@@ -190,31 +202,46 @@ def update_campaign(
     actor = actor or ActorContext()
     now = datetime.now(UTC)
     with uow:
-        campaign = uow.campaigns.get_for_update(campaign_id)
-        if campaign is None:
-            raise NotFoundError("Kampanya bulunamadı.")
-        current = uow.campaigns.get_current_version(campaign_id)
-        if current is None:
-            raise NotFoundError("Kampanya sürümü bulunamadı.")
-
-        contract = _build_contract(uow, data)
-        current_links = uow.campaigns.get_version_products(current.id)
-        current_contract = _contract_from_row(current, current_links)
-        if is_same_contract(current_contract, contract):
-            return campaign.id
-
-        version = _version_row(
-            contract,
-            campaign.id,
-            next_version_no(current.version_no),
-            actor,
-            now,
+        campaign, _changed = update_campaign_in_uow(
+            uow, campaign_id, data, actor=actor, now=now
         )
-        uow.campaigns.add_version(version)
-        uow.campaigns.add_version_products(_link_rows(contract, version.id))
-        uow.campaigns.set_current_version(campaign.id, version.id)
         uow.commit()
         return campaign.id
+
+
+def update_campaign_in_uow(
+    uow: UnitOfWork,
+    campaign_id: uuid.UUID,
+    data: CampaignInput,
+    *,
+    actor: ActorContext,
+    now: datetime,
+) -> tuple[Campaign, bool]:
+    """Update a campaign in an active unit of work; returns (campaign, changed)."""
+    campaign = uow.campaigns.get_for_update(campaign_id)
+    if campaign is None:
+        raise NotFoundError("Kampanya bulunamadı.")
+    current = uow.campaigns.get_current_version(campaign_id)
+    if current is None:
+        raise NotFoundError("Kampanya sürümü bulunamadı.")
+
+    contract = _build_contract(uow, data)
+    current_links = uow.campaigns.get_version_products(current.id)
+    current_contract = _contract_from_row(current, current_links)
+    if is_same_contract(current_contract, contract):
+        return campaign, False
+
+    version = _version_row(
+        contract,
+        campaign.id,
+        next_version_no(current.version_no),
+        actor,
+        now,
+    )
+    uow.campaigns.add_version(version)
+    uow.campaigns.add_version_products(_link_rows(contract, version.id))
+    uow.campaigns.set_current_version(campaign.id, version.id)
+    return campaign, True
 
 
 def archive_campaign(

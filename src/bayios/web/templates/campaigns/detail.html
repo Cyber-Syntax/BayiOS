@@ -11,6 +11,11 @@
 <div class="alert alert-success"><span><strong>Başarılı:</strong> Kampanya arşivlendi.</span></div>
 {% elif msg == 'restored' %}
 <div class="alert alert-success"><span><strong>Başarılı:</strong> Kampanya arşivden çıkarıldı.</span></div>
+{% elif msg == 'import_success' %}
+<div class="alert alert-success">
+  <span><strong>Başarılı:</strong> Excel içe aktarıldı: {{ request.query_params.get('created', 0) }} yeni, {{ request.query_params.get('updated', 0) }} güncellenen, {{ request.query_params.get('skipped', 0) }} atlanan kayıt.</span>
+  {% if request.query_params.get('errors', '0') != '0' %}<span class="muted"> {{ request.query_params.get('errors') }} hatalı satır atlandı.</span>{% endif %}
+</div>
 {% endif %}
 {% if error %}
 <div class="alert alert-danger"><span><strong>Hata:</strong> {{ error }}</span></div>
@@ -29,6 +34,8 @@
     <small class="muted">Sürüm v{{ version.version_no }} · {{ version.campaign_type_label }}</small>
   </div>
   <div class="actions-group">
+    <a class="btn" href="/imports/campaigns?campaign_id={{ campaign.id }}">Excel İçe Aktar</a>
+    <a class="btn" href="/campaigns/{{ campaign.id }}/export/xlsx">Excel Dışa Aktar</a>
     <a class="btn" href="/campaigns/{{ campaign.id }}/edit">Düzenle</a>
     {% if campaign.is_archived %}
     <form method="post" action="/campaigns/{{ campaign.id }}/restore">

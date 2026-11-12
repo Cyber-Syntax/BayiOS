@@ -20,6 +20,11 @@
 <div class="alert alert-success"><span><strong>Başarılı:</strong> İptal kaydedildi; fiziksel stok değişmedi.</span></div>
 {% elif msg == 'snoozed' %}
 <div class="alert alert-success"><span><strong>Başarılı:</strong> Hatırlatma ertelendi.</span></div>
+{% elif msg == 'import_success' %}
+<div class="alert alert-success">
+  <span><strong>Başarılı:</strong> Excel içe aktarıldı: {{ request.query_params.get('created', 0) }} yeni, {{ request.query_params.get('skipped', 0) }} atlanan rezervasyon.</span>
+  {% if request.query_params.get('errors', '0') != '0' %}<span class="muted"> {{ request.query_params.get('errors') }} hatalı satır atlandı.</span>{% endif %}
+</div>
 {% elif msg and msg.startswith('error:') %}
 <div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
 {% endif %}
@@ -31,6 +36,8 @@
   </div>
   <div class="actions-group">
     <a class="btn btn-primary" href="/reservations/new">Yeni Rezervasyon</a>
+    <a class="btn" href="/imports/reservations">Excel İçe Aktar</a>
+    <a class="btn" href="/reservations/export/xlsx?status={{ status | urlencode }}&q={{ q | urlencode }}">Excel Dışa Aktar</a>
     <a class="btn" href="/reservations/print?status={{ status | urlencode }}&q={{ q | urlencode }}">A4 Liste</a>
   </div>
 </div>

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
@@ -37,6 +37,23 @@ class SqlAlchemyOfferRepository:
             .where(OfferItem.offer_id == offer_id)
             .order_by(OfferItem.position, OfferItem.id)
         ).all()
+
+    def get_items_for_offers(
+        self, offer_ids: Sequence[uuid.UUID]
+    ) -> Mapping[uuid.UUID, Sequence[OfferItem]]:
+        if not offer_ids:
+            return {}
+        rows = self._session.scalars(
+            sa.select(OfferItem)
+            .where(OfferItem.offer_id.in_(offer_ids))
+            .order_by(OfferItem.offer_id, OfferItem.position, OfferItem.id)
+        ).all()
+        grouped: dict[uuid.UUID, list[OfferItem]] = {
+            offer_id: [] for offer_id in offer_ids
+        }
+        for row in rows:
+            grouped.setdefault(row.offer_id, []).append(row)
+        return grouped
 
     def delete_items(self, offer_id: uuid.UUID) -> None:
         self._session.execute(

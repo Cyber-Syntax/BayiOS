@@ -125,6 +125,7 @@ def test_export_products_csv_and_xlsx() -> None:
         name_normalized="07325 a",
         regular_price=Decimal("38099.00"),
         website_discounted_price=Decimal("34099.00"),
+        cost_price=Decimal("25000.00"),
         physical_stock=5,
         category_id=category.id,
     )
@@ -138,13 +139,19 @@ def test_export_products_csv_and_xlsx() -> None:
     )
     uow.products.add(p1)
     uow.products.add(p2)
+    from bayios.application.dealer_pricing import update_dealer_pricing
+
+    update_dealer_pricing(
+        uow, p1.id, Decimal("36000.00"), Decimal("37000.00")
+    )
 
     # 1. Test CSV export
     csv_bytes = export_products_csv(uow)
     assert csv_bytes.startswith(b"\xef\xbb\xbf")  # UTF-8 BOM
     csv_text = csv_bytes.decode("utf-8-sig")
-    assert "07325 A,Buzdolabı,38099.00,34099.00,5," in csv_text
-    assert "09325 A,,42199.00,,0," in csv_text
+    assert "Ürün Adı,Kategori,Perakende Fiyat" in csv_text
+    assert "07325 A,Buzdolabı,38099.00,34099.00,5,25000.00,37000.00,36000.00," in csv_text
+    assert "09325 A,,42199.00,,0,,,," in csv_text
 
     # 2. Test XLSX export
     xlsx_bytes = export_products_xlsx(uow)
@@ -153,18 +160,24 @@ def test_export_products_csv_and_xlsx() -> None:
     sheet = wb.active
     rows = list(sheet.iter_rows(values_only=True))
     assert rows[0] == (
-        "product_name",
-        "category",
-        "regular_price",
-        "website_discounted_price",
-        "quantity",
-        "cost_price",
+        "Ürün Adı",
+        "Kategori",
+        "Perakende Fiyat",
+        "Oliz İndirimli Fiyat",
+        "Fiziksel Stok",
+        "Alış Fiyatı",
+        "Kredi Kartı Taban Fiyatı",
+        "Nakit Taban Fiyatı",
+        "Aktif Kampanya",
     )
     assert rows[1][0] == "07325 A"
     assert rows[1][1] == "Buzdolabı"
-    assert rows[1][2] == 38099.00
-    assert rows[1][3] == 34099.00
+    assert rows[1][2] == 38099
+    assert rows[1][3] == 34099
     assert rows[1][4] == 5
+    assert rows[1][5] == 25000
+    assert rows[1][6] == 37000
+    assert rows[1][7] == 36000
     wb.close()
 
 
@@ -308,3 +321,51 @@ def test_update_product_records_price_history_and_normalized_name() -> None:
         "regular_price",
         "website_discounted_price",
     }
+
+
+def test_export_products_includes_active_campaign_names() -> None:
+    import io
+    import uuid
+    from datetime import UTC, datetime
+
+    from openpyxl import load_workbook
+
+    from bayios.application.campaigns import (
+        CampaignInput,
+        CampaignProductInput,
+        create_campaign,
+    )
+    from bayios.domain.campaigns import (
+        CampaignType,
+        DiscountType,
+        ProductRelationType,
+    )
+
+    uow = FakeUnitOfWork()
+    product = Product(
+        id=uuid.uuid4(),
+        name="Buzdolabı",
+        name_normalized="buzdolabı",
+        regular_price=Decimal(50000),
+        physical_stock=1,
+    )
+    uow.products.add(product)
+    create_campaign(
+        uow,
+        CampaignInput(
+            name="Kasım İndirimi",
+            campaign_type=CampaignType.PRODUCT_DISCOUNT,
+            starts_at=datetime(2026, 11, 1, tzinfo=UTC),
+            ends_at=datetime(2026, 11, 30, tzinfo=UTC),
+            discount_type=DiscountType.PERCENT,
+            discount_value=Decimal(10),
+            products=(
+                CampaignProductInput(product.id, ProductRelationType.QUALIFYING),
+            ),
+        ),
+    )
+
+    workbook = load_workbook(io.BytesIO(export_products_xlsx(uow)))
+    headers = [cell.value for cell in workbook.active[1]]
+    campaign_column = headers.index("Aktif Kampanya") + 1
+    assert workbook.active.cell(row=2, column=campaign_column).value == "Kasım İndirimi"

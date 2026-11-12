@@ -14,6 +14,10 @@ from bayios.web.pages.campaigns import router as campaigns_router
 from bayios.web.pages.commissions import router as commissions_router
 from bayios.web.pages.home import router as home_router
 from bayios.web.pages.imports import router as imports_router
+from bayios.web.pages.imports_campaigns import router as imports_campaigns_router
+from bayios.web.pages.imports_commissions import router as imports_commissions_router
+from bayios.web.pages.imports_offers import router as imports_offers_router
+from bayios.web.pages.imports_reservations import router as imports_reservations_router
 from bayios.web.pages.offers import router as offers_router
 from bayios.web.pages.products import router as products_router
 from bayios.web.pages.reservations import router as reservations_router
@@ -46,6 +50,10 @@ def create_app(settings: ApplicationSettings | None = None) -> FastAPI:
     app.include_router(home_router)
     app.include_router(products_router)
     app.include_router(imports_router)
+    app.include_router(imports_campaigns_router)
+    app.include_router(imports_commissions_router)
+    app.include_router(imports_offers_router)
+    app.include_router(imports_reservations_router)
     app.include_router(campaigns_router)
     app.include_router(commissions_router)
     app.include_router(offers_router)

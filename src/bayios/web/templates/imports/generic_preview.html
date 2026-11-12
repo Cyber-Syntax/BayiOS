@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="actions-bar">
+  <div>
+    <div style="margin-bottom: .25rem;">
+      <a href="{{ back_url }}" class="muted" style="text-decoration: none;">&larr; Yeniden Dosya Seç</a>
+    </div>
+    <h1>{{ title }}</h1>
+    <p class="muted" style="margin: 0;">Dosya: <strong>{{ file_name }}</strong> ({{ preview.rows | length }} {{ preview.entity_label }})</p>
+  </div>
+</div>
+
+{% if preview.unknown_headers %}
+<div class="alert alert-warning"><span><strong>Bilgi:</strong> Tanınmayan kolonlar yok sayıldı: {{ preview.unknown_headers | join(', ') }}</span></div>
+{% endif %}
+
+<div class="grid-stats">
+  <div class="stat-box"><div class="stat-label">Toplam</div><div class="stat-value">{{ preview.rows | length }}</div></div>
+  <div class="stat-box"><div class="stat-label">Yeni</div><div class="stat-value" style="color: #059669;">{{ preview.created_count }}</div></div>
+  <div class="stat-box"><div class="stat-label">Güncellenecek</div><div class="stat-value" style="color: #2563eb;">{{ preview.updated_count }}</div></div>
+  <div class="stat-box"><div class="stat-label">Hatalı</div><div class="stat-value" style="{% if preview.error_count %}color: #dc2626;{% endif %}">{{ preview.error_count }}</div></div>
+</div>
+
+<form id="genericImportForm" action="{{ commit_action }}" method="post">
+  <input type="hidden" name="file_name" value="{{ file_name }}">
+  <input type="hidden" name="file_type" value="{{ file_type }}">
+  <input type="hidden" name="source_b64" value="{{ source_b64 }}">
+  <input type="hidden" name="import_token" value="{{ import_token }}">
+  {% if campaign_id %}<input type="hidden" name="campaign_id" value="{{ campaign_id }}">{% endif %}
+  <input type="hidden" name="decisions_json" id="decisionsJsonInput">
+
+  <div class="actions-bar" style="margin-top: 1rem; align-items: center; flex-wrap: wrap; gap: .75rem;">
+    <div style="display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;">
+      <span class="muted" style="font-size: .85rem;">Toplu Karar:</span>
+      {% for value, label in preview.decision_options %}
+      <button type="button" class="btn" style="padding: .25rem .6rem; font-size: .8rem;" data-decision="{{ value }}">{{ label }}</button>
+      {% endfor %}
+      <button type="button" class="btn" style="padding: .25rem .6rem; font-size: .8rem; background: #fef3c7; color: #92400e; border-color: #fde68a;" data-skip-problematic="1">Sorunluları Atla</button>
+    </div>
+    <div class="actions-group">
+      <button type="submit" class="btn btn-primary">Değişiklikleri Onayla ve Kaydet</button>
+      <a href="{{ back_url }}" class="btn">Vazgeç</a>
+    </div>
+  </div>
+
+  <div class="table-container" data-table-scroll>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Satır</th>
+          {% for key, label in preview.columns %}<th>{{ label }}</th>{% endfor %}
+          <th>Karar</th>
+          <th>Hata / Uyarı</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in preview.rows %}
+        <tr {% if row.errors %}style="background: #fff5f5;"{% elif row.warnings %}style="background: #fffdf5;"{% endif %}>
+          <td>{{ row.row_number }}</td>
+          {% for key, label in preview.columns %}<td>{{ row.values.get(key, '') }}</td>{% endfor %}
+          <td>
+            {% if row.errors %}
+            <span class="badge badge-danger">Hatalı</span>
+            <input type="hidden" class="decision-select" data-key="{{ row.key }}" value="skip">
+            {% else %}
+            <select class="form-control decision-select" data-key="{{ row.key }}" data-problematic="{{ 'true' if row.warnings else 'false' }}" style="min-height: 32px; padding: .2rem .5rem; font-size: .85rem;">
+              {% for value, label in preview.decision_options %}
+              <option value="{{ value }}" {% if row.decision == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            {% endif %}
+          </td>
+          <td>
+            {% for err in row.errors %}<div style="color: #dc2626; font-size: .8rem;">• {{ err }}</div>{% endfor %}
+            {% for warn in row.warnings %}<div style="color: #d97706; font-size: .8rem;">• {{ warn }}</div>{% endfor %}
+            {% if not row.errors and not row.warnings %}<span class="muted" style="font-size: .8rem;">Sorunsuz</span>{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ preview.columns | length + 3 }}" class="muted" style="text-align: center; padding: 1.5rem;">Dosyada işlenecek satır yok.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</form>
+
+<script>
+document.querySelectorAll('[data-decision]').forEach(function (button) {
+  button.addEventListener('click', function () {
+    var value = button.getAttribute('data-decision');
+    document.querySelectorAll('select.decision-select').forEach(function (select) {
+      select.value = value;
+    });
+  });
+});
+document.querySelector('[data-skip-problematic]')?.addEventListener('click', function () {
+  document.querySelectorAll('select.decision-select[data-problematic="true"]').forEach(function (select) {
+    select.value = 'skip';
+  });
+});
+document.getElementById('genericImportForm').addEventListener('submit', function (event) {
+  var decisions = {};
+  document.querySelectorAll('.decision-select').forEach(function (select) {
+    decisions[select.getAttribute('data-key')] = select.value;
+  });
+  document.getElementById('decisionsJsonInput').value = JSON.stringify(decisions);
+  var submit = event.target.querySelector('button[type="submit"]');
+  if (submit) { submit.disabled = true; submit.textContent = 'Aktarılıyor...'; }
+});
+</script>
+{% endblock %}

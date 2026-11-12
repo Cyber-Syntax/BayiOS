@@ -27,6 +27,7 @@ from bayios.application.reservations import (
     update_reservation,
     update_reservation_item_quantity,
 )
+from bayios.application.reservations.io import export_reservations_xlsx
 from bayios.domain.reservations import ACTIVE_STATUSES
 from bayios.web.deps import ActorDep, UnitOfWorkDep
 from bayios.web.templating import templates
@@ -173,6 +174,27 @@ def print_list_route(
             "q": q or "",
             "status": status,
             "generated_at": datetime.now(UTC),
+        },
+    )
+
+
+@router.get("/export/xlsx")
+def export_reservations_route(
+    uow: UnitOfWorkDep,
+    q: Annotated[str | None, Query()] = None,
+    status: Annotated[str, Query()] = "open",
+) -> Response:
+    selected_status = (
+        status if status in {value for value, _ in STATUS_FILTERS} else "open"
+    )
+    content = export_reservations_xlsx(
+        uow, status=selected_status or None, query=q
+    )
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": "attachment; filename=bayios-rezervasyonlar.xlsx"
         },
     )
 

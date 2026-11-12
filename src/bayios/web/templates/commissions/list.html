@@ -6,6 +6,11 @@
 <div class="alert alert-success"><span><strong>Başarılı:</strong> Komisyon dönemi aktifleştirildi.</span></div>
 {% elif msg == 'deleted' %}
 <div class="alert alert-success"><span><strong>Başarılı:</strong> Komisyon dönemi silindi.</span></div>
+{% elif msg == 'import_success' %}
+<div class="alert alert-success">
+  <span><strong>Başarılı:</strong> Excel içe aktarıldı: {{ request.query_params.get('created', 0) }} yeni, {{ request.query_params.get('updated', 0) }} güncellenen, {{ request.query_params.get('skipped', 0) }} atlanan satır.</span>
+  {% if request.query_params.get('errors', '0') != '0' %}<span class="muted"> {{ request.query_params.get('errors') }} hatalı satır atlandı.</span>{% endif %}
+</div>
 {% elif msg and msg.startswith('error:') %}
 <div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
 {% endif %}
@@ -14,6 +19,12 @@
   <div>
     <h1>Komisyonlar</h1>
     <p class="muted" style="margin: 0;">Aylık POS, Ödero ve Chippin komisyon dönemleri.</p>
+  </div>
+  <div class="actions-group">
+    <a class="btn" href="/imports/commissions/rates">Oranları İçe Aktar</a>
+    <a class="btn" href="/imports/commissions/limits">Limitleri İçe Aktar</a>
+    <a class="btn" href="/commissions/export/rates.xlsx">Oranları Dışa Aktar</a>
+    <a class="btn" href="/commissions/export/limits.xlsx">Limitleri Dışa Aktar</a>
   </div>
 </div>
 

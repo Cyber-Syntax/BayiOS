@@ -16,6 +16,8 @@
     </div>
     <div class="actions-group">
       <button type="button" class="btn" @click="showCategoryModal = true">Kategori Ekle</button>
+      <a class="btn" href="/imports/products">Excel İçe Aktar</a>
+      <a class="btn" href="/stock/export/xlsx?category_id={{ selected_category or '' }}&q={{ q | urlencode }}">Excel Dışa Aktar</a>
       <a class="btn" href="/stock/print{% if selected_category %}?category_id={{ selected_category }}{% endif %}" target="_blank">A4 Sayım Listesi</a>
       <button type="button" class="btn btn-primary" @click="showSessionModal = true">Yeni Sayım Oturumu</button>
     </div>

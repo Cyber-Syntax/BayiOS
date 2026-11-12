@@ -32,6 +32,10 @@
     </p>
   </div>
   <div class="actions-group">
+    <a class="btn" href="/commissions/export/rates.xlsx?period_id={{ detail.period.id }}">Oranları Dışa Aktar</a>
+    <a class="btn" href="/commissions/export/limits.xlsx?period_id={{ detail.period.id }}">Limitleri Dışa Aktar</a>
+    <a class="btn" href="/imports/commissions/rates">Oranları İçe Aktar</a>
+    <a class="btn" href="/imports/commissions/limits">Limitleri İçe Aktar</a>
     {% if detail.period.status in ('draft', 'inactive') %}
     <form method="post" action="/commissions/{{ detail.period.id }}/activate">
       <button type="submit" class="btn btn-primary">Dönemi Aktifleştir</button>

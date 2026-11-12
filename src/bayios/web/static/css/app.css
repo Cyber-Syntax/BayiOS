@@ -377,3 +377,50 @@ table.data-table td.col-date small { font-size: .72rem; }
   .flatpickr-calendar .flatpickr-days,
   .flatpickr-calendar .dayContainer { width: 100%; min-width: 0; max-width: none; }
 }
+
+/* Yatay kaydırmalı tablolar: altına yapışan, her zaman görünür scrollbar. */
+.table-scroll-shell { position: relative; }
+.table-scroll-area { margin-top: 0; }
+.table-scroll-hint {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  padding: .3rem .65rem;
+  font-size: .75rem;
+  color: var(--muted);
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.table-scroll-hint-arrows { font-size: 1rem; letter-spacing: .15em; color: #475569; }
+.table-scroll-shell.is-scrollable .table-scroll-hint { display: flex; }
+.table-scroll-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  height: 22px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #eef2f7;
+  border: 1px solid var(--border);
+  border-top: 0;
+  border-radius: 0 0 var(--radius) var(--radius);
+  scrollbar-width: auto;
+  scrollbar-color: #64748b #e2e8f0;
+}
+.table-scroll-bar::-webkit-scrollbar { height: 12px; }
+.table-scroll-bar::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 999px; }
+.table-scroll-bar::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border: 2px solid #e2e8f0;
+  border-radius: 999px;
+}
+.table-scroll-track { height: 1px; }
+@media (max-width: 1023px) {
+  .table-scroll-hint { font-size: .7rem; }
+}
+.table-scroll-shell { margin-top: 1rem; }
+.table-scroll-shell:not(.is-scrollable) .table-scroll-bar,
+.table-scroll-shell:not(.is-scrollable) .table-scroll-hint { display: none; }
