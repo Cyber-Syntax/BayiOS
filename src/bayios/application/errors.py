@@ -17,5 +17,9 @@ class ConflictError(ApplicationError):
     """Concurrent change or stale snapshot prevents the operation."""
 
 
+class ProductAlreadyExistsError(ValidationError):
+    """A product with the same normalized name is already in the catalog."""
+
+
 class ProductHasOpenReservationsError(ApplicationError):
     """Product cannot be hard deleted while a reservation line is still open."""

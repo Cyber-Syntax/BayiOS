@@ -82,6 +82,18 @@ def _parse_int(value: str | None, default: int | None = None) -> int | None:
         raise ValidationError("Miktar tam sayı olmalıdır.") from exc
 
 
+def _date_form_value(value: str | None) -> str:
+    """Return the submitted date as an ISO form value without falling back to today."""
+    if not value or not value.strip():
+        return ""
+    text = value.strip()
+    try:
+        parsed = _parse_date(text)
+    except ValidationError:
+        return text
+    return parsed.date().isoformat() if parsed is not None else ""
+
+
 def _redirect(reservation_id: uuid.UUID, msg: str) -> RedirectResponse:
     query = urlencode({"msg": msg})
     return RedirectResponse(
@@ -198,6 +210,7 @@ async def create_reservation_route(
     form = await request.form()
     customer_name = str(form.get("customer_name") or "")
     note = str(form.get("note") or "") or None
+    submitted_date = str(form.get("reservation_date") or "").strip()
     product_ids = [str(value) for value in form.getlist("product_id")]
     quantities = [str(value) for value in form.getlist("quantity")]
 
@@ -211,7 +224,7 @@ async def create_reservation_route(
                 quantities[index] if index < len(quantities) else None, default=1
             )
             items.append(NewReservationItem(parsed_id, int(quantity or 1)))
-        reservation_date = _parse_date(str(form.get("reservation_date") or ""))
+        reservation_date = _parse_date(submitted_date)
         view = create_reservation(
             uow,
             customer_name=customer_name,
@@ -230,6 +243,7 @@ async def create_reservation_route(
             status_code=400,
             customer_name=customer_name,
             note=note or "",
+            reservation_date=_date_form_value(submitted_date),
         )
 
     return RedirectResponse(url=f"/reservations/{view.id}?msg=created", status_code=303)
@@ -470,6 +484,7 @@ def _render_new(
     status_code: int = 200,
     customer_name: str = "",
     note: str = "",
+    reservation_date: str | None = None,
 ) -> HTMLResponse:
     products, _ = search_products(uow, query=q, limit=25, offset=0)
     initial_lines: list[dict[str, str]] = []
@@ -488,7 +503,11 @@ def _render_new(
             "initial_lines": initial_lines,
             "customer_name": customer_name,
             "note": note,
-            "today": datetime.now(UTC).date().isoformat(),
+            "reservation_date": (
+                datetime.now(UTC).date().isoformat()
+                if reservation_date is None
+                else reservation_date
+            ),
             "error": error,
         },
         status_code=status_code,

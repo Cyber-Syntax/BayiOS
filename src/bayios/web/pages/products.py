@@ -16,6 +16,7 @@ from bayios.application.dealer_pricing import (
 )
 from bayios.application.errors import (
     NotFoundError,
+    ProductAlreadyExistsError,
     ProductHasOpenReservationsError,
     ValidationError,
 )
@@ -78,6 +79,12 @@ def _safe_redirect(url: str | None, fallback: str, msg: str) -> str:
     query = parse_qs(parsed.query)
     query["msg"] = [msg]
     return urlunsplit(parsed._replace(query=urlencode(query, doseq=True)))
+
+
+def _error_redirect(url: str, message: str) -> RedirectResponse:
+    return RedirectResponse(
+        url=_safe_redirect(url, "/products", f"error:{message}"), status_code=303
+    )
 
 
 @router.get("", response_class=HTMLResponse)
@@ -169,8 +176,12 @@ def create_product_route(
             category_id=_parse_uuid_form(category_id),
             actor=actor,
         )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ProductAlreadyExistsError as exc:
+        return _error_redirect("/products", str(exc))
+    except HTTPException as exc:
+        return _error_redirect("/products", str(exc.detail))
+    except (ValueError, ValidationError) as exc:
+        return _error_redirect("/products", str(exc))
 
     return RedirectResponse(url="/products?msg=product_created", status_code=303)
 
@@ -279,6 +290,8 @@ def update_product_route(
             category_id=resolved_category_id,
             actor=actor,
         )
+    except ProductAlreadyExistsError as exc:
+        return _error_redirect(f"/products/{product_id}", str(exc))
     except (ValueError, ValidationError, NotFoundError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

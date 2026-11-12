@@ -4,9 +4,11 @@ import io
 import uuid
 from decimal import Decimal
 
+import pytest
 from openpyxl import load_workbook
 
 from bayios.adapters.db.models.products import Product, ProductCategory
+from bayios.application.errors import ProductAlreadyExistsError
 from bayios.application.products import (
     export_products_csv,
     export_products_xlsx,
@@ -189,6 +191,27 @@ def test_create_manual_product_creates_history_and_movements() -> None:
     assert len(uow.products.stock_movements) == 1
     assert uow.products.stock_movements[0].quantity_delta == 5
     assert uow.products.stock_movements[0].movement_type == "manual_adjustment"
+
+
+def test_create_manual_product_rejects_duplicate_with_typed_error() -> None:
+    from bayios.application.products import create_manual_product
+
+    uow = FakeUnitOfWork()
+    create_manual_product(uow, name="OCD T 601-1 EG")
+
+    with pytest.raises(ProductAlreadyExistsError, match="adında bir ürün zaten mevcut"):
+        create_manual_product(uow, name="ocd t 601-1 eg")
+
+
+def test_update_product_rejects_duplicate_name_with_typed_error() -> None:
+    from bayios.application.products import create_manual_product, update_product
+
+    uow = FakeUnitOfWork()
+    first = create_manual_product(uow, name="Ürün 1")
+    create_manual_product(uow, name="Ürün 2")
+
+    with pytest.raises(ProductAlreadyExistsError, match="adında bir ürün zaten mevcut"):
+        update_product(uow, first.id, name="ürün 2")
 
 
 def test_archive_and_unarchive_products() -> None:

@@ -107,6 +107,10 @@
 <div class="alert alert-danger">
   <span><strong>Silinemedi:</strong> Seçilen ürünlerden en az biri açık rezervasyonda. Önce ilgili rezervasyon satırlarını teslim edin veya iptal edin.</span>
 </div>
+{% elif request.query_params.get('msg') and request.query_params.get('msg').startswith('error:') %}
+<div class="alert alert-danger">
+  <span><strong>İşlem yapılamadı:</strong> {{ request.query_params.get('msg')[6:] }}</span>
+</div>
 {% endif %}
 
 <div class="actions-bar">

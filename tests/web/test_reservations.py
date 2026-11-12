@@ -137,15 +137,36 @@ def test_dates_are_shown_in_turkish_format(
     assert "10 Aralık 2027" in page.text
 
 
-def test_new_reservation_date_input_has_turkish_preview(
+def test_new_reservation_date_input_has_picker_without_preview(
     client: TestClient,
 ) -> None:
     page = client.get("/reservations/new")
 
     assert page.status_code == 200
-    assert 'data-date-picker data-date-preview="reservation-date-preview"' in page.text
-    assert 'id="reservation-date-preview"' in page.text
     assert 'name="reservation_date"' in page.text
+    assert "data-date-picker" in page.text
+    assert f'value="{TODAY}"' in page.text
+    assert "reservation-date-preview" not in page.text
+
+
+def test_create_error_keeps_submitted_reservation_date(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    response = client.post(
+        "/reservations",
+        data={
+            "customer_name": " ",
+            "reservation_date": "2026-11-10",
+            "product_id": str(_product(fake_uow).id),
+            "quantity": "1",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Müşteri adı zorunludur." in response.text
+    assert 'name="reservation_date"' in response.text
+    assert 'value="2026-11-10"' in response.text
+    assert f'value="{TODAY}"' not in response.text
 
 
 def test_detail_date_fields_use_turkish_picker(

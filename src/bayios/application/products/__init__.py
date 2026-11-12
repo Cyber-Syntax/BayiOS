@@ -10,7 +10,10 @@ from decimal import Decimal
 
 from bayios.adapters.db.models.inventory import StockMovement
 from bayios.adapters.db.models.products import Product, ProductPriceHistory
-from bayios.application.errors import ProductHasOpenReservationsError
+from bayios.application.errors import (
+    ProductAlreadyExistsError,
+    ProductHasOpenReservationsError,
+)
 from bayios.application.ports.unit_of_work import UnitOfWork
 from bayios.domain.inventory import StockSummary
 from bayios.domain.products import ActorContext, normalize_product_name
@@ -69,7 +72,9 @@ def create_manual_product(
     with uow:
         existing = uow.products.get_by_normalized_name(norm_name)
         if existing is not None:
-            raise ValueError(f"'{clean_name}' adında bir ürün zaten mevcut.")
+            raise ProductAlreadyExistsError(
+                f"'{clean_name}' adında bir ürün zaten mevcut."
+            )
         if category_id is not None and uow.products.get_category(category_id) is None:
             raise ValueError("Seçilen kategori bulunamadı.")
 
@@ -178,7 +183,9 @@ def update_product(
         if norm_name != product.name_normalized:
             duplicate = uow.products.get_by_normalized_name(norm_name)
             if duplicate is not None and duplicate.id != product.id:
-                raise ValueError(f"'{clean_name}' adında bir ürün zaten mevcut.")
+                raise ProductAlreadyExistsError(
+                    f"'{clean_name}' adında bir ürün zaten mevcut."
+                )
             product.name = clean_name
             product.name_normalized = norm_name
 

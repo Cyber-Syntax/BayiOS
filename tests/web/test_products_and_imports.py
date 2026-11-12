@@ -204,6 +204,49 @@ def test_post_create_manual_product_route(client: TestClient, fake_uow: FakeUnit
     assert prod.physical_stock == 4
 
 
+def test_post_create_duplicate_product_shows_turkish_error_not_json(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/products", data={"name": "07325 a"}, follow_redirects=False
+    )
+
+    assert response.status_code == 303
+    assert "application/json" not in response.headers.get("content-type", "")
+
+    page = client.get(response.headers["location"])
+    assert page.status_code == 200
+    assert "İşlem yapılamadı:" in page.text
+    assert "adında bir ürün zaten mevcut." in page.text
+
+
+def test_update_product_duplicate_name_shows_error_on_detail(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = next(iter(fake_uow.products.get_all()))
+    fake_uow.products.add(
+        Product(
+            id=uuid.uuid4(),
+            name="Başka Ürün",
+            name_normalized="başka ürün",
+            regular_price=Decimal("100.00"),
+            physical_stock=1,
+        )
+    )
+
+    response = client.post(
+        f"/products/{product.id}/edit",
+        data={"name": "Başka Ürün"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    page = client.get(response.headers["location"])
+    assert page.status_code == 200
+    assert "İşlem yapılamadı:" in page.text
+    assert "adında bir ürün zaten mevcut." in page.text
+
+
 def test_bulk_archive_and_unarchive_route(client: TestClient, fake_uow: FakeUnitOfWork) -> None:
     prod = next(iter(fake_uow.products.get_all()))
     res = client.post(
