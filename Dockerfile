@@ -14,7 +14,7 @@ WORKDIR /app
 
 # Layer 1: dependencies only (from the lock file), excluding the dev group,
 # so the image layer is cached until pyproject/uv.lock actually changes.
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-group dev --no-install-project
 
 # Layer 2: source, migrations, and the installed project itself.
