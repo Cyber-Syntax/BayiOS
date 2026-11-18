@@ -66,6 +66,7 @@ def test_period_helpers_and_validation() -> None:
 
 
 def test_rate_validation() -> None:
+    assert _rate(PaymentChannel.POS, 2, "4", bank=None).bank_id is None
     with pytest.raises(ValueError):
         _rate(PaymentChannel.CHIPPIN, 1, "3", bank="ykb")
     with pytest.raises(ValueError):
@@ -103,9 +104,13 @@ def test_effective_max_installments_applies_all_caps() -> None:
             channel=PaymentChannel.ODERO, bank_id="ykb", max_installments=2
         ),
         CommissionLimit(channel=PaymentChannel.CHIPPIN, max_installments=6),
-        CommissionLimit(product_group=ProductCommissionGroup.KLIMA, max_installments=10),
-        CommissionLimit(product_group=ProductCommissionGroup.TV, max_installments=4),
-        CommissionLimit(product_group=ProductCommissionGroup.OTHER, max_installments=5),
+        CommissionLimit(
+            product_group=ProductCommissionGroup.KLIMA, max_installments=10
+        ),
+        CommissionLimit(category_id="tv-cat", max_installments=4),
+        CommissionLimit(
+            product_group=ProductCommissionGroup.OTHER, max_installments=5
+        ),
         CommissionLimit(card_type=CardType.BUSINESS, max_installments=2),
     ]
     total = Decimal(50000)
@@ -128,9 +133,10 @@ def test_effective_max_installments_applies_all_caps() -> None:
             limits,
             channel=PaymentChannel.POS,
             bank_id="ykb",
-            product_group=ProductCommissionGroup.TV,
+            product_group=ProductCommissionGroup.OTHER,
             card_type=CardType.CONSUMER,
             total=total,
+            category_ids=("tv-cat",),
         )
         == 4
     )
@@ -204,6 +210,73 @@ def test_effective_max_installments_applies_all_caps() -> None:
     )
 
 
+def test_bank_specific_limit_replaces_general_limit() -> None:
+    rates = [
+        _rate(PaymentChannel.POS, installment, "4", bank=None)
+        for installment in range(1, 11)
+    ]
+    limits = [
+        CommissionLimit(channel=PaymentChannel.POS, max_installments=5),
+        CommissionLimit(
+            channel=PaymentChannel.POS, bank_id="akbank", max_installments=8
+        ),
+    ]
+
+    assert (
+        effective_max_installments(
+            rates,
+            limits,
+            channel=PaymentChannel.POS,
+            bank_id="akbank",
+            product_group=ProductCommissionGroup.OTHER,
+            card_type=CardType.CONSUMER,
+            total=Decimal(1000),
+        )
+        == 8
+    )
+    assert (
+        effective_max_installments(
+            rates,
+            limits,
+            channel=PaymentChannel.POS,
+            bank_id="other-bank",
+            product_group=ProductCommissionGroup.OTHER,
+            card_type=CardType.CONSUMER,
+            total=Decimal(1000),
+        )
+        == 5
+    )
+
+
+def test_category_cap_cannot_be_raised_by_bank_limit() -> None:
+    rates = [
+        _rate(PaymentChannel.POS, installment, "4", bank=None)
+        for installment in range(1, 11)
+    ]
+    limits = [
+        CommissionLimit(
+            channel=PaymentChannel.POS, bank_id="akbank", max_installments=8
+        ),
+        CommissionLimit(category_id="tv-cat", max_installments=4),
+    ]
+
+    assert (
+        effective_max_installments(
+            rates,
+            limits,
+            channel=PaymentChannel.POS,
+            bank_id="akbank",
+            product_group=ProductCommissionGroup.OTHER,
+            card_type=CardType.CONSUMER,
+            total=Decimal(1000),
+            category_ids=("tv-cat",),
+        )
+        == 4
+    )
+
+
+
+
 def test_commission_percent_lookup() -> None:
     rates = [
         _rate(PaymentChannel.POS, 2, "4"),
@@ -221,7 +294,7 @@ def test_commission_percent_lookup() -> None:
             rates,
             channel=PaymentChannel.POS,
             bank_id="ykb",
-            product_group=ProductCommissionGroup.TV,
+            product_group=ProductCommissionGroup.OTHER,
             installment_count=3,
             total=Decimal(50000),
         )
@@ -248,6 +321,71 @@ def test_commission_percent_lookup() -> None:
             total=Decimal(19999),
         )
         is None
+    )
+
+
+def test_rate_lookup_falls_back_to_general() -> None:
+    rates = [
+        _rate(PaymentChannel.POS, installment, "4", bank=None)
+        for installment in range(1, 11)
+    ] + [_rate(PaymentChannel.POS, 8, "15", bank="akbank")]
+
+    assert (
+        commission_percent_for(
+            rates,
+            channel=PaymentChannel.POS,
+            bank_id="akbank",
+            product_group=ProductCommissionGroup.OTHER,
+            installment_count=2,
+            total=Decimal(1000),
+        )
+        == Decimal(4)
+    )
+    assert (
+        commission_percent_for(
+            rates,
+            channel=PaymentChannel.POS,
+            bank_id="akbank",
+            product_group=ProductCommissionGroup.OTHER,
+            installment_count=8,
+            total=Decimal(1000),
+        )
+        == Decimal(15)
+    )
+    assert (
+        commission_percent_for(
+            rates,
+            channel=PaymentChannel.POS,
+            bank_id="other-bank",
+            product_group=ProductCommissionGroup.OTHER,
+            installment_count=8,
+            total=Decimal(1000),
+        )
+        == Decimal(4)
+    )
+
+
+def test_chippin_rate_without_group_applies() -> None:
+    rates = [
+        CommissionRate(
+            channel=PaymentChannel.CHIPPIN,
+            bank_id=None,
+            product_group=None,
+            installment_count=2,
+            commission_percent=Decimal(3),
+        )
+    ]
+
+    assert (
+        commission_percent_for(
+            rates,
+            channel=PaymentChannel.CHIPPIN,
+            bank_id=None,
+            product_group=ProductCommissionGroup.OTHER,
+            installment_count=2,
+            total=Decimal(1000),
+        )
+        == Decimal(3)
     )
 
 

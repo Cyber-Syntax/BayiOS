@@ -31,8 +31,157 @@ from bayios.domain.campaigns import (
     DiscountType,
     ProductRelationType,
 )
+from bayios.domain.commissions import CardType, PaymentChannel
 from bayios.domain.offers import OfferStatus, PaymentType
 from tests.fakes import FakeUnitOfWork
+
+
+def test_category_cap_applies_to_card_offer() -> None:
+    from bayios.adapters.db.models.commissions import CommissionLimit
+    from bayios.adapters.db.models.products import ProductCategory
+
+    uow, product_id = _active_card_uow()
+    category = ProductCategory(
+        id=uuid.uuid4(), name="TV", name_normalized="tv", commission_group="other"
+    )
+    uow.products.add_category(category)
+    product = uow.products.products[product_id]
+    product.category_id = category.id
+    period = next(iter(uow.commissions.periods.values()))
+    uow.commissions.add_limit(
+        CommissionLimit(
+            id=uuid.uuid4(),
+            period_id=period.id,
+            channel=None,
+            bank_id=None,
+            product_group=None,
+            category_id=category.id,
+            card_type=None,
+            max_installments=2,
+            scope_key=f"-|-|-|{category.id}|-",
+        )
+    )
+
+    with pytest.raises(ValidationError, match="en fazla 2"):
+        create_offer(
+            uow,
+            OfferInput(
+                customer_name="Ayşe",
+                customer_phone=None,
+                payment_type=PaymentType.CARD,
+                dealer_discount_percent=Decimal(10),
+                items=(OfferItemInput(product_id, 1),),
+                channel=PaymentChannel.POS,
+                installment_count=3,
+                card_type=CardType.CONSUMER,
+            ),
+        )
+
+
+
+def _active_card_uow(
+    *,
+    bank_id: uuid.UUID | None = None,
+) -> tuple[FakeUnitOfWork, uuid.UUID]:
+    from bayios.adapters.db.models.commissions import (
+        Bank,
+        CommissionPeriod,
+        CommissionRate,
+    )
+    from bayios.domain.commissions import period_bounds
+
+    uow = FakeUnitOfWork()
+    start, end = period_bounds(2026, 11)
+    period = CommissionPeriod(
+        id=uuid.uuid4(),
+        period_key="2026-11",
+        valid_from=start,
+        valid_until=end,
+        status="active",
+    )
+    uow.commissions.add_period(period)
+    if bank_id is not None:
+        uow.commissions.add_bank(
+            Bank(
+                id=bank_id,
+                name="Akbank",
+                name_normalized="akbank",
+                is_active=True,
+            )
+        )
+    for installment in range(1, 4):
+        uow.commissions.add_rate(
+            CommissionRate(
+                id=uuid.uuid4(),
+                period_id=period.id,
+                channel="pos",
+                bank_id=None,
+                product_group="other",
+                amount_tier=None,
+                installment_count=installment,
+                commission_percent=Decimal(5),
+                scope_key=f"pos|-|other|-|{installment}",
+            )
+        )
+    product = Product(
+        id=uuid.uuid4(),
+        name="Buzdolabı",
+        name_normalized="buzdolabı",
+        regular_price=Decimal("10000.00"),
+        cost_price=Decimal("8000.00"),
+        physical_stock=1,
+    )
+    uow.products.add(product)
+    return uow, product.id
+
+
+def test_card_offer_can_be_saved_without_bank() -> None:
+    uow, product_id = _active_card_uow()
+    offer_id = create_offer(
+        uow,
+        OfferInput(
+            customer_name="Ayşe",
+            customer_phone=None,
+            payment_type=PaymentType.CARD,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product_id, 1),),
+            channel=PaymentChannel.POS,
+            installment_count=2,
+            card_type=CardType.CONSUMER,
+        ),
+    )
+    offer = uow.offers.get(offer_id)
+
+    assert offer is not None
+    assert offer.bank_id is None
+    assert offer.bank_name_snapshot is None
+    assert offer.commission_source == "general"
+    assert offer.commission_percent_snapshot == Decimal(5)
+
+
+def test_card_offer_snapshots_bank_name() -> None:
+    bank_id = uuid.uuid4()
+    uow, product_id = _active_card_uow(bank_id=bank_id)
+    offer_id = create_offer(
+        uow,
+        OfferInput(
+            customer_name="Ayşe",
+            customer_phone=None,
+            payment_type=PaymentType.CARD,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product_id, 1),),
+            channel=PaymentChannel.POS,
+            bank_id=bank_id,
+            installment_count=2,
+            card_type=CardType.CONSUMER,
+        ),
+    )
+    offer = uow.offers.get(offer_id)
+
+    assert offer is not None
+    assert offer.bank_name_snapshot == "Akbank"
+    assert offer.commission_source == "general"
+
 
 
 def test_create_cash_offer_and_status_history() -> None:

@@ -62,8 +62,9 @@ class Offer(Base):
             name="card_payment_requires_channel",
         ),
         sa.CheckConstraint(
-            "channel IS NULL OR channel = 'chippin' OR bank_id IS NOT NULL",
-            name="bank_required_for_bank_channel",
+            "commission_source IS NULL "
+            "OR commission_source IN ('bank_specific', 'general', 'none')",
+            name="commission_source_valid",
         ),
         sa.Index("ix_offers_status", "status"),
         sa.Index("ix_offers_created_at", "created_at"),
@@ -85,6 +86,7 @@ class Offer(Base):
     bank_id: Mapped[uuid.UUID | None] = mapped_column(
         sa.ForeignKey("banks.id", ondelete="SET NULL")
     )
+    bank_name_snapshot: Mapped[str | None] = mapped_column(sa.Text)
     installment_count: Mapped[int | None] = mapped_column(sa.Integer)
     card_type: Mapped[str | None] = mapped_column(sa.Text)
     dealer_discount_percent: Mapped[Decimal] = mapped_column(
@@ -95,6 +97,7 @@ class Offer(Base):
     )
     commission_period_key_snapshot: Mapped[str | None] = mapped_column(sa.Text)
     commission_percent_snapshot: Mapped[Decimal | None] = mapped_column(PERCENT)
+    commission_source: Mapped[str | None] = mapped_column(sa.Text)
     commission_options_snapshot: Mapped[list[dict[str, Any]] | None] = mapped_column(
         JSONB
     )

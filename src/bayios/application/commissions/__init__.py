@@ -26,6 +26,7 @@ from bayios.domain.commissions import (
     ProductCommissionGroup,
     commission_percent_for,
     effective_max_installments,
+    matching_commission_rate,
     odero_tier,
     period_bounds,
     validate_period,
@@ -36,6 +37,7 @@ from bayios.domain.commissions import (
 from bayios.domain.commissions import (
     CommissionRate as DomainRate,
 )
+from bayios.domain.naming import canonical_display_name, normalize_name
 from bayios.domain.products import ActorContext
 
 
@@ -53,6 +55,7 @@ class CommissionResolution:
     commission_percent: Decimal
     max_installments: int
     options: tuple[tuple[int, Decimal], ...] = ()
+    commission_source: str = "none"
 
 
 @dataclass(frozen=True)
@@ -73,6 +76,37 @@ def list_commission_periods(uow: UnitOfWork) -> Sequence[CommissionPeriod]:
 def list_banks(uow: UnitOfWork) -> Sequence[Bank]:
     with uow:
         return uow.commissions.get_banks()
+
+
+def ensure_bank(uow: UnitOfWork, name: str) -> Bank:
+    """Return the canonical bank for a typed name, creating it when missing.
+
+    Comparison uses the normalized key, so AKBANK/akbank/AkbanK resolve to the
+    same row; the stored display name is always canonical (Akbank).
+    """
+    raw = (name or "").strip()
+    if not raw:
+        raise ValidationError("Banka adı boş olamaz.")
+    normalized = normalize_name(raw)
+    canonical = canonical_display_name(raw, always_title=True)
+    with uow:
+        existing = uow.commissions.get_bank_by_normalized(normalized)
+        if existing is not None:
+            return existing
+        bank = Bank(
+            id=uuid.uuid4(),
+            name=canonical,
+            name_normalized=normalized,
+            is_active=True,
+        )
+        uow.commissions.add_bank(bank)
+        try:
+            uow.commit()
+        except IntegrityError as exc:
+            raise ValidationError(
+                "Bu banka zaten kayıtlı; listeyi yenileyip tekrar deneyin."
+            ) from exc
+        return bank
 
 
 def get_commission_period_detail(
@@ -251,6 +285,7 @@ def resolve_commission(
     card_type: CardType,
     installment_count: int,
     total: Decimal,
+    category_ids: Sequence[uuid.UUID] = (),
     as_of: datetime | None = None,
 ) -> CommissionResolution:
     with uow:
@@ -267,6 +302,7 @@ def resolve_commission(
             product_group=product_group,
             card_type=card_type,
             total=total,
+            category_ids=[str(category_id) for category_id in category_ids],
         )
         if maximum == 0:
             tier = (
@@ -286,7 +322,7 @@ def resolve_commission(
             raise ValidationError(
                 f"Seçilen taksit bu ödeme için geçersiz; en fazla {maximum} taksit olabilir."
             )
-        percent = commission_percent_for(
+        matched_rate = matching_commission_rate(
             rates,
             channel=channel,
             bank_id=str(bank_id) if bank_id else None,
@@ -294,10 +330,15 @@ def resolve_commission(
             installment_count=installment_count,
             total=total,
         )
-        if percent is None:
+        if matched_rate is None:
             raise ValidationError(
-                "Seçilen kanal, banka, ürün grubu ve taksit için komisyon tanımlı değil."
+                "Seçilen kanal, banka (varsa), ürün grubu ve taksit için "
+                "komisyon tanımlı değil."
             )
+        percent = matched_rate.commission_percent
+        commission_source = (
+            "bank_specific" if matched_rate.bank_id else "general"
+        )
         options = tuple(
             (installment, option_percent)
             for installment in range(1, maximum + 1)
@@ -318,6 +359,7 @@ def resolve_commission(
             commission_percent=percent,
             max_installments=maximum,
             options=options,
+            commission_source=commission_source,
         )
 
 
@@ -344,7 +386,7 @@ def set_category_commission_group(
     uow: UnitOfWork, category_id: uuid.UUID, commission_group: str
 ) -> None:
     with uow:
-        if commission_group not in {"klima", "tv", "other"}:
+        if commission_group not in {"klima", "other"}:
             raise ValidationError("Geçersiz komisyon grubu.")
         uow.commissions.set_category_group(category_id, commission_group)
         uow.commit()
@@ -437,6 +479,9 @@ def add_commission_limit(
                 bank_id=uuid.UUID(limit.bank_id) if limit.bank_id else None,
                 product_group=(
                     limit.product_group.value if limit.product_group else None
+                ),
+                category_id=(
+                    uuid.UUID(limit.category_id) if limit.category_id else None
                 ),
                 card_type=limit.card_type.value if limit.card_type else None,
                 max_installments=limit.max_installments,
@@ -552,6 +597,7 @@ def _copy_period(
                 channel=limit.channel,
                 bank_id=limit.bank_id,
                 product_group=limit.product_group,
+                category_id=limit.category_id,
                 card_type=limit.card_type,
                 max_installments=limit.max_installments,
                 scope_key=limit.scope_key,
@@ -587,6 +633,9 @@ def _domain_limits(rows: Sequence[CommissionLimit]) -> list[DomainLimit]:
                 ProductCommissionGroup(row.product_group)
                 if row.product_group
                 else None
+            ),
+            category_id=(
+                str(row.category_id) if row.category_id else None
             ),
             card_type=CardType(row.card_type) if row.card_type else None,
         )

@@ -19,6 +19,61 @@ from bayios.application.imports.commissions import (
 from tests.fakes import FakeUnitOfWork
 
 
+def test_commission_rate_import_allows_bankless_general_rate() -> None:
+    uow = FakeUnitOfWork()
+    data = _workbook(
+        ["Dönem", "Kanal", "Banka", "Ürün Grubu", "Ödero Bandı", "Taksit", "Oran %"],
+        [["2026-11", "POS", "", "Klima", "", 3, 2.5]],
+        "Komisyon Oranları",
+    )
+    preview = preview_commission_rates(uow, data)
+    assert not preview.rows[0].errors
+    commit_commission_rates(
+        uow,
+        file_name="oranlar.xlsx",
+        file_type="xlsx",
+        source=data,
+        decisions={},
+        commit_token="rates-general",
+    )
+    period = next(iter(uow.commissions.periods.values()))
+    stored = uow.commissions.rates[period.id][0]
+    assert stored.bank_id is None
+
+
+def test_commission_limit_import_accepts_category_scope() -> None:
+    from bayios.adapters.db.models.products import ProductCategory
+
+    uow = _uow_with_bank()
+    category = ProductCategory(
+        id=uuid.uuid4(),
+        name="TV",
+        name_normalized="tv",
+        commission_group="other",
+    )
+    uow.products.add_category(category)
+    data = _workbook(
+        ["Dönem", "Kanal", "Banka", "Ürün Grubu", "Kategori", "Kart Tipi", "Max Taksit"],
+        [["2026-11", "POS", "", "", "TV", "", 4]],
+        "Taksit Limitleri",
+    )
+    preview = preview_commission_limits(uow, data)
+    assert not preview.rows[0].errors
+    commit_commission_limits(
+        uow,
+        file_name="limitler.xlsx",
+        file_type="xlsx",
+        source=data,
+        decisions={},
+        commit_token="limits-category",
+    )
+    period = next(iter(uow.commissions.periods.values()))
+    stored = uow.commissions.limits[period.id][0]
+    assert stored.category_id == category.id
+    assert stored.bank_id is None
+
+
+
 def _workbook(headers: list[str], rows: list[list[object]], title: str) -> bytes:
     workbook = Workbook()
     sheet = workbook.active
@@ -46,7 +101,7 @@ def test_commission_exports_are_separate_files() -> None:
     assert rates_wb.sheetnames == ["Komisyon Oranları", "Kullanım"]
     assert limits_wb.sheetnames == ["Taksit Limitleri", "Kullanım"]
     assert rates_wb.active["A1"].value == "Dönem"
-    assert limits_wb.active["F1"].value == "Max Taksit"
+    assert limits_wb.active["G1"].value == "Max Taksit"
 
 
 def test_commission_rate_import_creates_draft_period_and_rate() -> None:

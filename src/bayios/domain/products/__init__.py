@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import re
-import unicodedata
 from dataclasses import dataclass
 
-_WHITESPACE = re.compile(r"\s+")
+from bayios.domain.naming import normalize_name
 
 
 @dataclass(frozen=True)
@@ -17,13 +15,9 @@ class ActorContext:
 
 def normalize_product_name(raw_name: str) -> str:
     """Return the canonical name used for exact product matching."""
-    normalized = unicodedata.normalize("NFKC", raw_name).strip()
-    normalized = _WHITESPACE.sub(" ", normalized)
-    return normalized.translate(str.maketrans({"I": "ı", "İ": "i"})).lower()
+    return normalize_name(raw_name)
 
 
 def normalize_category_name(raw_name: str) -> str:
     """Return the canonical name used for category matching (case/space insensitive)."""
-    normalized = unicodedata.normalize("NFKC", raw_name).strip()
-    normalized = _WHITESPACE.sub(" ", normalized)
-    return normalized.translate(str.maketrans({"I": "ı", "İ": "i"})).lower()
+    return normalize_name(raw_name)

@@ -50,7 +50,8 @@ def export_offers_xlsx(
                     offer.payment_type, offer.payment_type
                 ),
                 "channel": CHANNEL_LABELS.get(offer.channel, offer.channel or ""),
-                "bank": bank_names.get(offer.bank_id, ""),
+                "bank": offer.bank_name_snapshot
+                or bank_names.get(offer.bank_id, ""),
                 "installment_count": offer.installment_count,
                 "card_type": CARD_TYPE_LABELS.get(
                     offer.card_type, offer.card_type or ""
@@ -137,7 +138,7 @@ def export_offers_xlsx(
             ("Teklif No", "Opsiyonel", "Doluysa yalnızca taslak teklif güncellenir."),
             ("Teklif Anahtarı", "Gruplama", "Yeni tekliflerde satırları gruplamak için kullanılır."),
             ("Ödeme Türü", "Zorunlu", "Nakit veya Kart."),
-            ("Kanal / Banka / Taksit / Kart Tipi", "Kartta zorunlu", "POS/Ödero'da banka zorunlu; Chippin'de boş."),
+            ("Kanal / Banka / Taksit / Kart Tipi", "Kartta kanal/taksit/kart tipi zorunlu", "Banka isteğe bağlı; boşsa genel oran kullanılır. Chippin'de banka boş."),
             ("Komisyon / Kâr", "Salt okunur", "Sunucuda yeniden hesaplanır."),
         ),
     )

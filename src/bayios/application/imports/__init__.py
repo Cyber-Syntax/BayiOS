@@ -27,6 +27,7 @@ from bayios.application.tabular import (
     write_xlsx,
 )
 from bayios.domain.commissions import commission_group_for_category_name
+from bayios.domain.naming import canonical_display_name
 from bayios.domain.products import (
     ActorContext,
     normalize_category_name,
@@ -274,7 +275,9 @@ def commit_product_import(
 
         categories = {c.name: c for c in uow.products.get_categories()}
         categories_by_norm = {
-            normalize_category_name(name): category for name, category in categories.items()
+            getattr(category, "name_normalized", None)
+            or normalize_category_name(name): category
+            for name, category in categories.items()
         }
 
         def resolve_category(category_name: str | None) -> ProductCategory | None:
@@ -284,11 +287,13 @@ def commit_product_import(
             existing_category = categories_by_norm.get(norm)
             if existing_category is not None:
                 return existing_category
+            canonical = canonical_display_name(category_name)
             category = ProductCategory(
                 id=uuid.uuid4(),
-                name=category_name.strip(),
+                name=canonical,
+                name_normalized=norm,
                 commission_group=commission_group_for_category_name(
-                    category_name
+                    canonical
                 ).value,
             )
             uow.products.add_category(category)

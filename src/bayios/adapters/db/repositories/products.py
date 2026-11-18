@@ -180,6 +180,15 @@ class SqlAlchemyProductRepository:
             sa.select(ProductCategory).where(ProductCategory.name == name)
         )
 
+    def get_category_by_normalized(
+        self, name_normalized: str
+    ) -> ProductCategory | None:
+        return self._session.scalar(
+            sa.select(ProductCategory).where(
+                ProductCategory.name_normalized == name_normalized
+            )
+        )
+
     def add_category(self, category: ProductCategory) -> None:
         self._session.add(category)
         self._session.flush()

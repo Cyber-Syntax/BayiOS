@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import calendar
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import ROUND_HALF_UP, Decimal
@@ -15,11 +16,6 @@ POS_MAX_INSTALLMENTS = 8
 ODERO_MAX_INSTALLMENTS = 5
 CHIPPIN_MAX_INSTALLMENTS = 6
 BUSINESS_MAX_INSTALLMENTS = 2
-GROUP_MAX_INSTALLMENTS = {
-    "klima": 10,
-    "tv": 4,
-    "other": 5,
-}
 
 
 class PaymentChannel(StrEnum):
@@ -30,7 +26,6 @@ class PaymentChannel(StrEnum):
 
 class ProductCommissionGroup(StrEnum):
     KLIMA = "klima"
-    TV = "tv"
     OTHER = "other"
 
 
@@ -63,7 +58,6 @@ CHANNEL_LABELS: dict[PaymentChannel, str] = {
 }
 PRODUCT_GROUP_LABELS: dict[ProductCommissionGroup, str] = {
     ProductCommissionGroup.KLIMA: "Klima",
-    ProductCommissionGroup.TV: "TV",
     ProductCommissionGroup.OTHER: "Diğer",
 }
 CARD_TYPE_LABELS: dict[CardType, str] = {
@@ -82,18 +76,15 @@ PERIOD_STATUS_LABELS: dict[CommissionPeriodStatus, str] = {
 }
 
 
-def rate_group_for(group: ProductCommissionGroup) -> ProductCommissionGroup:
-    """TV uses the standard commission rate; only Klima has a separate rate group."""
-    return ProductCommissionGroup.KLIMA if group is ProductCommissionGroup.KLIMA else ProductCommissionGroup.OTHER
-
-
 def commission_group_for_category_name(name: str) -> ProductCommissionGroup:
-    """Derive the commission group from the product category name."""
+    """Derive the commission group from the product category name.
+
+    TV is not a separate commission group; it uses the standard group. Any
+    per-category installment difference is period data, not a rate group.
+    """
     normalized = name.strip().lower()
     if "klima" in normalized:
         return ProductCommissionGroup.KLIMA
-    if "tv" in normalized or "televizyon" in normalized:
-        return ProductCommissionGroup.TV
     return ProductCommissionGroup.OTHER
 
 
@@ -123,8 +114,6 @@ class CommissionRate:
             raise ValueError("Komisyon oranı %0 ile %100 arasında olmalıdır.")
         if self.channel is PaymentChannel.CHIPPIN and self.bank_id is not None:
             raise ValueError("Chippin komisyonunda banka seçilemez.")
-        if self.channel in (PaymentChannel.POS, PaymentChannel.ODERO) and not self.bank_id:
-            raise ValueError("POS ve Ödero komisyonunda banka zorunludur.")
         if self.channel in (PaymentChannel.POS, PaymentChannel.ODERO) and self.product_group is None:
             raise ValueError("POS ve Ödero komisyonunda ürün grubu zorunludur.")
         if self.channel is PaymentChannel.ODERO and self.amount_tier is None:
@@ -134,9 +123,7 @@ class CommissionRate:
 
     @property
     def rate_group(self) -> ProductCommissionGroup | None:
-        if self.product_group is None:
-            return None
-        return rate_group_for(self.product_group)
+        return self.product_group
 
     @property
     def scope_key(self) -> str:
@@ -144,7 +131,7 @@ class CommissionRate:
             (
                 self.channel.value,
                 self.bank_id or "-",
-                self.rate_group.value if self.rate_group else "-",
+                self.product_group.value if self.product_group else "-",
                 self.amount_tier.value if self.amount_tier else "-",
                 str(self.installment_count),
             )
@@ -157,6 +144,7 @@ class CommissionLimit:
     channel: PaymentChannel | None = None
     bank_id: str | None = None
     product_group: ProductCommissionGroup | None = None
+    category_id: str | None = None
     card_type: CardType | None = None
 
     def __post_init__(self) -> None:
@@ -167,12 +155,15 @@ class CommissionLimit:
                 self.channel,
                 self.bank_id,
                 self.product_group,
+                self.category_id,
                 self.card_type,
             )
         ):
             raise ValueError("Taksit limiti en az bir kapsam alanı içermelidir.")
         if self.channel is PaymentChannel.CHIPPIN and self.bank_id is not None:
             raise ValueError("Chippin limitinde banka seçilemez.")
+        if self.category_id is not None and self.bank_id is not None:
+            raise ValueError("Kategori taksit sınırı bankadan bağımsız olmalıdır.")
 
     @property
     def scope_key(self) -> str:
@@ -181,8 +172,27 @@ class CommissionLimit:
                 self.channel.value if self.channel else "-",
                 self.bank_id or "-",
                 self.product_group.value if self.product_group else "-",
+                self.category_id or "-",
                 self.card_type.value if self.card_type else "-",
             )
+        )
+
+    def _matches_dimensions(
+        self,
+        *,
+        channel: PaymentChannel,
+        product_group: ProductCommissionGroup,
+        card_type: CardType,
+    ) -> bool:
+        if self.channel is not None and self.channel is not channel:
+            return False
+        if (
+            self.product_group is not None
+            and self.product_group is not product_group
+        ):
+            return False
+        return not (
+            self.card_type is not None and self.card_type is not card_type
         )
 
     def matches(
@@ -193,17 +203,14 @@ class CommissionLimit:
         product_group: ProductCommissionGroup,
         card_type: CardType,
     ) -> bool:
-        if self.channel is not None and self.channel is not channel:
+        if self.category_id is not None:
             return False
         if self.bank_id is not None and self.bank_id != bank_id:
             return False
-        if (
-            self.product_group is not None
-            and self.product_group is not product_group
-        ):
-            return False
-        return not (
-            self.card_type is not None and self.card_type is not card_type
+        return self._matches_dimensions(
+            channel=channel,
+            product_group=product_group,
+            card_type=card_type,
         )
 
 
@@ -273,49 +280,137 @@ def calculate_reference_price(
     )
 
 
+def _matching_rates(
+    rates: Sequence[CommissionRate],
+    *,
+    channel: PaymentChannel,
+    bank_id: str | None,
+    product_group: ProductCommissionGroup,
+    total: Decimal,
+    installment_count: int | None = None,
+) -> list[CommissionRate]:
+    tier = odero_tier(total) if channel is PaymentChannel.ODERO else None
+    candidates = [
+        rate
+        for rate in rates
+        if rate.channel is channel
+        and (
+            rate.product_group is product_group
+            or (
+                rate.product_group is None
+                and channel is PaymentChannel.CHIPPIN
+            )
+        )
+        and rate.amount_tier == tier
+        and (
+            installment_count is None
+            or rate.installment_count == installment_count
+        )
+    ]
+    if bank_id is not None:
+        bank_specific = [
+            rate for rate in candidates if rate.bank_id == bank_id
+        ]
+        if bank_specific:
+            return bank_specific
+    return [rate for rate in candidates if rate.bank_id is None]
+
+
+def matching_commission_rate(
+    rates: Sequence[CommissionRate],
+    *,
+    channel: PaymentChannel,
+    bank_id: str | None,
+    product_group: ProductCommissionGroup,
+    installment_count: int,
+    total: Decimal,
+) -> CommissionRate | None:
+    """Return the rate row that applies: bank-specific first, general second."""
+    matches = _matching_rates(
+        rates,
+        channel=channel,
+        bank_id=bank_id,
+        product_group=product_group,
+        total=total,
+        installment_count=installment_count,
+    )
+    return matches[0] if matches else None
+
+
 def effective_max_installments(
-    rates: tuple[CommissionRate, ...] | list[CommissionRate],
-    limits: tuple[CommissionLimit, ...] | list[CommissionLimit],
+    rates: Sequence[CommissionRate],
+    limits: Sequence[CommissionLimit],
     *,
     channel: PaymentChannel,
     bank_id: str | None,
     product_group: ProductCommissionGroup,
     card_type: CardType,
     total: Decimal,
+    category_ids: Sequence[str] = (),
 ) -> int:
-    tier = odero_tier(total) if channel is PaymentChannel.ODERO else None
-    rate_group = rate_group_for(product_group)
-    matching_rates = [
-        rate
-        for rate in rates
-        if rate.channel is channel
-        and rate.bank_id == bank_id
-        and (
-            rate.rate_group is rate_group
-            or (rate.rate_group is None and channel is PaymentChannel.CHIPPIN)
-        )
-        and rate.amount_tier == tier
-    ]
+    """Resolve the effective installment cap for one card payment.
+
+    Bank-specific limits replace the bankless general limit with the same
+    channel/product-group/card-type signature and may raise or lower it.
+    Category caps are bank-independent legal/product caps and are always
+    applied on top; a bank-specific limit cannot raise them.
+    """
+    matching_rates = _matching_rates(
+        rates,
+        channel=channel,
+        bank_id=bank_id,
+        product_group=product_group,
+        total=total,
+    )
     if not matching_rates:
         return 0
     caps = [max(rate.installment_count for rate in matching_rates)]
-    matching_limits = [
-        limit.max_installments
-        for limit in limits
-        if limit.matches(
+
+    category_set = {str(category_id) for category_id in category_ids}
+    if category_set:
+        caps.extend(
+            limit.max_installments
+            for limit in limits
+            if limit.category_id in category_set
+            and limit._matches_dimensions(
+                channel=channel,
+                product_group=product_group,
+                card_type=card_type,
+            )
+        )
+
+    groups: dict[tuple[object, object, object], list[CommissionLimit]] = {}
+    for limit in limits:
+        if limit.category_id is not None:
+            continue
+        if not limit._matches_dimensions(
             channel=channel,
-            bank_id=bank_id,
             product_group=product_group,
             card_type=card_type,
+        ):
+            continue
+        if limit.bank_id is not None and limit.bank_id != bank_id:
+            continue
+        signature = (limit.channel, limit.product_group, limit.card_type)
+        groups.setdefault(signature, []).append(limit)
+
+    for group in groups.values():
+        bank_limits = (
+            [limit for limit in group if limit.bank_id == bank_id]
+            if bank_id is not None
+            else []
         )
-    ]
-    if matching_limits:
-        caps.append(min(matching_limits))
+        chosen = bank_limits or [
+            limit for limit in group if limit.bank_id is None
+        ]
+        if chosen:
+            caps.append(min(limit.max_installments for limit in chosen))
+
     return min(caps)
 
 
 def commission_percent_for(
-    rates: tuple[CommissionRate, ...] | list[CommissionRate],
+    rates: Sequence[CommissionRate],
     *,
     channel: PaymentChannel,
     bank_id: str | None,
@@ -323,24 +418,16 @@ def commission_percent_for(
     installment_count: int,
     total: Decimal,
 ) -> Decimal | None:
-    tier = odero_tier(total) if channel is PaymentChannel.ODERO else None
-    rate_group = rate_group_for(product_group)
-    for rate in rates:
-        if (
-            rate.channel is channel
-            and rate.bank_id == bank_id
-            and (
-                rate.rate_group is rate_group
-                or (
-                    rate.rate_group is None
-                    and channel is PaymentChannel.CHIPPIN
-                )
-            )
-            and rate.amount_tier == tier
-            and rate.installment_count == installment_count
-        ):
-            return rate.commission_percent
-    return None
+    rate = matching_commission_rate(
+        rates,
+        channel=channel,
+        bank_id=bank_id,
+        product_group=product_group,
+        installment_count=installment_count,
+        total=total,
+    )
+    return rate.commission_percent if rate is not None else None
+
 
 
 def period_key_for(moment: date | datetime) -> str:

@@ -295,6 +295,7 @@ def print_offer(
             "active_nav": "offers",
             "detail": detail,
             "payment_labels": PAYMENT_TYPE_LABELS,
+            "channel_labels": CHANNEL_LABELS,
             "generated_at": datetime.now(UTC),
         },
     )

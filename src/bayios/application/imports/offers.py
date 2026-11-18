@@ -37,6 +37,7 @@ from bayios.domain.commissions import (
     CardType,
     PaymentChannel,
 )
+from bayios.domain.naming import normalize_name
 from bayios.domain.offers import PAYMENT_TYPE_LABELS, PaymentType
 from bayios.domain.products import ActorContext, normalize_product_name
 
@@ -277,7 +278,10 @@ def _parse_offers(
 
     with uow:
         banks = uow.commissions.get_banks(active_only=False)
-        bank_by_name = {normalize_header(bank.name): bank for bank in banks}
+        bank_by_name = {
+            getattr(bank, "name_normalized", None) or normalize_name(bank.name): bank
+            for bank in banks
+        }
         offers, _ = uow.offers.list(limit=10_000, offset=0)
         offers_by_number = {offer.offer_number: offer for offer in offers}
 
@@ -356,15 +360,17 @@ def _parse_offers(
                 discount = Decimal(10)
             if not (Decimal(0) <= discount <= Decimal(100)):
                 errors.append("Bayi indirimi %0 ile %100 arasında olmalıdır.")
-            bank_name = normalize_header(row_value(raw, offer_layout, "bank"))
-            bank = bank_by_name.get(bank_name) if bank_name else None
+            bank_name = str(row_value(raw, offer_layout, "bank") or "").strip()
+            bank = (
+                bank_by_name.get(normalize_name(bank_name))
+                if bank_name
+                else None
+            )
             if bank_name and bank is None:
                 errors.append("Banka bulunamadı.")
             if payment_type is PaymentType.CARD:
                 if channel is None or installment_count is None or card_type is None:
                     errors.append("Kart teklifi için kanal, taksit ve kart tipi zorunludur.")
-                if channel in (PaymentChannel.POS, PaymentChannel.ODERO) and bank is None:
-                    errors.append("POS/Ödero için banka zorunludur.")
                 if channel is PaymentChannel.CHIPPIN and bank is not None:
                     errors.append("Chippin için banka seçilemez.")
             else:

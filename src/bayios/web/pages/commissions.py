@@ -19,7 +19,9 @@ from bayios.application.commissions import (
     delete_commission_limit,
     delete_commission_period,
     delete_commission_rate,
+    ensure_bank,
     get_commission_period_detail,
+    list_banks,
     list_commission_periods,
     update_commission_limit,
     update_commission_rate,
@@ -29,6 +31,7 @@ from bayios.application.commissions.io import (
     export_commission_rates_xlsx,
 )
 from bayios.application.errors import NotFoundError, ValidationError
+from bayios.application.inventory import list_categories
 from bayios.domain.commissions import (
     CARD_TYPE_LABELS,
     CHANNEL_LABELS,
@@ -88,6 +91,35 @@ def create_period_route(
     return RedirectResponse(url=f"/commissions/{period.id}", status_code=303)
 
 
+@router.post("/banks/quick-add", response_class=HTMLResponse)
+def quick_add_bank_route(
+    request: Request,
+    uow: UnitOfWorkDep,
+    name: Annotated[str, Form()],
+    select_id: Annotated[str, Form()] = "rate-bank",
+) -> HTMLResponse:
+    created = None
+    message = ""
+    try:
+        created = ensure_bank(uow, name)
+        message = f"{created.name} eklendi."
+    except ValidationError as exc:
+        message = f"Hata: {exc}"
+    safe_select_id = (
+        select_id if select_id.replace("-", "").isalnum() else "rate-bank"
+    )
+    return templates.TemplateResponse(
+        request,
+        "commissions/_bank_select_oob.html",
+        {
+            "banks": list_banks(uow),
+            "selected_id": str(created.id) if created is not None else "",
+            "select_id": safe_select_id,
+            "message": message,
+        },
+    )
+
+
 @router.get("/export/rates.xlsx")
 def export_rates_route(
     uow: UnitOfWorkDep,
@@ -129,12 +161,17 @@ def commission_period_detail_page(
     detail = get_commission_period_detail(uow, period_id)
     if detail is None:
         raise HTTPException(status_code=404, detail="Komisyon dönemi bulunamadı.")
+    categories = list_categories(uow)
     return templates.TemplateResponse(
         request,
         "commissions/detail.html",
         {
             "active_nav": "commissions",
             "detail": detail,
+            "categories": categories,
+            "category_names": {
+                str(category.id): category.name for category in categories
+            },
             "status_labels": PERIOD_STATUS_LABELS,
             "channel_labels": {
                 value: label
@@ -274,6 +311,7 @@ def add_limit_route(
     channel: Annotated[str | None, Form()] = None,
     bank_id: Annotated[str | None, Form()] = None,
     product_group: Annotated[str | None, Form()] = None,
+    category_id: Annotated[str | None, Form()] = None,
     card_type: Annotated[str | None, Form()] = None,
 ) -> RedirectResponse:
     try:
@@ -283,6 +321,9 @@ def add_limit_route(
             bank_id=str(_optional_uuid(bank_id)) if bank_id else None,
             product_group=(
                 ProductCommissionGroup(product_group) if product_group else None
+            ),
+            category_id=(
+                str(_optional_uuid(category_id)) if category_id else None
             ),
             card_type=CardType(card_type) if card_type else None,
         )

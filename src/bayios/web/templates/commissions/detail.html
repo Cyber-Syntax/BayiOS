@@ -53,6 +53,14 @@
 
 <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
   <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Komisyon Oranları</h2>
+  {% if detail.period.status != 'archived' %}
+  <form hx-post="/commissions/banks/quick-add" hx-target="#bank-quick-status" hx-swap="outerHTML" style="display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .75rem;">
+    <input type="hidden" name="select_id" value="rate-bank">
+    <input type="text" name="name" class="form-control" placeholder="Yeni banka adı" required style="max-width: 16rem;">
+    <button type="submit" class="btn btn-sm">Banka Ekle</button>
+    <span id="bank-quick-status" class="muted"></span>
+  </form>
+  {% endif %}
   <div class="table-container">
     <table class="data-table" style="min-width: 0;">
       <thead><tr><th>Kanal</th><th>Banka</th><th>Ürün Grubu</th><th>Ödero Bandı</th><th>Taksit</th><th>Oran</th><th>İşlem</th></tr></thead>
@@ -60,7 +68,7 @@
         {% for rate in detail.rates %}
         <tr>
           <td>{{ channel_labels.get(rate.channel, rate.channel) }}</td>
-          <td>{{ bank_names.get(rate.bank_id | string, rate.bank_id or '—') }}</td>
+          <td>{% if rate.bank_id %}{{ bank_names.get(rate.bank_id | string, rate.bank_id) }}{% else %}Genel{% endif %}</td>
           <td>{{ group_labels.get(rate.product_group, rate.product_group or '—') }}</td>
           <td>{{ tier_labels.get(rate.amount_tier, rate.amount_tier or '—') }}</td>
           <td>{{ rate.installment_count }}</td>
@@ -87,7 +95,7 @@
   <h3 style="margin: 1rem 0 .5rem; font-size: 1rem;">Oran Ekle</h3>
   <form method="post" action="/commissions/{{ detail.period.id }}/rates" style="display: flex; align-items: flex-end; gap: .5rem; flex-wrap: wrap;">
     <div class="form-group" style="margin-bottom: 0;"><label for="rate-channel">Kanal</label><select id="rate-channel" name="channel" class="form-control">{% for value, label in channel_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
-    <div class="form-group" style="margin-bottom: 0;"><label for="rate-bank">Banka</label><select id="rate-bank" name="bank_id" class="form-control"><option value="">—</option>{% for bank in detail.banks %}<option value="{{ bank.id }}">{{ bank.name }}</option>{% endfor %}</select></div>
+    <div class="form-group" style="margin-bottom: 0;"><label for="rate-bank">Banka</label><select id="rate-bank" name="bank_id" class="form-control"><option value="">Genel (tüm bankalar)</option>{% for bank in detail.banks %}<option value="{{ bank.id }}">{{ bank.name }}</option>{% endfor %}</select></div>
     <div class="form-group" style="margin-bottom: 0;"><label for="rate-group">Ürün Grubu</label><select id="rate-group" name="product_group" class="form-control"><option value="">—</option>{% for value, label in group_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
     <div class="form-group" style="margin-bottom: 0;"><label for="rate-tier">Ödero Bandı</label><select id="rate-tier" name="amount_tier" class="form-control"><option value="">—</option>{% for value, label in tier_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
     <div class="form-group" style="margin-bottom: 0; width: 7rem;"><label for="rate-installment">Taksit</label><input type="number" id="rate-installment" name="installment_count" class="form-control" min="1" required></div>
@@ -101,13 +109,14 @@
   <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Taksit Limitleri</h2>
   <div class="table-container">
     <table class="data-table" style="min-width: 0;">
-      <thead><tr><th>Kanal</th><th>Banka</th><th>Ürün Grubu</th><th>Kart Tipi</th><th>Max Taksit</th><th>İşlem</th></tr></thead>
+      <thead><tr><th>Kanal</th><th>Banka</th><th>Ürün Grubu</th><th>Kategori</th><th>Kart Tipi</th><th>Max Taksit</th><th>İşlem</th></tr></thead>
       <tbody>
         {% for limit in detail.limits %}
         <tr>
           <td>{{ channel_labels.get(limit.channel, limit.channel or '—') }}</td>
-          <td>{{ bank_names.get(limit.bank_id | string, limit.bank_id or '—') }}</td>
+          <td>{% if limit.bank_id %}{{ bank_names.get(limit.bank_id | string, limit.bank_id) }}{% else %}Genel{% endif %}</td>
           <td>{{ group_labels.get(limit.product_group, limit.product_group or '—') }}</td>
+          <td>{{ category_names.get(limit.category_id | string, '—') }}</td>
           <td>{{ card_labels.get(limit.card_type, limit.card_type or '—') }}</td>
           <td>
             <form method="post" action="/commissions/{{ detail.period.id }}/limits/{{ limit.id }}/edit" style="display: flex; gap: .25rem; align-items: center;">
@@ -122,7 +131,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="6" class="muted" style="text-align: center; padding: 1.5rem;">Limit tanımlı değil.</td></tr>
+        <tr><td colspan="7" class="muted" style="text-align: center; padding: 1.5rem;">Limit tanımlı değil.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -134,6 +143,7 @@
     <div class="form-group" style="margin-bottom: 0;"><label for="limit-channel">Kanal</label><select id="limit-channel" name="channel" class="form-control"><option value="">—</option>{% for value, label in channel_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
     <div class="form-group" style="margin-bottom: 0;"><label for="limit-bank">Banka</label><select id="limit-bank" name="bank_id" class="form-control"><option value="">—</option>{% for bank in detail.banks %}<option value="{{ bank.id }}">{{ bank.name }}</option>{% endfor %}</select></div>
     <div class="form-group" style="margin-bottom: 0;"><label for="limit-group">Ürün Grubu</label><select id="limit-group" name="product_group" class="form-control"><option value="">—</option>{% for value, label in group_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+    <div class="form-group" style="margin-bottom: 0;"><label for="limit-category">Kategori (banka bağımsız)</label><select id="limit-category" name="category_id" class="form-control"><option value="">—</option>{% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}</select></div>
     <div class="form-group" style="margin-bottom: 0;"><label for="limit-card">Kart Tipi</label><select id="limit-card" name="card_type" class="form-control"><option value="">—</option>{% for value, label in card_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
     <div class="form-group" style="margin-bottom: 0; width: 8rem;"><label for="limit-max">Max Taksit</label><input type="number" id="limit-max" name="max_installments" class="form-control" min="1" required></div>
     <button type="submit" class="btn btn-primary">Ekle</button>

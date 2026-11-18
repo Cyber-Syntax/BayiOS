@@ -89,7 +89,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 ### Teklifler
 
 - Liste; müşteri/durum/tarih filtreleri ve teklif numarası, müşteri, tarih, durum, ödeme tipi, seçili toplam kolonlarıyla sayfalanır.
-- Yeni/düzenleme ekranı müşteri adı, telefon, not, ödeme tipi (nakit/kart), kartta kanal (POS/Ödero/Chippin), banka, taksit, kart tipi (bireysel/business) ve teklif genelinde bayi indirimi içerir.
+- Yeni/düzenleme ekranı müşteri adı, telefon, not, ödeme tipi (nakit/kart), kartta kanal (POS/Ödero/Chippin), banka (isteğe bağlı), taksit, kart tipi (bireysel/business) ve teklif genelinde bayi indirimi içerir. Banka boş bırakılırsa genel komisyon oranı kullanılır; seçilen oranın genel mi bankaya özel mi olduğu gösterilir.
 - Ürün satırlarında ürün arama, miktar, satır bazında tek kampanya ve hediye var/yok seçimi bulunur. Kampanya seçilirse Oliz uygulanmaz; iki kampanya birleşmez.
 - Her satırda toptan vadeli alış, normal fiyat, Oliz, seçilen kampanya fiyatı, bayi indirimi, önerilen nakit ve komisyonlu kart referansı gösterilir; nihai nakit/kart birim fiyatını çalışan girer. Floor veya kâr referansı altında uyarı verilir, kayıt engellenmez.
 - Detay ekranı toplamları, komisyon snapshot'ını, durum geçmişini ve iç kâr özetini gösterir; müşteri A4 çıktısında maliyet, iç kâr ve komisyon detayı bulunmaz.
@@ -101,10 +101,10 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 ### Komisyonlar
 
 - Aylık komisyon dönemleri listelenir; yeni dönem önceki dönemi kopyalayarak açılır, düzenlenir ve aktifleştirilir. Geçmiş dönem değişmez.
-- Kanal sekmeleri POS, Ödero ve Chippin'dir. POS ve Ödero banka bazlı, Chippin bankadan bağımsızdır.
-- Matris; ürün komisyon grubu ve taksit kolonlarıyla oran girişi sunar. Klima ayrı gruptur; TV standart oranı kullanır ama max 4 taksit, diğerleri max 5, Chippin max 6, business kart max 2 taksit olarak sınırlanır.
+- Kanal sekmeleri POS, Ödero ve Chippin'dir. POS ve Ödero'da banka isteğe bağlıdır: "Genel (tüm bankalar)" satırı bankasız oranı taşır, bankaya özel satır yalnız o bankada geneli geçersiz kılar. Chippin bankadan bağımsızdır. Banka seçiminde yeni banka adı girilip "Banka Ekle" ile hızlı ekleme yapılır; ad canonical gösterilir.
 - Ödero için 20.000 TL altı/üstü tutar bantları ayrı düzenlenir; eşik sepet toplamına uygulanır.
-- Limitler paneli kanal, banka/kanal, ürün grubu ve kart tipi limitlerini gösterir; etkin üst sınır canlı önizlenir.
+- Matris; ürün komisyon grubu (Klima/Diğer) ve taksit kolonlarıyla oran girişi sunar. TV ayrı oran grubu değildir, Diğer oranlarını kullanır. Taksit limitleri kanal, banka, ürün grubu, kategori ve kart tipi için dönem verisi olarak düzenlenir; kategori sınırları (TV 4, telefon 3 gibi) kodda sabit değildir ve aylık değiştirilebilir.
+- Limitler paneli kanal, banka/kanal, ürün grubu, kategori ve kart tipi limitlerini gösterir; banka özel limit aynı kapsamdaki bankasız genel limitin yerine geçer ve etkin üst sınır canlı önizlenir.
 - Kategori komisyon grubu eşlemesi, değişiklik geçmişi ve P1 komisyon A4 listesi bulunur.
 - Komisyon oranları ve taksit limitleri ayrı Excel dosyalarıyla içe/dışa aktarılır; dönem detayında döneme özel, listede tüm dönemler için export butonları bulunur.
 

@@ -15,14 +15,20 @@ from bayios.adapters.db.models.base import MONEY, Base, uuid_pk
 class ProductCategory(Base):
     __tablename__ = "product_categories"
     __table_args__ = (
+        sa.UniqueConstraint("name_normalized"),
         sa.CheckConstraint(
-            "commission_group IN ('klima', 'tv', 'other')",
+            "commission_group IN ('klima', 'other')",
             name="commission_group_valid",
+        ),
+        sa.CheckConstraint(
+            "char_length(name_normalized) > 0",
+            name="name_normalized_not_empty",
         ),
     )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     name: Mapped[str] = mapped_column(sa.Text, unique=True)
+    name_normalized: Mapped[str] = mapped_column(sa.Text)
     commission_group: Mapped[str] = mapped_column(
         sa.Text, server_default=sa.text("'other'")
     )

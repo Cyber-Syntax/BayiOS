@@ -23,8 +23,8 @@ HELP = (
     "Excel (.xlsx) dosyası yükleyin. Tek sayfa düz dosya veya Teklifler + Teklif Satırları sayfaları kabul edilir.",
     "Yeni tekliflerde satırları gruplamak için Teklif Anahtarı kullanılır; mevcut taslaklar Teklif No ile güncellenir.",
     "Yalnızca taslak teklifler güncellenir. Komisyon ve kâr sunucuda yeniden hesaplanır.",
-    "Kart tekliflerinde kanal, taksit ve kart tipi zorunludur; POS/Ödero'da banka zorunludur.",
-    "Bilinmeyen ürün veya banka otomatik oluşturulmaz.",
+    "Kart tekliflerinde kanal, taksit ve kart tipi zorunludur; banka isteğe bağlıdır (boşsa genel oran kullanılır).",
+    "Bilinmeyen ürün veya banka otomatik oluşturulmaz; bankayı komisyonlar ekranından ekleyin.",
 )
 
 

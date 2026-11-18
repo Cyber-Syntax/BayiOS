@@ -15,7 +15,8 @@ from bayios.application.errors import ConflictError, NotFoundError, ValidationEr
 from bayios.application.ports.unit_of_work import UnitOfWork
 from bayios.domain.commissions import commission_group_for_category_name
 from bayios.domain.inventory import CountSession, StockSummary, complete_count_session
-from bayios.domain.products import ActorContext
+from bayios.domain.naming import canonical_display_name
+from bayios.domain.products import ActorContext, normalize_category_name
 
 
 @dataclass(frozen=True)
@@ -119,16 +120,19 @@ def create_product_category(
     clean_name = name.strip()
     if not clean_name:
         raise ValidationError("Kategori adı boş olamaz.")
+    normalized = normalize_category_name(clean_name)
+    canonical = canonical_display_name(clean_name)
     if commission_group is None:
-        commission_group = commission_group_for_category_name(clean_name).value
-    if commission_group not in {"klima", "tv", "other"}:
+        commission_group = commission_group_for_category_name(canonical).value
+    if commission_group not in {"klima", "other"}:
         raise ValidationError("Geçersiz komisyon grubu.")
     with uow:
-        if uow.products.get_category_by_name(clean_name) is not None:
-            raise ValidationError(f"'{clean_name}' adında bir kategori zaten mevcut.")
+        if uow.products.get_category_by_normalized(normalized) is not None:
+            raise ValidationError(f"'{canonical}' adında bir kategori zaten mevcut.")
         category = ProductCategory(
             id=uuid.uuid4(),
-            name=clean_name,
+            name=canonical,
+            name_normalized=normalized,
             commission_group=commission_group,
         )
         uow.products.add_category(category)
@@ -141,7 +145,7 @@ def update_product_category_group(
     category_id: uuid.UUID,
     commission_group: str,
 ) -> None:
-    if commission_group not in {"klima", "tv", "other"}:
+    if commission_group not in {"klima", "other"}:
         raise ValidationError("Geçersiz komisyon grubu.")
     with uow:
         category = uow.products.get_category(category_id)

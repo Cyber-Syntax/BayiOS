@@ -148,6 +148,14 @@ class SqlAlchemyCommissionRepository:
             stmt = stmt.where(Bank.is_active.is_(True))
         return self._session.scalars(stmt).all()
 
+    def get_bank(self, bank_id: uuid.UUID) -> Bank | None:
+        return self._session.get(Bank, bank_id)
+
+    def get_bank_by_normalized(self, name_normalized: str) -> Bank | None:
+        return self._session.scalar(
+            sa.select(Bank).where(Bank.name_normalized == name_normalized)
+        )
+
     def add_bank(self, bank: Bank) -> None:
         self._session.add(bank)
         self._session.flush()

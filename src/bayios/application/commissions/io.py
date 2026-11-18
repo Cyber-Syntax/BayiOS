@@ -65,8 +65,8 @@ def export_commission_rates_xlsx(
         instructions=(
             ("Dönem", "Zorunlu", "YYYY-MM."),
             ("Kanal", "Zorunlu", "POS, Ödero veya Chippin."),
-            ("Banka", "POS/Ödero zorunlu", "Chippin'de boş."),
-            ("Ürün Grubu", "POS/Ödero zorunlu", "Klima, TV veya Diğer."),
+            ("Banka", "Opsiyonel", "Boş = tüm bankalar için genel oran."),
+            ("Ürün Grubu", "POS/Ödero zorunlu", "Klima veya Diğer."),
             ("Taksit", "Zorunlu", "Pozitif tam sayı."),
             ("Oran %", "Zorunlu", "0-100."),
         ),
@@ -87,6 +87,10 @@ def export_commission_limits_xlsx(
         bank_names = {
             str(bank.id): bank.name for bank in uow.commissions.get_banks(active_only=False)
         }
+        category_names = {
+            str(category.id): category.name
+            for category in uow.products.get_categories()
+        }
         rows = [
             {
                 "period": period.period_key,
@@ -98,6 +102,9 @@ def export_commission_limits_xlsx(
                     ProductCommissionGroup(limit.product_group), ""
                 )
                 if limit.product_group
+                else "",
+                "category": category_names.get(str(limit.category_id), "")
+                if limit.category_id
                 else "",
                 "card_type": CARD_TYPE_LABELS.get(
                     CardType(limit.card_type), ""
@@ -116,6 +123,7 @@ def export_commission_limits_xlsx(
             ColumnSpec("Kanal", "channel", "text", 18),
             ColumnSpec("Banka", "bank", "text", 20),
             ColumnSpec("Ürün Grubu", "product_group", "text", 14),
+            ColumnSpec("Kategori", "category", "text", 20),
             ColumnSpec("Kart Tipi", "card_type", "text", 12),
             ColumnSpec("Max Taksit", "max_installments", "int", 12),
         ),
@@ -123,8 +131,9 @@ def export_commission_limits_xlsx(
         instructions=(
             ("Dönem", "Zorunlu", "YYYY-MM."),
             ("Kanal", "Opsiyonel", "POS, Ödero veya Chippin."),
-            ("Banka", "Opsiyonel", "Chippin'de boş."),
-            ("Ürün Grubu", "Opsiyonel", "Klima, TV veya Diğer."),
+            ("Banka", "Opsiyonel", "Boş = bankasız genel limit."),
+            ("Ürün Grubu", "Opsiyonel", "Klima veya Diğer."),
+            ("Kategori", "Opsiyonel", "Banka bağımsız kategori sınırı (TV 4 gibi)."),
             ("Kart Tipi", "Opsiyonel", "Bireysel veya Business."),
             ("Max Taksit", "Zorunlu", "Pozitif tam sayı."),
         ),
@@ -148,8 +157,8 @@ def commission_rates_template() -> bytes:
         instructions=(
             ("Dönem", "Zorunlu", "YYYY-MM; yoksa taslak dönem oluşturulur."),
             ("Kanal", "Zorunlu", "POS, Ödero veya Chippin."),
-            ("Banka", "POS/Ödero zorunlu", "Chippin'de boş."),
-            ("Ürün Grubu", "POS/Ödero zorunlu", "Klima, TV veya Diğer."),
+            ("Banka", "Opsiyonel", "Boş = tüm bankalar için genel oran."),
+            ("Ürün Grubu", "POS/Ödero zorunlu", "Klima veya Diğer."),
             ("Taksit", "Zorunlu", "Pozitif tam sayı."),
             ("Oran %", "Zorunlu", "0-100."),
         ),
@@ -165,6 +174,7 @@ def commission_limits_template() -> bytes:
             ColumnSpec("Kanal", "channel", "text", 18),
             ColumnSpec("Banka", "bank", "text", 20),
             ColumnSpec("Ürün Grubu", "product_group", "text", 14),
+            ColumnSpec("Kategori", "category", "text", 20),
             ColumnSpec("Kart Tipi", "card_type", "text", 12),
             ColumnSpec("Max Taksit", "max_installments", "int", 12),
         ),
@@ -172,8 +182,9 @@ def commission_limits_template() -> bytes:
         instructions=(
             ("Dönem", "Zorunlu", "YYYY-MM; yoksa taslak dönem oluşturulur."),
             ("Kanal", "Opsiyonel", "POS, Ödero veya Chippin."),
-            ("Banka", "Opsiyonel", "Chippin'de boş."),
-            ("Ürün Grubu", "Opsiyonel", "Klima, TV veya Diğer."),
+            ("Banka", "Opsiyonel", "Boş = bankasız genel limit."),
+            ("Ürün Grubu", "Opsiyonel", "Klima veya Diğer."),
+            ("Kategori", "Opsiyonel", "Banka bağımsız kategori sınırı (TV 4 gibi)."),
             ("Kart Tipi", "Opsiyonel", "Bireysel veya Business."),
             ("Max Taksit", "Zorunlu", "Pozitif tam sayı."),
         ),

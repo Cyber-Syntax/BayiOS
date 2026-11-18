@@ -71,6 +71,8 @@ Saf domain fonksiyonları aşağıdaki türden işlemleri yapar:
 - rezervasyon miktarlarını ve geçiş önkoşullarını doğrulama;
 - kampanya rehberi senaryosunu hesaplama;
 - komisyon ve minimum fiyat referansını `Decimal` ile hesaplama;
+- banka ve kategori adını normalize etme ve canonical görünen adı üretme; ürün adını yalnız eşleştirme/arama için normalize etme;
+- komisyon oranını ve taksit limitini banka özel/bankasız kapsamda çözümleme;
 - import satırı kararlarını üretme;
 - tarihsel durum özetini üretme.
 
@@ -80,6 +82,7 @@ Bu fonksiyonlar DB session'ı, HTTP request'i, global saat veya dosya sistemi al
 
 - Sistem kaynağı PostgreSQL'dir; SQLite fallback'i yoktur.
 - İç ID'ler UUID, kullanıcıya gösterilen reservation/offer/import numaraları ayrı unique alanlardır.
+- Banka ve kategori adlarında tekil anahtar `*_normalized` sütunu, canonical görünen ad ayrı sütundur; ürün adı yazıldığı gibi saklanır ve `products.name_normalized` yalnız eşleştirme/arama içindir. Komisyon tekil kapsamı `scope_key` üzerinden banka boş değerini de kapsar.
 - Para alanları `NUMERIC/DECIMAL` olarak saklanır. Hesaplama ve sunum `ROUND_HALF_UP` ile iki kuruşta tutarlıdır.
 - Zamanlar UTC saklanır, `Europe/Istanbul` ile gösterilir. “13 ay” takvimsel ay aritmetiğidir.
 - Reservation + items aggregate kabul edilir.
@@ -103,6 +106,10 @@ Bu fonksiyonlar DB session'ı, HTTP request'i, global saat veya dosya sistemi al
 - Typed domain/application errors merkezi mapper ile HTTP ve HTMX cevaplarına çevrilir: validation, not found, conflict, stale version, duplicate barcode ve insufficient stock warning gibi sınıflar açıkça ayrılır.
 - Kullanıcıya gösterilen tüm validation, conflict ve warning metinleri Türkçedir. Domain katmanı kullanıcıya ulaşabilecek hata ve uyarıları Türkçe üretir; İngilizce teknik mesaj doğrudan UI'a taşınmaz.
 - Broad catch, sessiz fallback ve hatayı başarı gibi gösteren cevap kullanılmaz.
+
+### 2.6 Örnek veri ve gizli ticari veri sınırı
+
+Korunan bilgi, şirketin herkese açık kataloğunda görünmeyen iç ticari veridir: gerçek komisyon anlaşmaları, alış maliyeti, bayiye özel taban fiyat, kâr hedefi ve müşteri verisi kodda, testlerde, fixture'larda, dokümanlarda ve örnek dosyalarda yer almaz (PRD §3.4). Katalog ürün adları ve liste fiyatları herkese açık veridir; örnek dosyalarda bulunabilir. Belgelerdeki ve testlerdeki banka adları, oran ve limit örnekleri temsilîdir; gerçek sözleşme değeri olmadıkça kullanılabilir. `.env`, veritabanı dökümü ve maliyet/komisyon içeren dosyalar `.gitignore` kapsamındadır. Gerçek sözleşme verisi olduğundan şüphelenilen bir değer PR'da görülürse değişiklik reddedilir.
 
 ## 3. Test stratejisi
 
@@ -194,6 +201,7 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
    - `_normalize_decimal`: Türkçe binlik nokta ve `TL` sonekli değerleri (`38.099 TL`, `475 TL`), kuruşlu değerleri (`12,50`), düz sayıları (`1200`) hatasız `Decimal` string'e çevirme.
    - `_normalize_quantity`: Boşluk, tam sayı ve negatif olmama kontrolü.
    - `normalize_category_name`: Kategori eşleştirmesi için NFKC, strip, whitespace collapse ve Türkçe `İ/ı` duyarsızlaştırması.
+   - `canonical_display_name`: Banka ve kategori adları için Türkçe kurallarıyla başlık biçimi (`AKBANK`/`akbank`/`AkbanK` -> `Akbank`, `ÇAMAŞIR MAKİNESİ` -> `Çamaşır Makinesi`). Rakam içeren token'lar ve kısa büyük harf kısaltmaları (`TV`, `LED`, `HP`) korunur. **Ürün adlarına uygulanmaz**; ürün adı yazıldığı gibi kalır ve `normalize_product_name` yalnız eşleştirme/arama içindir. Python'un dil duyarsız `title()` davranışı kullanılmaz.
    - Satır sınıflandırma politikası: `create` (yeni ürün), `update` (fiyat/stok değişimi), `skip` (fark yok veya kullanıcı kararı), `error` (eksik ad veya geçersiz sayı), `clear_discount` (indirimli fiyatı temizleme).
 2. **CSV/Excel içe aktarma önizlemesi ve sorunlu satır yönetimi (`PreviewProductImport`):**
    - `utf-8`, `utf-8-sig` (BOM), `cp1254` (Windows-1254) fallback ve otomatik virgül/noktalı virgül delimiter algılama.
@@ -262,6 +270,7 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
 
 - Gerçek `arcelik-06-09-2026.csv` satırları (`38.099 TL`, `475 TL,`, `07325 A,38.099 TL,34.099 TL`) sıfır hatayla ayrıştırılır ve doğru `Decimal` değerlerine normalize edilir.
 - `07325 A` ile `07325A` farklı ürünler olarak saklanır; arama baştaki sıfırları korur.
+- `ÇAMAŞIR MAKİNESİ` ve `çamaşır makinesi` aynı kategoriyi eşler ve görünen ad `Çamaşır Makinesi` olur. Ürün adı `901 KMX` yazıldığı gibi kalır; `901 kmx` araması onu bulur.
 - Aynı ürün ikinci kez aktarıldığında yeni ürün açılmaz, mevcut güncellenir.
 - Fiyat değişmemişse `ProductPriceHistory` oluşturulmaz; değişmişse eski/yeni değerlerle tarihçe yazılır.
 - Boş `quantity` mevcut stoku korur; `0` stoku sıfırlar ve stok hareketi oluşturur.
@@ -408,7 +417,7 @@ Genel rule engine, optimal sepet seçimi, WMS/POS entegrasyonu ve otomatik satı
 
 **MVP sınırı**
 
-Komisyonlar aylık dönemler halinde yönetilir. POS ve Ödero banka bazlıdır; Chippin bankadan bağımsızdır. Klima ayrı komisyon grubudur; TV standart komisyon oranını kullanır ancak taksit limiti farklıdır. Ödero komisyonu sepet toplamına göre 20.000 TL altı/üstü olarak ayrılır. Business kart yalnızca taksit üst sınırını 2'ye indirir.
+Komisyonlar aylık dönemler halinde yönetilir. POS ve Ödero'da banka isteğe bağlıdır: bankasız satır tüm bankalar için genel orandır, bankaya özel satır yalnız o bankada genel oranı geçersiz kılar. Chippin bankadan bağımsızdır. Klima tek ayrı komisyon grubudur; TV ayrı oran grubu değildir, `other` oranlarını kullanır ve yalnız taksit üst sınırıyla ayrışır. Kategori sınırı (örnek TV 4) kodda sabit değildir; dönem verisidir ve aylık düzenlenebilir. Ödero komisyonu sepet toplamına göre 20.000 TL altı/üstü olarak ayrılır. Business kart yalnızca taksit üst sınırını 2'ye indirir.
 
 Teklifler fiyat katmanlarını ve önerileri gösterir; nihai nakit/kart birim fiyatını çalışan girer. Kampanya satır bazında tek seçilir; kampanya seçilirse Oliz uygulanmaz ve iki kampanya birleşmez. Bayi indirimi teklif genelinde tek orandır ve teklif başına override edilebilir.
 
@@ -417,34 +426,42 @@ Teklifler fiyat katmanlarını ve önerileri gösterir; nihai nakit/kart birim f
 **Domain ve veri**
 
 - `commission_periods`: `period_key` (`YYYY-MM`), `valid_from`, `valid_until`, durum (`draft`, `active`, `archived`) ve `copied_from_id`. Ay başında yeni dönem önceki dönemi kopyalayarak açılır; geçmiş dönem değişmez.
-- `commission_rates`: dönem, kanal (`pos`, `odero`, `chippin`), banka (Chippin'de null), ürün grubu (`klima`, `other`), taksit ve Ödero tutar bandı (`under_20000`, `over_20000`); yüzde oran. TV oranı `other` grubunu kullanır.
-- `commission_limits`: dönem, kanal, banka, ürün grubu ve kart tipi için nullable kapsam alanları ve `max_installments`. Etkin üst sınır, eşleşen tüm limitlerin ve mevcut oran satırlarının minimumudur. Başlangıç limitleri: Yapı Kredi POS 8, Yapı Kredi Ödero 2, Ödero 5, Chippin 6, Klima 10, TV 4, diğer 5, business 2.
+- `banks`: `name` (canonical görünen ad) ve `name_normalized` (unique). Yazım varyantları aynı kaydı verir; formdan hızlı ekleme `EnsureBank` use-case'i üzerinden çalışır.
+- `commission_rates`: dönem, kanal (`pos`, `odero`, `chippin`), banka (POS/Ödero'da nullable = bankasız genel oran; Chippin'de null), ürün grubu (`klima`, `other`), taksit ve Ödero tutar bandı (`under_20000`, `over_20000`); yüzde oran. TV oranı `other` grubunu kullanır.
+- `commission_rates` tekilliği: `(period_id, scope_key)`; `scope_key` banka ve tutar bandı boş değerlerini `-` ile temsil eder. Çözümleme banka özel -> genel -> hata sırasıyla yapılır.
+- `commission_limits`: dönem, kanal, banka, ürün grubu, kategori ve kart tipi için nullable kapsam alanları ve `max_installments`. Çözümleme: banka özel satır, aynı kanal/ürün grubu/kart tipi kapsamındaki bankasız genel satırın yerine geçer ve limiti yükseltebilir/düşürebilir. `category_id` yalnız bankasız kategori sınırlarında kullanılır; kategori sınırı tüm bankalarda geçerlidir ve banka özel satırla yükseltilemez. Etkin sınır, kalan banka/kart limitlerinin, kategori sınırının ve oran satırlarının minimumudur. Başlangıç değerleri yalnız örnektir ve dönem verisidir: Ödero genel 5, Chippin 6, Klima 10, TV 4, telefon 3, business 2. Hiçbir limit kodda sabit tutulmaz.
 - `profit_targets`: global veya ürün kapsamında yüzde/TL hedef; tanımsızsa referans fiyat üretilmez ve açık uyarı gösterilir.
-- `product_categories.commission_group`: `klima`, `tv`, `other`; Klima/TV kategori adlarıyla backfill edilir.
-- `offers`: teklif numarası, müşteri, durum, ödeme tipi, kanal, banka, taksit, kart tipi, bayi indirimi, komisyon snapshot'ı, toplamlar, not ve `converted_reservation_id`.
+- `product_categories`: `commission_group` (`klima`, `other`) ve `name_normalized` (unique). Klima kategori adıyla backfill edilir; TV ayrı grup değildir. Kategoriye özel taksit sınırı `commission_limits.category_id` ile verilir.
+- `offers`: teklif numarası, müşteri, durum, ödeme tipi, kanal, banka (nullable), `bank_name_snapshot`, taksit, kart tipi, bayi indirimi, komisyon snapshot'ı ve `commission_source` (`bank_specific`, `general`, `none`), toplamlar, not ve `converted_reservation_id`.
 - `offer_items`: ürün snapshot'ı, miktar, normal/Oliz/maliyet snapshot'ı, seçilen kampanya sürümü ve snapshot'ı, hediye var/yok, fiyat tabanı, önerilen ve nihai nakit/kart fiyatları, satır toplamları ve uyarı metni. Kampanya seçilirse Oliz kullanılmaz.
 - `offer_history`: durum değişiklikleri; sunuldu/kabul/lost/expired sonrası fiyat snapshot'ı değişmez.
 
 **Use-case akışları**
 
-1. Komisyon dönemi: yeni dönem aç, önceki ayı kopyala, matris ve limitleri düzenle, dönemi aktifleştir.
-2. Komisyon çözümleme: kanal + banka + ürün grubu + taksit + kart tipi + Ödero bandına göre oran ve etkin üst sınır; seçilen taksit geçersizse açık hata.
-3. `CalculateReferencePrice`: `(maliyet + hedef kâr) / (1 - komisyon)`; `%0` ve tanımsız hedef kâr guard'ları; `Decimal`, iki hane `ROUND_HALF_UP`.
-4. Teklif oluştur: müşteri/ödeme bilgisi, ürün ve miktarlar, satır bazında kampanya ve hediye seçimi; ürünün aktif kampanyası otomatik atanır, çalışan değiştirebilir veya kapatabilir; fiyat katmanlarını ve önerileri hesapla; manuel nakit/kart fiyatlarını al; toplamları kaydet.
-5. Teklif güncelle: yalnızca taslakta; satır ekle/çıkar ve fiyatları değiştir. Sunuldu ve sonrası fiyat snapshot'ı değişmez.
-6. Durum geçişi: `draft → presented → accepted | lost | expired`; her geçiş history'ye yazılır.
-7. A4: müşteri kopyasında maliyet, iç kâr ve komisyon detayı yok; ürün, miktar, birim/toplam fiyat, ödeme biçimi, banka/taksit ve kampanya açıklaması bulunur.
-8. `ConvertOfferToReservation`: kabul edilmiş teklif snapshot'ından rezervasyon üret; offer immutable kalır; retry aynı rezervasyonu döndürür.
-9. Komisyon ayarları: dönem listesi, kanal sekmeleri, matris, limitler, Ödero eşiği, kategori grup eşlemesi ve değişiklik geçmişi.
-10. Teklif listesi araması yazarken otomatik çalışır; sonuçlar HTMX ile Ara butonuna basılmadan güncellenir.
+1. Banka: `EnsureBank` komisyon ve teklif formlarından çağrılır; ad `canonical_display_name` + normalize ile işlenir, mevcut kayıt varsa o döner, yoksa oluşturulur; seçim çağırana geri verilir.
+2. Komisyon dönemi: yeni dönem aç, önceki ayı kopyala (bankasız genel satırlar dahil), matris ve limitleri düzenle, dönemi aktifleştir.
+3. Komisyon çözümleme: kanal + banka + ürün grubu + taksit + kart tipi + Ödero bandına göre oran ve etkin üst sınır; önce bankaya özel satır, yoksa bankasız genel satır; seçilen taksit geçersizse veya hiç oran yoksa açık hata.
+4. `CalculateReferencePrice`: `(maliyet + hedef kâr) / (1 - komisyon)`; `%0` ve tanımsız hedef kâr guard'ları; `Decimal`, iki hane `ROUND_HALF_UP`.
+5. Teklif oluştur: müşteri/ödeme bilgisi, ürün ve miktarlar, satır bazında kampanya ve hediye seçimi; ürünün aktif kampanyası otomatik atanır, çalışan değiştirebilir veya kapatabilir; fiyat katmanlarını ve önerileri hesapla; manuel nakit/kart fiyatlarını al; toplamları kaydet. Banka boş bırakılabilir.
+6. Teklif güncelle: yalnızca taslakta; satır ekle/çıkar ve fiyatları değiştir. Sunuldu ve sonrası fiyat snapshot'ı değişmez.
+7. Durum geçişi: `draft → presented → accepted | lost | expired`; her geçiş history'ye yazılır.
+8. A4: müşteri kopyasında maliyet, iç kâr ve komisyon detayı yok; ürün, miktar, birim/toplam fiyat, ödeme biçimi, banka (varsa)/taksit ve kampanya açıklaması bulunur.
+9. `ConvertOfferToReservation`: kabul edilmiş teklif snapshot'ından rezervasyon üret; offer immutable kalır; retry aynı rezervasyonu döndürür.
+10. Komisyon ayarları: dönem listesi, kanal sekmeleri, "Genel (tüm bankalar)" satırı, banka seçimi, matris, limitler, Ödero eşiği, kategori grup eşlemesi ve değişiklik geçmişi.
+11. Teklif listesi araması yazarken otomatik çalışır; sonuçlar HTMX ile Ara butonuna basmadan güncellenir.
 
 **Davranış testleri**
 
 - 30.000 maliyet + 1.500 hedef kâr ve %5 komisyon → 33.157,89 TL.
 - %0 komisyon → maliyet + hedef kâr; tanımsız hedef kâr açık uyarı.
-- Yapı Kredi POS 2 taksit %4, 3 taksit %4,67.
+- Örnek Banka POS 2 taksit %5, 3 taksit %6 (temsilî değerler).
+- Bankasız genel oran %6 iken banka özel satırı olmayan her bankada %6 uygulanır; Örnek Banka B'ye %4 tanımlanırsa yalnız o banka %4 kullanır.
+- Bankaya özel satırı olmayan taksit genel orana döner; hiçbiri yoksa açık Türkçe hata gösterilir.
 - Ödero 20.000 TL altı/üstü farklı oran; eşik sepet toplamına uygulanır.
-- Business kart max 2; TV max 4; Klima max 10; Chippin max 6; Yapı Kredi POS max 8, Ödero max 2; etkin sınır minimumdur.
+- Business kart max 2 ve TV kategorisi max 4 ayrı boyut olarak uygulanır; kategori sınırı bankaya bağlı değildir. Ödero genel limit 5 iken Ödero/Akbank 8 tanımlanırsa Akbank'ta 8, Ödero/Yapı Kredi 2 ise Yapı Kredi'de 2 geçerlidir; banka özel limit genel limiti geçersiz kılar, diğer bankaları etkilemez.
+- TV kategorisi 3 veya 9 yapılınca kod değişmez; kategori sınırları dönem verisidir.
+- `AKBANK`/`akbank`/`AkbanK` tek banka kaydıdır ve `Akbank` görünür; hızlı ekleme mevcut kaydı döndürür.
+- Banka seçilmemiş kart teklifi genel oranla hesaplanır; A4'te banka boş basılır ve eski teklif snapshot'ı değişmez.
 - Kampanya seçilince Oliz uygulanmaz; iki kampanya birleşmez. Ürünün aktif kampanyası teklif satırına otomatik atanır; çalışan değiştirebilir.
 - Teklif listesi araması yazarken otomatik çalışır; “Ara” butonuna basmadan sonuçlar güncellenir.
 - 50.000 normal / 46.000 Oliz / 45.000 düğün örneğinde %10 bayi indirimi 40.500 TL önerir; çalışan 40.000 veya 36.000 girebilir ve floor uyarısı engellemez.
@@ -454,7 +471,7 @@ Teklifler fiyat katmanlarını ve önerileri gösterir; nihai nakit/kart birim f
 
 **Çıkış kriteri**
 
-Komisyon dönemleri aylık yönetilir ve geçmiş korunur; teklifler fiyat/komisyon snapshot'ıyla bağımsızdır; örnek hesaplar ve limitler doğrudur; müşteri çıktısı iç veri içermez; kabul edilen teklif idempotent biçimde rezervasyona dönüşür.
+Bankasız genel ve bankaya özel oranlar aynı dönemde birlikte çalışır; banka adı yazım farkı kopya kayıt üretmez; kategori taksit sınırı kod değişmeden düzenlenebilir; komisyon dönemleri aylık yönetilir ve geçmiş korunur; teklifler fiyat/komisyon snapshot'ıyla bağımsızdır; örnek hesaplar ve limitler doğrudur; müşteri çıktısı iç veri içermez; kabul edilen teklif idempotent biçimde rezervasyona dönüşür.
 
 ### Milestone 6 — Hızlı Teslim / Code 128 (BACKLOG)
 

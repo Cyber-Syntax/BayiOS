@@ -21,9 +21,18 @@
       </div>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: .75rem; margin-top: .75rem;" x-show="paymentType === 'card'">
         <div class="form-group" style="margin-bottom: 0;"><label for="offer-channel">Kanal</label><select id="offer-channel" name="channel" class="form-control"><option value="">—</option>{% for value, label in channel_options %}<option value="{{ value }}" {% if values.channel == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-        <div class="form-group" style="margin-bottom: 0;"><label for="offer-bank">Banka</label><select id="offer-bank" name="bank_id" class="form-control"><option value="">—</option>{% for bank in banks %}<option value="{{ bank.id }}" {% if values.bank_id == (bank.id | string) %}selected{% endif %}>{{ bank.name }}</option>{% endfor %}</select></div>
+        <div class="form-group" style="margin-bottom: 0;"><label for="offer-bank">Banka (isteğe bağlı)</label><select id="offer-bank" name="bank_id" class="form-control"><option value="">Genel (tüm bankalar)</option>{% for bank in banks %}<option value="{{ bank.id }}" {% if values.bank_id == (bank.id | string) %}selected{% endif %}>{{ bank.name }}</option>{% endfor %}</select></div>
         <div class="form-group" style="margin-bottom: 0;"><label for="offer-installment">Taksit</label><input type="number" id="offer-installment" name="installment_count" class="form-control" min="1" value="{{ values.installment_count }}"></div>
         <div class="form-group" style="margin-bottom: 0;"><label for="offer-card-type">Kart Tipi</label><select id="offer-card-type" name="card_type" class="form-control"><option value="">—</option>{% for value, label in card_options %}<option value="{{ value }}" {% if values.card_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      </div>
+      <div style="display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-top: .75rem;" x-show="paymentType === 'card'">
+        <input type="hidden" id="offer-bank-select-id" name="select_id" value="offer-bank">
+        <input type="text" id="offer-new-bank" name="name" class="form-control" placeholder="Yeni banka adı" style="max-width: 14rem;">
+        <button type="button" class="btn btn-sm"
+                hx-post="/commissions/banks/quick-add"
+                hx-include="#offer-new-bank, #offer-bank-select-id"
+                hx-target="#bank-quick-status" hx-swap="outerHTML">Banka Ekle</button>
+        <span id="bank-quick-status" class="muted"></span>
       </div>
       <div class="form-group" style="margin-top: .75rem; margin-bottom: 0;"><label for="offer-note">Not</label><input type="text" id="offer-note" name="note" class="form-control" value="{{ values.note }}"></div>
     </div>

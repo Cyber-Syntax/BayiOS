@@ -303,6 +303,7 @@ class _PreparedItem:
     pricing: object
     dealer_discount: Decimal
     product_group: ProductCommissionGroup
+    category_id: uuid.UUID | None = None
     campaign_version_id: uuid.UUID | None = None
     campaign_snapshot: dict[str, object] | None = None
 
@@ -327,6 +328,7 @@ def create_offer(
         )
 
     commission_percent = Decimal(0)
+    commission_source = "none"
     period = None
     commission_options: list[dict[str, object]] | None = None
     if data.payment_type is PaymentType.CARD:
@@ -346,8 +348,14 @@ def create_offer(
             card_type=data.card_type,
             installment_count=data.installment_count,
             total=base_total,
+            category_ids=[
+                item.category_id
+                for item in prepared
+                if item.category_id is not None
+            ],
         )
         commission_percent = resolution.commission_percent
+        commission_source = resolution.commission_source
         period = resolution.period
         commission_options = [
             {"installment": installment, "percent": str(percent)}
@@ -355,6 +363,16 @@ def create_offer(
         ]
 
     with uow:
+        selected_bank_id = (
+            data.bank_id if data.payment_type is PaymentType.CARD else None
+        )
+        bank = (
+            uow.commissions.get_bank(selected_bank_id)
+            if selected_bank_id is not None
+            else None
+        )
+        if selected_bank_id is not None and bank is None:
+            raise ValidationError("Seçilen banka bulunamadı.")
         offer = Offer(
             id=uuid.uuid4(),
             customer_name=_clean(data.customer_name),
@@ -362,7 +380,8 @@ def create_offer(
             status=OfferStatus.DRAFT.value,
             payment_type=data.payment_type.value,
             channel=data.channel.value if data.channel else None,
-            bank_id=data.bank_id,
+            bank_id=selected_bank_id,
+            bank_name_snapshot=bank.name if bank is not None else None,
             installment_count=data.installment_count,
             card_type=data.card_type.value if data.card_type else None,
             dealer_discount_percent=data.dealer_discount_percent,
@@ -371,6 +390,7 @@ def create_offer(
             commission_percent_snapshot=(
                 commission_percent if data.payment_type is PaymentType.CARD else None
             ),
+            commission_source=commission_source,
             commission_options_snapshot=commission_options,
             dealer_share_percent_snapshot=DEALER_SHARE_PERCENT,
             note=_clean(data.note),
@@ -425,6 +445,7 @@ def update_offer(
             for item in prepared
         )
     commission_percent = Decimal(0)
+    commission_source = "none"
     period = None
     commission_options: list[dict[str, object]] | None = None
     if data.payment_type is PaymentType.CARD:
@@ -440,8 +461,14 @@ def update_offer(
             card_type=data.card_type,
             installment_count=data.installment_count,
             total=base_total,
+            category_ids=[
+                item.category_id
+                for item in prepared
+                if item.category_id is not None
+            ],
         )
         commission_percent = resolution.commission_percent
+        commission_source = resolution.commission_source
         period = resolution.period
         commission_options = [
             {"installment": installment, "percent": str(percent)}
@@ -453,11 +480,22 @@ def update_offer(
         if offer is None:
             raise NotFoundError("Teklif bulunamadı.")
         uow.offers.delete_items(offer_id)
+        selected_bank_id = (
+            data.bank_id if data.payment_type is PaymentType.CARD else None
+        )
+        bank = (
+            uow.commissions.get_bank(selected_bank_id)
+            if selected_bank_id is not None
+            else None
+        )
+        if selected_bank_id is not None and bank is None:
+            raise ValidationError("Seçilen banka bulunamadı.")
         offer.customer_name = _clean(data.customer_name)
         offer.customer_phone = _clean(data.customer_phone)
         offer.payment_type = data.payment_type.value
         offer.channel = data.channel.value if data.channel else None
-        offer.bank_id = data.bank_id
+        offer.bank_id = selected_bank_id
+        offer.bank_name_snapshot = bank.name if bank is not None else None
         offer.installment_count = data.installment_count
         offer.card_type = data.card_type.value if data.card_type else None
         offer.dealer_discount_percent = data.dealer_discount_percent
@@ -466,6 +504,7 @@ def update_offer(
         offer.commission_percent_snapshot = (
             commission_percent if data.payment_type is PaymentType.CARD else None
         )
+        offer.commission_source = commission_source
         offer.commission_options_snapshot = commission_options
         offer.dealer_share_percent_snapshot = DEALER_SHARE_PERCENT
         offer.note = _clean(data.note)
@@ -804,6 +843,7 @@ def _prepare_items(
                 pricing=pricing,
                 dealer_discount=data.dealer_discount_percent,
                 product_group=product_group,
+                category_id=getattr(product, "category_id", None),
                 campaign_version_id=campaign_version_id,
                 campaign_snapshot=campaign_snapshot,
             )

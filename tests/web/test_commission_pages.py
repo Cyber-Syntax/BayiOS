@@ -163,6 +163,53 @@ def test_chippin_rate_without_group_can_be_edited_and_deleted(
     assert fake_uow.commissions.rates[period_id] == []
 
 
+def test_pos_rate_without_bank_and_quick_add_bank(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    created = client.post(
+        "/commissions",
+        data={"year": "2026", "month": "11"},
+        follow_redirects=False,
+    )
+    assert created.status_code == 303
+    location = created.headers["location"]
+    period_id = next(iter(fake_uow.commissions.periods))
+
+    rate = client.post(
+        f"{location}/rates",
+        data={
+            "channel": "pos",
+            "product_group": "other",
+            "installment_count": "2",
+            "commission_percent": "5",
+        },
+        follow_redirects=False,
+    )
+    assert rate.status_code == 303
+    stored = fake_uow.commissions.rates[period_id][0]
+    assert stored.bank_id is None
+
+    added = client.post(
+        "/commissions/banks/quick-add",
+        data={"name": "AKBANK", "select_id": "rate-bank"},
+        headers={"HX-Request": "true"},
+    )
+    assert added.status_code == 200
+    assert "Akbank" in added.text
+    banks = list(fake_uow.commissions.banks.values())
+    assert len(banks) == 1
+    assert banks[0].name == "Akbank"
+    assert banks[0].name_normalized == "akbank"
+
+    duplicate = client.post(
+        "/commissions/banks/quick-add",
+        data={"name": "akbank", "select_id": "rate-bank"},
+        headers={"HX-Request": "true"},
+    )
+    assert duplicate.status_code == 200
+    assert len(fake_uow.commissions.banks) == 1
+
+
 def test_duplicate_commission_rate_shows_validation_error(
     client: TestClient, fake_uow: FakeUnitOfWork
 ) -> None:

@@ -1,9 +1,10 @@
 # BayiOS — Product Requirements Document (PRD)
 
-**Belge sürümü:** 1.2
+**Belge sürümü:** 1.3
 **Durum:** MVP geliştirmeye hazır ürün gereksinimleri  
-**Tarih:** 9 Kasım 2026  
+**Tarih:** 18 Kasım 2026  
 **Ürün:** BayiOS  
+**Kamuya açık depo:** Evet — gerçek komisyon, maliyet ve bayi taban fiyatı verisi bu depoda tutulmaz (bkz. §3.4).  
 **Hedef ortam:** Windows 11 üzerinde yerel sunucu, bayi LAN/Wi-Fi ağı, mobil ve masaüstü tarayıcılar  
 **Hedef eşzamanlı kullanıcı:** İlk aşamada 3–4 kişi  
 
@@ -31,6 +32,7 @@ BayiOS bir ERP/WMS/POS ikamesi değildir. Mevcut WMS veya Dynamics 365 sistemine
 6. **Yerel ve bağımsız çalışma:** Uygulamanın temel işlevleri internet bağlantısı olmadan, bayi yerel ağı içinde çalışmalıdır.
 7. **Açıkça tanımlı stok hareketi:** Rezervasyon oluşturulması veya servis atanması fiziksel stoktan düşmez. Stok, teslimat/kurulum tamamlandı olarak işaretlendiğinde düşer.
 8. **Scraper yok:** Uygulama hiçbir web sitesini taramaz; fiyat toplamaz ve bu amaçla arka plan görevi çalıştırmaz.
+9. **Gizli ticari veri depoya girmez:** Gerçek komisyon oranları, alış maliyetleri, bayi taban fiyatları ve kâr hedefleri kamuya açık depoya yazılmaz; belgelerdeki ve testlerdeki tüm değerler temsilî örnektir (§3.4).
 
 ### 1.2 Başarı ölçütleri
 
@@ -105,7 +107,7 @@ MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uyg
 6. Kategori bazlı stok sayım oturumları ve A4 sayım listeleri.
 7. Rezervasyon kayıtları, çoklu ürün, durum akışı ve hatırlatma/erteleme.
 8. Şirket kampanyaları ve bayi özel fiyat/indirim rehberi.
-9. Banka ve taksit bazlı POS komisyon tablosu; minimum satış fiyatı referans hesabı.
+9. Banka ve taksit bazlı POS komisyon tablosu; bankasız genel oran, bankaya özel oran ve formdan hızlı banka ekleme; minimum satış fiyatı referans hesabı.
 10. Çok ürünlü teklif oluşturma, kaydetme, teklif geçmişi ve A4 çıktı.
 11. Hızlı teslim kaydı: müşteri adı-soyadı, isteğe bağlı telefon ve tam olarak bir Code 128 metni.
 12. Hızlı teslim barkod resmi içe aktarma: dosya yükleme veya `Ctrl+V` ile panodan yapıştırma.
@@ -142,6 +144,29 @@ MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uyg
 - Kullanıcının onayı olmadan başka bir masaüstü uygulamasını gizlice görüntüleme veya ekran kaydı yapma.
 - Rezervasyon süresi dolduğunda rezervasyonu otomatik iptal etme.
 
+### 3.4 Kamuya açık depo ve gizli ticari veri politikası
+
+BayiOS deposu kamuya açıktır. PRD, plan, UI sözleşmesi, testler, örnek dosyalar ve commit geçmişi herkes tarafından okunabilir. Korunan bilgi, şirketin herkese açık kataloğunda görünmeyen **iç ticari veridir**. Bu nedenle aşağıdaki veriler depoya eklenemez:
+
+- Bankalarla yapılan gerçek komisyon/taksit anlaşmalarının oranları ve sözleşme koşulları (admin girişli bayi portalındaki veriler).
+- Ürünlerin gerçek alış maliyeti (`cost_price`), toptan vadeli alış fiyatı ve tedarikçi iskontoları.
+- Bayiye özel nakit/kart taban fiyatları, kâr hedefleri ve gerçek kâr/marj hesapları.
+- Gerçek müşteri adı, telefonu ve sipariş/rezervasyon bilgileri.
+- Gerçek stok miktarları, satış hacimleri ve ciro bilgileri.
+- Yukarıdakileri gösteren ekran görüntüleri, Excel/CSV dosyaları ve veritabanı yedekleri.
+
+Kurallar:
+
+- Ürün adları ve liste/indirimli fiyatlar şirketin herkese açık kataloğunda yayınlanan verilerdir; ticari sır değildir ve depoda örnek/gerçek katalog dosyası olarak bulunabilir. Bu dosyalarda maliyet, bayiye özel taban fiyat veya komisyon kolonu bulunmamalıdır.
+- Belgelerde, testlerde ve fixture'larda yer alan komisyon oranları, limitler, maliyetler ve kâr hedefleri **temsilî örnektir**; gerçek anlaşma verisinden kopyalanmaz. Banka adları örnek olarak kullanılabilir; önemli olan oranın gerçek sözleşme değeri olmamasıdır.
+- Gerçek iç veriler yalnızca bayi LAN'ındaki PostgreSQL veritabanında tutulur. `.env`, veritabanı dökümleri, maliyet/komisyon içeren Excel ve CSV dosyaları `.gitignore` kapsamındadır ve commit edilmez.
+- Dışa aktarılan dosyalar paylaşılmadan önce maliyet, komisyon ve kâr kolonları kaldırılır veya maskelenir.
+- Commit öncesi kontrol: gerçek sözleşme oranı, maliyet, taban fiyat veya kâr hedefi olduğundan şüphelenilen bir değer varsa commit durdurulur ve kaynağı doğrulanır.
+- Müşteriye verilen A4 teklif çıktısında maliyet, iç kâr ve komisyon detayı hiçbir zaman yer almaz (§9.3).
+- Kural, depodan türetilen demo, sunum ve ekran görüntüsü materyalleri için de geçerlidir.
+
+**Durum (18 Kasım 2026):** Depoda gerçek komisyon veya maliyet verisi bulunmadığı depo sahibi tarafından beyan edilmiştir; mevcut tüm örnek değerler temsilîdir. Katalog fiyatları herkese açık veridir. Ticari sır niteliğindeki oran ve maliyetlerin ifşası sözleşme ihlali ve hukuki risk doğurabilir; depo veri deposu olarak kullanılmaz.
+
 ---
 
 ## 4. Temel kavramlar ve iş kuralları
@@ -153,6 +178,23 @@ MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uyg
 - CSV'deki ürün adı metin olarak saklanır; baştaki sıfırlar korunur.
 - Ürün adının değişmesi aynı ürünü otomatik olarak yeni ürün yapmamalıdır. MVP eşleştirmesinde ürün adı temel alınır; eşleşme belirsizse ön izleme ekranı kullanıcıdan karar ister.
 - Ürün kataloğunda Code 128 veya EAN barkod alanı zorunlu değildir.
+
+### 4.1.1 Ad eşleştirme ve görünen ad kuralı (banka ve kategori)
+
+Banka ve kategori adları yazım farkı nedeniyle asla ikinci bir kayıt oluşturmamalıdır. Bu nedenle her ad için iki değer tutulur:
+
+- **Eşleştirme anahtarı (`*_normalized`):** Unicode NFKC, baş/son boşluk kırpma, ardışık boşlukları tek boşluğa indirme ve Türkçe büyük/küçük harf katlama (`I/ı`, `İ/i`) uygulanır. Tekillik bu anahtar üzerindedir: `AKBANK` = `akbank` = `Akbank`; `ÇAMAŞIR MAKİNESİ` = `çamaşır makinesi` = `Çamaşır Makinesi`.
+- **Görünen ad:** Banka ve kategori adları yazma anında Türkçe kurallarına uygun başlık biçimine çevrilir ve kullanıcıya her yerde bu biçim gösterilir. `AKBANK`, `akbank` ve `AkbanK` yazımlarının hepsi `Akbank` olarak görünür; `ÇAMAŞIR MAKİNESİ` -> `Çamaşır Makinesi`.
+
+Kurallar:
+
+- Kural banka ve kategori adlarında (ve komisyon ayarlarındaki sınıf etiketlerinde) uygulanır. Serbest metin alanları (not, kampanya açıklaması) kapsam dışıdır.
+- **Ürün adları bu kuralın dışındadır.** Ürün adı yazıldığı biçimde saklanır ve gösterilir (`901 KMX`, `a 600 b`). Ürün aramasında büyük/küçük harf duyarsızlığı `name_normalized` üzerinden korunur; `901 kmx` araması `901 KMX` ürününü bulur. Ürün görünen adlarının da canonical biçime çevrilmesi bilinçli olarak sonraya bırakılmıştır; ayrı araştırma gerektirir.
+- Rakam içeren token'lar ve kısa büyük harf kısaltmaları (`TV`, `LED`, `HP`) korunur; bunlar başlık biçimine çevrilmez.
+- Aynı eşleştirme anahtarına sahip kayıt varsa yeni kayıt açılmaz; mevcut kayıt kullanılır ve görünen adı yazım varyantıyla ezilmez. Adın gerçekten değiştirilmesi ayrı ve açık bir düzenleme işlemidir.
+- CSV/Excel içe aktarmada kategori eşleştirmesi bu anahtarla yapılır; kategori adı canonical biçimde oluşturulur veya mevcut kayda bağlanır. Ürün adı yazıldığı gibi saklanır.
+- Mevcut kayıtların adları **elle** düzeltilir; otomatik backfill yazılmaz. Geçmiş teklif ve komisyon snapshot'ları geriye dönük değiştirilmez.
+- Türkçe başlık biçimi dil kurallarına göre uygulanır (`İ` -> `i`, `I` -> `ı`); Python'un dil duyarsız `title()` davranışı kullanılmaz.
 
 ### 4.2 Fiyat türleri
 
@@ -270,10 +312,15 @@ Genel bayi indirimi sabit bir oran değildir. Uygulama %10'u varsayılan öneri 
 
 ### 4.8 Komisyon ve minimum fiyat hesabı
 
-- Birden fazla banka desteklenir.
+- Birden fazla banka desteklenir; banka listesi kullanıcı tarafından yönetilir ve formdan hızlıca yeni banka eklenebilir (§5.5 FR-FIN-01).
+- POS ve Ödero için banka **isteğe bağlıdır**. Oran iki düzeyde tanımlanabilir:
+  1. **Genel oran (bankasız):** Tüm bankalarda geçerli varsayılan orandır; günlük kullanımda çoğu zaman tek ihtiyaç duyulan tanımdır.
+  2. **Bankaya özel oran:** Aynı kapsamda banka seçilerek girilir; yalnız o bankanın genel oranını geçersiz kılar.
+- Oran çözümleme sırası: (dönem, kanal, banka, ürün grubu, Ödero bandı, taksit) için bankaya özel satır -> aynı kapsamda bankasız genel satır -> ikisi de yoksa açık hata. Banka özel satır başka bankaları etkilemez; genel satır diğer bankalarda geçerli kalır. Bu sayede çalışan yalnız farklı olan banka/taksit satırını girer; aynı kalan taksitler için genel oran tekrar yazılmaz.
+- Aynı kapsamda (banka boş dahil) yalnızca bir oran satırı bulunabilir; banka adındaki yazım farkı yeni satır veya yeni banka oluşturmaz (§4.1.1).
 - Her bankada taksit seçeneği başına komisyon yüzdesi tutulur.
 - Komisyon oranları elle girilir ve dönem/başlangıç tarihi ile güncellenebilir.
-- MVP'de çalışan teklif için tek banka ve tek taksit seçeneği belirler.
+- MVP'de çalışan teklif için tek taksit seçeneği ve isteğe bağlı tek banka belirler; banka seçilmezse genel oran kullanılır.
 - Birden fazla banka/taksit alternatifini aynı anda kıyaslama sonraki sürümdür.
 - Minimum kâr hem tutar (TL) hem oran (%) biçiminde tanımlanabilir.
 - Varsayılan minimum kâr değeri önceden varsayılmaz; ürün veya teklif için ayarlanmadıysa sistem “minimum kâr hedefi tanımlı değil” uyarısı verir.
@@ -295,11 +342,16 @@ Bu hesap, POS komisyonu kesintisi sonrasında maliyet + seçilen hedef kârı ka
 - Yuvarlama yöntemi ekranda/çıktıda tutarlı olmalıdır; kuruş hassasiyeti saklanır, TL sunumu iki ondalık basamak gösterebilir.
 - Hesaplanan fiyat ile patronun girdiği bayi minimum fiyatı ayrı gösterilir. MVP'de otomatik fiyat engeli uygulanmaz; uyarı ve karşılaştırma gösterilir.
 - Nakit fiyatında POS komisyonu yoktur; bayi nakit alt sınırı ayrıca saklanır.
-- Komisyon kanalları POS, Ödero (mail order) ve Chippin'dir. POS ve Ödero banka bazlıdır; Chippin bankadan bağımsızdır.
-- Ürün komisyon grupları Klima, TV ve diğerleridir. Klima ayrı oran grubudur; TV standart oranı kullanır ancak en fazla 4 taksit, diğerleri en fazla 5 taksit, Chippin en fazla 6 taksit, business kart en fazla 2 taksit olabilir. Yapı Kredi POS en fazla 8, Ödero en fazla 2 taksit verir.
+- Komisyon kanalları POS, Ödero (mail order) ve Chippin'dir. POS ve Ödero'da oran bankasız genel veya bankaya özel olabilir; Chippin bankadan bağımsızdır.
+- Ürün komisyon grupları yalnızca **Klima** ve **Diğer**'dir. Klima ayrı oran grubudur. **TV ayrı bir komisyon grubu değildir; TV ürünleri Diğer oranlarını kullanır.** TV'nin tek farkı taksit üst sınırıdır.
+- Kategori taksit üst sınırı (örneğin TV) kodda sabit değildir; dönem verisi olarak tutulur ve her ay değiştirilebilir (bu ay 4, gelecek ay 3, 2 veya 9 olabilir). İlk dönemde yalnızca örnek başlangıç değeri girilir; değişiklik için kod değişikliği veya dağıtım gerekmez.
+- Örnek başlangıç taksit üst sınırları (yalnız örnektir, dönem verisidir): Ödero genel 5, Chippin 6, business kart 2, Klima 10, TV kategorisi 4, telefon kategorisi 3. Bu değerler sabit iş kuralı değildir; dönem içinde düzenlenebilir.
+- Taksit üst sınırı kategori bazlıdır: her kategoriye ayrı sınır tanımlanabilir (TV 4, telefon 3 gibi) ve sınır aylık değişebilir.
 - Ödero komisyonu 20.000 TL altı ve üstü olarak ayrılır; eşik sepet toplamına uygulanır.
-- Etkin taksit üst sınırı kanal, banka/kanal, ürün grubu, kart tipi ve mevcut oran satırlarının minimumudur.
+- Taksit üst sınırı çözümlemesi: seçilen banka için tanımlı bir limit satırı varsa, aynı kanal/ürün grubu/kart tipi kapsamındaki bankasız genel limitin yerine o satır geçer; banka özel limit genel limiti yükseltebilir veya düşürebilir (örn. Ödero genel 5 iken Ödero/Akbank 8 ise Akbank'ta 8; Ödero/Yapı Kredi 2 ise Yapı Kredi'de 2). Banka özel satır diğer bankaları etkilemez; bu sayede yalnız farklı bankanın limiti girilir, diğerleri genel limiti kullanır.
+- Kategori taksit sınırı bankadan bağımsızdır ve tüm bankalarda geçerlidir; banka özel limit onu yükseltemez. Etkin sınır, banka çözümlemesinden sonra kalan banka/kart tipi limitlerinin, kategori sınırının ve mevcut oran satırlarının minimumudur.
 - Komisyonlar aylık dönemler halinde tutulur; yeni dönem önceki ayı kopyalayarak açılır, geçmiş dönem değişmez ve teklifler kendi komisyon snapshot'ını taşır.
+- Komisyon oranları, maliyetler ve taban fiyatlar gizli ticari veridir; kamuya açık depoya yazılmaz (§3.4).
 
 ---
 
@@ -471,13 +523,13 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 
 ### 5.5 Banka komisyonları ve fiyat referansı
 
-**FR-FIN-01 (P0):** Banka tanımlanabilmelidir.
+**FR-FIN-01 (P0):** Banka tanımlanabilmeli ve formdan hızlıca eklenebilmelidir. Banka adı büyük/küçük harf ve Türkçe `İ/ı` duyarsız tekil olmalıdır (`AKBANK` = `akbank` = `Akbank`); görünen ad canonical biçimde (`Akbank`) saklanır. Komisyon ve teklif formlarında listede olmayan banka, formdan ayrılmadan hızlıca eklenebilmeli ve eklenen banka anında seçilebilmelidir; var olan banka yeniden yazılırsa yeni kayıt açılmaz, mevcut kayıt seçilir.
 
-**FR-FIN-02 (P0):** Her banka için taksit sayısı ve komisyon oranı girilebilmelidir.
+**FR-FIN-02 (P0):** Her banka veya bankasız genel kapsam için taksit sayısı ve komisyon oranı girilebilmelidir. POS ve Ödero'da banka isteğe bağlıdır; banka boş bırakıldığında oran tüm bankalar için genel oran olur.
 
 **FR-FIN-03 (P0):** Komisyon oranları değiştiğinde eski dönem bilgisi korunmalıdır; yeni oranlar yürürlük tarihiyle kaydedilmelidir.
 
-**FR-FIN-04 (P0):** Bir teklif/hesap ekranında tek banka ve tek taksit seçilebilmelidir.
+**FR-FIN-04 (P0):** Bir teklif/hesap ekranında tek taksit ve isteğe bağlı tek banka seçilebilmelidir.
 
 **FR-FIN-05 (P0):** Ürün maliyeti üzerinden hedef kâr TL veya yüzde olarak belirlenebilmelidir.
 
@@ -495,15 +547,23 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 
 **FR-FIN-12 (P2):** Birden fazla banka/taksit seçeneğini yan yana karşılaştırma eklenebilir.
 
-**FR-FIN-13 (P0):** Komisyonlar POS, Ödero ve Chippin kanalları için ayrı tutulabilmelidir; POS ve Ödero banka bazlı, Chippin bankadan bağımsız olmalıdır.
+**FR-FIN-13 (P0):** Komisyonlar POS, Ödero ve Chippin kanalları için ayrı tutulabilmelidir; POS ve Ödero'da oran bankasız genel veya bankaya özel olabilir, Chippin bankadan bağımsız olmalıdır.
 
-**FR-FIN-14 (P0):** Klima ayrı komisyon grubu olmalı; TV standart oranı kullanmalı ancak en fazla 4 taksit, diğer ürünler en fazla 5, Chippin en fazla 6, business kart en fazla 2 taksit olmalıdır.
+**FR-FIN-14 (P0):** Klima ayrı komisyon grubu olmalıdır; TV ayrı oran grubu olmamalı, Diğer oranlarını kullanmalıdır. TV'nin taksit üst sınırı diğerlerinden farklı olabilir ve dönem verisi olarak düzenlenebilmelidir; kodda sabit 4 değeri bulunmamalıdır.
 
 **FR-FIN-15 (P0):** Ödero komisyonu 20.000 TL altı ve üstü sepet toplamına göre ayrı tanımlanabilmelidir.
 
 **FR-FIN-16 (P0):** Komisyonlar aylık dönemler halinde yönetilmeli; yeni dönem önceki ayı kopyalayarak açılabilmeli, geçmiş dönem değişmemelidir.
 
-**FR-FIN-17 (P0):** Etkin taksit üst sınırı kanal, banka, ürün grubu, kart tipi ve mevcut oran satırlarının minimumu olarak hesaplanmalıdır.
+**FR-FIN-17 (P0):** Etkin taksit üst sınırı kanal, banka, kategori/ürün grubu ve kart tipi kapsamları çözümlenerek hesaplanmalıdır: banka özel limit, aynı kanal/ürün grubu/kart tipi kapsamındaki bankasız genel limitin yerine geçer ve onu yükseltebilir veya düşürebilir. Kategori sınırı bankadan bağımsızdır, tüm bankalarda geçerlidir ve yükseltilemez; etkin sınır kalan limitlerin minimumudur.
+
+**FR-FIN-18 (P0):** Oran çözümlemesi bankaya özel satır -> bankasız genel satır -> açık hata sırasıyla yapılmalıdır. Banka özel satır diğer bankaların genel oranını değiştirmemelidir; bankaya özel satırı olmayan taksit için genel orana dönülmelidir.
+
+**FR-FIN-19 (P0):** Aynı dönem ve kapsamda banka boş dahil yalnızca bir oran/limit satırı bulunabilmelidir; mükerrer tanım açık Türkçe hatayla engellenmelidir.
+
+**FR-FIN-20 (P0):** Her kategori için taksit üst sınırı tanımlanabilmelidir (TV 4, telefon 3 gibi). Sınırlar dönem içinde düzenlenebilir veri olmalıdır; aylık değişen sınırlar için kod değişikliği veya dağıtım gerekmemelidir.
+
+**FR-FIN-21 (P0):** Komisyon ekranından yeni banka ekleme akışı, ekleme sonrası seçimi ve girilmiş oran/limit alanlarını kaybetmeden forma dönmelidir.
 
 ### 5.6 Teklifler
 
@@ -513,9 +573,9 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 
 **FR-OFFER-03 (P0):** Teklifte nakit satış fiyatı ve kart satış fiyatı ayrı girilebilmelidir.
 
-**FR-OFFER-04 (P0):** Kart fiyatı için banka ve taksit sayısı seçilebilmelidir.
+**FR-OFFER-04 (P0):** Kart fiyatı için kanal, taksit sayısı ve kart tipi seçilebilmelidir; banka isteğe bağlıdır. Banka seçilmezse genel komisyon oranı kullanılır.
 
-**FR-OFFER-05 (P0):** Seçilen banka/taksit komisyonu ve hesaplanan referans minimum fiyat teklif ekranında gösterilmelidir.
+**FR-OFFER-05 (P0):** Seçilen kapsamın komisyonu ve hesaplanan referans minimum fiyat teklif ekranında gösterilmelidir; oranın bankaya özel mi genel mi olduğu belirtilmelidir.
 
 **FR-OFFER-06 (P0):** Teklif oluşturulduğu andaki ürün fiyatı, bayi fiyatı, kampanya açıklaması, komisyon oranı ve teklif satırları snapshot olarak saklanmalıdır. Sonradan ürün fiyatı değişince eski teklif değişmemelidir.
 
@@ -540,6 +600,8 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 **FR-OFFER-16 (P0):** Ürünle ilişkili aktif kampanya teklif satırına otomatik atanmalı; çalışan kampanyayı değiştirebilmeli veya “Kampanya yok” seçebilmelidir. Otomatik atama ürün-kampanya ilişkisinden gelir; kampanyalar birleşmez.
 
 **FR-OFFER-17 (P0):** Teklif listesi araması yazarken otomatik çalışmalı; “Ara” butonuna basılmadan sonuçlar HTMX ile güncellenmeli ve URL korunmalıdır.
+
+**FR-OFFER-18 (P0):** Teklifte banka boş bırakılabilmeli; bankasız teklifte komisyon genel orandan çözülmeli ve A4 çıktısında banka alanı boş/“—” basılmalıdır.
 
 ### 5.7 Rezervasyonlar
 
@@ -758,7 +820,7 @@ Ekranların adları kısa ve çalışanların alışık olduğu terimlerle yazı
 2. Bir veya daha fazla ürün ve miktar eklenir.
 3. Her kalemde teklif fiyatı ve varsa kampanya açıklaması gösterilir.
 4. Teklif nakit veya kart olarak fiyatlandırılır.
-5. Kart seçildiyse tek banka ve taksit seçilir; komisyon ve minimum referans fiyat görünür.
+5. Kart seçildiyse taksit ve kart tipi seçilir; banka isteğe bağlıdır. Banka seçilirse bankaya özel oran, seçilmezse genel oran uygulanır; komisyon ve minimum referans fiyat görünür.
 6. Çalışan gerçek teklif fiyatını kaydeder.
 7. Teklif durumu “Müşteriye sunuldu” yapılabilir.
 8. Teklif kaydedilir ve A4 yazdırılır.
@@ -831,7 +893,8 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 **products**
 
 - `id` (UUID/BigInt, PK)
-- `product_name` (TEXT, gerekli; arama indeksi)
+- `product_name` (TEXT, gerekli; yazıldığı gibi görünen ad; arama indeksi)
+- `name_normalized` (TEXT, unique; harf duyarsız eşleştirme/arama anahtarı)
 - `regular_price` (NUMERIC)
 - `website_discounted_price` (NUMERIC, nullable)
 - `cost_price` (NUMERIC, nullable)
@@ -843,7 +906,7 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 
 **product_categories**
 
-- `id`, `name`, `created_at`, `updated_at`
+- `id`, `name` (canonical görünen ad), `name_normalized` (unique), `commission_group` (`klima` veya `other`; varsayılan `other`), `created_at`, `updated_at`
 
 **product_price_history**
 
@@ -921,7 +984,8 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 
 **banks**
 
-- `id`, `name`, `is_active`, `created_at`, `updated_at`
+- `id`, `name` (canonical görünen ad: `Akbank`), `name_normalized` (unique; büyük/küçük harf ve Türkçe `İ/ı` duyarsız), `is_active`, `created_at`, `updated_at`
+- Banka adı düzeltmesi geçmiş kayıtları bozmamalıdır; teklifler `bank_name_snapshot` taşır.
 
 **commission_periods**
 
@@ -932,17 +996,23 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 **commission_rates**
 
 - `id`, `period_id`, `channel` (`pos`, `odero`, `chippin`)
-- `bank_id` (nullable; Chippin'de null), `product_group` (`klima`, `other`)
+- `bank_id` (nullable; POS/Ödero'da boş = bankasız genel oran, Chippin'de her zaman boş)
+- `product_group` (`klima`, `other`; TV için `other`)
 - `amount_tier` (`under_20000`, `over_20000`, nullable; yalnızca Ödero)
 - `installment_count`, `commission_percent`
-- `scope_key` (dönem içinde tekil), `created_at`, `updated_at`
+- `scope_key` (dönem içinde tekil; bankasız satır `-` ile temsil edilir), `created_at`, `updated_at`
+- Tekillik: `(period_id, scope_key)`; `scope_key` banka/tutar bandı boş değerlerini `-` ile temsil eder, böylece bankasız genel satır da tekil olur.
+- Çözümleme: önce bankaya özel satır, yoksa bankasız satır.
 
 **commission_limits**
 
 - `id`, `period_id`
-- `channel`, `bank_id`, `product_group`, `card_type` (nullable kapsam alanları)
+- `channel`, `bank_id`, `product_group`, `category_id`, `card_type` (nullable kapsam alanları)
 - `max_installments`, `scope_key` (dönem içinde tekil)
 - `created_at`, `updated_at`, `created_by_name` (nullable)
+- Kategori bazlı sınırlar (TV 4, telefon 3 gibi) `category_id` ile tanımlanır ve bankadan bağımsızdır (`bank_id` boş); sınır değeri dönem verisidir, kodda sabit değildir.
+- Banka özel limit, aynı kanal/ürün grubu/kart tipi kapsamındaki bankasız genel limitin yerine geçer; etkin sınır bu çözümlemeden sonra kalan limitlerin, kategori sınırının ve oran satırlarının minimumudur. Banka özel satır kategori sınırını yükseltemez.
+- Tekillik `(period_id, scope_key)` üzerinden sağlanır; `scope_key` kategori ve boş kapsam alanlarını da içerir.
 
 **profit_targets**
 
@@ -960,8 +1030,8 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 - `customer_name` (nullable), `customer_phone` (nullable)
 - `status` (`draft`, `presented`, `accepted`, `lost`, `expired`)
 - `payment_type` (`cash`, `card`)
-- `channel` (`pos`, `odero`, `chippin`, nullable), `bank_id`, `installment_count`, `card_type` (`consumer`, `business`, nullable)
-- `commission_percent_snapshot` (nullable)
+- `channel` (`pos`, `odero`, `chippin`, nullable), `bank_id` (nullable), `bank_name_snapshot` (nullable), `installment_count`, `card_type` (`consumer`, `business`, nullable)
+- `commission_percent_snapshot` (nullable), `commission_source` (`bank_specific`, `general`, `none`)
 - `dealer_discount_percent`
 - `cash_total`, `card_total`, `selected_total`
 - `note`, `follow_up_at` (nullable)
@@ -1126,7 +1196,7 @@ Filtrelenmiş ürün sonuçlarını dışa aktarma MVP dışında tutulur; tüm 
 - Müşteri adı (varsa).
 - Ürün adı, miktar ve birim/toplam fiyat.
 - Nakit veya kart ödeme biçimi.
-- Kartsa banka ve taksit sayısı.
+- Kartsa banka (varsa) ve taksit sayısı; banka seçilmediyse banka alanı boş bırakılır.
 - Toplam fiyat.
 - Kampanya/hediye açıklaması (varsa).
 - Alış maliyeti ve iç kâr hesapları müşteriye verilen çıktıda gösterilmemelidir. İç kullanım için ayrı teklif özeti olabilir.
@@ -1333,6 +1403,10 @@ Müşteri adı-soyadı kişisel veridir. MVP'de telefon isteğe bağlı ek kişi
 - Geri yükleme adımları `OPERATIONS.md` içinde yazılı olmalıdır.
 - Migration'lar ileri yönlü uygulanmalı; dağıtımdan önce yedek alınmalı, hata halinde eski veritabanı silinmeden yedekten yeni veritabanına dönülmelidir.
 
+### 12.4 Ticari veri gizliliği ve kamuya açık depo
+
+Komisyon oranları, alış maliyetleri, bayi taban fiyatları ve kâr hedefleri ticari sırdır. Bu depo kamuya açıktır; söz konusu veriler commit edilmez, örnek dosyalarda ve testlerde temsilî değerler kullanılır. Ayrıntılı kural ve commit öncesi kontrol listesi §3.4'tedir.
+
 ---
 
 ## 13. Test ve kabul kriterleri
@@ -1402,13 +1476,18 @@ Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 4. Komisyon dönem değişimi eski teklifin komisyon snapshot değerini değiştirmez.
 5. Teklif çok ürünlü olabilir ve her kalemin fiyat snapshot'ı saklanır.
 6. Teklif A4 yazdırılır; alış maliyeti veya iç kâr bilgisi müşteri kopyasında görünmez.
-7. Yapı Kredi POS 2 taksit %4, 3 taksit %4,67 olarak çözümlenir.
+7. Örnek Banka POS 2 taksit %5, 3 taksit %6 olarak çözümlenir (değerler temsilîdir).
 8. Ödero 20.000 TL altı ve üstü farklı komisyon oranı kullanır; eşik sepet toplamına uygulanır.
-9. Business kart en fazla 2, TV en fazla 4, Klima en fazla 10, Chippin en fazla 6 taksit kabul eder; etkin sınır minimumdur.
+9. Business kart en fazla 2 ve TV kategorisi en fazla 4 ayrı boyut olarak uygulanır. Ödero genel limit 5 iken Ödero/Akbank 8 tanımlanırsa Akbank'ta 8, Ödero/Yapı Kredi 2 ise Yapı Kredi'de 2 geçerlidir; banka özel limit genel limiti geçersiz kılar ve diğer bankaları etkilemez. TV sınırı 3 veya 9 yapıldığında kod değişmeden uygulanır.
 10. Kampanya seçilince Oliz uygulanmaz ve iki kampanya birleşmez.
 11. Manuel nakit/kart fiyatı floor veya kâr referansının altında kalırsa uyarı gösterilir; kayıt engellenmez.
 12. Komisyon dönemi değişince eski teklifin snapshot'ı değişmez.
 13. Kabul edilmiş tekliften rezervasyon dönüşümü retry edildiğinde duplicate rezervasyon oluşmaz.
+14. Bankaya özel oran yalnız o bankada genel oranı geçersiz kılar; diğer bankalar genel oranı kullanmaya devam eder.
+15. Bankaya özel satırı olmayan taksit için genel orana dönülür; hiçbiri yoksa açık Türkçe hata gösterilir.
+16. `AKBANK`, `akbank` ve `Akbank` aynı banka kaydını verir; görünen ad `Akbank` olur ve ikinci kayıt açılmaz.
+17. Komisyon formundan hızlı banka eklenir; eklenen banka oran satırında seçili kalır ve formdaki diğer değerler kaybolmaz.
+18. Banka seçilmemiş kart teklifi genel oranla hesaplanır; A4 çıktısında banka alanı boş basılır ve eski teklifin snapshot'ı değişmez.
 
 ### 13.5 Hızlı teslim testleri
 
@@ -1441,6 +1520,10 @@ Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 | Teslimatın iki kez işlenmesi | Çift stok düşümü | Idempotency key ve atomik transaction |
 | Kampanya şartının yanlış girilmesi | Hatalı müşteri fiyatı | Zorunlu kampanya açıklaması, tarih, fiyat tabanı ve hediye var/yok senaryosu ön izlemesi |
 | Komisyon oranlarının eski kalması | Yanlış minimum fiyat | Geçerlilik tarihi, aylık güncelleme hatırlatması, teklif snapshot'ı |
+| Gerçek komisyon/maliyet verisinin kamuya açık depoya sızması | Ticari sır ihlali, sözleşme ve hukuki risk | §3.4 örnek veri kuralı, commit öncesi diff kontrolü, maliyet/komisyon içeren dosyaların `.gitignore`'u |
+| Bankasız genel oranın yanlış bankaya uygulanması | Eksik veya fazla komisyon | Banka özel satır önceliği, kaynak etiketi (genel/banka özel), teklif snapshot'ı |
+| Banka adı yazım farkıyla kopya kayıt | Yanlış oran, kirli rapor | Normalize anahtar + canonical görünen ad + hızlı eklemede mevcut kaydı yeniden kullanma |
+| Kategori taksit sınırının kodda sabit kalması | Aylık değişen kuralın uygulanamaması | Sınırı dönem verisi olarak tutma, kategori bazlı limit, kod değişikliği gerektirmeme |
 | Hesap/rol olmaması | LAN'daki herkes veri düzenleyebilir | MVP yalnızca kontrollü LAN; uzaktan erişimden önce auth/role zorunlu |
 | Sunucu bilgisayarın kapanması | Uygulamaya erişilemez | Otomatik başlatma, uyku kapatma, yedek ve mümkünse UPS |
 | Barkod fotoğraf kalitesi | Decoder başarısız | Pano/dosya alternatifleri, ön izleme ve açık yeniden deneme; kamera ve manuel giriş sonraki faz |
@@ -1516,11 +1599,13 @@ POS hesaplayıcısı en son milestone olarak kalır. Sıralama, çalışanlara e
 
 ### Milestone 5 — Teklif ve banka komisyonları
 
-- Banka/taksit komisyon tablosu.
+- Banka yönetimi ve formdan hızlı banka ekleme (normalize + canonical ad).
+- Bankasız genel ve bankaya özel oranlarla banka/taksit komisyon tablosu.
+- Klima/Diğer oran grupları; her kategori için dönem verisi olarak düzenlenebilir taksit üst sınırı.
 - Minimum kâr TL/% ayarı.
 - Komisyona göre referans fiyat.
 - Çok ürünlü teklif.
-- Nakit/kart fiyatı, tek banka/taksit seçimi.
+- Nakit/kart fiyatı; kartta taksit ve kart tipi zorunlu, banka isteğe bağlı.
 - Teklif geçmişi ve A4.
 - Tekliften rezervasyona dönüşüm (P1).
 
@@ -1592,8 +1677,13 @@ Bu PRD aşağıdaki kullanıcı kararlarını temel alır:
 - Kampanya rehberi MVP'de bilgilendirme ve tekil ürün senaryosu gösterir; POS sepet algoritması değildir.
 - Genel bayi indirimi %10 varsayılan gösterilir; çalışan patronun yönlendirmesiyle değiştirebilir, uygulamada sabit %10 tavanı yoktur.
 - Ürüne özel nakit/kart minimum satış fiyatı doğrudan TL olarak girilir.
-- Banka komisyonları banka ve taksit bazında elle güncellenir.
-- Teklifte birden fazla ürün olabilir; MVP'de tek banka/taksit seçimi yapılır.
+- Banka komisyonları banka ve taksit bazında elle güncellenir; POS ve Ödero'da banka isteğe bağlıdır ve bankasız genel oran tanımlanabilir.
+- Bankaya özel oran genel oranı yalnız o bankada geçersiz kılar; çözümleme banka özel -> genel sırasıyla yapılır.
+- Banka özel taksit limiti, aynı kanal/ürün grubu/kart tipi kapsamındaki bankasız genel limitin yerine geçer; genel limiti yükseltebilir veya düşürebilir, diğer bankaları etkilemez. Kategori sınırı bankadan bağımsızdır ve yükseltilemez.
+- TV ayrı komisyon oranı grubu değildir; Diğer oranlarını kullanır. Taksit üst sınırı kategori bazlı dönem verisidir (TV 4, telefon 3 gibi) ve aylık değiştirilebilir.
+- Banka ve kategori adları yazım farkından bağımsız eşleştirilir ve canonical görünen adla saklanır (§4.1.1); ürün adları yazıldığı gibi kalır, aramada harf duyarsızdır.
+- Gerçek komisyon oranları, maliyetler ve bayi taban fiyatları kamuya açık depoya yazılmaz; belgelerdeki tüm değerler örnektir (§3.4).
+- Teklifte birden fazla ürün olabilir; MVP'de tek banka/taksit seçimi yapılır ve banka isteğe bağlıdır.
 - A4 çıktıları rezervasyon, stok sayımı/ürün listesi ve teklif için zorunludur.
 - PDF ekleme/görüntüleme MVP dışıdır; ilk ek özellik olarak sonraki fazda ele alınır.
 - MVP'de barkod görseli kalıcı saklanmaz; doğrulanmış metin, müşteri, isteğe bağlı telefon, kaynak ve zaman saklanır.
@@ -1621,6 +1711,8 @@ Bu maddeler ürün kapsamını değiştirmez; geliştirme sırasında örnek dos
 7. Code 128 decoder için mevcut Python scriptinin değerlendirilmesi ve backend entegrasyonunun doğrulanması.
 8. Gerçek ürün kataloğu büyüklüğü ve eski host donanımıyla performans testi.
 9. Stok sayım sırasında eşzamanlı teslimat/CSV aktarımı olursa farkın nasıl çözüleceği; MVP'de sayım sonu farkı yeniden hesaplama ve onay önerilir.
+10. Ürün görünen adlarının canonical biçime çevrilmesi bilinçli olarak kapsam dışıdır; ileride ayrı araştırma ile değerlendirilecek. Şimdilik ürünlerde yalnız eşleştirme ve arama harf duyarsızdır.
+11. Kategori bazlı taksit üst sınırlarının ilk dönem başlangıç değerleri (TV 4, telefon 3 gibi) örnek olarak girilir; gerçek değerler dönem yönetiminden ayarlanır.
 
 Bu maddeler MVP'nin işlevlerini engelleyen ürün kararları değildir; uygulamaya başlamadan önce örnek verilerle doğrulanacak teknik ayrıntılardır.
 
@@ -1641,3 +1733,8 @@ Bu maddeler MVP'nin işlevlerini engelleyen ürün kararları değildir; uygulam
 | Teslim edildi | Ürün müşteriye ulaştı/kurulum tamamlandı; fiziksel stoktan düşüm tetiklenir |
 | Hızlı Teslim | Bir müşteriyle tek Code 128 metninin görüntüden çözülüp insan-okunabilir metinle doğrulanarak, kullanıcı onayıyla, ürün/WMS lookup yapılmadan kaydedildiği operasyon modülü |
 | POS milestone | Kart/indirim/karma sepet hesaplama algoritmasının ayrı ve sonraki geliştirme aşaması |
+| Genel komisyon oranı | Banka seçilmeden tanımlanan, tüm bankalarda geçerli varsayılan komisyon oranı |
+| Bankaya özel komisyon oranı | Yalnız seçilen bankada genel oranı geçersiz kılan komisyon oranı |
+| Komisyon grubu | Oran tanımında kullanılan ürün sınıfı: Klima veya Diğer. TV ayrı grup değildir, Diğer oranlarını kullanır |
+| Taksit üst sınırı | Bir kapsam (kanal, banka, ürün grubu, kategori, kart tipi) için izin verilen en fazla taksit sayısı; dönem verisidir, kodda sabit değildir. Banka özel limit, aynı kapsamdaki bankasız genel limitin yerine geçer |
+| Canonical görünen ad | Yazım farklarından bağımsız saklanan standart görünüm: `AKBANK`/`akbank` -> `Akbank` |

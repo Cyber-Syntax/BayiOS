@@ -16,9 +16,9 @@ LAN-only dealer operations system for a Turkish appliance dealer: products, impo
 uv sync                                     # install dependencies (uv.lock)
 bash scripts/dev.sh                         # dev Postgres + migrations + uvicorn --reload
 uv run uvicorn bayios.main:create_app --factory --reload
-uv run alembic upgrade head                 # apply migrations (head: 0011)
+uv run alembic upgrade head                 # apply migrations (head: 0013)
 uv run alembic revision -m "message"        # add a migration
-uv run pytest -q                            # full suite: 215 tests, 4 skipped without a test DB
+uv run pytest -q                            # full suite: 270 tests (265 pass, 5 skip without a test DB)
 BAYIOS_TEST_DATABASE_URL=postgresql+psycopg://bayios:bayios@127.0.0.1:5432/bayios_test \
   uv run pytest tests/integration -q        # PostgreSQL integration tests
 uv run ruff check src tests                 # lint (currently clean)

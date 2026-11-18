@@ -29,15 +29,23 @@ A monthly, effective-dated set of card commission rates and installment limits. 
 _Avoid_: Live commission table, editable history
 
 **Payment channel**:
-The route used for a card payment: physical POS, Ödero mail order, or Chippin. POS and Ödero rates vary by bank; Chippin is a bank-independent provider.
+The route used for a card payment: physical POS, Ödero mail order, or Chippin. POS and Ödero rates may be defined without a bank (the general rate) or per bank (a bank-specific override); Chippin is a bank-independent provider.
 _Avoid_: Payment method, bank
 
 **Product commission group**:
-The product classification used for commission rates and installment limits. Klima is a separate commission group; TV shares the standard commission rate but has a lower installment limit; other products form the standard group.
+The product classification used for commission rates. Klima is the only separate group; every other product, including TV, uses the standard (other) group. Per-category installment caps are editable period data, not code constants.
 _Avoid_: Category, campaign type
 
+**General commission rate**:
+A commission row with no bank selected. It applies to every bank that has no bank-specific row for the same scope; a bank-specific row overrides it only for that bank.
+_Avoid_: Default bank, fallback rate
+
+**Installment limit**:
+The maximum number of installments for a scope (channel, bank, product group, category or card type), stored as monthly period data. A bank-specific limit replaces the bankless general limit for that bank and may raise or lower it; other scopes still apply.
+_Avoid_: Hard-coded cap, TV limit
+
 **Offer snapshot**:
-The immutable record of product prices, selected campaign version, dealer discount, commission rate and final offer lines captured when an offer is created or updated.
+The immutable record of product prices, selected campaign version, dealer discount, bank name, commission rate and final offer lines captured when an offer is created or updated.
 _Avoid_: Live offer recalculation, current price view
 
 **Customer**:

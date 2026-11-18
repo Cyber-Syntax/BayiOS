@@ -25,7 +25,6 @@ from bayios.application.ports.unit_of_work import UnitOfWork
 from bayios.application.tabular import (
     first_sheet,
     locate_header,
-    normalize_header,
     parse_decimal,
     parse_enum,
     parse_int,
@@ -47,6 +46,7 @@ from bayios.domain.commissions import (
     period_bounds,
     validate_period,
 )
+from bayios.domain.naming import normalize_name
 from bayios.domain.products import ActorContext
 
 RATE_HEADERS = {
@@ -63,6 +63,7 @@ LIMIT_HEADERS = {
     "channel": ("Kanal", "channel"),
     "bank": ("Banka", "bank"),
     "product_group": ("Ürün Grubu", "Urun Grubu", "product_group"),
+    "category": ("Kategori", "category"),
     "card_type": ("Kart Tipi", "card_type"),
     "max_installments": ("Max Taksit", "max_installments"),
 }
@@ -130,6 +131,7 @@ def preview_commission_limits(uow: UnitOfWork, source: bytes) -> ImportPreview:
             ("channel", "Kanal"),
             ("bank", "Banka"),
             ("group", "Grup"),
+            ("category", "Kategori"),
             ("card_type", "Kart Tipi"),
             ("max", "Max Taksit"),
             ("status", "Durum"),
@@ -298,7 +300,10 @@ def _parse_rates(
     )
     with uow:
         banks = uow.commissions.get_banks(active_only=False)
-        bank_by_name = {normalize_header(bank.name): bank for bank in banks}
+        bank_by_name = {
+            getattr(bank, "name_normalized", None) or normalize_name(bank.name): bank
+            for bank in banks
+        }
         rows: list[_CommissionRow] = []
         for offset, raw in enumerate(sheet.rows[layout.row_index + 1 :], start=1):
             row_number = layout.row_index + 2 + offset
@@ -326,7 +331,7 @@ def _parse_rates(
                 errors.append(str(exc))
                 channel = None
             bank_name = str(row_value(raw, layout, "bank") or "").strip()
-            bank = bank_by_name.get(normalize_header(bank_name)) if bank_name else None
+            bank = bank_by_name.get(normalize_name(bank_name)) if bank_name else None
             if bank_name and bank is None:
                 errors.append("Banka bulunamadı.")
             group_raw = row_value(raw, layout, "product_group")
@@ -454,7 +459,15 @@ def _parse_limits(
     )
     with uow:
         banks = uow.commissions.get_banks(active_only=False)
-        bank_by_name = {normalize_header(bank.name): bank for bank in banks}
+        bank_by_name = {
+            getattr(bank, "name_normalized", None) or normalize_name(bank.name): bank
+            for bank in banks
+        }
+        category_by_name = {
+            getattr(category, "name_normalized", None)
+            or normalize_name(category.name): category
+            for category in uow.products.get_categories()
+        }
         rows: list[_CommissionRow] = []
         for offset, raw in enumerate(sheet.rows[layout.row_index + 1 :], start=1):
             row_number = layout.row_index + 2 + offset
@@ -481,7 +494,7 @@ def _parse_limits(
                 errors.append(str(exc))
                 channel = None
             bank_name = str(row_value(raw, layout, "bank") or "").strip()
-            bank = bank_by_name.get(normalize_header(bank_name)) if bank_name else None
+            bank = bank_by_name.get(normalize_name(bank_name)) if bank_name else None
             if bank_name and bank is None:
                 errors.append("Banka bulunamadı.")
             try:
@@ -495,6 +508,14 @@ def _parse_limits(
             except ValueError as exc:
                 errors.append(str(exc))
                 group = None
+            category_name = str(row_value(raw, layout, "category") or "").strip()
+            category = (
+                category_by_name.get(normalize_name(category_name))
+                if category_name
+                else None
+            )
+            if category_name and category is None:
+                errors.append("Kategori bulunamadı.")
             try:
                 card_value = parse_enum(
                     row_value(raw, layout, "card_type"),
@@ -525,6 +546,7 @@ def _parse_limits(
                         channel=channel,
                         bank_id=str(bank.id) if bank is not None else None,
                         product_group=group,
+                        category_id=str(category.id) if category is not None else None,
                         card_type=card_type,
                     )
                 except ValueError as exc:
@@ -559,6 +581,7 @@ def _parse_limits(
                         "group": PRODUCT_GROUP_LABELS.get(group, "")
                         if group
                         else "",
+                        "category": category.name if category else category_name,
                         "card_type": CARD_TYPE_LABELS.get(card_type, "")
                         if card_type
                         else "",
@@ -656,6 +679,7 @@ def _add_limit(uow: UnitOfWork, period_id: uuid.UUID, limit: CommissionLimit) ->
             channel=limit.channel.value if limit.channel else None,
             bank_id=uuid.UUID(limit.bank_id) if limit.bank_id else None,
             product_group=limit.product_group.value if limit.product_group else None,
+            category_id=uuid.UUID(limit.category_id) if limit.category_id else None,
             card_type=limit.card_type.value if limit.card_type else None,
             max_installments=limit.max_installments,
             scope_key=limit.scope_key,

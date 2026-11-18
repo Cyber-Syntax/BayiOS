@@ -187,6 +187,18 @@ class FakeProductRepository:
                 return category
         return None
 
+    def get_category_by_normalized(
+        self, name_normalized: str
+    ) -> ProductCategory | None:
+        return next(
+            (
+                category
+                for category in self.categories.values()
+                if getattr(category, "name_normalized", None) == name_normalized
+            ),
+            None,
+        )
+
     def add_category(self, category: ProductCategory) -> None:
         self.categories[category.id] = category
 
@@ -789,6 +801,19 @@ class FakeCommissionRepository:
         if active_only:
             banks = [bank for bank in banks if bank.is_active]  # type: ignore[attr-defined]
         return banks
+
+    def get_bank(self, bank_id: uuid.UUID) -> object | None:
+        return self.banks.get(bank_id)
+
+    def get_bank_by_normalized(self, name_normalized: str) -> object | None:
+        return next(
+            (
+                bank
+                for bank in self.banks.values()
+                if getattr(bank, "name_normalized", None) == name_normalized
+            ),
+            None,
+        )
 
     def add_bank(self, bank: object) -> None:
         self.banks[bank.id] = bank  # type: ignore[attr-defined]

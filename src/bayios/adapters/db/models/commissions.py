@@ -12,7 +12,7 @@ from bayios.adapters.db.models.base import MONEY, Base, uuid_pk
 PERCENT = sa.Numeric(5, 2)
 
 CHANNEL_SQL = "('pos', 'odero', 'chippin')"
-PRODUCT_GROUP_SQL = "('klima', 'tv', 'other')"
+PRODUCT_GROUP_SQL = "('klima', 'other')"
 CARD_TYPE_SQL = "('consumer', 'business')"
 STATUS_SQL = "('draft', 'active', 'inactive', 'archived')"
 ODERO_TIER_SQL = "('under_20000', 'over_20000')"
@@ -23,6 +23,7 @@ class Bank(Base):
 
     id: Mapped[uuid.UUID] = uuid_pk()
     name: Mapped[str] = mapped_column(sa.Text, unique=True)
+    name_normalized: Mapped[str] = mapped_column(sa.Text, unique=True)
     is_active: Mapped[bool] = mapped_column(sa.Boolean, server_default=sa.true())
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True), server_default=sa.func.now()
@@ -87,7 +88,7 @@ class CommissionRate(Base):
         ),
         sa.CheckConstraint(
             "(channel = 'chippin' AND bank_id IS NULL) "
-            "OR (channel IN ('pos', 'odero') AND bank_id IS NOT NULL)",
+            "OR channel IN ('pos', 'odero')",
             name="channel_bank_consistency",
         ),
         sa.CheckConstraint(
@@ -139,12 +140,17 @@ class CommissionLimit(Base):
         ),
         sa.CheckConstraint(
             "channel IS NOT NULL OR bank_id IS NOT NULL "
-            "OR product_group IS NOT NULL OR card_type IS NOT NULL",
+            "OR product_group IS NOT NULL OR category_id IS NOT NULL "
+            "OR card_type IS NOT NULL",
             name="scope_not_empty",
         ),
         sa.CheckConstraint(
             "channel IS NULL OR channel <> 'chippin' OR bank_id IS NULL",
             name="chippin_bank_null",
+        ),
+        sa.CheckConstraint(
+            "category_id IS NULL OR bank_id IS NULL",
+            name="category_limit_bank_null",
         ),
         sa.Index("ix_commission_limits_period_id", "period_id"),
     )
@@ -158,6 +164,9 @@ class CommissionLimit(Base):
         sa.ForeignKey("banks.id", ondelete="SET NULL")
     )
     product_group: Mapped[str | None] = mapped_column(sa.Text)
+    category_id: Mapped[uuid.UUID | None] = mapped_column(
+        sa.ForeignKey("product_categories.id", ondelete="CASCADE")
+    )
     card_type: Mapped[str | None] = mapped_column(sa.Text)
     max_installments: Mapped[int] = mapped_column(sa.Integer)
     scope_key: Mapped[str] = mapped_column(sa.Text)
