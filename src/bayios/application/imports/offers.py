@@ -371,8 +371,6 @@ def _parse_offers(
             if payment_type is PaymentType.CARD:
                 if channel is None or installment_count is None or card_type is None:
                     errors.append("Kart teklifi için kanal, taksit ve kart tipi zorunludur.")
-                if channel is PaymentChannel.CHIPPIN and bank is not None:
-                    errors.append("Chippin için banka seçilemez.")
             else:
                 channel = None
                 card_type = None

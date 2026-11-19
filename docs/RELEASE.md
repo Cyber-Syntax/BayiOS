@@ -25,7 +25,7 @@ Kapsam: Milestone 0–5 (katalog+import, rezervasyon+A4, sayım, kampanya, tekli
    podman compose run --rm app alembic upgrade head
    podman compose up -d
    ```
-4. **Sağlık:** `podman compose ps` ve `/health` → `status=ok, database=ok, migrations=ok` (current=0013).
+4. **Sağlık:** `podman compose ps` ve `/health` → `status=ok, database=ok, migrations=ok` (current=0014).
 5. **Güvenlik (zorunlu):**
    - Host firewall yalnızca bayi LAN subnet'inden `BAYIOS_PORT`'a izin.
    - Modemde port forwarding YOK; public URL bind YOK.

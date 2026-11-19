@@ -24,10 +24,10 @@ from bayios.domain.commissions import (
     OderoTier,
     PaymentChannel,
     ProductCommissionGroup,
+    amount_tier_for,
     commission_percent_for,
     effective_max_installments,
     matching_commission_rate,
-    odero_tier,
     period_bounds,
     validate_period,
 )
@@ -305,11 +305,7 @@ def resolve_commission(
             category_ids=[str(category_id) for category_id in category_ids],
         )
         if maximum == 0:
-            tier = (
-                odero_tier(total)
-                if channel is PaymentChannel.ODERO
-                else None
-            )
+            tier = amount_tier_for(channel, product_group, total)
             tier_text = (
                 f" ({ODERO_TIER_LABELS[tier]})" if tier is not None else ""
             )

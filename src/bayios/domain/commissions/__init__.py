@@ -98,6 +98,19 @@ def odero_tier(total: Decimal) -> OderoTier:
     )
 
 
+def amount_tier_for(
+    channel: PaymentChannel,
+    product_group: ProductCommissionGroup | None,
+    total: Decimal,
+) -> OderoTier | None:
+    """Return the Ödero basket tier; Klima does not use a tier."""
+    if channel is not PaymentChannel.ODERO:
+        return None
+    if product_group is ProductCommissionGroup.KLIMA:
+        return None
+    return odero_tier(total)
+
+
 @dataclass(frozen=True)
 class CommissionRate:
     channel: PaymentChannel
@@ -112,12 +125,19 @@ class CommissionRate:
             raise ValueError("Taksit sayısı sıfırdan büyük olmalıdır.")
         if not (ZERO <= self.commission_percent <= HUNDRED):
             raise ValueError("Komisyon oranı %0 ile %100 arasında olmalıdır.")
-        if self.channel is PaymentChannel.CHIPPIN and self.bank_id is not None:
-            raise ValueError("Chippin komisyonunda banka seçilemez.")
         if self.channel in (PaymentChannel.POS, PaymentChannel.ODERO) and self.product_group is None:
             raise ValueError("POS ve Ödero komisyonunda ürün grubu zorunludur.")
-        if self.channel is PaymentChannel.ODERO and self.amount_tier is None:
-            raise ValueError("Ödero komisyonunda tutar bandı zorunludur.")
+        if self.channel is PaymentChannel.ODERO:
+            if (
+                self.product_group is ProductCommissionGroup.KLIMA
+                and self.amount_tier is not None
+            ):
+                raise ValueError("Klima komisyonunda tutar bandı kullanılmaz.")
+            if (
+                self.product_group is not ProductCommissionGroup.KLIMA
+                and self.amount_tier is None
+            ):
+                raise ValueError("Ödero komisyonunda tutar bandı zorunludur.")
         if self.channel is not PaymentChannel.ODERO and self.amount_tier is not None:
             raise ValueError("Tutar bandı yalnızca Ödero için kullanılır.")
 
@@ -160,8 +180,6 @@ class CommissionLimit:
             )
         ):
             raise ValueError("Taksit limiti en az bir kapsam alanı içermelidir.")
-        if self.channel is PaymentChannel.CHIPPIN and self.bank_id is not None:
-            raise ValueError("Chippin limitinde banka seçilemez.")
         if self.category_id is not None and self.bank_id is not None:
             raise ValueError("Kategori taksit sınırı bankadan bağımsız olmalıdır.")
 
@@ -289,7 +307,7 @@ def _matching_rates(
     total: Decimal,
     installment_count: int | None = None,
 ) -> list[CommissionRate]:
-    tier = odero_tier(total) if channel is PaymentChannel.ODERO else None
+    tier = amount_tier_for(channel, product_group, total)
     candidates = [
         rate
         for rate in rates
@@ -350,10 +368,11 @@ def effective_max_installments(
 ) -> int:
     """Resolve the effective installment cap for one card payment.
 
-    Bank-specific limits replace the bankless general limit with the same
-    channel/product-group/card-type signature and may raise or lower it.
-    Category caps are bank-independent legal/product caps and are always
-    applied on top; a bank-specific limit cannot raise them.
+    Any matching bank-specific limit replaces the bankless general limits for
+    that bank and may raise or lower them (Chippin needs this: a general
+    1-installment limit plus a bank/card-specific higher limit). Category caps
+    are bank-independent and are always applied on top; a bank-specific limit
+    cannot raise them.
     """
     matching_rates = _matching_rates(
         rates,
@@ -379,7 +398,8 @@ def effective_max_installments(
             )
         )
 
-    groups: dict[tuple[object, object, object], list[CommissionLimit]] = {}
+    bank_specific: list[CommissionLimit] = []
+    bankless: list[CommissionLimit] = []
     for limit in limits:
         if limit.category_id is not None:
             continue
@@ -389,22 +409,14 @@ def effective_max_installments(
             card_type=card_type,
         ):
             continue
-        if limit.bank_id is not None and limit.bank_id != bank_id:
-            continue
-        signature = (limit.channel, limit.product_group, limit.card_type)
-        groups.setdefault(signature, []).append(limit)
+        if limit.bank_id is None:
+            bankless.append(limit)
+        elif limit.bank_id == bank_id:
+            bank_specific.append(limit)
 
-    for group in groups.values():
-        bank_limits = (
-            [limit for limit in group if limit.bank_id == bank_id]
-            if bank_id is not None
-            else []
-        )
-        chosen = bank_limits or [
-            limit for limit in group if limit.bank_id is None
-        ]
-        if chosen:
-            caps.append(min(limit.max_installments for limit in chosen))
+    chosen = bank_specific or bankless
+    if chosen:
+        caps.append(min(limit.max_installments for limit in chosen))
 
     return min(caps)
 

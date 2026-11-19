@@ -138,7 +138,7 @@ def export_offers_xlsx(
             ("Teklif No", "Opsiyonel", "Doluysa yalnızca taslak teklif güncellenir."),
             ("Teklif Anahtarı", "Gruplama", "Yeni tekliflerde satırları gruplamak için kullanılır."),
             ("Ödeme Türü", "Zorunlu", "Nakit veya Kart."),
-            ("Kanal / Banka / Taksit / Kart Tipi", "Kartta kanal/taksit/kart tipi zorunlu", "Banka isteğe bağlı; boşsa genel oran kullanılır. Chippin'de banka boş."),
+            ("Kanal / Banka / Taksit / Kart Tipi", "Kartta kanal/taksit/kart tipi zorunlu", "Banka her kanalda isteğe bağlı; boşsa genel oran kullanılır."),
             ("Komisyon / Kâr", "Salt okunur", "Sunucuda yeniden hesaplanır."),
         ),
     )

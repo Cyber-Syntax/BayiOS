@@ -95,6 +95,29 @@ def test_bankless_rate_and_category_limit_constraints(
             )
         )
         session.add(
+            CommissionRate(
+                period_id=period.id,
+                channel="chippin",
+                bank_id=bank.id,
+                product_group=None,
+                installment_count=1,
+                commission_percent=Decimal(3),
+                scope_key=f"chippin|{bank.id}|-|-|1",
+            )
+        )
+        session.add(
+            CommissionLimit(
+                period_id=period.id,
+                channel="chippin",
+                bank_id=bank.id,
+                product_group=None,
+                category_id=None,
+                card_type="business",
+                max_installments=3,
+                scope_key=f"chippin|{bank.id}|-|-|business",
+            )
+        )
+        session.add(
             Offer(
                 payment_type="card",
                 channel="pos",

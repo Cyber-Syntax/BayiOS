@@ -342,12 +342,13 @@ Bu hesap, POS komisyonu kesintisi sonrasında maliyet + seçilen hedef kârı ka
 - Yuvarlama yöntemi ekranda/çıktıda tutarlı olmalıdır; kuruş hassasiyeti saklanır, TL sunumu iki ondalık basamak gösterebilir.
 - Hesaplanan fiyat ile patronun girdiği bayi minimum fiyatı ayrı gösterilir. MVP'de otomatik fiyat engeli uygulanmaz; uyarı ve karşılaştırma gösterilir.
 - Nakit fiyatında POS komisyonu yoktur; bayi nakit alt sınırı ayrıca saklanır.
-- Komisyon kanalları POS, Ödero (mail order) ve Chippin'dir. POS ve Ödero'da oran bankasız genel veya bankaya özel olabilir; Chippin bankadan bağımsızdır.
+- Komisyon kanalları POS, Ödero (mail order) ve Chippin'dir. Her üç kanalda oran bankasız genel veya bankaya özel olabilir. Bankasız satır tüm bankalar için geçerlidir; bankaya özel satır o bankada geneli geçersiz kılar.
+- Chippin'de genel 1 taksit (tek çekim) oranı tüm bankalarda geçerlidir; taksitli kullanım banka ve kart tipi bazlı limitlerle açılır (örn. Akbank business 3 taksit). Bankaya özel Chippin oranı yalnız o bankada geçerlidir.
 - Ürün komisyon grupları yalnızca **Klima** ve **Diğer**'dir. Klima ayrı oran grubudur. **TV ayrı bir komisyon grubu değildir; TV ürünleri Diğer oranlarını kullanır.** TV'nin tek farkı taksit üst sınırıdır.
 - Kategori taksit üst sınırı (örneğin TV) kodda sabit değildir; dönem verisi olarak tutulur ve her ay değiştirilebilir (bu ay 4, gelecek ay 3, 2 veya 9 olabilir). İlk dönemde yalnızca örnek başlangıç değeri girilir; değişiklik için kod değişikliği veya dağıtım gerekmez.
-- Örnek başlangıç taksit üst sınırları (yalnız örnektir, dönem verisidir): Ödero genel 5, Chippin 6, business kart 2, Klima 10, TV kategorisi 4, telefon kategorisi 3. Bu değerler sabit iş kuralı değildir; dönem içinde düzenlenebilir.
+- Örnek başlangıç taksit üst sınırları (yalnız örnektir, dönem verisidir): Ödero genel 5, Chippin genel 1 (tek çekim), Chippin/Akbank business 3, business kart 2, Klima 10, TV kategorisi 4, telefon kategorisi 3. Bu değerler sabit iş kuralı değildir; dönem içinde düzenlenebilir.
 - Taksit üst sınırı kategori bazlıdır: her kategoriye ayrı sınır tanımlanabilir (TV 4, telefon 3 gibi) ve sınır aylık değişebilir.
-- Ödero komisyonu 20.000 TL altı ve üstü olarak ayrılır; eşik sepet toplamına uygulanır.
+- Ödero komisyonu Diğer ürünler için 20.000 TL altı ve üstü olarak ayrılır; eşik sepet toplamına uygulanır. **Klima için tutar bandı kullanılmaz**; Klima'nın Ödero oranı tek satırdır (boş bant).
 - Taksit üst sınırı çözümlemesi: seçilen banka için tanımlı bir limit satırı varsa, aynı kanal/ürün grubu/kart tipi kapsamındaki bankasız genel limitin yerine o satır geçer; banka özel limit genel limiti yükseltebilir veya düşürebilir (örn. Ödero genel 5 iken Ödero/Akbank 8 ise Akbank'ta 8; Ödero/Yapı Kredi 2 ise Yapı Kredi'de 2). Banka özel satır diğer bankaları etkilemez; bu sayede yalnız farklı bankanın limiti girilir, diğerleri genel limiti kullanır.
 - Kategori taksit sınırı bankadan bağımsızdır ve tüm bankalarda geçerlidir; banka özel limit onu yükseltemez. Etkin sınır, banka çözümlemesinden sonra kalan banka/kart tipi limitlerinin, kategori sınırının ve mevcut oran satırlarının minimumudur.
 - Komisyonlar aylık dönemler halinde tutulur; yeni dönem önceki ayı kopyalayarak açılır, geçmiş dönem değişmez ve teklifler kendi komisyon snapshot'ını taşır.
@@ -547,11 +548,11 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 
 **FR-FIN-12 (P2):** Birden fazla banka/taksit seçeneğini yan yana karşılaştırma eklenebilir.
 
-**FR-FIN-13 (P0):** Komisyonlar POS, Ödero ve Chippin kanalları için ayrı tutulabilmelidir; POS ve Ödero'da oran bankasız genel veya bankaya özel olabilir, Chippin bankadan bağımsız olmalıdır.
+**FR-FIN-13 (P0):** Komisyonlar POS, Ödero ve Chippin kanalları için ayrı tutulabilmelidir; her kanalda oran bankasız genel veya bankaya özel olabilir. Chippin'de banka isteğe bağlıdır: bankasız genel oran (özellikle 1 taksit) tüm bankalarda, bankaya özel oran yalnız o bankada geçerlidir.
 
 **FR-FIN-14 (P0):** Klima ayrı komisyon grubu olmalıdır; TV ayrı oran grubu olmamalı, Diğer oranlarını kullanmalıdır. TV'nin taksit üst sınırı diğerlerinden farklı olabilir ve dönem verisi olarak düzenlenebilmelidir; kodda sabit 4 değeri bulunmamalıdır.
 
-**FR-FIN-15 (P0):** Ödero komisyonu 20.000 TL altı ve üstü sepet toplamına göre ayrı tanımlanabilmelidir.
+**FR-FIN-15 (P0):** Ödero komisyonu Diğer ürünler için 20.000 TL altı ve üstü sepet toplamına göre ayrı tanımlanabilmelidir; Klima için tutar bandı zorunlu olmamalıdır.
 
 **FR-FIN-16 (P0):** Komisyonlar aylık dönemler halinde yönetilmeli; yeni dönem önceki ayı kopyalayarak açılabilmeli, geçmiş dönem değişmemelidir.
 
@@ -996,9 +997,9 @@ Aşağıdaki model ilişkisel PostgreSQL yapısı için başlangıç önerisidir
 **commission_rates**
 
 - `id`, `period_id`, `channel` (`pos`, `odero`, `chippin`)
-- `bank_id` (nullable; POS/Ödero'da boş = bankasız genel oran, Chippin'de her zaman boş)
+- `bank_id` (nullable; boş = bankasız genel oran, her kanalda geçerli)
 - `product_group` (`klima`, `other`; TV için `other`)
-- `amount_tier` (`under_20000`, `over_20000`, nullable; yalnızca Ödero)
+- `amount_tier` (`under_20000`, `over_20000`, nullable; yalnızca Ödero + Diğer grubu; Klima'da boş)
 - `installment_count`, `commission_percent`
 - `scope_key` (dönem içinde tekil; bankasız satır `-` ile temsil edilir), `created_at`, `updated_at`
 - Tekillik: `(period_id, scope_key)`; `scope_key` banka/tutar bandı boş değerlerini `-` ile temsil eder, böylece bankasız genel satır da tekil olur.
@@ -1488,6 +1489,8 @@ Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 16. `AKBANK`, `akbank` ve `Akbank` aynı banka kaydını verir; görünen ad `Akbank` olur ve ikinci kayıt açılmaz.
 17. Komisyon formundan hızlı banka eklenir; eklenen banka oran satırında seçili kalır ve formdaki diğer değerler kaybolmaz.
 18. Banka seçilmemiş kart teklifi genel oranla hesaplanır; A4 çıktısında banka alanı boş basılır ve eski teklifin snapshot'ı değişmez.
+19. Klima Ödero oranı tutar bandı olmadan tanımlanır; 20.000 TL altı ve üstü sepetlerde aynı oran kullanılır. Diğer grupta bant zorunludur.
+20. Chippin'de genel 1 taksit tüm bankalarda geçerlidir; Akbank business 3 limiti business kartta 3, diğer kartlarda 1 taksit verir. Limit 2'ye düşürüldüğünde kod değişmeden uygulanır.
 
 ### 13.5 Hızlı teslim testleri
 
@@ -1677,7 +1680,7 @@ Bu PRD aşağıdaki kullanıcı kararlarını temel alır:
 - Kampanya rehberi MVP'de bilgilendirme ve tekil ürün senaryosu gösterir; POS sepet algoritması değildir.
 - Genel bayi indirimi %10 varsayılan gösterilir; çalışan patronun yönlendirmesiyle değiştirebilir, uygulamada sabit %10 tavanı yoktur.
 - Ürüne özel nakit/kart minimum satış fiyatı doğrudan TL olarak girilir.
-- Banka komisyonları banka ve taksit bazında elle güncellenir; POS ve Ödero'da banka isteğe bağlıdır ve bankasız genel oran tanımlanabilir.
+- Banka komisyonları banka ve taksit bazında elle güncellenir; tüm kanallarda banka isteğe bağlıdır ve bankasız genel oran tanımlanabilir. Chippin'de genel 1 taksit tüm bankalara açıktır; taksit limitleri banka/kart tipi bazında değişir. Klima'nın Ödero oranında tutar bandı kullanılmaz.
 - Bankaya özel oran genel oranı yalnız o bankada geçersiz kılar; çözümleme banka özel -> genel sırasıyla yapılır.
 - Banka özel taksit limiti, aynı kanal/ürün grubu/kart tipi kapsamındaki bankasız genel limitin yerine geçer; genel limiti yükseltebilir veya düşürebilir, diğer bankaları etkilemez. Kategori sınırı bankadan bağımsızdır ve yükseltilemez.
 - TV ayrı komisyon oranı grubu değildir; Diğer oranlarını kullanır. Taksit üst sınırı kategori bazlı dönem verisidir (TV 4, telefon 3 gibi) ve aylık değiştirilebilir.

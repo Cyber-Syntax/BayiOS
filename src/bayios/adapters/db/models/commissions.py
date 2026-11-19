@@ -87,12 +87,10 @@ class CommissionRate(Base):
             name="commission_percent_range",
         ),
         sa.CheckConstraint(
-            "(channel = 'chippin' AND bank_id IS NULL) "
-            "OR channel IN ('pos', 'odero')",
-            name="channel_bank_consistency",
-        ),
-        sa.CheckConstraint(
-            "(channel = 'odero' AND amount_tier IS NOT NULL) "
+            "(channel = 'odero' AND product_group = 'klima' "
+            "AND amount_tier IS NULL) "
+            "OR (channel = 'odero' AND product_group = 'other' "
+            "AND amount_tier IS NOT NULL) "
             "OR (channel <> 'odero' AND amount_tier IS NULL)",
             name="odero_tier_consistency",
         ),
@@ -143,10 +141,6 @@ class CommissionLimit(Base):
             "OR product_group IS NOT NULL OR category_id IS NOT NULL "
             "OR card_type IS NOT NULL",
             name="scope_not_empty",
-        ),
-        sa.CheckConstraint(
-            "channel IS NULL OR channel <> 'chippin' OR bank_id IS NULL",
-            name="chippin_bank_null",
         ),
         sa.CheckConstraint(
             "category_id IS NULL OR bank_id IS NULL",

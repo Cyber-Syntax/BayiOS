@@ -56,18 +56,19 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 
 - Import yalnızca taslak teklif oluşturur/günceller. Durum, komisyon ve kâr kolonları salt okunurdur; sunucu yeniden hesaplar.
 - Yeni tekliflerde `Teklif Anahtarı` satırları gruplar; mevcut taslaklar `Teklif No` ile güncellenir.
-- Kartta kanal, taksit, kart tipi zorunlu; POS/Ödero'da banka zorunlu, Chippin'de banka boş olmalıdır.
+- Kartta kanal, taksit, kart tipi zorunlu; banka isteğe bağlıdır (boşsa genel oran kullanılır).
 
 ## Komisyonlar
 
 **Komisyon Oranları:** `Dönem, Kanal, Banka, Ürün Grubu, Ödero Bandı, Taksit, Oran %`
 
-**Taksit Limitleri:** `Dönem, Kanal, Banka, Ürün Grubu, Kart Tipi, Max Taksit`
+**Taksit Limitleri:** `Dönem, Kanal, Banka, Ürün Grubu, Kategori, Kart Tipi, Max Taksit`
 
 - Oranlar ve limitler ayrı dosyalarda ve ayrı ekranlarda işlenir.
 - `Dönem` `YYYY-MM`; yoksa taslak dönem oluşturulur. Arşivli dönem reddedilir.
 - Aynı `scope_key` varsa güncellenir; yoksa eklenir. Dosyada olmayan satırlar silinmez.
-- Banka adı normalize edilerek bulunur; bilinmeyen banka hata verir.
+- Banka adı normalize edilerek bulunur; bilinmeyen banka hata verir. Banka tüm kanallarda isteğe bağlıdır; boş = genel.
+- Ödero bandı yalnız Ödero + Diğer grubunda kullanılır; Klima'da boş bırakılır. Kategori limiti bankasız olmalıdır.
 
 ## Rezervasyonlar
 

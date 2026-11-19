@@ -67,8 +67,27 @@ def test_period_helpers_and_validation() -> None:
 
 def test_rate_validation() -> None:
     assert _rate(PaymentChannel.POS, 2, "4", bank=None).bank_id is None
+    assert (
+        _rate(PaymentChannel.CHIPPIN, 1, "3", bank="ykb").bank_id == "ykb"
+    )
+    assert (
+        _rate(
+            PaymentChannel.ODERO,
+            2,
+            "4",
+            group=ProductCommissionGroup.KLIMA,
+            tier=None,
+        ).amount_tier
+        is None
+    )
     with pytest.raises(ValueError):
-        _rate(PaymentChannel.CHIPPIN, 1, "3", bank="ykb")
+        _rate(
+            PaymentChannel.ODERO,
+            2,
+            "4",
+            group=ProductCommissionGroup.KLIMA,
+            tier=OderoTier.UNDER_20000,
+        )
     with pytest.raises(ValueError):
         _rate(PaymentChannel.ODERO, 2, "4", bank="ykb", tier=None)
     with pytest.raises(ValueError):
@@ -386,6 +405,130 @@ def test_chippin_rate_without_group_applies() -> None:
             total=Decimal(1000),
         )
         == Decimal(3)
+    )
+
+
+def test_klima_odero_rate_has_no_tier() -> None:
+    rates = [
+        CommissionRate(
+            channel=PaymentChannel.ODERO,
+            bank_id="akbank",
+            product_group=ProductCommissionGroup.KLIMA,
+            installment_count=2,
+            commission_percent=Decimal(4),
+            amount_tier=None,
+        )
+    ]
+
+    for total in (Decimal(19999), Decimal(20000), Decimal(50000)):
+        assert (
+            commission_percent_for(
+                rates,
+                channel=PaymentChannel.ODERO,
+                bank_id="akbank",
+                product_group=ProductCommissionGroup.KLIMA,
+                installment_count=2,
+                total=total,
+            )
+            == Decimal(4)
+        )
+
+
+def test_chippin_bank_specific_rate_and_limit() -> None:
+    rates = [
+        CommissionRate(
+            channel=PaymentChannel.CHIPPIN,
+            bank_id=None,
+            product_group=None,
+            installment_count=1,
+            commission_percent=Decimal(3),
+        ),
+        CommissionRate(
+            channel=PaymentChannel.CHIPPIN,
+            bank_id="akbank",
+            product_group=None,
+            installment_count=3,
+            commission_percent=Decimal(5),
+        ),
+    ]
+    limits = [
+        CommissionLimit(channel=PaymentChannel.CHIPPIN, max_installments=1),
+        CommissionLimit(
+            channel=PaymentChannel.CHIPPIN,
+            bank_id="akbank",
+            card_type=CardType.BUSINESS,
+            max_installments=3,
+        ),
+    ]
+
+    assert (
+        commission_percent_for(
+            rates,
+            channel=PaymentChannel.CHIPPIN,
+            bank_id="akbank",
+            product_group=ProductCommissionGroup.OTHER,
+            installment_count=1,
+            total=Decimal(1000),
+        )
+        == Decimal(3)
+    )
+    assert (
+        commission_percent_for(
+            rates,
+            channel=PaymentChannel.CHIPPIN,
+            bank_id="akbank",
+            product_group=ProductCommissionGroup.OTHER,
+            installment_count=3,
+            total=Decimal(1000),
+        )
+        == Decimal(5)
+    )
+    assert (
+        commission_percent_for(
+            rates,
+            channel=PaymentChannel.CHIPPIN,
+            bank_id="other",
+            product_group=ProductCommissionGroup.OTHER,
+            installment_count=3,
+            total=Decimal(1000),
+        )
+        is None
+    )
+    assert (
+        effective_max_installments(
+            rates,
+            limits,
+            channel=PaymentChannel.CHIPPIN,
+            bank_id="akbank",
+            product_group=ProductCommissionGroup.OTHER,
+            card_type=CardType.BUSINESS,
+            total=Decimal(1000),
+        )
+        == 3
+    )
+    assert (
+        effective_max_installments(
+            rates,
+            limits,
+            channel=PaymentChannel.CHIPPIN,
+            bank_id="akbank",
+            product_group=ProductCommissionGroup.OTHER,
+            card_type=CardType.CONSUMER,
+            total=Decimal(1000),
+        )
+        == 1
+    )
+    assert (
+        effective_max_installments(
+            rates,
+            limits,
+            channel=PaymentChannel.CHIPPIN,
+            bank_id="other",
+            product_group=ProductCommissionGroup.OTHER,
+            card_type=CardType.BUSINESS,
+            total=Decimal(1000),
+        )
+        == 1
     )
 
 

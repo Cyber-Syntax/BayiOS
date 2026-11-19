@@ -209,6 +209,33 @@ def test_pos_rate_without_bank_and_quick_add_bank(
     assert duplicate.status_code == 200
     assert len(fake_uow.commissions.banks) == 1
 
+    bank_id = banks[0].id
+    chippin_rate = client.post(
+        f"{location}/rates",
+        data={
+            "channel": "chippin",
+            "bank_id": str(bank_id),
+            "product_group": "",
+            "installment_count": "1",
+            "commission_percent": "3",
+        },
+        follow_redirects=False,
+    )
+    assert chippin_rate.status_code == 303
+    chippin_limit = client.post(
+        f"{location}/limits",
+        data={
+            "channel": "chippin",
+            "bank_id": str(bank_id),
+            "card_type": "business",
+            "max_installments": "3",
+        },
+        follow_redirects=False,
+    )
+    assert chippin_limit.status_code == 303
+    assert len(fake_uow.commissions.rates[period_id]) == 2
+    assert fake_uow.commissions.limits[period_id][0].bank_id == bank_id
+
 
 def test_duplicate_commission_rate_shows_validation_error(
     client: TestClient, fake_uow: FakeUnitOfWork

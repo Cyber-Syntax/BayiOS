@@ -29,7 +29,7 @@ A monthly, effective-dated set of card commission rates and installment limits. 
 _Avoid_: Live commission table, editable history
 
 **Payment channel**:
-The route used for a card payment: physical POS, Ödero mail order, or Chippin. POS and Ödero rates may be defined without a bank (the general rate) or per bank (a bank-specific override); Chippin is a bank-independent provider.
+The route used for a card payment: physical POS, Ödero mail order, or Chippin. Every channel may define a bankless general rate or a bank-specific override; Chippin typically keeps a general 1-installment rate and per-bank/card installment limits.
 _Avoid_: Payment method, bank
 
 **Product commission group**:

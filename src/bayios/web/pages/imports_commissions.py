@@ -27,15 +27,15 @@ router = APIRouter(prefix="/imports/commissions", tags=["imports"])
 RATE_HELP = (
     "Excel (.xlsx) dosyası yükleyin. Dönem YYYY-MM biçiminde olmalıdır.",
     "Dönem yoksa taslak dönem otomatik oluşturulur; arşivli dönem reddedilir.",
-    "POS/Ödero için banka ve ürün grubu zorunludur; Chippin'de banka boş olmalıdır.",
-    "Ödero bandı yalnızca Ödero kanalında kullanılır.",
+    "POS/Ödero için ürün grubu zorunludur; banka tüm kanallarda isteğe bağlıdır (boş = genel).",
+    "Ödero bandı yalnızca Ödero + Diğer grubunda kullanılır; Klima'da boş bırakılır.",
     "Mevcut oranlar güncellenir; dosyada olmayan satırlar silinmez.",
 )
 LIMIT_HELP = (
     "Excel (.xlsx) dosyası yükleyin. Dönem YYYY-MM biçiminde olmalıdır.",
     "Dönem yoksa taslak dönem otomatik oluşturulur; arşivli dönem reddedilir.",
-    "Limit en az bir kapsam alanı içermelidir: kanal, banka, ürün grubu veya kart tipi.",
-    "Chippin limitinde banka boş olmalıdır.",
+    "Limit en az bir kapsam alanı içermelidir: kanal, banka, ürün grubu, kategori veya kart tipi.",
+    "Banka tüm kanallarda isteğe bağlıdır; boş = genel limit.",
     "Mevcut limitler güncellenir; dosyada olmayan satırlar silinmez.",
 )
 

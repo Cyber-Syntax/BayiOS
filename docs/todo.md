@@ -1,20 +1,13 @@
 # todo.md
 
-- [x] ürünler'e kategoriler eklenmeli, örnek 10122 çamaşır vb.
-- [x] stok sayım kağıdı çamaşır/kurutma şeklinde ayırmalı
-- [ ] içe/dışa aktarmada kategori kolonu (import opsiyonel, export zorunlu)
-- [ ] stok sayım sekmesinde kategori seçince otomatik filtre
 - [ ] eğer boyut küçük olursa, ürünler sekmesinde tüm kartı boş alanlara tıklayınca seçebiliyorum ama eğer window boyutu büyük olursa sadece checkbox ile seçebiliyorum. Bunu değiştir; büyük olunca da kartta boş alana tıklayınca ürün seçilsin.
 - [ ] sadece seçilmiş ürünleri excel ile dışa aktar
 - [ ] sadece kategorisi seçilmiş ürünleri excel ile dışa aktar.
 - [ ] a4 sayım listesi, kategori seçince, o kategori için çıkartsın, tüm kategoride tüm kategori için a4 sayım listesi çıkartsın.
 - [ ] sayım geçmişi ve açık sayım oturumları yukarıda olsun ama yer kazanmak için iki tane iç sekme olarak görünsünler.
 - [ ] tekliflerde aynı zamanda yukarıda toplam komisyonlu detayı göstermemiz lazım, örnek toplam kazanç, toplam komisyonlar çıkınca bayiinin hakedişler ile toplam kazancı.
-- [ ] feat: ürünler boş satıra tıklayınca seçilsin, küçük ekranda bu özelik var ama ekran büyük olunca yok?
-- [x] feat: kampanya detaylarını excel ile iç/dış aktar
 - [ ] feat: teklif detayları excel ile iç/dış aktar
 - [ ] feat: rezervasyon detaylarını excel ile iç/dış aktar
-- [ ] teklif üzerinden otomatik rezerve açma
 - [ ] feat: teklif silme
 - [ ] tekliften otomatik ürün satışı yaparak stok düşme
 - [ ] ürünler detayında kapalı rezervasyonlar olarak gösterebiliriz.
@@ -23,6 +16,12 @@
 
 ## in-progress
 
+- [x] stok sayım sekmesinde kategori seçince otomatik filtre
+- [x] içe/dışa aktarmada kategori kolonu da olmalı
+- [x] ürünler'e kategoriler eklenmeli, örnek 10122 çamaşır vb.
+- [x] stok sayım kağıdı çamaşır/kurutma şeklinde ayırmalı
+- [x] teklif üzerinden otomatik rezerve açma
+- [x] feat: kampanya detaylarını excel ile iç/dış aktar
 - [x] refactor: tekliflerden detay butonu silinebilir, kar komisyon özeti zaten tüm satırların aynılarını gösteriyor.
 - [x] style: ürün içe aktarma önizlemesi sağa doğru kaydırmalı olmuş ama küçük ekranlarda zor olur, alt tarafa sticky scroll bar lazım.
 
