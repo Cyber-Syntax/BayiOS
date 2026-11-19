@@ -10,7 +10,7 @@
   init() {
     const container = document.getElementById('products-table-container');
     if (container) {
-      container.addEventListener('change', (e) => {
+      document.addEventListener('change', (e) => {
         const all = e.target.closest('.product-checkbox-all');
         if (all) {
           this.toggleSelectAll(all.checked);
@@ -21,7 +21,6 @@
       });
       container.addEventListener('click', (e) => {
         if (e.target.closest('a, button, input, select, textarea, form, label')) return;
-        if (!window.matchMedia('(max-width: 1023px)').matches) return;
         const tr = e.target.closest('tr[data-product-id]');
         if (!tr) return;
         const cb = tr.querySelector('.product-checkbox');
@@ -56,8 +55,9 @@
     const all = document.querySelectorAll('.product-checkbox');
     const checked = document.querySelectorAll('.product-checkbox:checked');
     this.selectAll = all.length > 0 && checked.length === all.length;
-    const allCb = document.querySelector('.product-checkbox-all');
-    if (allCb) allCb.checked = this.selectAll;
+    document.querySelectorAll('.product-checkbox-all').forEach(allCb => {
+      allCb.checked = this.selectAll;
+    });
   },
   syncVisibleCheckboxes() {
     document.querySelectorAll('.product-checkbox').forEach(cb => {
@@ -136,7 +136,7 @@
   </div>
 </div>
 
-<div class="card" style="padding: 1rem;">
+<div class="card products-toolbar" style="padding: 1rem;">
   <form id="search-form" method="get" action="/products"
         hx-get="/products"
         hx-trigger="keyup changed delay:300ms from:#product-search-input, search from:#product-search-input, change from:#status-filter, change from:#category-filter"
@@ -169,13 +169,19 @@
   </form>
 </div>
 
-<!-- Bulk Actions Bar -->
-<div x-show="selectedIds.length > 0" class="bulk-bar" x-cloak style="margin-top: 1rem;">
-  <div>
+<div id="products-table-container">
+  {% include "products/_table.html" %}
+</div>
+<div x-show="selectedIds.length > 0" class="bulk-bar bulk-bar-sticky no-print" x-cloak>
+  <div class="bulk-bar-info">
+    <label class="bulk-select-all">
+      <input type="checkbox" class="product-checkbox-all" title="Sayfadaki tüm ürünleri seç">
+      <span>Tümünü seç</span>
+    </label>
     <strong><span x-text="selectedIds.length"></span> ürün seçildi</strong>
   </div>
-  <div style="display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;">
-    <form method="post" action="/products/bulk-category" style="display: flex; gap: .5rem; align-items: center;">
+  <div class="bulk-bar-actions">
+    <form method="post" action="/products/bulk-category" style="display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;">
       <template x-for="id in selectedIds" :key="id">
         <input type="hidden" name="product_ids" :value="id">
       </template>
@@ -211,10 +217,8 @@
     </button>
   </div>
 </div>
+<div x-show="selectedIds.length > 0" class="bulk-bar-spacer" x-cloak></div>
 
-<div id="products-table-container">
-  {% include "products/_table.html" %}
-</div>
 
 <!-- New Product Modal -->
 <div x-show="showNewModal" class="modal-backdrop" x-cloak @click.self="showNewModal = false">

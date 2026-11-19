@@ -21,7 +21,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 
 - Üst çubuk marka bağlantısını, global ürün aramasını ve sol menü aç/kapat düğmesini içerir.
 - Sol menüde her öğe için bir ikon bulunur; daraltılmış görünümde yalnızca ikonlar kalır, geniş görünümde etiketler de görünür.
-- Masaüstünde (≥1280px) sol menü varsayılan olarak açıktır ve kullanıcı tarafından daraltılabilir.
+- Masaüstünde (≥1280px) sol menü varsayılan olarak açıktır, üst çubuk ve sol menü sticky kalır; sol menü kendi içinde kaydırılabilir ve viewport yüksekliğini aşmaz.
 - Küçük ekranlarda (<1280px) sol menü varsayılan olarak kapalıdır; aç/kapat düğmesiyle ekranı kaplayan bir çekmece olarak açılır. Arka plan katmanına veya bir menü bağlantısına dokunmak menüyü kapatır.
 - Ekran boyutu 1280px sınırını geçtiğinde menü otomatik olarak açılır, altına düştüğünde otomatik olarak kapanır.
 - Menü durumu `aria-expanded` ve `aria-controls` ile bildirilir; aktif sayfa `aria-current="page"` taşır.
@@ -48,7 +48,9 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Başlık, ürün sayısı ve katalog açıklaması; "Yeni Ürün Ekle", "CSV / Excel İçe Aktar", "CSV Dışa Aktar" ve "Excel Dışa Aktar" eylemleri.
 - Arama kutusu ve "Ara" düğmesi mobilde ve masaüstünde aynı satırda kalır; metin dikey kırılmaz. Durum filtresi (Aktif / Arşivdekiler / Tümü), kategori filtresi ve "Temizle" eylemi dar ekranda alt satıra geçebilir.
 - Arama HTMX ile tabloyu yeniler ve URL'yi günceller; sonuçlar sayfalanır.
-- Satır seçimi checkbox ile yapılır; seçim varken toplu işlem çubuğu görünür. Seçilenler arşivlenebilir veya iki aşamalı onayla kalıcı olarak silinebilir. Dar ekranda karta dokunmak da satırı seçer (bağlantı, buton ve giriş alanları hariç).
+- Arama/filtre alanı üstte sticky kalır. Satır seçimi checkbox veya satırın boş alanına tıklayarak yapılır; bu davranış tüm ekran boyutlarında geçerlidir (bağlantı, buton, checkbox ve form alanları hariç).
+- Seçim varken toplu işlem çubuğu ekranın altında sticky footer olarak görünür; seçilen sayısı, "Tümünü seç" checkbox'ı, kategori atama, arşivleme ve iki aşamalı onaylı kalıcı silme eylemlerini taşır. Dar ekranda da "Tümünü seç" bu çubuktan kullanılabilir.
+- Seçili satır mavi dolguyla değil, accent renkli kenarlık ve hafif vurguyla gösterilir; bu kural masaüstü tabloda da küçük ekran kartında da aynıdır.
 - Tablo kolonları: seçim, Ürün Adı, Kategori, Normal Fiyat, Oliz / Web İndirimli, Fiziksel Stok, Son Fiyat Değişimi ve İşlem.
 - Her satırda fiziksel stok alanı ve "Stok" düğmesi ile doğrudan güncelleme, ayrıca "Detay" bağlantısı bulunur.
 - Arşivdeki ürünler soluk gösterilir ve "Arşivde" rozeti taşır.
@@ -62,6 +64,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Başlıklar ve metinler yalnızca kelime sınırlarında sarılır; kelimeler karakter karakter bölünmez.
 - Fiyat ve stok değerleri tek satırda kalır; tarih alanı gerekirse tarih ve saat olarak iki satıra ayrılır.
 - Dar ekranda hücre iç boşlukları azalır; "Stok" ve "Detay" düğmeleri sıkışmadan görünür kalır.
+- Üst arama/filtre alanı ve alt toplu işlem çubuğu sticky kalır; sayfa kaydırıldığında erişilebilir olurlar. Toplu işlem çubuğu için içerik altında boşluk bırakılır.
 
 ### Ürün Detayı
 

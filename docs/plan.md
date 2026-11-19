@@ -234,7 +234,8 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
    - Bu akış Milestone 3'teki kapsamlı stok sayım modülü ile tam entegre çalışacak temeli oluşturur.
 7. **Ürün kataloğu arama, UI ergonomisi ve detay sorguları:**
    - `SearchProducts`: Normalleştirilmiş ad ve baştaki sıfırları koruyan substring arama; kategori ve arşiv filtresi; sayfalama desteği.
-   - **Arama kutusu düzeni:** Arama input alanı ve yanındaki "Ara" butonu responsive flex yapısında yan yana kalır (`whitespace-nowrap shrink-0`); buton metninin `AR<br>a` şeklinde kırılması engellenir.
+   - **Arama kutusu düzeni:** Arama input alanı ve yanındaki "Ara" butonu responsive flex yapısında yan yana kalır (`whitespace-nowrap shrink-0`); buton metninin `AR<br>a` şeklinde kırılması engellenir. Arama/filtre kartı üstte sticky kalır.
+   - **Seçim ve toplu işlem:** Seçim varken toplu işlem çubuğu `position: fixed` alt footer olarak gösterilir; tablo altına spacer eklenir. Çubukta tümünü seç checkbox'ı yer alır ve tablo başlığındaki seçimle senkron çalışır. Satır boş alanı tıklaması tüm ekranlarda seçim yapar; etkileşimli öğeler hariçtir.
    - `GetProductDetail`: Normal fiyat, Oliz fiyatı, maliyet, fiziksel stok, açık rezervasyon (M1'de 0), fiyat geçmişi ve stok hareket günlüğü.
 8. **Katalog dışa aktarma (`ExportProducts`):**
    - Tüm ürünleri CSV (`utf-8-sig`) veya `.xlsx` olarak export etme.
@@ -242,7 +243,9 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
    - `category` içe aktarmada opsiyonel, dışa aktarmada her zaman bulunur.
    - Filtreli export MVP dışıdır.
 9. **Web arayüzü ve HTMX entegrasyonu:**
-   - `/products`: Ürün listesi, responsive arama kutusu ("Ara" butonu tek satırda), "Yeni Ürün Ekle" butonu, checkbox seçim çubuğu ("Seçilenleri Arşivle", "Seçilenleri Sil", "Kategori Ata"), sayfalama.
+   - `/products`: Ürün listesi, responsive arama kutusu ("Ara" butonu tek satırda), "Yeni Ürün Ekle" butonu, sayfalama.
+   - Üst arama/filtre alanı sticky; seçim varken toplu işlem çubuğu ekran altında sticky footer olarak gösterilir (seçilen sayısı, "Tümünü seç", "Kategori Ata", "Seçilenleri Arşivle", "Seçilenleri Sil") ve içerik için alt boşluk bırakılır.
+   - Satırın boş alanına tıklama tüm ekran boyutlarında satır seçimini değiştirir; bağlantı, buton, checkbox ve form alanları hariçtir. "Tümünü seç" hem tablo başlığında hem sticky çubukta bulunur; dar ekranda başlık gizlense de çubuktan kullanılabilir.
    - `/products/new`: Manuel ürün ekleme modalı/formu.
    - `/products/{id}`: Ürün detay kartı, kategori bilgisi, doğrudan stok güncelleme alanı, fiyat ve stok hareket geçmişi sekmeleri.
    - `/products/archive`, `/products/delete`, `/products/bulk-category`: Toplu arşivleme, çift onaylı silme ve toplu kategori atama endpoint'leri.
@@ -284,6 +287,11 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
 - Silme işlemi iki aşamalı doğrulama (çift onay) tamamlanmadan DB'den kayıt silmez; 2. onay verildiğinde kalıcı silinir. Açık rezervasyonu olan ürün için silme talebi reddedilir.
 - Ürün ekranından doğrudan stok güncellendiğinde fiziksel stok değişir ve `manual_adjustment` hareketi yazılır.
 - Ürün arama kutusu ve "Ara" butonu mobilde ve masaüstünde `whitespace-nowrap` ile tek satırda yan yana durur; metin bölünmesi (`AR<br>a`) oluşmaz.
+- Ürün satırının boş alanına tıklama masaüstü ve mobilde satır seçimini değiştirir; bağlantı/buton/checkbox/form tıklamaları seçimi değiştirmez.
+- Seçim varken toplu işlem çubuğu ekran altında sticky footer olarak görünür; tablo altında boşluk bırakır ve "Tümünü seç" checkbox'ı tablo başlığıyla senkron çalışır.
+- Seçili satır mavi dolgu yerine accent kenarlıkla vurgulanır; bu stil masaüstü tablo ve mobil kart görünümünde aynıdır. Masaüstünde sol menü sticky ve kendi içinde kaydırılabilir.
+- Dar ekranda tablo başlığı gizlense de "Tümünü seç" sticky çubuktan kullanılabilir; seçilen sayısı ve toplu eylemler görünür kalır.
+- Arama/filtre kartı sayfa kaydırıldığında üstte sticky kalır.
 - Ürün detayından kategori seçilip kaydedildiğinde kategori güncellenir; stok ve fiyat değişmez.
 - Birden fazla ürün seçilip toplu kategori atandığında tüm seçilen ürünlerin `category_id` değeri aynı olur; "Kategorisiz" seçimi kategoriyi temizler ve bildirim doğru sayıyı gösterir.
 - Ürünler listesinde sayfa numarası girilerek doğrudan son sayfaya gidilebilir; `q` ve `status` filtreleri korunur.

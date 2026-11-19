@@ -14,6 +14,19 @@ from bayios.web.deps import get_unit_of_work
 from tests.fakes import FakeUnitOfWork
 
 
+def test_product_list_has_sticky_bars_and_bulk_select_all(
+    client: TestClient,
+) -> None:
+    response = client.get("/products")
+
+    assert "products-toolbar" in response.text
+    assert "bulk-bar-sticky" in response.text
+    assert response.text.count("product-checkbox-all") >= 2
+    assert "Tümünü seç" in response.text
+    assert "max-width: 1023px" not in response.text
+
+
+
 @pytest.fixture
 def fake_uow() -> FakeUnitOfWork:
     uow = FakeUnitOfWork()

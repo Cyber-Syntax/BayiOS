@@ -18,7 +18,7 @@ bash scripts/dev.sh                         # dev Postgres + migrations + uvicor
 uv run uvicorn bayios.main:create_app --factory --reload
 uv run alembic upgrade head                 # apply migrations (head: 0014)
 uv run alembic revision -m "message"        # add a migration
-uv run pytest -q                            # full suite: 285 tests (279 pass, 6 skip without a test DB)
+uv run pytest -q                            # full suite: 286 tests (280 pass, 6 skip without a test DB)
 BAYIOS_TEST_DATABASE_URL=postgresql+psycopg://bayios:bayios@127.0.0.1:5432/bayios_test \
   uv run pytest tests/integration -q        # PostgreSQL integration tests
 uv run ruff check src tests                 # lint (currently clean)

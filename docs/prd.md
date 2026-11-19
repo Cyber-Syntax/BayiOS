@@ -440,9 +440,9 @@ Açık rezervasyonda yer alan ürünlerin silinmesi engellenir ve kullanıcıya 
 
 **FR-PROD-27 (P0) — Kategori İçe/Dışa Aktarma:** Ürün içe aktarmada `category` kolonu opsiyoneldir; dışa aktarmada (CSV ve Excel) kategori her zaman bir kolon olarak bulunmalıdır. İçe aktarmada geçen bilinmeyen kategori adları otomatik oluşturulur; boş kategori mevcut ürünün kategorisini değiştirmez.
 
-**FR-PROD-29 (P0) — Kategori Ana Verisi:** Kategoriler Ayarlar ekranından yönetilebilmelidir: tekli/toplu ekleme, yeniden adlandırma, komisyon grubu (Klima/Diğer) değiştirme, kullanılmayan kategoriyi çift onayla silme, kullanımdaki kategoriyi başka kategoriyle birleştirme ve Excel içe/dışa aktarma. Stok sayfasında ayrı "Kategori Ekle" modalı bulunmamalıdır; hızlı ekleme ürün detayında kalabilir.
+**FR-PROD-28 (P0) — Kategori Ana Verisi:** Kategoriler Ayarlar ekranından yönetilebilmelidir: tekli/toplu ekleme, yeniden adlandırma, komisyon grubu (Klima/Diğer) değiştirme, kullanılmayan kategoriyi çift onayla silme, kullanımdaki kategoriyi başka kategoriyle birleştirme ve Excel içe/dışa aktarma. Stok sayfasında ayrı "Kategori Ekle" modalı bulunmamalıdır; hızlı ekleme ürün detayında kalabilir.
 
-**FR-PROD-28 (P1) — Karta Dokunarak Seçim:** Dar ekranda (<1024px) ürün kartına dokunmak, bağlantı/buton/giriş alanları dışında kalan alanda o satırın seçimini değiştirir.
+**FR-PROD-29 (P0) — Sticky Ürün Çubuğu ve Satır Seçimi:** Ürünler ekranında arama/filtre alanı üstte sticky kalmalı; seçilen ürün sayısını ve toplu kategori/arşiv/silme eylemlerini taşıyan çubuk ekranın altında sticky footer olarak gösterilmelidir. Bu çubukta "Tümünü seç" checkbox'ı bulunmalıdır. Bir ürün satırının boş alanına tıklamak, ekran boyutundan bağımsız olarak satır seçimini değiştirmelidir; bağlantı, buton, checkbox ve form alanlarına tıklama seçimi değiştirmemelidir. Seçili satır tamamen mavi doldurulmamalı; masaüstünde de küçük ekrandaki gibi renkli kenarlıkla vurgulanmalıdır. Masaüstünde sol menü sticky kalmalı ve kendi içinde kaydırılmalıdır.
 
 **Önerilen örnek CSV şeması ve gerçek bayi formatı (`arcelik-06-09-2026.csv`):**
 
