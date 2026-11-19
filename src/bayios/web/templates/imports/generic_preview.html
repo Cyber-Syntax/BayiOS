@@ -28,6 +28,7 @@
   <input type="hidden" name="source_b64" value="{{ source_b64 }}">
   <input type="hidden" name="import_token" value="{{ import_token }}">
   {% if campaign_id %}<input type="hidden" name="campaign_id" value="{{ campaign_id }}">{% endif %}
+  {% if auto_create_banks %}<input type="hidden" name="auto_create_banks" value="1">{% endif %}
   <input type="hidden" name="decisions_json" id="decisionsJsonInput">
 
   <div class="actions-bar" style="margin-top: 1rem; align-items: center; flex-wrap: wrap; gap: .75rem;">

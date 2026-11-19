@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
 
+from bayios.adapters.db.models.commissions import Bank
 from bayios.application.imports.common import (
     ImportPreview,
     ImportResult,
@@ -37,7 +38,7 @@ from bayios.domain.commissions import (
     CardType,
     PaymentChannel,
 )
-from bayios.domain.naming import normalize_name
+from bayios.domain.naming import canonical_display_name, normalize_name
 from bayios.domain.offers import PAYMENT_TYPE_LABELS, PaymentType
 from bayios.domain.products import ActorContext, normalize_product_name
 
@@ -99,8 +100,12 @@ class _OfferEntity:
     decision: str
 
 
-def preview_offer_import(uow: UnitOfWork, source: bytes) -> ImportPreview:
-    entities, unknown = _parse_offers(uow, source)
+def preview_offer_import(
+    uow: UnitOfWork, source: bytes, *, auto_create_banks: bool = False
+) -> ImportPreview:
+    entities, unknown, _pending_banks = _parse_offers(
+        uow, source, auto_create_banks=auto_create_banks
+    )
     rows = tuple(
         PreviewRow(
             key=entity.key,
@@ -149,13 +154,21 @@ def commit_offer_import(
     decisions: dict[str, str],
     actor: ActorContext | None = None,
     commit_token: str | None = None,
+    auto_create_banks: bool = False,
 ) -> ImportResult:
     actor = actor or ActorContext()
     with uow:
         replay = replay_result(uow, "offers", commit_token)
         if replay is not None:
             return replay
-    entities, _unknown = _parse_offers(uow, source)
+    entities, _unknown, pending_banks = _parse_offers(
+        uow, source, auto_create_banks=auto_create_banks
+    )
+    if pending_banks:
+        with uow:
+            for bank in pending_banks.values():
+                uow.commissions.add_bank(bank)
+            uow.commit()
     created = updated = skipped = errors = 0
     for entity in entities:
         if entity.errors or entity.data is None:
@@ -197,8 +210,8 @@ def commit_offer_import(
 
 
 def _parse_offers(
-    uow: UnitOfWork, source: bytes
-) -> tuple[list[_OfferEntity], tuple[str, ...]]:
+    uow: UnitOfWork, source: bytes, *, auto_create_banks: bool = False
+) -> tuple[list[_OfferEntity], tuple[str, ...], dict[str, Bank]]:
     sheets = read_raw_sheets(source)
     offer_sheet = sheet_named(sheets, ("Teklifler", "Offers", "Teklif")) or first_sheet(
         sheets
@@ -282,6 +295,8 @@ def _parse_offers(
             getattr(bank, "name_normalized", None) or normalize_name(bank.name): bank
             for bank in banks
         }
+        pending_banks: dict[str, Bank] = {}
+        used_pending: dict[str, Bank] = {}
         offers, _ = uow.offers.list(limit=10_000, offset=0)
         offers_by_number = {offer.offer_number: offer for offer in offers}
 
@@ -291,6 +306,7 @@ def _parse_offers(
             raw = group["raw"]
             assert isinstance(raw, tuple)
             errors: list[str] = list(group["errors"])  # type: ignore[arg-type]
+            row_warnings: list[str] = list(warnings)
             try:
                 offer_number = (
                     int(parse_decimal(row_value(raw, offer_layout, "offer_number"), "Teklif No"))
@@ -361,13 +377,32 @@ def _parse_offers(
             if not (Decimal(0) <= discount <= Decimal(100)):
                 errors.append("Bayi indirimi %0 ile %100 arasında olmalıdır.")
             bank_name = str(row_value(raw, offer_layout, "bank") or "").strip()
+            normalized_bank = normalize_name(bank_name) if bank_name else ""
             bank = (
-                bank_by_name.get(normalize_name(bank_name))
-                if bank_name
+                bank_by_name.get(normalized_bank)
+                if normalized_bank
                 else None
             )
-            if bank_name and bank is None:
-                errors.append("Banka bulunamadı.")
+            pending_bank = False
+            if normalized_bank and bank is None:
+                if not auto_create_banks:
+                    errors.append("Banka bulunamadı.")
+                else:
+                    bank = pending_banks.get(normalized_bank)
+                    if bank is None:
+                        bank = Bank(
+                            id=uuid.uuid4(),
+                            name=canonical_display_name(
+                                bank_name, always_title=True
+                            ),
+                            name_normalized=normalized_bank,
+                            is_active=True,
+                        )
+                        pending_banks[normalized_bank] = bank
+                    pending_bank = True
+                    row_warnings.append(
+                        f"Yeni banka oluşturulacak: {bank.name}"
+                    )
             if payment_type is PaymentType.CARD:
                 if channel is None or installment_count is None or card_type is None:
                     errors.append("Kart teklifi için kanal, taksit ve kart tipi zorunludur.")
@@ -473,12 +508,14 @@ def _parse_offers(
                     item_count=len(offer_items),
                     data=data if not errors else None,
                     errors=tuple(errors),
-                    warnings=warnings,
+                    warnings=tuple(row_warnings),
                     decision=decision,
                 )
             )
+            if pending_bank and bank is not None and not errors:
+                used_pending[bank.name_normalized] = bank
     entities.sort(key=lambda entity: (0 if entity.errors else 1, entity.row_number))
-    return entities, warnings
+    return entities, warnings, used_pending
 
 
 def _fallback_key(raw, layout) -> str:

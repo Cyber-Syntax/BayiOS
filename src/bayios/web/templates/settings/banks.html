@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Bankalar · Ayarlar{% endblock %}
+{% block content %}
+{% set msg = msg %}
+{% if msg == 'added' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> {{ count }} banka eklendi.</span></div>
+{% elif msg == 'bulk' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> {{ count }} banka eklendi.</span></div>
+{% elif msg == 'renamed' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> {{ count }} olarak güncellendi.</span></div>
+{% elif msg == 'active' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> {{ count }} durumu güncellendi.</span></div>
+{% elif msg == 'merged' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Bankalar birleştirildi.</span></div>
+{% elif msg == 'deleted' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Banka silindi.</span></div>
+{% elif msg == 'imported' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> {{ request.query_params.get('created', 0) }} eklendi, {{ request.query_params.get('updated', 0) }} güncellendi.</span></div>
+{% elif msg and msg.startswith('error:') %}
+<div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
+{% endif %}
+
+<div class="actions-bar">
+  <div>
+    <h1>Ayarlar</h1>
+    <p class="muted" style="margin: 0;">Banka ve kategori ana verilerini tek yerden yönetin.</p>
+  </div>
+  <div class="actions-group">
+    <a class="btn" href="/settings/banks">Bankalar</a>
+    <a class="btn" href="/settings/categories">Kategoriler</a>
+  </div>
+</div>
+
+<div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+  <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Banka Ekle</h2>
+  <form method="post" action="/settings/banks" style="display: flex; gap: .5rem; flex-wrap: wrap; align-items: flex-end;">
+    <div class="form-group" style="margin-bottom: 0; flex: 1 1 16rem;">
+      <label for="bank-name">Banka Adı</label>
+      <input type="text" id="bank-name" name="name" class="form-control" required placeholder="örn: Akbank">
+    </div>
+    <button type="submit" class="btn btn-primary">Ekle</button>
+  </form>
+  <form method="post" action="/settings/banks/bulk-preview" style="margin-top: .75rem;">
+    <div class="form-group">
+      <label for="bank-names">Toplu Ekle (her satıra bir banka)</label>
+      <textarea id="bank-names" name="names" class="form-control" rows="4" placeholder="Akbank&#10;Garanti BBVA&#10;İş Bankası"></textarea>
+    </div>
+    <div style="display: flex; justify-content: flex-end; gap: .5rem;">
+      <button type="submit" class="btn">Toplu Önizle</button>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="padding: 1rem;">
+  <div style="display: flex; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-bottom: .75rem;">
+    <form method="get" action="/settings/banks" style="display: flex; gap: .5rem; flex-wrap: wrap;">
+      <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Banka ara" style="max-width: 16rem;">
+      <button type="submit" class="btn">Ara</button>
+    </form>
+    <div class="actions-group">
+      <a class="btn" href="/settings/banks/export.xlsx">Excel Dışa Aktar</a>
+      <form method="post" action="/settings/banks/import" enctype="multipart/form-data" style="display: flex; gap: .35rem; align-items: center;">
+        <input type="file" name="file" accept=".xlsx,.csv" class="form-control" required style="max-width: 16rem;">
+        <button type="submit" class="btn">Excel İçe Aktar</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="data-table">
+      <thead><tr><th>Banka</th><th>Durum</th><th>Kullanım (Oran / Limit / Teklif)</th><th>İşlemler</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><strong>{{ row.bank.name }}</strong></td>
+          <td>{% if row.bank.is_active %}<span class="badge badge-success">Aktif</span>{% else %}<span class="badge badge-danger">Pasif</span>{% endif %}</td>
+          <td>{{ row.rate_count }} / {{ row.limit_count }} / {{ row.offer_count }}</td>
+          <td>
+            <details>
+              <summary class="muted">Düzenle</summary>
+              <div style="display: grid; gap: .5rem; margin-top: .5rem; min-width: 18rem;">
+                <form method="post" action="/settings/banks/{{ row.bank.id }}/rename" style="display: flex; gap: .35rem;">
+                  <input type="text" name="name" value="{{ row.bank.name }}" class="form-control" required>
+                  <button type="submit" class="btn btn-sm">Yeniden Adlandır</button>
+                </form>
+                <form method="post" action="/settings/banks/{{ row.bank.id }}/active">
+                  <input type="hidden" name="active" value="{% if row.bank.is_active %}0{% else %}1{% endif %}">
+                  <button type="submit" class="btn btn-sm">{% if row.bank.is_active %}Pasifleştir{% else %}Aktifleştir{% endif %}</button>
+                </form>
+                {% if rows | length > 1 %}
+                <form method="post" action="/settings/banks/{{ row.bank.id }}/merge" style="display: flex; gap: .35rem; flex-wrap: wrap;" onsubmit="return confirm('Kaynak banka hedefe birleştirilecek. Emin misiniz?');">
+                  <select name="target_id" class="form-control" required style="max-width: 12rem;">
+                    <option value="">Hedef banka...</option>
+                    {% for other in all_rows if other.bank.id != row.bank.id %}<option value="{{ other.bank.id }}">{{ other.bank.name }}</option>{% endfor %}
+                  </select>
+                  <button type="submit" class="btn btn-sm">Birleştir</button>
+                </form>
+                {% endif %}
+                {% if row.rate_count == 0 and row.limit_count == 0 and row.offer_count == 0 %}
+                <form method="post" action="/settings/banks/{{ row.bank.id }}/delete" onsubmit="return confirm('Banka kalıcı olarak silinecek. Emin misiniz?') && confirm('Son onay: geri alınamaz. Silinsin mi?');">
+                  <input type="hidden" name="confirm" value="1">
+                  <button type="submit" class="btn btn-sm btn-danger">Sil (kullanılmıyor)</button>
+                </form>
+                {% else %}
+                <span class="muted" style="font-size: .8rem;">Kullanımdaki banka silinemez; pasifleştirin veya birleştirin.</span>
+                {% endif %}
+              </div>
+            </details>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="muted" style="text-align: center; padding: 1.5rem;">Banka bulunamadı.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

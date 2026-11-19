@@ -168,6 +168,10 @@ def commission_period_detail_page(
         {
             "active_nav": "commissions",
             "detail": detail,
+            "bank_names": {
+                str(bank.id): bank.name
+                for bank in list_banks(uow, active_only=False)
+            },
             "categories": categories,
             "category_names": {
                 str(category.id): category.name for category in categories
@@ -198,9 +202,6 @@ def commission_period_detail_page(
                 for value, label in (
                     (item.value, ODERO_TIER_LABELS[item]) for item in OderoTier
                 )
-            },
-            "bank_names": {
-                str(bank.id): bank.name for bank in detail.banks
             },
             "channel_options": tuple(
                 (item.value, CHANNEL_LABELS[item]) for item in PaymentChannel

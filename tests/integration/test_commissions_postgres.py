@@ -22,6 +22,166 @@ from bayios.adapters.db.models.offers import Offer
 from bayios.adapters.db.models.products import ProductCategory
 from bayios.domain.commissions import period_bounds
 
+
+def test_master_data_merge_repoints_references(
+    session_factory: sessionmaker[Session],
+) -> None:
+    from bayios.adapters.db.models.products import Product
+    from bayios.adapters.db.repositories.commissions import (
+        SqlAlchemyCommissionRepository,
+    )
+    from bayios.adapters.db.repositories.products import (
+        SqlAlchemyProductRepository,
+    )
+
+    start, end = period_bounds(2027, 1)
+    with session_factory() as session:
+        source = Bank(name="Merge Kaynak", name_normalized="merge kaynak")
+        target = Bank(name="Merge Hedef", name_normalized="merge hedef")
+        source_category = ProductCategory(
+            name="Merge Kategori Kaynak",
+            name_normalized="merge kategori kaynak",
+            commission_group="other",
+        )
+        target_category = ProductCategory(
+            name="Merge Kategori Hedef",
+            name_normalized="merge kategori hedef",
+            commission_group="other",
+        )
+        period = CommissionPeriod(
+            period_key="2027-01",
+            valid_from=start,
+            valid_until=end,
+            status="active",
+        )
+        session.add_all(
+            [source, target, source_category, target_category, period]
+        )
+        session.flush()
+
+        product = Product(
+            name="Merge Ürün",
+            name_normalized="merge ürün",
+            category_id=source_category.id,
+            physical_stock=1,
+        )
+        session.add(product)
+        session.add(
+            CommissionRate(
+                period_id=period.id,
+                channel="pos",
+                bank_id=source.id,
+                product_group="other",
+                installment_count=2,
+                commission_percent=Decimal(4),
+                scope_key=f"pos|{source.id}|other|-|2",
+            )
+        )
+        session.add(
+            CommissionLimit(
+                period_id=period.id,
+                channel="pos",
+                bank_id=source.id,
+                product_group=None,
+                category_id=None,
+                card_type=None,
+                max_installments=5,
+                scope_key=f"pos|{source.id}|-|-|-",
+            )
+        )
+        session.add(
+            CommissionLimit(
+                period_id=period.id,
+                channel=None,
+                bank_id=None,
+                product_group=None,
+                category_id=source_category.id,
+                card_type=None,
+                max_installments=4,
+                scope_key=f"-|-|-|{source_category.id}|-",
+            )
+        )
+        session.add(
+            Offer(
+                payment_type="cash",
+                bank_id=source.id,
+            )
+        )
+        session.commit()
+
+    with session_factory() as session:
+        commissions = SqlAlchemyCommissionRepository(session)
+        products = SqlAlchemyProductRepository(session)
+        source = session.scalar(sa.select(Bank).where(Bank.name == "Merge Kaynak"))
+        target = session.scalar(sa.select(Bank).where(Bank.name == "Merge Hedef"))
+        source_category = session.scalar(
+            sa.select(ProductCategory).where(
+                ProductCategory.name == "Merge Kategori Kaynak"
+            )
+        )
+        target_category = session.scalar(
+            sa.select(ProductCategory).where(
+                ProductCategory.name == "Merge Kategori Hedef"
+            )
+        )
+        assert source and target and source_category and target_category
+
+        commissions.merge_bank_rates_limits(source.id, target.id)
+        commissions.repoint_offers_bank(source.id, target.id)
+        commissions.delete_bank(source.id)
+        products.reassign_category(source_category.id, target_category.id)
+        commissions.merge_category_limits(
+            source_category.id, target_category.id
+        )
+        products.delete_category(source_category.id)
+        session.commit()
+
+    with session_factory() as session:
+        target = session.scalar(
+            sa.select(Bank).where(Bank.name == "Merge Hedef")
+        )
+        target_category = session.scalar(
+            sa.select(ProductCategory).where(
+                ProductCategory.name == "Merge Kategori Hedef"
+            )
+        )
+        assert target is not None and target_category is not None
+
+        rates = session.scalars(sa.select(CommissionRate)).all()
+        merged_rates = [
+            rate
+            for rate in rates
+            if rate.installment_count == 2
+            and str(rate.bank_id) in rate.scope_key
+        ]
+        assert merged_rates and merged_rates[0].bank_id == target.id
+
+        category_limits = [
+            limit
+            for limit in session.scalars(sa.select(CommissionLimit)).all()
+            if limit.category_id == target_category.id
+        ]
+        assert category_limits
+
+        assert any(
+            offer.bank_id == target.id
+            for offer in session.scalars(sa.select(Offer)).all()
+        )
+        product = session.scalar(
+            sa.select(Product).where(Product.name == "Merge Ürün")
+        )
+        assert product is not None
+        assert product.category_id == target_category.id
+        assert session.scalar(
+            sa.select(Bank).where(Bank.name == "Merge Kaynak")
+        ) is None
+        assert session.scalar(
+            sa.select(ProductCategory).where(
+                ProductCategory.name == "Merge Kategori Kaynak"
+            )
+        ) is None
+
+
 TEST_DATABASE_URL = os.environ.get("BAYIOS_TEST_DATABASE_URL")
 
 pytestmark = pytest.mark.skipif(

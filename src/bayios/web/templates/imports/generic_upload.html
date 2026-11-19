@@ -22,6 +22,12 @@
       <label for="import-file">Dosya Seçin ({{ accept }}):</label>
       <input type="file" id="import-file" name="file" class="form-control" accept="{{ accept }}" required>
     </div>
+    {% if show_bank_autocreate %}
+    <div class="form-group" style="display: flex; gap: .5rem; align-items: center;">
+      <input type="checkbox" id="auto-create-banks" name="auto_create_banks" value="1">
+      <label for="auto-create-banks" style="margin: 0;">Bilinmeyen bankaları otomatik oluştur (yazım hatası riski)</label>
+    </div>
+    {% endif %}
     <div style="margin-top: 1.5rem; display: flex; gap: .75rem; flex-wrap: wrap;">
       <button type="submit" class="btn btn-primary">Önizlemeyi Göster</button>
       <a href="{{ template_url }}" class="btn">Şablon İndir</a>

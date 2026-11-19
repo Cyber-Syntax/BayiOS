@@ -24,7 +24,7 @@ HELP = (
     "Yeni tekliflerde satırları gruplamak için Teklif Anahtarı kullanılır; mevcut taslaklar Teklif No ile güncellenir.",
     "Yalnızca taslak teklifler güncellenir. Komisyon ve kâr sunucuda yeniden hesaplanır.",
     "Kart tekliflerinde kanal, taksit ve kart tipi zorunludur; banka isteğe bağlıdır (boşsa genel oran kullanılır).",
-    "Bilinmeyen ürün veya banka otomatik oluşturulmaz; bankayı komisyonlar ekranından ekleyin.",
+    "Bilinmeyen ürün otomatik oluşturulmaz. Bilinmeyen bankayı istersen aşağıdaki onayla oluşturabilirsin; varsayılan kapalıdır.",
 )
 
 
@@ -49,6 +49,7 @@ async def preview_import(
     request: Request,
     uow: UnitOfWorkDep,
     file: Annotated[UploadFile, File()],
+    auto_create_banks: Annotated[str | None, Form()] = None,
 ) -> HTMLResponse:
     if not file.filename:
         return _upload(request, error="Lütfen bir dosya seçin.")
@@ -57,8 +58,11 @@ async def preview_import(
     content = await file.read()
     if not content:
         return _upload(request, error="Yüklenen dosya boş.")
+    create_banks = (auto_create_banks or "") == "1"
     try:
-        preview = preview_offer_import(uow, content)
+        preview = preview_offer_import(
+            uow, content, auto_create_banks=create_banks
+        )
     except Exception as exc:  # noqa: BLE001
         return _upload(request, error=str(exc))
     return templates.TemplateResponse(
@@ -74,6 +78,7 @@ async def preview_import(
             "import_token": uuid.uuid4().hex,
             "commit_action": "/imports/offers/commit",
             "back_url": "/imports/offers",
+            "auto_create_banks": create_banks,
         },
     )
 
@@ -87,6 +92,7 @@ async def commit_import(
     file_type: Annotated[str, Form()],
     source_b64: Annotated[str, Form()],
     import_token: Annotated[str | None, Form()] = None,
+    auto_create_banks: Annotated[str | None, Form()] = None,
 ) -> Response:
     try:
         source = base64.b64decode(source_b64.encode("ascii"))
@@ -106,6 +112,7 @@ async def commit_import(
             decisions=decisions if isinstance(decisions, dict) else {},
             actor=actor,
             commit_token=str(import_token) if import_token else None,
+            auto_create_banks=(auto_create_banks or "") == "1",
         )
     except Exception as exc:  # noqa: BLE001
         return _upload(request, error=str(exc))
@@ -136,6 +143,7 @@ def _upload(request: Request, *, error: str | None = None) -> HTMLResponse:
             "accept": ".xlsx",
             "help_lines": HELP,
             "error": error,
+            "show_bank_autocreate": True,
         },
         status_code=400 if error else 200,
     )

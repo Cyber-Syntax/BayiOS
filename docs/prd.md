@@ -115,6 +115,7 @@ MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uyg
 14. Yerel ağda mobil ve masaüstü tarayıcıdan kullanım.
 15. Veritabanı yedekleme.
 16. Ürün detayından ve ürün listesinden çoklu seçimle kategori atama; kategorisiz bırakma.
+17. Banka ve kategori ana verilerinin Ayarlar ekranından yönetimi; toplu ekleme, yeniden adlandırma, pasifleştirme/birleştirme, kullanılmayan kaydı silme ve Excel içe/dışa aktarma.
 
 ### 3.2 MVP dışında (sonraki sürüm / good-to-have)
 
@@ -439,6 +440,8 @@ Açık rezervasyonda yer alan ürünlerin silinmesi engellenir ve kullanıcıya 
 
 **FR-PROD-27 (P0) — Kategori İçe/Dışa Aktarma:** Ürün içe aktarmada `category` kolonu opsiyoneldir; dışa aktarmada (CSV ve Excel) kategori her zaman bir kolon olarak bulunmalıdır. İçe aktarmada geçen bilinmeyen kategori adları otomatik oluşturulur; boş kategori mevcut ürünün kategorisini değiştirmez.
 
+**FR-PROD-29 (P0) — Kategori Ana Verisi:** Kategoriler Ayarlar ekranından yönetilebilmelidir: tekli/toplu ekleme, yeniden adlandırma, komisyon grubu (Klima/Diğer) değiştirme, kullanılmayan kategoriyi çift onayla silme, kullanımdaki kategoriyi başka kategoriyle birleştirme ve Excel içe/dışa aktarma. Stok sayfasında ayrı "Kategori Ekle" modalı bulunmamalıdır; hızlı ekleme ürün detayında kalabilir.
+
 **FR-PROD-28 (P1) — Karta Dokunarak Seçim:** Dar ekranda (<1024px) ürün kartına dokunmak, bağlantı/buton/giriş alanları dışında kalan alanda o satırın seçimini değiştirir.
 
 **Önerilen örnek CSV şeması ve gerçek bayi formatı (`arcelik-06-09-2026.csv`):**
@@ -565,6 +568,10 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 **FR-FIN-20 (P0):** Her kategori için taksit üst sınırı tanımlanabilmelidir (TV 4, telefon 3 gibi). Sınırlar dönem içinde düzenlenebilir veri olmalıdır; aylık değişen sınırlar için kod değişikliği veya dağıtım gerekmemelidir.
 
 **FR-FIN-21 (P0):** Komisyon ekranından yeni banka ekleme akışı, ekleme sonrası seçimi ve girilmiş oran/limit alanlarını kaybetmeden forma dönmelidir.
+
+**FR-FIN-22 (P0):** Bankalar Ayarlar ekranından yönetilebilmelidir: tekli ve toplu ekleme, yeniden adlandırma, pasifleştirme/aktifleştirme, kullanılmayan bankayı çift onayla silme ve kullanımdaki bankayı başka bankayla birleştirme. Birleştirmede oran, limit ve teklif referansları hedef bankaya taşınır; geçmiş tekliflerdeki banka adı snapshot olarak korunur.
+
+**FR-FIN-23 (P0):** Banka listesi Excel ile içe/dışa aktarılabilmelidir. Komisyon oran/limit Excel içe aktarmasında bilinmeyen banka önizlemede "yeni" olarak gösterilip oluşturulmalıdır (varsayılan açık). Teklif Excel içe aktarmasında bilinmeyen bankayı otomatik oluşturma varsayılan kapalı olmalı ve kullanıcı onay kutusuyla açabilmelidir.
 
 ### 5.6 Teklifler
 
@@ -777,7 +784,8 @@ Mobil alt navigasyon veya sade yan menü:
 5. Rezervasyonlar
 6. Stok / Sayım
 7. Hızlı Teslim
-8. Komisyonlar / Ayarlar
+8. Komisyonlar
+9. Ayarlar (Bankalar, Kategoriler)
 
 Ekranların adları kısa ve çalışanların alışık olduğu terimlerle yazılmalıdır.
 
@@ -1502,7 +1510,16 @@ Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 6. Aynı müşteri için her kayıt tek Code 128 barkodu içerir; aynı kod ikinci kez kaydedilemez.
 7. WMS'ye herhangi bir otomatik istek gönderilmez.
 
-### 13.6 Yazdırma testleri
+### 13.6 Ayarlar testleri
+
+1. Ayarlar > Bankalar ekranında tekli ve toplu banka eklenir; toplu ekleme önizlemesi yeni/mevcut/hatalı satırları ayırır.
+2. `AKBANK` yazımı mevcut `Akbank` kaydına eşleşir; yeni kayıt açılmaz.
+3. Kullanılmayan banka çift onayla silinir; oran/limit/teklifte kullanılan banka silinemez, pasifleştirilebilir veya birleştirilebilir.
+4. Banka birleştirildiğinde oran ve limitler hedefe taşınır; eski tekliflerdeki banka adı değişmez.
+5. Kategoriler Ayarlar'dan toplu eklenir, yeniden adlandırılır, komisyon grubu değiştirilir ve kullanımdaysa silinemez; stok sayfasında kategori ekleme modalı yoktur.
+6. Banka/kategori Excel içe ve dışa aktarması çalışır; komisyon importunda bilinmeyen banka onayla oluşturulur, teklif importunda varsayılan kapalıdır.
+
+### 13.7 Yazdırma testleri
 
 1. Rezervasyon çıktısı A4'e okunaklı biçimde sığar.
 2. Depo ve bayi kopyaları ayrı başlıkla alınabilir.
@@ -1686,6 +1703,8 @@ Bu PRD aşağıdaki kullanıcı kararlarını temel alır:
 - TV ayrı komisyon oranı grubu değildir; Diğer oranlarını kullanır. Taksit üst sınırı kategori bazlı dönem verisidir (TV 4, telefon 3 gibi) ve aylık değiştirilebilir.
 - Banka ve kategori adları yazım farkından bağımsız eşleştirilir ve canonical görünen adla saklanır (§4.1.1); ürün adları yazıldığı gibi kalır, aramada harf duyarsızdır.
 - Gerçek komisyon oranları, maliyetler ve bayi taban fiyatları kamuya açık depoya yazılmaz; belgelerdeki tüm değerler örnektir (§3.4).
+- Banka ve kategori ana verisi Ayarlar ekranından yönetilir; banka/kategori ekleme bağlama duyarlı hızlı formlarda kalabilir. Stok sayfasında ayrı kategori ekleme modalı yoktur.
+- Komisyon Excel importu bilinmeyen bankayı varsayılan olarak oluşturur; teklif Excel importunda bu davranış varsayılan kapalıdır.
 - Teklifte birden fazla ürün olabilir; MVP'de tek banka/taksit seçimi yapılır ve banka isteğe bağlıdır.
 - A4 çıktıları rezervasyon, stok sayımı/ürün listesi ve teklif için zorunludur.
 - PDF ekleme/görüntüleme MVP dışıdır; ilk ek özellik olarak sonraki fazda ele alınır.

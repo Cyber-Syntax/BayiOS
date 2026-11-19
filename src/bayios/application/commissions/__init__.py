@@ -73,9 +73,11 @@ def list_commission_periods(uow: UnitOfWork) -> Sequence[CommissionPeriod]:
         return uow.commissions.list_periods()
 
 
-def list_banks(uow: UnitOfWork) -> Sequence[Bank]:
+def list_banks(
+    uow: UnitOfWork, *, active_only: bool = True
+) -> Sequence[Bank]:
     with uow:
-        return uow.commissions.get_banks()
+        return uow.commissions.get_banks(active_only=active_only)
 
 
 def ensure_bank(uow: UnitOfWork, name: str) -> Bank:

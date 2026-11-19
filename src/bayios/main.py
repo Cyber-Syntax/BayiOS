@@ -21,6 +21,7 @@ from bayios.web.pages.imports_reservations import router as imports_reservations
 from bayios.web.pages.offers import router as offers_router
 from bayios.web.pages.products import router as products_router
 from bayios.web.pages.reservations import router as reservations_router
+from bayios.web.pages.settings import router as settings_router
 from bayios.web.pages.stock import router as stock_router
 from bayios.web.templating import STATIC_DIR
 
@@ -59,4 +60,5 @@ def create_app(settings: ApplicationSettings | None = None) -> FastAPI:
     app.include_router(offers_router)
     app.include_router(stock_router)
     app.include_router(reservations_router)
+    app.include_router(settings_router)
     return app

@@ -505,6 +505,36 @@ Manuel barcode input, product lookup ve WMS request'i yoktur. UI'da “WMS çık
 
 Hızlı Teslim kaydı doğrulanmış tek Code 128 değeri taşır; görüntü saklanmaz; duplicate ve mismatch açıkça yönetilir.
 
+### Cross-milestone — Ayarlar (banka ve kategori ana verisi)
+
+**Kapsam**
+
+`Ayarlar` navigasyonu banka ve kategori ana verisini tek yerden yönetir. Banka/kategori hızlı ekleme bağlama duyarlı formlarda (komisyon, teklif, ürün detayı) kalabilir; stok sayfasındaki ayrı kategori ekleme modalı kaldırılır.
+
+**Use-case akışları**
+
+1. Banka listesi: arama, tekli/toplu ekleme (önizlemeli), yeniden adlandırma, pasifleştirme/aktifleştirme, birleştirme, yalnız kullanılmayan bankayı çift onaylı silme.
+2. Kategori listesi: arama, tekli/toplu ekleme (önizlemeli), yeniden adlandırma, komisyon grubu değiştirme, birleştirme, yalnız kullanılmayan kategoriyi çift onaylı silme.
+3. Banka/kategori Excel içe/dışa aktarma; banka `Banka, Aktif`, kategori `Kategori, Komisyon Grubu`.
+4. Banka birleştirme: oran ve limitler hedefe taşınır (çakışan satırlar hedefte varsa kaynak satır atlanır), tekliflerin `bank_id` değeri hedefe çevrilir, `bank_name_snapshot` korunur, kaynak banka silinir.
+5. Kategori birleştirme: ürünler hedef kategoriye taşınır, kategori limitleri hedefe taşınır (çakışan limit atlanır), kaynak kategori silinir.
+6. Kullanım sayıları: banka için oran/limit/teklif, kategori için ürün/limit. Kullanımdaki kayıt silinemez; pasifleştirme veya birleştirme önerilir.
+7. Komisyon Excel importu bilinmeyen bankayı önizlemede "yeni" gösterip oluşturur (varsayılan açık). Teklif Excel importu aynı davranışı yalnız kullanıcı onay kutusuyla yapar (varsayılan kapalı).
+
+**Davranış testleri**
+
+- `AKBANK`/`akbank`/`AkbanK` aynı banka kaydına düşer; görünen ad `Akbank`.
+- Toplu ekleme önizlemesi yeni/mevcut/hatalı satırları ayırır; hatalı satır varken commit engellenir.
+- Kullanılmayan banka/kategori çift onayla silinir; kullanımdaki kayıt silinemez.
+- Banka birleştirme oran/limit/teklif referanslarını hedefe taşır; eski teklif banka adı değişmez.
+- Kategori birleştirme ürünleri ve limitleri hedefe taşır; çakışan limit kaynakta atlanır.
+- Excel banka/kategori roundtrip'i oluşturur/güncelleştirir.
+- Komisyon importu yeni bankayı oluşturur; teklif importu bayrak kapalıyken hata verir, açıkken oluşturur.
+
+**Çıkış kriteri**
+
+Banka ve kategori ana verisi tek ekrandan toplu yönetilir; kullanımdaki kayıtlar silinmez; birleştirme referansları korur; Excel içe/dışa aktarma ve import davranışları testlerle doğrulanır.
+
 ## 5. Release ve doğrulama sırası
 
 Her milestone şu sırayla teslim edilir:

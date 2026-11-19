@@ -108,6 +108,15 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Kategori komisyon grubu eşlemesi, değişiklik geçmişi ve P1 komisyon A4 listesi bulunur.
 - Komisyon oranları ve taksit limitleri ayrı Excel dosyalarıyla içe/dışa aktarılır; dönem detayında döneme özel, listede tüm dönemler için export butonları bulunur.
 
+### Ayarlar
+
+- "Ayarlar" navigasyonunda **Bankalar** ve **Kategoriler** sekmeleri bulunur.
+- Bankalar listesi ad, aktif/pasif durumu ve kullanım sayılarını (oran/limit/teklif) gösterir; tekli ve toplu ekleme (her satıra bir ad, önizlemeli), yeniden adlandırma, pasifleştirme, birleştirme ve yalnız kullanılmayan kaydı çift onaylı silme sunar.
+- Kategoriler listesi ad, komisyon grubu (Klima/Diğer) ve kullanım sayılarını (ürün/limit) gösterir; tekli/toplu ekleme, yeniden adlandırma, grup değiştirme, birleştirme ve yalnız kullanılmayan kaydı silme sunar.
+- Banka ve kategori listeleri Excel ile içe/dışa aktarılır. Banka dosyası `Banka, Aktif`; kategori dosyası `Kategori, Komisyon Grubu` kolonlarını taşır.
+- Stok sayfasında ayrı "Kategori Ekle" modalı yoktur; kategori ekleme ürün detayındaki hızlı alan ve Ayarlar'dadır.
+- Teklif Excel içe aktarma ekranında "Bilinmeyen bankaları otomatik oluştur" onay kutusu bulunur; varsayılan kapalıdır. Komisyon Excel importunda bilinmeyen banka otomatik oluşturulur ve önizlemede yeni olarak işaretlenir.
+
 ### Ürün Kataloğu İçe Aktarma
 
 - CSV ve Excel (.xlsx) dosyası yükleme; desteklenen format, fiyat, stok ve indirim kuralları ekranda açıklanır.

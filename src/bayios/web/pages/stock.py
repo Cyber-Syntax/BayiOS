@@ -13,7 +13,6 @@ from bayios.adapters.db.models.products import ProductCategory
 from bayios.application.errors import ConflictError, NotFoundError, ValidationError
 from bayios.application.inventory import (
     complete_stock_count_session,
-    create_product_category,
     get_stock_count_session,
     get_stock_overview,
     list_categories,
@@ -94,18 +93,6 @@ def stock_index(
         return templates.TemplateResponse(request, "stock/_results.html", context)
 
     return templates.TemplateResponse(request, "stock/index.html", context)
-
-
-@router.post("/categories")
-def create_category_route(
-    uow: UnitOfWorkDep,
-    name: Annotated[str, Form()],
-) -> Response:
-    try:
-        create_product_category(uow, name)
-    except ValidationError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return RedirectResponse(url="/stock?msg=category_created", status_code=303)
 
 
 @router.post("/sessions")

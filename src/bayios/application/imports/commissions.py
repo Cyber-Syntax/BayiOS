@@ -6,10 +6,11 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 from bayios.adapters.db.models.commissions import (
-    CommissionLimit as CommissionLimitRow,
+    Bank,
+    CommissionPeriod,
 )
 from bayios.adapters.db.models.commissions import (
-    CommissionPeriod,
+    CommissionLimit as CommissionLimitRow,
 )
 from bayios.adapters.db.models.commissions import (
     CommissionRate as CommissionRateRow,
@@ -46,7 +47,7 @@ from bayios.domain.commissions import (
     period_bounds,
     validate_period,
 )
-from bayios.domain.naming import normalize_name
+from bayios.domain.naming import canonical_display_name, normalize_name
 from bayios.domain.products import ActorContext
 
 RATE_HEADERS = {
@@ -88,7 +89,7 @@ class _CommissionRow:
 
 
 def preview_commission_rates(uow: UnitOfWork, source: bytes) -> ImportPreview:
-    rows, unknown = _parse_rates(uow, source)
+    rows, unknown, _pending_banks = _parse_rates(uow, source)
     return ImportPreview(
         module="commission_rates",
         title="Komisyon Oranları Excel İçe Aktarma Önizlemesi",
@@ -121,7 +122,7 @@ def preview_commission_rates(uow: UnitOfWork, source: bytes) -> ImportPreview:
 
 
 def preview_commission_limits(uow: UnitOfWork, source: bytes) -> ImportPreview:
-    rows, unknown = _parse_limits(uow, source)
+    rows, unknown, _pending_banks = _parse_limits(uow, source)
     return ImportPreview(
         module="commission_limits",
         title="Taksit Limitleri Excel İçe Aktarma Önizlemesi",
@@ -168,11 +169,13 @@ def commit_commission_rates(
         replay = replay_result(uow, "commission_rates", commit_token)
         if replay is not None:
             return replay
-    rows, _unknown = _parse_rates(uow, source)
+    rows, _unknown, pending_banks = _parse_rates(uow, source)
     now = datetime.now(UTC)
     created = updated = skipped = errors = 0
     periods: dict[str, CommissionPeriod] = {}
     with uow:
+        for bank in pending_banks.values():
+            uow.commissions.add_bank(bank)
         for row in rows:
             if row.errors or not isinstance(row.payload, CommissionRate):
                 errors += 1
@@ -234,11 +237,13 @@ def commit_commission_limits(
         replay = replay_result(uow, "commission_limits", commit_token)
         if replay is not None:
             return replay
-    rows, _unknown = _parse_limits(uow, source)
+    rows, _unknown, pending_banks = _parse_limits(uow, source)
     now = datetime.now(UTC)
     created = updated = skipped = errors = 0
     periods: dict[str, CommissionPeriod] = {}
     with uow:
+        for bank in pending_banks.values():
+            uow.commissions.add_bank(bank)
         for row in rows:
             if row.errors or not isinstance(row.payload, CommissionLimit):
                 errors += 1
@@ -287,7 +292,7 @@ def commit_commission_limits(
 
 def _parse_rates(
     uow: UnitOfWork, source: bytes
-) -> tuple[list[_CommissionRow], tuple[str, ...]]:
+) -> tuple[list[_CommissionRow], tuple[str, ...], dict[str, Bank]]:
     sheet = first_sheet(read_raw_sheets(source))
     layout = locate_header(
         sheet.rows,
@@ -304,6 +309,8 @@ def _parse_rates(
             getattr(bank, "name_normalized", None) or normalize_name(bank.name): bank
             for bank in banks
         }
+        pending_banks: dict[str, Bank] = {}
+        used_pending: dict[str, Bank] = {}
         rows: list[_CommissionRow] = []
         for offset, raw in enumerate(sheet.rows[layout.row_index + 1 :], start=1):
             row_number = layout.row_index + 2 + offset
@@ -331,9 +338,22 @@ def _parse_rates(
                 errors.append(str(exc))
                 channel = None
             bank_name = str(row_value(raw, layout, "bank") or "").strip()
-            bank = bank_by_name.get(normalize_name(bank_name)) if bank_name else None
-            if bank_name and bank is None:
-                errors.append("Banka bulunamadı.")
+            normalized_bank = normalize_name(bank_name) if bank_name else ""
+            bank = bank_by_name.get(normalized_bank) if normalized_bank else None
+            pending_bank = False
+            if normalized_bank and bank is None:
+                bank = pending_banks.get(normalized_bank)
+                if bank is None:
+                    bank = Bank(
+                        id=uuid.uuid4(),
+                        name=canonical_display_name(
+                            bank_name, always_title=True
+                        ),
+                        name_normalized=normalized_bank,
+                        is_active=True,
+                    )
+                    pending_banks[normalized_bank] = bank
+                pending_bank = True
             group_raw = row_value(raw, layout, "product_group")
             try:
                 group_value = parse_enum(
@@ -425,7 +445,11 @@ def _parse_rates(
                     values={
                         "period": period_key,
                         "channel": CHANNEL_LABELS.get(channel, ""),
-                        "bank": bank.name if bank is not None else bank_name,
+                        "bank": (
+                            f"{bank.name} (yeni)"
+                            if pending_bank and bank is not None
+                            else (bank.name if bank is not None else bank_name)
+                        ),
                         "group": PRODUCT_GROUP_LABELS.get(group, "")
                         if group
                         else "",
@@ -440,13 +464,15 @@ def _parse_rates(
                     payload=domain_rate if not errors else None,
                 )
             )
+            if pending_bank and bank is not None and not errors:
+                used_pending[bank.name_normalized] = bank
     rows.sort(key=lambda row: (0 if row.errors else 1, row.row_number))
-    return rows, warnings
+    return rows, warnings, used_pending
 
 
 def _parse_limits(
     uow: UnitOfWork, source: bytes
-) -> tuple[list[_CommissionRow], tuple[str, ...]]:
+) -> tuple[list[_CommissionRow], tuple[str, ...], dict[str, Bank]]:
     sheet = first_sheet(read_raw_sheets(source))
     layout = locate_header(
         sheet.rows,
@@ -468,6 +494,8 @@ def _parse_limits(
             or normalize_name(category.name): category
             for category in uow.products.get_categories()
         }
+        pending_banks: dict[str, Bank] = {}
+        used_pending: dict[str, Bank] = {}
         rows: list[_CommissionRow] = []
         for offset, raw in enumerate(sheet.rows[layout.row_index + 1 :], start=1):
             row_number = layout.row_index + 2 + offset
@@ -494,9 +522,22 @@ def _parse_limits(
                 errors.append(str(exc))
                 channel = None
             bank_name = str(row_value(raw, layout, "bank") or "").strip()
-            bank = bank_by_name.get(normalize_name(bank_name)) if bank_name else None
-            if bank_name and bank is None:
-                errors.append("Banka bulunamadı.")
+            normalized_bank = normalize_name(bank_name) if bank_name else ""
+            bank = bank_by_name.get(normalized_bank) if normalized_bank else None
+            pending_bank = False
+            if normalized_bank and bank is None:
+                bank = pending_banks.get(normalized_bank)
+                if bank is None:
+                    bank = Bank(
+                        id=uuid.uuid4(),
+                        name=canonical_display_name(
+                            bank_name, always_title=True
+                        ),
+                        name_normalized=normalized_bank,
+                        is_active=True,
+                    )
+                    pending_banks[normalized_bank] = bank
+                pending_bank = True
             try:
                 group_value = parse_enum(
                     row_value(raw, layout, "product_group"),
@@ -577,7 +618,11 @@ def _parse_limits(
                     values={
                         "period": period_key,
                         "channel": CHANNEL_LABELS.get(channel, ""),
-                        "bank": bank.name if bank is not None else bank_name,
+                        "bank": (
+                            f"{bank.name} (yeni)"
+                            if pending_bank and bank is not None
+                            else (bank.name if bank is not None else bank_name)
+                        ),
                         "group": PRODUCT_GROUP_LABELS.get(group, "")
                         if group
                         else "",
@@ -594,8 +639,10 @@ def _parse_limits(
                     payload=domain_limit if not errors else None,
                 )
             )
+            if pending_bank and bank is not None and not errors:
+                used_pending[bank.name_normalized] = bank
     rows.sort(key=lambda row: (0 if row.errors else 1, row.row_number))
-    return rows, warnings
+    return rows, warnings, used_pending
 
 
 def _decision_for_period(

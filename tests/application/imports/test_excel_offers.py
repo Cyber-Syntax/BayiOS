@@ -19,8 +19,101 @@ from bayios.application.offers import (
     get_offer_detail,
 )
 from bayios.application.offers.io import export_offers_xlsx
+from bayios.domain.commissions import CardType, PaymentChannel
 from bayios.domain.offers import PaymentType
 from tests.fakes import FakeUnitOfWork
+
+
+def _card_offer_without_bank() -> tuple[FakeUnitOfWork, uuid.UUID]:
+    from bayios.adapters.db.models.commissions import (
+        CommissionPeriod,
+        CommissionRate,
+    )
+    from bayios.domain.commissions import period_bounds
+
+    uow = FakeUnitOfWork()
+    start, end = period_bounds(2026, 11)
+    period = CommissionPeriod(
+        id=uuid.uuid4(),
+        period_key="2026-11",
+        valid_from=start,
+        valid_until=end,
+        status="active",
+    )
+    uow.commissions.add_period(period)
+    for installment in range(1, 4):
+        uow.commissions.add_rate(
+            CommissionRate(
+                id=uuid.uuid4(),
+                period_id=period.id,
+                channel="chippin",
+                bank_id=None,
+                product_group=None,
+                installment_count=installment,
+                commission_percent=Decimal(3),
+                scope_key=f"chippin|-|-|-|{installment}",
+            )
+        )
+    product = Product(
+        id=uuid.uuid4(),
+        name="Buzdolabı",
+        name_normalized="buzdolabı",
+        regular_price=Decimal(10000),
+        physical_stock=1,
+    )
+    uow.products.add(product)
+    offer_id = create_offer(
+        uow,
+        OfferInput(
+            customer_name="Ayşe",
+            customer_phone=None,
+            payment_type=PaymentType.CARD,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product.id, 1),),
+            channel=PaymentChannel.CHIPPIN,
+            installment_count=1,
+            card_type=CardType.CONSUMER,
+        ),
+    )
+    return uow, offer_id
+
+
+def test_offer_import_can_create_missing_bank_when_enabled() -> None:
+    from bayios.adapters.db.models.offers import Offer
+
+    uow, offer_id = _card_offer_without_bank()
+    data = export_offers_xlsx(uow)
+    workbook = load_workbook(io.BytesIO(data))
+    sheet = workbook["Teklifler"]
+    headers = [sheet.cell(row=1, column=index).value for index in range(1, sheet.max_column + 1)]
+    bank_column = headers.index("Banka") + 1
+    sheet.cell(row=2, column=bank_column, value="AKBANK")
+    stream = io.BytesIO()
+    workbook.save(stream)
+    modified = stream.getvalue()
+
+    without = preview_offer_import(uow, modified)
+    assert any("Banka bulunamadı" in error for error in without.rows[0].errors)
+
+    preview = preview_offer_import(uow, modified, auto_create_banks=True)
+    assert not preview.rows[0].errors
+    assert any("Yeni banka" in warning for warning in preview.rows[0].warnings)
+
+    commit_offer_import(
+        uow,
+        file_name="teklifler.xlsx",
+        file_type="xlsx",
+        source=modified,
+        decisions={},
+        commit_token="offers-new-bank",
+        auto_create_banks=True,
+    )
+    bank = next(iter(uow.commissions.banks.values()))
+    assert bank.name == "Akbank"
+    offer = uow.offers.get(offer_id)
+    assert isinstance(offer, Offer)
+    assert offer.bank_id == bank.id
+
 
 
 def _fixture() -> tuple[FakeUnitOfWork, uuid.UUID]:

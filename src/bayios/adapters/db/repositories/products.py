@@ -193,6 +193,30 @@ class SqlAlchemyProductRepository:
         self._session.add(category)
         self._session.flush()
 
+    def category_usage_counts(self) -> dict[uuid.UUID, int]:
+        rows = self._session.execute(
+            sa.select(Product.category_id, sa.func.count())
+            .where(Product.category_id.is_not(None))
+            .group_by(Product.category_id)
+        ).all()
+        return {category_id: count for category_id, count in rows}
+
+    def reassign_category(
+        self, source_id: uuid.UUID, target_id: uuid.UUID
+    ) -> None:
+        self._session.execute(
+            sa.update(Product)
+            .where(Product.category_id == source_id)
+            .values(category_id=target_id)
+        )
+        self._session.flush()
+
+    def delete_category(self, category_id: uuid.UUID) -> None:
+        category = self._session.get(ProductCategory, category_id)
+        if category is not None:
+            self._session.delete(category)
+            self._session.flush()
+
     def get_price_history(self, product_id: uuid.UUID) -> Sequence[ProductPriceHistory]:
         return self._session.scalars(
             sa.select(ProductPriceHistory)

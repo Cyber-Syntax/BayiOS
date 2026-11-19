@@ -15,6 +15,7 @@ from bayios.adapters.db.models.commissions import (
     CommissionRate,
     ProfitTarget,
 )
+from bayios.adapters.db.models.offers import Offer
 from bayios.adapters.db.models.products import ProductCategory
 
 
@@ -191,5 +192,137 @@ class SqlAlchemyCommissionRepository:
             sa.update(ProductCategory)
             .where(ProductCategory.id == category_id)
             .values(commission_group=commission_group)
+        )
+        self._session.flush()
+
+    def bank_usage_counts(self) -> dict[uuid.UUID, tuple[int, int]]:
+        rate_rows = self._session.execute(
+            sa.select(CommissionRate.bank_id, sa.func.count())
+            .where(CommissionRate.bank_id.is_not(None))
+            .group_by(CommissionRate.bank_id)
+        ).all()
+        limit_rows = self._session.execute(
+            sa.select(CommissionLimit.bank_id, sa.func.count())
+            .where(CommissionLimit.bank_id.is_not(None))
+            .group_by(CommissionLimit.bank_id)
+        ).all()
+        counts: dict[uuid.UUID, tuple[int, int]] = {}
+        for bank_id, count in rate_rows:
+            counts[bank_id] = (count, 0)
+        for bank_id, count in limit_rows:
+            rates, _limits = counts.get(bank_id, (0, 0))
+            counts[bank_id] = (rates, count)
+        return counts
+
+    def category_limit_counts(self) -> dict[uuid.UUID, int]:
+        rows = self._session.execute(
+            sa.select(CommissionLimit.category_id, sa.func.count())
+            .where(CommissionLimit.category_id.is_not(None))
+            .group_by(CommissionLimit.category_id)
+        ).all()
+        return {category_id: count for category_id, count in rows}
+
+    def merge_bank_rates_limits(
+        self, source_id: uuid.UUID, target_id: uuid.UUID
+    ) -> None:
+        rates = self._session.scalars(
+            sa.select(CommissionRate).where(
+                CommissionRate.bank_id == source_id
+            )
+        ).all()
+        for rate in rates:
+            new_scope = "|".join(
+                (
+                    rate.channel,
+                    str(target_id),
+                    rate.product_group or "-",
+                    rate.amount_tier or "-",
+                    str(rate.installment_count),
+                )
+            )
+            conflict = self._session.scalar(
+                sa.select(CommissionRate.id).where(
+                    CommissionRate.period_id == rate.period_id,
+                    CommissionRate.scope_key == new_scope,
+                )
+            )
+            if conflict is not None:
+                self._session.delete(rate)
+                continue
+            rate.bank_id = target_id
+            rate.scope_key = new_scope
+
+        limits = self._session.scalars(
+            sa.select(CommissionLimit).where(
+                CommissionLimit.bank_id == source_id
+            )
+        ).all()
+        for limit in limits:
+            new_scope = "|".join(
+                (
+                    limit.channel or "-",
+                    str(target_id),
+                    limit.product_group or "-",
+                    str(limit.category_id) if limit.category_id else "-",
+                    limit.card_type or "-",
+                )
+            )
+            conflict = self._session.scalar(
+                sa.select(CommissionLimit.id).where(
+                    CommissionLimit.period_id == limit.period_id,
+                    CommissionLimit.scope_key == new_scope,
+                )
+            )
+            if conflict is not None:
+                self._session.delete(limit)
+                continue
+            limit.bank_id = target_id
+            limit.scope_key = new_scope
+        self._session.flush()
+
+    def merge_category_limits(
+        self, source_id: uuid.UUID, target_id: uuid.UUID
+    ) -> None:
+        limits = self._session.scalars(
+            sa.select(CommissionLimit).where(
+                CommissionLimit.category_id == source_id
+            )
+        ).all()
+        for limit in limits:
+            new_scope = "|".join(
+                (
+                    limit.channel or "-",
+                    limit.bank_id and str(limit.bank_id) or "-",
+                    limit.product_group or "-",
+                    str(target_id),
+                    limit.card_type or "-",
+                )
+            )
+            conflict = self._session.scalar(
+                sa.select(CommissionLimit.id).where(
+                    CommissionLimit.period_id == limit.period_id,
+                    CommissionLimit.scope_key == new_scope,
+                )
+            )
+            if conflict is not None:
+                self._session.delete(limit)
+                continue
+            limit.category_id = target_id
+            limit.scope_key = new_scope
+        self._session.flush()
+
+    def delete_bank(self, bank_id: uuid.UUID) -> None:
+        bank = self._session.get(Bank, bank_id)
+        if bank is not None:
+            self._session.delete(bank)
+            self._session.flush()
+
+    def repoint_offers_bank(
+        self, source_id: uuid.UUID, target_id: uuid.UUID
+    ) -> None:
+        self._session.execute(
+            sa.update(Offer)
+            .where(Offer.bank_id == source_id)
+            .values(bank_id=target_id)
         )
         self._session.flush()

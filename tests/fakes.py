@@ -199,6 +199,23 @@ class FakeProductRepository:
             None,
         )
 
+    def category_usage_counts(self) -> dict[uuid.UUID, int]:
+        counts: dict[uuid.UUID, int] = {}
+        for product in self.products.values():
+            if product.category_id is not None:
+                counts[product.category_id] = counts.get(product.category_id, 0) + 1
+        return counts
+
+    def reassign_category(
+        self, source_id: uuid.UUID, target_id: uuid.UUID
+    ) -> None:
+        for product in self.products.values():
+            if product.category_id == source_id:
+                product.category_id = target_id
+
+    def delete_category(self, category_id: uuid.UUID) -> None:
+        self.categories.pop(category_id, None)
+
     def add_category(self, category: ProductCategory) -> None:
         self.categories[category.id] = category
 
@@ -843,6 +860,128 @@ class FakeCommissionRepository:
     ) -> None:
         return None
 
+    def bank_usage_counts(self) -> dict[uuid.UUID, tuple[int, int]]:
+        counts: dict[uuid.UUID, tuple[int, int]] = {}
+        for bucket in self.rates.values():
+            for rate in bucket:
+                if rate.bank_id is not None:
+                    rates, limits = counts.get(rate.bank_id, (0, 0))
+                    counts[rate.bank_id] = (rates + 1, limits)
+        for bucket in self.limits.values():
+            for limit in bucket:
+                if limit.bank_id is not None:
+                    rates, limits = counts.get(limit.bank_id, (0, 0))
+                    counts[limit.bank_id] = (rates, limits + 1)
+        return counts
+
+    def category_limit_counts(self) -> dict[uuid.UUID, int]:
+        counts: dict[uuid.UUID, int] = {}
+        for bucket in self.limits.values():
+            for limit in bucket:
+                if limit.category_id is not None:
+                    counts[limit.category_id] = counts.get(limit.category_id, 0) + 1
+        return counts
+
+    def merge_bank_rates_limits(
+        self, source_id: uuid.UUID, target_id: uuid.UUID
+    ) -> None:
+        for period_id, bucket in self.rates.items():
+            kept = []
+            for rate in bucket:
+                if rate.bank_id != source_id:
+                    kept.append(rate)
+                    continue
+                new_scope = "|".join(
+                    (
+                        rate.channel,
+                        str(target_id),
+                        rate.product_group or "-",
+                        rate.amount_tier or "-",
+                        str(rate.installment_count),
+                    )
+                )
+                conflict = any(
+                    other.scope_key == new_scope and other.period_id == period_id
+                    for other in bucket
+                    if other is not rate
+                )
+                if conflict:
+                    continue
+                rate.bank_id = target_id
+                rate.scope_key = new_scope
+                kept.append(rate)
+            self.rates[period_id] = kept
+
+        for period_id, bucket in self.limits.items():
+            kept = []
+            for limit in bucket:
+                if limit.bank_id != source_id:
+                    kept.append(limit)
+                    continue
+                new_scope = "|".join(
+                    (
+                        limit.channel or "-",
+                        str(target_id),
+                        limit.product_group or "-",
+                        str(limit.category_id) if limit.category_id else "-",
+                        limit.card_type or "-",
+                    )
+                )
+                conflict = any(
+                    other.scope_key == new_scope and other.period_id == period_id
+                    for other in bucket
+                    if other is not limit
+                )
+                if conflict:
+                    continue
+                limit.bank_id = target_id
+                limit.scope_key = new_scope
+                kept.append(limit)
+            self.limits[period_id] = kept
+
+    def merge_category_limits(
+        self, source_id: uuid.UUID, target_id: uuid.UUID
+    ) -> None:
+        for period_id, bucket in self.limits.items():
+            kept = []
+            for limit in bucket:
+                if limit.category_id != source_id:
+                    kept.append(limit)
+                    continue
+                new_scope = "|".join(
+                    (
+                        limit.channel or "-",
+                        str(limit.bank_id) if limit.bank_id else "-",
+                        limit.product_group or "-",
+                        str(target_id),
+                        limit.card_type or "-",
+                    )
+                )
+                conflict = any(
+                    other.scope_key == new_scope and other.period_id == period_id
+                    for other in bucket
+                    if other is not limit
+                )
+                if conflict:
+                    continue
+                limit.category_id = target_id
+                limit.scope_key = new_scope
+                kept.append(limit)
+            self.limits[period_id] = kept
+
+    def repoint_offers_bank(
+        self, source_id: uuid.UUID, target_id: uuid.UUID
+    ) -> None:
+        offers = getattr(self, "offers", None)
+        if offers is None:
+            return
+        for offer in offers.offers.values():
+            if getattr(offer, "bank_id", None) == source_id:
+                offer.bank_id = target_id
+
+    def delete_bank(self, bank_id: uuid.UUID) -> None:
+        self.banks.pop(bank_id, None)
+
 
 class FakeOfferRepository:
     def __init__(self) -> None:
@@ -861,6 +1000,13 @@ class FakeOfferRepository:
     def add_items(self, items) -> None:
         for item in items:
             self.items.setdefault(item.offer_id, []).append(item)
+
+    def count_by_bank(self, bank_id: uuid.UUID) -> int:
+        return sum(
+            1
+            for offer in self.offers.values()
+            if getattr(offer, "bank_id", None) == bank_id
+        )
 
     def get(self, offer_id: uuid.UUID):
         return self.offers.get(offer_id)
@@ -953,6 +1099,7 @@ class FakeUnitOfWork:
         self.dealer_pricing = FakeDealerPricingRepository()
         self.commissions = FakeCommissionRepository()
         self.offers = FakeOfferRepository()
+        self.commissions.offers = self.offers
         self.import_batches = FakeImportBatchRepository()
         self.committed = False
         self.rolled_back = False

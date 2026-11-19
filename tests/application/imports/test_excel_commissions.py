@@ -19,6 +19,33 @@ from bayios.application.imports.commissions import (
 from tests.fakes import FakeUnitOfWork
 
 
+def test_commission_rate_import_creates_missing_bank() -> None:
+    uow = FakeUnitOfWork()
+    data = _workbook(
+        ["Dönem", "Kanal", "Banka", "Ürün Grubu", "Ödero Bandı", "Taksit", "Oran %"],
+        [["2026-11", "POS", "AKBANK", "Klima", "", 3, 2.5]],
+        "Komisyon Oranları",
+    )
+    preview = preview_commission_rates(uow, data)
+    assert not preview.rows[0].errors
+    assert "yeni" in preview.rows[0].values["bank"].lower()
+
+    commit_commission_rates(
+        uow,
+        file_name="oranlar.xlsx",
+        file_type="xlsx",
+        source=data,
+        decisions={},
+        commit_token="rates-new-bank",
+    )
+
+    bank = next(iter(uow.commissions.banks.values()))
+    assert bank.name == "Akbank"
+    period = next(iter(uow.commissions.periods.values()))
+    assert uow.commissions.rates[period.id][0].bank_id == bank.id
+
+
+
 def test_commission_rate_import_allows_bankless_general_rate() -> None:
     uow = FakeUnitOfWork()
     data = _workbook(

@@ -69,6 +69,16 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 - Aynı `scope_key` varsa güncellenir; yoksa eklenir. Dosyada olmayan satırlar silinmez.
 - Banka adı normalize edilerek bulunur; bilinmeyen banka hata verir. Banka tüm kanallarda isteğe bağlıdır; boş = genel.
 - Ödero bandı yalnız Ödero + Diğer grubunda kullanılır; Klima'da boş bırakılır. Kategori limiti bankasız olmalıdır.
+- Komisyon oran/limit importunda bilinmeyen banka önizlemede "yeni" olarak gösterilir ve commit'te oluşturulur (varsayılan açık). Teklif importunda bilinmeyen banka hata verir; "Bilinmeyen bankaları otomatik oluştur" onay kutusu açıkça seçilirse oluşturulur.
+
+## Ayarlar
+
+**Bankalar:** `Banka, Aktif`
+
+**Kategoriler:** `Kategori, Komisyon Grubu`
+
+- Ayarlar'dan tekli/toplu ekleme, yeniden adlandırma, pasifleştirme (banka), komisyon grubu değiştirme (kategori), birleştirme ve yalnız kullanılmayan kaydı silme yapılır.
+- Banka/kategori Excel importu ada göre normalize eder; mevcut kaydı günceller, yenisini oluşturur.
 
 ## Rezervasyonlar
 

@@ -107,6 +107,16 @@ class SqlAlchemyOfferRepository:
             .order_by(OfferHistory.changed_at.desc())
         ).all()
 
+    def count_by_bank(self, bank_id: uuid.UUID) -> int:
+        return int(
+            self._session.scalar(
+                sa.select(sa.func.count())
+                .select_from(Offer)
+                .where(Offer.bank_id == bank_id)
+            )
+            or 0
+        )
+
     def find_by_converted_reservation(
         self, reservation_id: uuid.UUID
     ) -> Offer | None:
