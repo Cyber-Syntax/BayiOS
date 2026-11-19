@@ -53,9 +53,15 @@ OFFER_HEADERS = {
     "installment_count": ("Taksit", "Taksit Sayısı", "installment_count"),
     "card_type": ("Kart Tipi", "Kart Tipi", "card_type"),
     "dealer_discount_percent": (
+        "Kart Bayi İndirimi %",
         "Bayi İndirimi %",
         "Bayi Indirimi",
         "dealer_discount_percent",
+    ),
+    "dealer_discount_cash_percent": (
+        "Nakit Bayi İndirimi %",
+        "Nakit Bayi Indirimi",
+        "dealer_discount_cash_percent",
     ),
     "note": ("Not", "note"),
     "product_name": ("Ürün Adı", "Urun Adi", "product_name"),
@@ -375,7 +381,21 @@ def _parse_offers(
                 errors.append(str(exc))
                 discount = Decimal(10)
             if not (Decimal(0) <= discount <= Decimal(100)):
-                errors.append("Bayi indirimi %0 ile %100 arasında olmalıdır.")
+                errors.append("Kart bayi indirimi %0 ile %100 arasında olmalıdır.")
+            try:
+                cash_discount = parse_decimal(
+                    row_value(
+                        raw, offer_layout, "dealer_discount_cash_percent"
+                    ),
+                    "Nakit bayi indirimi",
+                ) or discount
+            except ValueError as exc:
+                errors.append(str(exc))
+                cash_discount = discount
+            if not (Decimal(0) <= cash_discount <= Decimal(100)):
+                errors.append(
+                    "Nakit bayi indirimi %0 ile %100 arasında olmalıdır."
+                )
             bank_name = str(row_value(raw, offer_layout, "bank") or "").strip()
             normalized_bank = normalize_name(bank_name) if bank_name else ""
             bank = (
@@ -486,6 +506,7 @@ def _parse_offers(
                 or None,
                 payment_type=payment_type,
                 dealer_discount_percent=discount,
+                dealer_discount_cash_percent=cash_discount,
                 items=tuple(offer_items),
                 channel=channel,
                 bank_id=bank.id if bank is not None else None,

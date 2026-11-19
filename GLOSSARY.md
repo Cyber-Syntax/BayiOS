@@ -21,8 +21,16 @@ The product-specific minimum cash or card sale price for the dealer, stored and 
 _Avoid_: Campaign price, offer price
 
 **Dealer discount setting**:
-The global default dealer discount percentage used by the campaign guide, defaulting to 10% and retaining a history of changes. It is a suggestion; a worker may override it per scenario.
+The global default dealer discount percentage used by the campaign guide and as the initial card/cash discount on a new offer, defaulting to 10% and retaining a history of changes. A worker may override the card and cash rates separately per offer.
 _Avoid_: Fixed dealer rate, commission rate
+
+**Card dealer discount**:
+The per-offer percentage deducted from the company base price to derive the suggested card price. The worker may override both the percentage and the final card unit price.
+_Avoid_: Commission rate, cash discount
+
+**Cash dealer discount**:
+The per-offer percentage deducted from the company base price to derive the suggested cash price. It is independent of the card dealer discount and may differ from it.
+_Avoid_: Commission rate, card discount
 
 **Commission period**:
 A monthly, effective-dated set of card commission rates and installment limits. A new period is normally copied from the previous month; past periods are immutable and offers keep their own commission snapshot.
@@ -45,8 +53,12 @@ The maximum number of installments for a scope (channel, bank, product group, ca
 _Avoid_: Hard-coded cap, TV limit
 
 **Offer snapshot**:
-The immutable record of product prices, selected campaign version, dealer discount, bank name, commission rate and final offer lines captured when an offer is created or updated.
+The immutable record of product prices, selected campaign version, card and cash dealer discounts, bank name, commission rate and final offer lines captured when an offer is created or updated.
 _Avoid_: Live offer recalculation, current price view
+
+**Commission base**:
+The amount used to select the card commission band, equal to the customer's final card total (`card_total`). It is not the pre-discount company base price and is never the cash total.
+_Avoid_: Base price total, cash total
 
 **Customer**:
 A person or organization receiving an offer or delivery, identified by name and optionally by phone number.

@@ -55,13 +55,19 @@
       <button class="btn btn-danger" type="submit">Teslim Et (Hızlı Sat)</button>
     </form>
     {% endif %}
+    <form method="post" action="/offers/{{ offer.id }}/delete"
+          onsubmit="return confirm('{% if offer.converted_reservation_id %}Bu teklif rezervasyona dönüşmüş. Teklif silinecek, bağlı rezervasyon KORUNACAK. Devam edilsin mi?{% else %}Teklif kalıcı olarak silinecek. Emin misiniz?{% endif %}') && confirm('Son onay: teklif, satırları ve durum geçmişi silinecek. Geri alınamaz.');">
+      <input type="hidden" name="confirm" value="1">
+      <button class="btn btn-danger" type="submit">Teklifi Sil</button>
+    </form>
   </div>
 </div>
 
 <div class="grid-stats">
   <div class="stat-box"><div class="stat-label">Müşteri</div><div class="stat-value" style="font-size: 1rem;">{{ offer.customer_name or '—' }}{% if offer.customer_phone %}<br><small class="muted">{{ offer.customer_phone }}</small>{% endif %}</div></div>
   <div class="stat-box"><div class="stat-label">Ödeme</div><div class="stat-value" style="font-size: 1rem;">{{ payment_labels.get(offer.payment_type, offer.payment_type) }}{% if offer.channel %}<br><small class="muted">{{ channel_labels.get(offer.channel, offer.channel) }}{% if offer.bank_name_snapshot %} · {{ offer.bank_name_snapshot }}{% endif %}{% if offer.installment_count %} · {{ offer.installment_count }} taksit{% endif %}{% if offer.card_type %} · {{ card_labels.get(offer.card_type, offer.card_type) }}{% endif %}</small>{% endif %}</div></div>
-  <div class="stat-box"><div class="stat-label">Bayi İndirimi</div><div class="stat-value">{{ offer.dealer_discount_percent | tr_percent }}</div></div>
+  <div class="stat-box"><div class="stat-label">Kart İndirimi</div><div class="stat-value">{{ offer.dealer_discount_percent | tr_percent }}</div></div>
+  <div class="stat-box"><div class="stat-label">Nakit İndirimi</div><div class="stat-value">{{ offer.dealer_discount_cash_percent | tr_percent }}</div></div>
   <div class="stat-box"><div class="stat-label">Komisyon</div><div class="stat-value" style="font-size: 1.1rem;">{% if offer.commission_percent_snapshot is not none %}{{ offer.commission_percent_snapshot | tr_percent }}{% else %}—{% endif %}</div></div>
   <div class="stat-box"><div class="stat-label">Nakit Toplam</div><div class="stat-value">{{ offer.cash_total | tr_money }} TL</div></div>
   <div class="stat-box"><div class="stat-label">Kart Toplam</div><div class="stat-value">{{ offer.card_total | tr_money }} TL</div></div>

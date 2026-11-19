@@ -43,6 +43,11 @@ class Offer(Base):
             name="dealer_discount_range",
         ),
         sa.CheckConstraint(
+            "dealer_discount_cash_percent >= 0 "
+            "AND dealer_discount_cash_percent <= 100",
+            name="dealer_discount_cash_range",
+        ),
+        sa.CheckConstraint(
             "commission_percent_snapshot IS NULL "
             "OR (commission_percent_snapshot >= 0 AND commission_percent_snapshot <= 100)",
             name="commission_percent_range",
@@ -92,6 +97,9 @@ class Offer(Base):
     dealer_discount_percent: Mapped[Decimal] = mapped_column(
         PERCENT, server_default=sa.text("10.00")
     )
+    dealer_discount_cash_percent: Mapped[Decimal] = mapped_column(
+        PERCENT, server_default=sa.text("10.00")
+    )
     commission_period_id: Mapped[uuid.UUID | None] = mapped_column(
         sa.ForeignKey("commission_periods.id", ondelete="SET NULL")
     )
@@ -138,6 +146,11 @@ class OfferItem(Base):
             name="dealer_discount_range",
         ),
         sa.CheckConstraint(
+            "dealer_discount_cash_percent >= 0 "
+            "AND dealer_discount_cash_percent <= 100",
+            name="dealer_discount_cash_range",
+        ),
+        sa.CheckConstraint(
             "regular_price_snapshot IS NULL OR regular_price_snapshot >= 0",
             name="regular_price_non_negative",
         ),
@@ -181,6 +194,9 @@ class OfferItem(Base):
     campaign_gift_present: Mapped[bool | None] = mapped_column(sa.Boolean)
     base_price_used: Mapped[Decimal | None] = mapped_column(MONEY)
     dealer_discount_percent: Mapped[Decimal] = mapped_column(PERCENT)
+    dealer_discount_cash_percent: Mapped[Decimal] = mapped_column(
+        PERCENT, server_default=sa.text("10.00")
+    )
     suggested_cash_price: Mapped[Decimal | None] = mapped_column(MONEY)
     suggested_card_price: Mapped[Decimal | None] = mapped_column(MONEY)
     unit_price_cash: Mapped[Decimal | None] = mapped_column(MONEY)

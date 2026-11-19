@@ -11,13 +11,14 @@
 
   {% if error %}<div class="alert alert-danger"><span><strong>Kaydedilemedi:</strong> {{ error }}</span></div>{% endif %}
 
-  <form method="post" action="{% if offer_id %}/offers/{{ offer_id }}/edit{% else %}/offers{% endif %}">
+  <form id="offer-form" method="post" action="{% if offer_id %}/offers/{{ offer_id }}/edit{% else %}/offers{% endif %}">
     <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .75rem;">
         <div class="form-group" style="margin-bottom: 0;"><label for="offer-customer">Müşteri Adı</label><input type="text" id="offer-customer" name="customer_name" class="form-control" value="{{ values.customer_name }}"></div>
         <div class="form-group" style="margin-bottom: 0;"><label for="offer-phone">Telefon</label><input type="text" id="offer-phone" name="customer_phone" class="form-control" value="{{ values.customer_phone }}"></div>
         <div class="form-group" style="margin-bottom: 0;"><label for="offer-payment">Ödeme Tipi</label><select id="offer-payment" name="payment_type" class="form-control" x-model="paymentType"><option value="cash" {% if values.payment_type == 'cash' %}selected{% endif %}>Nakit</option><option value="card" {% if values.payment_type == 'card' %}selected{% endif %}>Kart</option></select></div>
-        <div class="form-group" style="margin-bottom: 0;"><label for="offer-discount">Bayi İndirimi (%)</label><input type="text" id="offer-discount" name="dealer_discount_percent" class="form-control" value="{{ values.dealer_discount_percent }}"></div>
+        <div class="form-group" style="margin-bottom: 0;"><label for="offer-discount">Kart Bayi İndirimi (%)</label><input type="number" id="offer-discount" name="dealer_discount_percent" class="form-control" min="0" max="100" step="0.01" inputmode="decimal" value="{{ values.dealer_discount_percent }}"></div>
+        <div class="form-group" style="margin-bottom: 0;"><label for="offer-cash-discount">Nakit Bayi İndirimi (%)</label><input type="number" id="offer-cash-discount" name="dealer_discount_cash_percent" class="form-control" min="0" max="100" step="0.01" inputmode="decimal" value="{{ values.dealer_discount_cash_percent }}"></div>
       </div>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: .75rem; margin-top: .75rem;" x-show="paymentType === 'card'">
         <div class="form-group" style="margin-bottom: 0;"><label for="offer-channel">Kanal</label><select id="offer-channel" name="channel" class="form-control"><option value="">—</option>{% for value, label in channel_options %}<option value="{{ value }}" {% if values.channel == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
@@ -67,6 +68,16 @@
       <div id="offer-picker" style="margin-top: .75rem;">{% include "offers/_picker.html" %}</div>
     </div>
 
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+      <button type="button" class="btn btn-primary"
+              hx-post="/offers/compare"
+              hx-include="#offer-form"
+              hx-target="#offer-comparison"
+              hx-swap="innerHTML">Taksit Seçeneklerini Gör</button>
+      <span class="muted" style="font-size: .8rem;">Tüm banka, kanal ve taksit seçeneklerini kâr/zararla karşılaştırır.</span>
+    </div>
+    <div id="offer-comparison"></div>
+
     <div style="display: flex; justify-content: flex-end; gap: .5rem;">
       <a href="/offers" class="btn">Vazgeç</a>
       <button type="submit" class="btn btn-primary">{% if offer_id %}Kaydet{% else %}Teklif Oluştur{% endif %}</button>
@@ -74,6 +85,31 @@
   </form>
 </div>
 <script>
+  function applyOfferOption(button) {
+    const form = document.getElementById('offer-form');
+    if (!form) return;
+    const payment = form.querySelector('[name="payment_type"]');
+    payment.value = button.dataset.payment;
+    payment.dispatchEvent(new Event('change', { bubbles: true }));
+    if (button.dataset.payment === 'card') {
+      const fields = {
+        channel: button.dataset.channel,
+        bank_id: button.dataset.bankId,
+        installment_count: button.dataset.installment,
+        card_type: button.dataset.cardType,
+      };
+      Object.entries(fields).forEach(([name, value]) => {
+        const input = form.querySelector('[name="' + name + '"]');
+        if (input) {
+          input.value = value || '';
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+    }
+    const target = document.getElementById('offer-comparison');
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function offerBuilder(initialItems) {
     return {
       items: initialItems.map((item, index) => ({

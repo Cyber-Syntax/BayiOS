@@ -8,7 +8,11 @@ from enum import StrEnum
 
 from bayios.adapters.db.models.offers import Offer, OfferHistory, OfferItem
 from bayios.application.campaigns import _contract_from_row
-from bayios.application.commissions import resolve_commission
+from bayios.application.commissions import (
+    _domain_limits,
+    _domain_rates,
+    resolve_commission,
+)
 from bayios.application.errors import NotFoundError, ValidationError
 from bayios.application.ports.unit_of_work import UnitOfWork
 from bayios.application.reservations import (
@@ -18,10 +22,13 @@ from bayios.application.reservations import (
 )
 from bayios.domain.campaigns import CampaignPriceInput, campaign_scenarios
 from bayios.domain.commissions import (
+    CHANNEL_LABELS,
     CardType,
     PaymentChannel,
     ProductCommissionGroup,
     ProfitTargetType,
+    effective_max_installments,
+    matching_commission_rate,
     quantize_money,
 )
 from bayios.domain.offers import (
@@ -64,6 +71,7 @@ class OfferInput:
     installment_count: int | None = None
     card_type: CardType | None = None
     note: str | None = None
+    dealer_discount_cash_percent: Decimal = Decimal(10)
 
 
 @dataclass(frozen=True)
@@ -302,10 +310,348 @@ class _PreparedItem:
     layers: OfferPriceLayers
     pricing: object
     dealer_discount: Decimal
+    dealer_discount_cash: Decimal
     product_group: ProductCommissionGroup
     category_id: uuid.UUID | None = None
     campaign_version_id: uuid.UUID | None = None
     campaign_snapshot: dict[str, object] | None = None
+
+
+def _estimate_card_total(prepared: list[_PreparedItem]) -> Decimal:
+    total = Decimal(0)
+    for item in prepared:
+        unit = item.input.unit_price_card
+        if unit is None and item.layers.base_price is not None:
+            unit = (
+                item.layers.base_price
+                * (Decimal(100) - item.dealer_discount)
+                / Decimal(100)
+            )
+        if unit is None:
+            continue
+        total += quantize_money(unit) * item.input.quantity
+    return quantize_money(total)
+
+
+@dataclass(frozen=True)
+class _ComparisonItem:
+    sale_card: Decimal
+    sale_cash: Decimal
+    quantity: int
+    cost: Decimal | None
+    campaign_snapshot: dict[str, object] | None
+    regular_price: Decimal | None
+    website_price: Decimal | None
+    product_group: ProductCommissionGroup
+
+
+@dataclass(frozen=True)
+class OfferComparisonOption:
+    payment_type: str
+    channel: str | None
+    channel_label: str
+    bank_id: uuid.UUID | None
+    bank_name: str
+    installment_count: int
+    commission_percent: Decimal
+    commission_source: str
+    card_total: Decimal
+    cash_total: Decimal
+    monthly_payment: Decimal | None
+    net_after_commission: Decimal
+    campaign_share: Decimal
+    oliz_share: Decimal
+    total_revenue: Decimal
+    cost: Decimal
+    profit: Decimal | None
+    margin_percent: Decimal | None
+    has_missing_cost: bool
+
+
+@dataclass(frozen=True)
+class OfferComparison:
+    cash: OfferComparisonOption
+    options: tuple[OfferComparisonOption, ...]
+    card_total: Decimal
+    cash_total: Decimal
+    card_type: str
+    has_missing_cost: bool
+
+
+def _campaign_share_snapshot(
+    snapshot: dict[str, object] | None,
+    sale_price: Decimal,
+    regular_price: Decimal | None,
+    share_percent: Decimal,
+) -> Decimal:
+    if not snapshot:
+        return Decimal(0)
+    discount_type = snapshot.get("discount_type")
+    raw_value = snapshot.get("discount_value")
+    if not discount_type or raw_value is None:
+        return Decimal(0)
+    value = Decimal(str(raw_value))
+    if discount_type == "percent":
+        discount = sale_price * value / Decimal(100)
+    elif discount_type == "fixed_amount":
+        discount = min(value, sale_price)
+    elif discount_type == "special_price":
+        base = regular_price or sale_price
+        discount = max(Decimal(0), base - value)
+    else:
+        discount = Decimal(0)
+    return quantize_money(discount * share_percent / Decimal(100))
+
+
+def _oliz_share_snapshot(
+    snapshot: dict[str, object] | None,
+    regular_price: Decimal | None,
+    website_price: Decimal | None,
+    share_percent: Decimal,
+) -> Decimal:
+    if snapshot:
+        return Decimal(0)
+    if regular_price is None or website_price is None:
+        return Decimal(0)
+    if regular_price <= website_price:
+        return Decimal(0)
+    return quantize_money(
+        (regular_price - website_price) * share_percent / Decimal(100)
+    )
+
+
+def _option_profit(
+    items: tuple[_ComparisonItem, ...],
+    *,
+    commission_percent: Decimal,
+    share_percent: Decimal,
+    sale_attr: str,
+) -> tuple[Decimal, Decimal, Decimal, Decimal, Decimal | None, bool]:
+    net_total = Decimal(0)
+    campaign_total = Decimal(0)
+    oliz_total = Decimal(0)
+    revenue_total = Decimal(0)
+    cost_total = Decimal(0)
+    has_missing_cost = False
+    for item in items:
+        sale = getattr(item, sale_attr)
+        net = quantize_money(
+            sale * (Decimal(100) - commission_percent) / Decimal(100)
+        )
+        campaign = _campaign_share_snapshot(
+            item.campaign_snapshot,
+            sale,
+            item.regular_price,
+            share_percent,
+        )
+        oliz = _oliz_share_snapshot(
+            item.campaign_snapshot,
+            item.regular_price,
+            item.website_price,
+            share_percent,
+        )
+        revenue = quantize_money(net + campaign + oliz)
+        net_total += net * item.quantity
+        campaign_total += campaign * item.quantity
+        oliz_total += oliz * item.quantity
+        revenue_total += revenue * item.quantity
+        if item.cost is None:
+            has_missing_cost = True
+        else:
+            cost_total += item.cost * item.quantity
+    if has_missing_cost:
+        profit = None
+    else:
+        profit = quantize_money(revenue_total - cost_total)
+    return (
+        quantize_money(net_total),
+        quantize_money(campaign_total),
+        quantize_money(oliz_total),
+        quantize_money(revenue_total),
+        cost_total,
+        profit,
+        has_missing_cost,
+    )
+
+
+def _comparison_row(
+    items: tuple[_ComparisonItem, ...],
+    *,
+    payment_type: str,
+    channel: PaymentChannel | None,
+    bank: object | None,
+    installment_count: int,
+    commission_percent: Decimal,
+    commission_source: str,
+    card_total: Decimal,
+    cash_total: Decimal,
+    share_percent: Decimal,
+) -> OfferComparisonOption:
+    sale_attr = "sale_cash" if payment_type == PaymentType.CASH.value else "sale_card"
+    (
+        net_total,
+        campaign_total,
+        oliz_total,
+        revenue_total,
+        cost_total,
+        profit,
+        missing,
+    ) = _option_profit(
+        items,
+        commission_percent=commission_percent,
+        share_percent=share_percent,
+        sale_attr=sale_attr,
+    )
+    margin = (
+        quantize_money(profit / revenue_total * Decimal(100))
+        if profit is not None and revenue_total
+        else None
+    )
+    return OfferComparisonOption(
+        payment_type=payment_type,
+        channel=channel.value if channel else None,
+        channel_label=CHANNEL_LABELS.get(channel, "Nakit") if channel else "Nakit",
+        bank_id=getattr(bank, "id", None),
+        bank_name=getattr(bank, "name", "Genel (tüm bankalar)") if bank else "Genel (tüm bankalar)",
+        installment_count=installment_count,
+        commission_percent=commission_percent,
+        commission_source=commission_source,
+        card_total=card_total,
+        cash_total=cash_total,
+        monthly_payment=(
+            quantize_money(card_total / installment_count)
+            if payment_type == PaymentType.CARD.value and installment_count
+            else None
+        ),
+        net_after_commission=net_total,
+        campaign_share=campaign_total,
+        oliz_share=oliz_total,
+        total_revenue=revenue_total,
+        cost=quantize_money(cost_total),
+        profit=profit,
+        margin_percent=margin,
+        has_missing_cost=missing,
+    )
+
+
+def preview_offer_comparison(
+    uow: UnitOfWork, data: OfferInput
+) -> OfferComparison:
+    now = datetime.now(UTC)
+    with uow:
+        period = uow.commissions.get_active_period(now)
+        if period is None:
+            raise ValidationError("Aktif komisyon dönemi tanımlı değil.")
+        raw_rates = uow.commissions.get_rates(period.id)
+        raw_limits = uow.commissions.get_limits(period.id)
+        rates = _domain_rates(raw_rates)
+        limits = _domain_limits(raw_limits)
+        banks = list(uow.commissions.get_banks(active_only=True))
+        prepared = _prepare_items(uow, data)
+
+    if not prepared:
+        raise ValidationError("En az bir ürün satırı gereklidir.")
+
+    items = tuple(_comparison_item_from_prepared(item) for item in prepared)
+    card_total = sum((item.sale_card * item.quantity for item in items), Decimal(0))
+    cash_total = sum((item.sale_cash * item.quantity for item in items), Decimal(0))
+    card_total = quantize_money(card_total)
+    cash_total = quantize_money(cash_total)
+    share_percent = DEALER_SHARE_PERCENT
+    cash = _comparison_row(
+        items,
+        payment_type=PaymentType.CASH.value,
+        channel=None,
+        bank=None,
+        installment_count=0,
+        commission_percent=Decimal(0),
+        commission_source="none",
+        card_total=Decimal(0),
+        cash_total=cash_total,
+        share_percent=share_percent,
+    )
+    product_group = items[0].product_group
+    category_ids = [
+        str(item.category_id)
+        for item in prepared
+        if item.category_id is not None
+    ]
+    options: list[OfferComparisonOption] = []
+    for channel in PaymentChannel:
+        for bank in (None, *banks):
+            bank_id = str(bank.id) if bank is not None else None
+            maximum = effective_max_installments(
+                rates,
+                limits,
+                channel=channel,
+                bank_id=bank_id,
+                product_group=product_group,
+                card_type=data.card_type or CardType.CONSUMER,
+                total=card_total,
+                category_ids=category_ids,
+            )
+            for installment in range(1, maximum + 1):
+                rate = matching_commission_rate(
+                    rates,
+                    channel=channel,
+                    bank_id=bank_id,
+                    product_group=product_group,
+                    installment_count=installment,
+                    total=card_total,
+                )
+                if rate is None:
+                    continue
+                options.append(
+                    _comparison_row(
+                        items,
+                        payment_type=PaymentType.CARD.value,
+                        channel=channel,
+                        bank=bank,
+                        installment_count=installment,
+                        commission_percent=rate.commission_percent,
+                        commission_source=(
+                            "bank_specific" if rate.bank_id else "general"
+                        ),
+                        card_total=card_total,
+                        cash_total=Decimal(0),
+                        share_percent=share_percent,
+                    )
+                )
+    options.sort(
+        key=lambda row: (
+            row.channel or "",
+            row.bank_name,
+            row.installment_count,
+        )
+    )
+    return OfferComparison(
+        cash=cash,
+        options=tuple(options),
+        card_total=card_total,
+        cash_total=cash_total,
+        card_type=(data.card_type or CardType.CONSUMER).value,
+        has_missing_cost=any(item.cost is None for item in items),
+    )
+
+
+def _comparison_item_from_prepared(item: _PreparedItem) -> _ComparisonItem:
+    base = item.layers.base_price or Decimal(0)
+    card = item.input.unit_price_card
+    if card is None:
+        card = base * (Decimal(100) - item.dealer_discount) / Decimal(100)
+    cash = item.input.unit_price_cash
+    if cash is None:
+        cash = base * (Decimal(100) - item.dealer_discount_cash) / Decimal(100)
+    return _ComparisonItem(
+        sale_card=quantize_money(card),
+        sale_cash=quantize_money(cash),
+        quantity=item.input.quantity,
+        cost=item.layers.cost_price,
+        campaign_snapshot=item.campaign_snapshot,
+        regular_price=item.layers.regular_price,
+        website_price=item.layers.website_price,
+        product_group=item.product_group,
+    )
 
 
 def create_offer(
@@ -318,14 +664,15 @@ def create_offer(
     if not data.items:
         raise ValidationError("En az bir ürün satırı gereklidir.")
     if not (Decimal(0) <= data.dealer_discount_percent <= Decimal(100)):
-        raise ValidationError("Bayi indirimi %0 ile %100 arasında olmalıdır.")
+        raise ValidationError("Kart bayi indirimi %0 ile %100 arasında olmalıdır.")
+    if not (
+        Decimal(0) <= data.dealer_discount_cash_percent <= Decimal(100)
+    ):
+        raise ValidationError("Nakit bayi indirimi %0 ile %100 arasında olmalıdır.")
 
     with uow:
         prepared = _prepare_items(uow, data)
-        base_total = sum(
-            (item.layers.base_price or Decimal(0)) * item.input.quantity
-            for item in prepared
-        )
+        card_total_estimate = _estimate_card_total(prepared)
 
     commission_percent = Decimal(0)
     commission_source = "none"
@@ -347,7 +694,7 @@ def create_offer(
             product_group=prepared[0].product_group,
             card_type=data.card_type,
             installment_count=data.installment_count,
-            total=base_total,
+            total=card_total_estimate,
             category_ids=[
                 item.category_id
                 for item in prepared
@@ -385,6 +732,7 @@ def create_offer(
             installment_count=data.installment_count,
             card_type=data.card_type.value if data.card_type else None,
             dealer_discount_percent=data.dealer_discount_percent,
+            dealer_discount_cash_percent=data.dealer_discount_cash_percent,
             commission_period_id=period.id if period else None,
             commission_period_key_snapshot=period.period_key if period else None,
             commission_percent_snapshot=(
@@ -433,6 +781,12 @@ def update_offer(
 ) -> uuid.UUID:
     actor = actor or ActorContext()
     now = datetime.now(UTC)
+    if not (Decimal(0) <= data.dealer_discount_percent <= Decimal(100)):
+        raise ValidationError("Kart bayi indirimi %0 ile %100 arasında olmalıdır.")
+    if not (
+        Decimal(0) <= data.dealer_discount_cash_percent <= Decimal(100)
+    ):
+        raise ValidationError("Nakit bayi indirimi %0 ile %100 arasında olmalıdır.")
     with uow:
         offer = uow.offers.get_for_update(offer_id)
         if offer is None:
@@ -440,10 +794,7 @@ def update_offer(
         if offer.status != OfferStatus.DRAFT.value:
             raise ValidationError("Yalnızca taslak teklif düzenlenebilir.")
         prepared = _prepare_items(uow, data)
-        base_total = sum(
-            (item.layers.base_price or Decimal(0)) * item.input.quantity
-            for item in prepared
-        )
+        card_total_estimate = _estimate_card_total(prepared)
     commission_percent = Decimal(0)
     commission_source = "none"
     period = None
@@ -460,7 +811,7 @@ def update_offer(
             product_group=prepared[0].product_group,
             card_type=data.card_type,
             installment_count=data.installment_count,
-            total=base_total,
+            total=card_total_estimate,
             category_ids=[
                 item.category_id
                 for item in prepared
@@ -499,6 +850,7 @@ def update_offer(
         offer.installment_count = data.installment_count
         offer.card_type = data.card_type.value if data.card_type else None
         offer.dealer_discount_percent = data.dealer_discount_percent
+        offer.dealer_discount_cash_percent = data.dealer_discount_cash_percent
         offer.commission_period_id = period.id if period else None
         offer.commission_period_key_snapshot = period.period_key if period else None
         offer.commission_percent_snapshot = (
@@ -520,6 +872,15 @@ def update_offer(
         uow.offers.save(offer)
         uow.commit()
         return offer.id
+
+
+def delete_offer(uow: UnitOfWork, offer_id: uuid.UUID) -> None:
+    with uow:
+        offer = uow.offers.get_for_update(offer_id)
+        if offer is None:
+            raise NotFoundError("Teklif bulunamadı.")
+        uow.offers.delete(offer_id)
+        uow.commit()
 
 
 def get_offer_detail(uow: UnitOfWork, offer_id: uuid.UUID) -> OfferDetail | None:
@@ -842,6 +1203,7 @@ def _prepare_items(
                 layers=layers,
                 pricing=pricing,
                 dealer_discount=data.dealer_discount_percent,
+                dealer_discount_cash=data.dealer_discount_cash_percent,
                 product_group=product_group,
                 category_id=getattr(product, "category_id", None),
                 campaign_version_id=campaign_version_id,
@@ -921,6 +1283,7 @@ def _build_items(
             prepared_item.layers,
             quantity=prepared_item.input.quantity,
             dealer_discount_percent=prepared_item.dealer_discount,
+            dealer_discount_cash_percent=prepared_item.dealer_discount_cash,
             commission_percent=commission_percent,
             target_type=target_type,
             target_value=target_value,
@@ -946,6 +1309,7 @@ def _build_items(
                 campaign_gift_present=prepared_item.layers.campaign_gift_present,
                 base_price_used=quote.base_price,
                 dealer_discount_percent=prepared_item.dealer_discount,
+                dealer_discount_cash_percent=prepared_item.dealer_discount_cash,
                 suggested_cash_price=quote.suggested_cash_price,
                 suggested_card_price=quote.suggested_card_price,
                 unit_price_cash=quote.unit_price_cash,
@@ -971,6 +1335,7 @@ def _totals(
                 item.layers,
                 quantity=item.input.quantity,
                 dealer_discount_percent=item.dealer_discount,
+                dealer_discount_cash_percent=item.dealer_discount_cash,
                 commission_percent=commission_percent,
                 target_type=None,
                 target_value=None,

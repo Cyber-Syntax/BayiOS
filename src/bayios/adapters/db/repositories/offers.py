@@ -55,6 +55,12 @@ class SqlAlchemyOfferRepository:
             grouped.setdefault(row.offer_id, []).append(row)
         return grouped
 
+    def delete(self, offer_id: uuid.UUID) -> None:
+        offer = self._session.get(Offer, offer_id)
+        if offer is not None:
+            self._session.delete(offer)
+            self._session.flush()
+
     def delete_items(self, offer_id: uuid.UUID) -> None:
         self._session.execute(
             sa.delete(OfferItem).where(OfferItem.offer_id == offer_id)

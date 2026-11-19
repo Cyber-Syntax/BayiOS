@@ -1033,6 +1033,13 @@ class FakeOfferRepository:
             for offer_id in offer_ids
         }
 
+    def delete(self, offer_id: uuid.UUID) -> None:
+        self.offers.pop(offer_id, None)
+        self.items.pop(offer_id, None)
+        self.history = [
+            row for row in self.history if row.offer_id != offer_id
+        ]
+
     def delete_items(self, offer_id: uuid.UUID) -> None:
         self.items[offer_id] = []
 

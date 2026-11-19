@@ -227,7 +227,7 @@ en güvenilir yoldur.
 
 ### 5. Şemayı ileri yönlü migrate et
 
-Bu sürümde Alembic head **0014**'tür. `0013` bankasız komisyon/kategori limiti ve kanonik ad alanlarını, `0014` Klima Ödero bant muafiyeti ile Chippin banka bazlı satırları ekler. Migration'lar additive'dir; mevcut ürün, kampanya, teklif ve rezervasyon verileri silinmez.
+Bu sürümde Alembic head **0015**'tir. `0013` bankasız komisyon/kategori limiti ve kanonik ad alanlarını, `0014` Klima Ödero bant muafiyeti ile Chippin banka bazlı satırları, `0015` tekliflerde kart/nakit bayi indirimi alanlarını ekler. Migration'lar additive'dir; mevcut ürün, kampanya, teklif ve rezervasyon verileri silinmez.
 
 ```powershell
 podman-compose run --rm app alembic upgrade head
@@ -239,7 +239,7 @@ Migration'ın gerçekten uygulandığını kontrol et:
 podman-compose run --rm app alembic current
 ```
 
-Beklenen çıktı: `0014 (head)`
+Beklenen çıktı: `0015 (head)`
 
 ### 6. Uygulamayı yeni image ile yeniden başlat
 
@@ -264,7 +264,7 @@ curl.exe http://localhost:8000/health
 ```
 
 Beklenen: `status=ok`, `database=ok`, `migrations.status=ok` ve current
-migration `0014`. Migration `0014` görünmüyorsa 5. adımı tekrar çalıştır.
+migration `0015`. Migration `0015` görünmüyorsa 5. adımı tekrar çalıştır.
 
 Yeni tablonun varlığını doğrula:
 
@@ -296,7 +296,7 @@ podman-compose build app
 podman-compose up -d --force-recreate app
 ```
 
-- `0013`/`0014` additive migration'lardır; eski kod bu şemayla çalışmaya devam eder, migration'ı geri almak genelde gerekmez.
+- `0013`/`0014`/`0015` additive migration'lardır; eski kod bu şemayla çalışmaya devam eder, migration'ı geri almak genelde gerekmez.
 - Migration başarısız olduysa canlı DB üzerine doğrudan restore yapma. Önce [Restore tatbikatı](#6-restore-tatbikatı) bölümündeki scratch DB prosedürünü uygula, doğrula, sonra gerekirse kontrollü restore kararı ver.
 - `podman-compose down -v` kullanma; PostgreSQL volume'u silinir.
 
@@ -336,7 +336,7 @@ podman-compose up -d
 - Kampanya detayında ürün ilişkileri odaklı Excel dışa/içe aktarma.
 - Teklif detayında hızlı rezervasyon ve hızlı satış/teslim.
 - Yatay kaydırmalı tablolar için yapışkan scrollbar.
-- Alembic `0012_data_import_batches`, `0013_bank_optional_commissions` ve `0014_klima_tier_and_chippin_banks` migration'ları.
+- Alembic `0012_data_import_batches`, `0013_bank_optional_commissions`, `0014_klima_tier_and_chippin_banks` ve `0015_offer_card_cash_discounts` migration'ları.
 - Yeni environment değişkeni veya yeni Python bağımlılığı yok.
 
 ## 8. Sorun giderme

@@ -12,7 +12,14 @@
           <td><span class="badge {% if row.status == 'accepted' %}badge-success{% elif row.status == 'lost' or row.status == 'expired' %}badge-danger{% else %}badge-info{% endif %}">{{ status_labels.get(row.status, row.status) }}</span></td>
           <td>{{ payment_labels.get(row.payment_type, row.payment_type) }}</td>
           <td>{{ row.selected_total | tr_money }} TL</td>
-          <td class="col-actions"><a class="btn btn-sm" href="/offers/{{ row.id }}">Detay</a></td>
+          <td class="col-actions">
+            <a class="btn btn-sm" href="/offers/{{ row.id }}">Detay</a>
+            <form method="post" action="/offers/{{ row.id }}/delete" style="display: inline;"
+                  onsubmit="return confirm('Teklif kalıcı olarak silinecek. Emin misiniz?') && confirm('Son onay: teklif, satırları ve durum geçmişi silinecek. Geri alınamaz.');">
+              <input type="hidden" name="confirm" value="1">
+              <button class="btn btn-sm btn-danger" type="submit">Sil</button>
+            </form>
+          </td>
         </tr>
         {% else %}
         <tr><td colspan="7" class="muted" style="text-align: center; padding: 1.5rem;">Teklif bulunmuyor.</td></tr>

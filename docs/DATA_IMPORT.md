@@ -48,7 +48,7 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 
 ## Teklifler
 
-**Teklifler sayfası:** `Teklif No, Teklif Anahtarı, Müşteri Adı, Telefon, Oluşturma Tarihi, Durum, Ödeme Türü, Kanal, Banka, Taksit, Kart Tipi, Bayi İndirimi %, Komisyon Dönemi, Komisyon %, Nakit Toplam, Kart Toplam, Seçili Toplam, Not, Rezervasyon No, Oluşturan`
+**Teklifler sayfası:** `Teklif No, Teklif Anahtarı, Müşteri Adı, Telefon, Oluşturma Tarihi, Durum, Ödeme Türü, Kanal, Banka, Taksit, Kart Tipi, Kart Bayi İndirimi %, Nakit Bayi İndirimi %, Komisyon Dönemi, Komisyon %, Nakit Toplam, Kart Toplam, Seçili Toplam, Not, Rezervasyon No, Oluşturan`
 
 **Teklif Satırları:** `Teklif No, Teklif Anahtarı, Sıra, Ürün Adı, Adet, Normal Fiyat, Oliz Fiyatı, Maliyet, Kampanya, Hediye Durumu, Fiyat Tabanı, Önerilen Nakit, Önerilen Kart, Birim Nakit, Birim Kart, Satır Toplam Nakit, Satır Toplam Kart, Uyarı`
 
@@ -56,7 +56,7 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 
 - Import yalnızca taslak teklif oluşturur/günceller. Durum, komisyon ve kâr kolonları salt okunurdur; sunucu yeniden hesaplar.
 - Yeni tekliflerde `Teklif Anahtarı` satırları gruplar; mevcut taslaklar `Teklif No` ile güncellenir.
-- Kartta kanal, taksit, kart tipi zorunlu; banka isteğe bağlıdır (boşsa genel oran kullanılır).
+- Kartta kanal, taksit, kart tipi zorunlu; banka isteğe bağlıdır (boşsa genel oran kullanılır). Kart ve nakit bayi indirimi ayrı kolonlardadır; boş bırakılan nakit indirimi kart indirimini kullanır.
 
 ## Komisyonlar
 

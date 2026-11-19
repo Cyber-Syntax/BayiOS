@@ -483,6 +483,108 @@ Teklifler fiyat katmanlarını ve önerileri gösterir; nihai nakit/kart birim f
 
 Bankasız genel ve bankaya özel oranlar aynı dönemde birlikte çalışır; banka adı yazım farkı kopya kayıt üretmez; kategori taksit sınırı kod değişmeden düzenlenebilir; komisyon dönemleri aylık yönetilir ve geçmiş korunur; teklifler fiyat/komisyon snapshot'ıyla bağımsızdır; örnek hesaplar ve limitler doğrudur; müşteri çıktısı iç veri içermez; kabul edilen teklif idempotent biçimde rezervasyona dönüşür.
 
+### Milestone 5.1 — Teklif taksit karşılaştırma, silme ve bayi indirimi
+
+**Kapsam ve kararlar**
+
+- Teklif ekranında **tüm kanallar/bankalar ve taksitler** için komisyon, müşteri aylık taksiti, komisyon sonrası net, kampanya/Oliz hakedişi, maliyet, kâr/zarar ve marj gösterilecek. Çalışan + müşteri bu tablodan bir satır seçecek; teklif seçilen kanal/banka/taksit/kart tipiyle kaydedilecek.
+- Karşılaştırma **bankasız genel oran** ve **bankaya özel** oranları birlikte gösterecek; bankaya özel satır genel satırı ezdiği için aynı banka/taksit için tek geçerli satır gösterilecek.
+- Ödero 20.000 TL eşiği, Klima bant muafiyeti ve Chippin banka/kart bazlı limitleri mevcut domain kurallarıyla aynı hesaplanacak.
+- Teklif silme eklenecek. **Tüm durumlardaki teklifler** (taslak, sunuldu, kabul, kaybedildi, geçersiz, rezervasyona dönüşmüş) onay verilerek silinebilecek; yanlışlıkla silmeyi önlemek için çift onay istenecek. Silme, teklif satırları ve durum geçmişini birlikte kaldıracak (hard delete). Rezervasyona dönüşmüş teklif silinirse bağlı rezervasyon **silinmez**; onay metni bunu açıkça söyler. Listede çoklu seçimle toplu silme P1 kapsamındadır.
+- Kart ve nakit için **ayrı bayi indirimi yüzdeleri** teklif bazında düzenlenebilir olacak; ikisi de çalışan tarafından değiştirilebilecek. Yeni teklifte varsayılan `dealer_discount_settings` değerinden gelecek; mevcut `dealer_discount_percent` kart indirimi olarak korunacak, nakit için yeni alan eklenecek.
+
+**Domain ve veri**
+
+- Yeni saf hesaplayıcı: `build_installment_options` (veya `OfferComparison` value object'i). Girdi: kart satış toplamı, satır bazlı maliyet/kampanya/Oliz hakedişleri, kart tipi, kategori kimlikleri, aktif dönem oran/limitleri, banka listesi. Çıktı: kanal + banka + taksit başına `InstallmentOption`:
+  - `channel`, `bank_id`/`bank_name` (bankasız için "Genel"), `installment_count`
+  - `commission_percent`, `commission_source` (`general`/`bank_specific`)
+  - `card_total`, `monthly_payment`, `net_after_commission`, `campaign_share`, `oliz_share`, `total_revenue`, `cost`, `profit`, `margin_percent`, `is_available`, `unavailable_reason`
+- Hesaplama mevcut `matching_commission_rate`, `commission_percent_for`, `effective_max_installments` fonksiyonlarını kullanacak; dönem oran/limitleri bir kez yüklenip tüm banka/taksit kombinasyonları için tekrar tekrar sorgulanmayacak.
+- **Komisyon matrahı kart satış toplamıdır (#4).** Ödero 20.000 TL bandı `card_total` üzerinden seçilecek; nakit için komisyon yok. Kart birim fiyatı girilmemişse önerilen kart fiyatı geçici matrah olacak ve nihai fiyat girilince yeniden hesaplanacak.
+- Çok ürünlü teklifte komisyon oranı tüm satırlara aynı uygulanacak; kâr/zarar satır bazında hesaplanıp toplam gösterilecek. Kategori taksit sınırı, teklifteki tüm kategorilerin en kısıtlayıcısı olacak.
+- Karşılaştırma **kalıcı snapshot değildir**; aktif dönemden canlı hesaplanır. Seçilen seçenek mevcut `commission_percent_snapshot`, `commission_period_*`, `bank_name_snapshot` ve `commission_options_snapshot` alanlarına yazılır; eski teklifler dönem değişince değişmez.
+- Yeni migration (`0015_offer_card_cash_discounts`) gerekir: teklif ve teklif satırlarına nakit bayi indirimi alanı; mevcut `dealer_discount_percent` kart indirimi olarak korunur ve nakit alanı mevcut değerle backfill edilir. Silme için repository `delete(offer_id)` metodu ve application use-case eklenir (satır/geçmiş FK'ları zaten CASCADE).
+
+**Use-case ve akışlar**
+
+1. `BuildOfferComparison`: teklif formundaki güncel ürün/fiyat/indirim/kart tipi girdisini (kaydetmeden) alır; kanal/banka/taksit tablosunu döndürür. Formda **"Taksit Seçeneklerini Gör"** butonu bu use-case'i HTMX ile çağırır.
+2. Formdaki karşılaştırma tablosunda her satırda **"Seç"** butonu bulunur; seçim, formdaki gizli/mevcut `channel`, `bank_id`, `installment_count`, `card_type` alanlarını doldurur. Kaydetme yine kullanıcının **Teklif Oluştur/Kaydet** eylemiyle olur.
+3. Teklif detayında da aynı tablo **"Taksit Seçenekleri"** kartı olarak gösterilir. Taslak teklifte satır seçimi `SelectOfferPaymentOption` command'i ile banka/taksit/kart tipi ve komisyon snapshot'ını günceller; sunulmuş/kabul edilmiş teklifte seçim yapılamaz.
+4. Detay seçimi yalnızca taslakta çalışır; komisyon yeniden çözülür, snapshot ve seçili toplam güncellenir. Durum geçmişi değişmez; istenirse ayrı bir "seçenek değişti" audit kaydı sonraki adımda eklenir.
+5. `DeleteOffer`: tüm durumlardaki teklifi siler; çift onay zorunludur. `converted_reservation_id` doluysa onay metni bağlı rezervasyonun silinmeyeceğini söyler ve yalnız teklif kaydı kaldırılır. Detay ve listede **Sil** eylemi; P1'de listede çoklu seçim + toplu silme. Başarıda listeye `msg=deleted` (toplu silmede silinen sayısı) ile dönülür.
+6. Bayi indirimi: iki ayrı `type=number`, `min=0`, `max=100`, `step=0.01`, yüzde işaretli input — **Kart Bayi İndirimi** ve **Nakit Bayi İndirimi**. İkisi de çalışan tarafından değiştirilebilir; yeni teklifte varsayılan ayardan, düzenlemede mevcut değerden gelir. Değişiklik anında önerilen kart/nakit fiyatları ve kâr önizlemesi güncellenir; sunucu 0–100 doğrulaması yapar ve değerleri teklif/satır snapshot'ına yazar.
+
+**UI**
+
+- Teklif formunda **Kart Bayi İndirimi (%)** ve **Nakit Bayi İndirimi (%)** yan yana, ikisi de düzenlenebilir; ürün/fiyatların altında **"Taksit Seçeneklerini Gör"** butonu ve açılan karşılaştırma paneli: Ödeme, Kanal, Banka, Taksit, Aylık Taksit, Komisyon, Komisyon Sonrası, Kampanya, Oliz, Maliyet, Kâr/Zarar, Marj, Seç.
+- Karşılaştırma panelinin başında **Nakit** satırı (komisyonsuz, nakit indirimiyle) yer alır; altında kart banka/taksit satırları gelir. Nakit satırı seçilirse ödeme tipi nakit olur.
+- Panelde kanal filtresi (POS / Ödero / Chippin / Tümü), kart tipi filtresi (Bireysel / Business) ve "yalnız kârlı" / "en yüksek kâr" sıralaması. Bankasız genel satır "Genel (tüm bankalar)" etiketiyle.
+- Eksik maliyetli satırlarda kâr "—" ve sarı uyarı; negatif kâr kırmızı. Limit/oran olmayan kombinasyonlar tabloya ya hiç eklenmez ya da "kullanılamaz" nedeniyle soluk gösterilir.
+- Teklif detayında aynı tablo; seçili satır vurgulu, taslak dışında seçim butonları pasif.
+- Teklif listesinde satır işlemlerine **Sil** eklenir; detayda da "Teklifi Sil" butonu. Tüm durumlarda görünür; çift onay modalı kullanılır. Rezervasyona dönüşmüş teklifte modal "bağlı rezervasyon silinmez" uyarısı verir. P1'de liste satırlarında checkbox ve toplu silme çubuğu eklenir.
+- Mobilde tablo yatay kaydırılır; seçim butonu sticky sağ kolonda kalır.
+
+**Davranış testleri**
+
+- 3 banka + bankasız genel oranla karşılaştırma üretilir; her satırın komisyon, aylık taksit, net, kâr ve marjı beklenen değerlerle eşleşir.
+- Bankaya özel oran genel oranı aynı banka/taksitte ezer; diğer bankalarda genel oran görünür.
+- Ödero 20.000 TL eşiği kart toplamına göre uygulanır; Klima'da bant kullanılmaz; Chippin banka/kart limiti doğru yansır.
+- Çok ürünlü teklifte toplam kâr satır kârlarının toplamıdır; eksik maliyet varsa toplam kâr/marj "eksik" uyarısı verir.
+- Seçilen seçenek form alanlarını doldurur ve kaydedilen teklifin snapshot'ı seçilen banka/taksit/oranla oluşur.
+- Detayda seçenek değişimi yalnız taslakta çalışır; sunulmuş teklif reddedilir; eski snapshot değişmez.
+- Her durumdaki teklif (taslak, sunuldu, kabul, kaybedildi, geçersiz, rezervasyonlu) çift onayla silinir; satır/geçmiş kaybolur. Rezervasyona dönüşmüş teklif silinince bağlı rezervasyon korunur. Toplu silmede seçilenlerin sayısı doğru raporlanır.
+- Kart ve nakit indirimi varsayılan ayardan gelir; ikisi ayrı ayrı %10 ve %15 gibi farklı değerlere çekilir, kaydedilir ve teklif detayında/snapshot'ta görünür; %101 reddedilir.
+- Nakit satırı komisyonsuz kâr/zararı, kart satırları komisyon düşülmüş kâr/zararı gösterir; kart/nakit indirimleri birbirini etkilemez.
+- Formdaki "Taksit Seçeneklerini Gör" kayıt oluşturmadan tablo döndürür; seçim yapılmadan teklif kaydedilirse mevcut davranış korunur.
+
+**Kararlar**
+
+1. **Silme:** Tüm durumlardaki teklifler çift onayla silinebilir; rezervasyona dönüşmüş teklif silinirse bağlı rezervasyon korunur. Listede P1 toplu silme. *(Kapandı.)*
+2. **Karşılaştırma:** Kanal sekmeleri (POS / Ödero / Chippin) + "Tümü" filtresi; bankasız genel satır ve nakit seçeneği dahil. *(Kapandı.)*
+3. **Komisyon matrahı:** Kart komisyonu **#4 kart satış toplamı** üzerinden hesaplanır; nakit için komisyon yoktur. *(Kapandı.)*
+4. **Seçenek değişikliği audit'i:** İlk teklif kaydında seçim yapılacağı ve snapshot yeterli olacağı için ayrı audit kaydı yok. *(Kapandı.)*
+5. **Karşılaştırma yeri:** Formda "Taksit Seçeneklerini Gör" (kaydetmeden) + detayda aynı tablo ile taslak güncelleme. *(Kapandı.)*
+6. **Kart/nakit bayi indirimi:** İki ayrı yüzde alanı; ikisi de çalışan tarafından değiştirilebilir. *(Kapandı.)*
+
+**Fiyat katmanları**
+
+1. **Perakende:** `regular_price`.
+2. **Şirket indirimi / Oliz:** `website_discounted_price`. Kampanya seçilirse kampanya fiyatı bunun yerine geçer.
+3. **Maliyet / bayinin alışı:** `cost_price`.
+4. **Kart son fiyatı:** `unit_price_card` (çalışan girer; boşsa kart indiriminden önerilen fiyat).
+5. **Nakit son fiyatı:** `unit_price_cash` (çalışan girer; boşsa nakit indiriminden önerilen fiyat).
+
+`base_total` = (kampanya varsa kampanya, yoksa Oliz, yoksa perakende) x adet. Yani **#2'dir**; bayi indirimi ve #4/#5 son fiyatları değildir. Müşterinin karttan ödediği tutar `card_total` (#4), nakit ödediği tutar `cash_total` (#5)'tir.
+
+**Komisyon matrahı: kart satış toplamı (#4)**
+
+Kart komisyonu `card_total = sum(unit_price_card x quantity)` üzerinden çözülür. Ödero 20.000 TL bandı bu toplamdan seçilir. Nakit için komisyon olmadığından bant yalnız kart/Ödero hesabında kullanılır.
+
+Örnek (oranlar temsilî):
+
+- Ödero bandı: 20.000 TL altı %4, 20.000 TL ve üzeri %5.
+- `base_total` (#2) = 21.000 TL; kart bayi indirimi %10 -> müşterinin ödediği #4 = **18.900 TL**.
+- Doğru hesap: #4 = 18.900 -> **%4** bant -> 18.900 x %4 = **756 TL komisyon**, net **18.144 TL**.
+- Eski `base_total` hesabı: 21.000 -> %5 bant -> 18.900 x %5 = **945 TL komisyon**, net **17.955 TL**.
+- Fark: **189 TL**; eski akış komisyonu fazla kesip kârı düşük gösterir.
+
+Kart fiyatı henüz girilmemişse önerilen kart fiyatı geçici matrah olur; çalışan nihai kart fiyatını girince bant ve komisyon yeniden hesaplanır. Çok ürünlü teklifte bant toplam `card_total` üzerinden uygulanır.
+
+**Kart/nakit bayi indirimi**
+
+- **Kart bayi indirimi:** mevcut `dealer_discount_percent` alanı bu anlamda korunur (gerekirse yeniden adlandırılır). Önerilen kart fiyatı: `base_price x (1 - kart_indirimi / 100)`.
+- **Nakit bayi indirimi:** yeni `dealer_discount_cash_percent` alanı. Önerilen nakit fiyatı: `base_price x (1 - nakit_indirimi / 100)`.
+- İki oran da formda ayrı input olarak çalışan tarafından değiştirilebilir; 0–100 aralığında doğrulanır. Yeni teklifte ikisi de `dealer_discount_settings` varsayılanından gelir; düzenlemede teklifteki değerler kullanılır.
+- Çalışan nihai kart/nakit birim fiyatlarını ayrıca elle değiştirebilir; elle girilen fiyat öneriyi ezer. Kâr/zarar her zaman **nihai fiyat** üzerinden hesaplanır:
+  - Kart: `card_total - komisyon + kampanya/Oliz hakedişi - maliyet`
+  - Nakit: `cash_total + kampanya/Oliz hakedişi - maliyet`
+- Kampanya fiyatı şirket tabanı olarak kullanılır; bayi indirimi kampanya fiyatına **bir kez** uygulanır. Kampanya hesabında bayi indiriminin ikinci kez uygulanması engellenir ve testle doğrulanır.
+- Migration `0015_offer_card_cash_discounts`: teklif ve teklif satırlarına nakit indirimi alanı eklenir; mevcut tekliflerde nakit alanı mevcut kart indirimiyle backfill edilir. Eski teklif snapshot'ları değişmez.
+
+**Çıkış kriteri**
+
+Nakit ve tüm kanal/banka/taksit kombinasyonları kâr-zararla görülebilir; kart komisyonu kart satış toplamından hesaplanır; kart ve nakit bayi indirimleri ayrı ayrı düzenlenip doğrulanır; seçilen seçenek teklife snapshot'lanır; her durumdaki teklif onayla silinebilir; eski teklifler dönem/oran değişiminden etkilenmez.
+
 ### Milestone 6 — Hızlı Teslim / Code 128 (BACKLOG)
 
 **Sınır**

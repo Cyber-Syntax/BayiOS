@@ -23,7 +23,14 @@ fi
 compose+=(-f compose.dev.yaml)
 
 echo "==> Starting PostgreSQL"
-"${compose[@]}" up -d
+if ! "${compose[@]}" up -d; then
+  echo "error: PostgreSQL container could not start." >&2
+  echo "hint: if port 127.0.0.1:5432 is held by rootlessport, stop the old stack:" >&2
+  echo "      podman-compose -f compose.dev.yaml down" >&2
+  echo "      or use another port with a matching DATABASE_URL:" >&2
+  echo "      BAYIOS_DEV_PG_PORT=5433 DATABASE_URL=postgresql+psycopg://bayios:bayios@127.0.0.1:5433/bayios ./scripts/dev.sh" >&2
+  exit 1
+fi
 
 echo "==> Waiting for PostgreSQL"
 ready=0

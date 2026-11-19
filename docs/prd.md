@@ -123,7 +123,6 @@ MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uyg
 - GitHub Actions scriptiyle otomatik dosya aktarımı veya API entegrasyonu. İlk sürümde dosya manuel yüklenir.
 - WMS veya Dynamics 365 entegrasyonu.
 - POS kampanya/indirim dağıtım hesaplayıcısı ve karma sepet algoritması.
-- Birden fazla bankayı veya taksit seçeneğini tek teklifte yan yana karşılaştırma.
 - E-fatura PDF/UBL-TR XML otomatik okuma, satırları ürünlere bağlama.
 - Rezervasyonlara PDF ekleme ve uygulama içinde görüntüleme (ilk ek özellik olarak sonraki faz).
 - Rezervasyon devretme ve işlem sorumluluğu yönetimi.
@@ -321,8 +320,8 @@ Genel bayi indirimi sabit bir oran değildir. Uygulama %10'u varsayılan öneri 
 - Aynı kapsamda (banka boş dahil) yalnızca bir oran satırı bulunabilir; banka adındaki yazım farkı yeni satır veya yeni banka oluşturmaz (§4.1.1).
 - Her bankada taksit seçeneği başına komisyon yüzdesi tutulur.
 - Komisyon oranları elle girilir ve dönem/başlangıç tarihi ile güncellenebilir.
-- MVP'de çalışan teklif için tek taksit seçeneği ve isteğe bağlı tek banka belirler; banka seçilmezse genel oran kullanılır.
-- Birden fazla banka/taksit alternatifini aynı anda kıyaslama sonraki sürümdür.
+- Teklifte tüm kanal/banka/taksit alternatifleri kâr-zararla yan yana görülebilir; çalışan + müşteri bir satır seçer, teklif seçilen kanal/banka/taksit/kart tipiyle kaydedilir. Banka seçilmezse genel oran kullanılır.
+- Nakit seçeneği komisyonsuz kâr/zararla aynı karşılaştırma tablosunda gösterilir.
 - Minimum kâr hem tutar (TL) hem oran (%) biçiminde tanımlanabilir.
 - Varsayılan minimum kâr değeri önceden varsayılmaz; ürün veya teklif için ayarlanmadıysa sistem “minimum kâr hedefi tanımlı değil” uyarısı verir.
 
@@ -581,7 +580,7 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 
 **FR-OFFER-03 (P0):** Teklifte nakit satış fiyatı ve kart satış fiyatı ayrı girilebilmelidir.
 
-**FR-OFFER-04 (P0):** Kart fiyatı için kanal, taksit sayısı ve kart tipi seçilebilmelidir; banka isteğe bağlıdır. Banka seçilmezse genel komisyon oranı kullanılır.
+**FR-OFFER-04 (P0):** Kart fiyatı için kanal, taksit sayısı ve kart tipi seçilebilmelidir; banka isteğe bağlıdır. Teklif formunda tüm kanal/banka/taksit seçenekleri komisyon, aylık taksit, net, maliyet, kâr/zarar ve marjla karşılaştırılmalıdır. Banka seçilmezse genel komisyon oranı kullanılır.
 
 **FR-OFFER-05 (P0):** Seçilen kapsamın komisyonu ve hesaplanan referans minimum fiyat teklif ekranında gösterilmelidir; oranın bankaya özel mi genel mi olduğu belirtilmelidir.
 
@@ -599,9 +598,9 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 
 **FR-OFFER-12 (P1):** Teklif için takip tarihi/notu eklenebilmelidir.
 
-**FR-OFFER-13 (P0):** Teklif satırında toptan vadeli alış, normal fiyat, Oliz fiyatı, varsa seçilen kampanya fiyatı, bayi indirimi ve komisyon referansı birlikte gösterilmelidir; nihai nakit/kart birim fiyatını çalışan girmelidir.
+**FR-OFFER-13 (P0):** Teklif satırında toptan vadeli alış, normal fiyat, Oliz fiyatı, varsa seçilen kampanya fiyatı, kart ve nakit bayi indirimi ile komisyon referansı birlikte gösterilmelidir; nihai nakit/kart birim fiyatını çalışan girmelidir.
 
-**FR-OFFER-14 (P0):** Kampanya satır bazında tek seçilmeli; kampanya seçildiğinde Oliz uygulanmamalı ve iki kampanya birleşmemelidir. Bayi indirimi teklif genelinde tek oran olarak teklif başına değiştirilebilmelidir.
+**FR-OFFER-14 (P0):** Kampanya satır bazında tek seçilmeli; kampanya seçildiğinde Oliz uygulanmamalı ve iki kampanya birleşmemelidir. Kart ve nakit bayi indirimi teklif başına ayrı ayrı değiştirilebilmelidir; ikisi de çalışan tarafından düzenlenebilir.
 
 **FR-OFFER-15 (P0):** Nihai fiyat ürün nakit/kart tabanının veya kâr referansının altında kalırsa uyarı gösterilmeli; kayıt engellenmemelidir.
 
@@ -610,6 +609,14 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 **FR-OFFER-17 (P0):** Teklif listesi araması yazarken otomatik çalışmalı; “Ara” butonuna basılmadan sonuçlar HTMX ile güncellenmeli ve URL korunmalıdır.
 
 **FR-OFFER-18 (P0):** Teklifte banka boş bırakılabilmeli; bankasız teklifte komisyon genel orandan çözülmeli ve A4 çıktısında banka alanı boş/“—” basılmalıdır.
+
+**FR-OFFER-19 (P0):** Kart komisyonu, müşterinin karttan ödediği toplam (`card_total`) üzerinden hesaplanmalıdır; Ödero 20.000 TL bandı bu toplamdan seçilir. Nakit için komisyon yoktur.
+
+**FR-OFFER-20 (P0):** Tüm durumlardaki teklifler çift onayla silinebilmelidir. Rezervasyona dönüşmüş teklif silinirse bağlı rezervasyon korunur; silme onayı bunu açıkça belirtir.
+
+**FR-OFFER-21 (P0):** Teklif formunda “Taksit Seçeneklerini Gör” eylemi kayıt oluşturmadan karşılaştırma tablosunu göstermeli; satır seçimi formdaki ödeme tipi/kanal/banka/taksit/kart tipi alanlarını doldurmalıdır.
+
+**FR-OFFER-22 (P0):** Kart ve nakit bayi indirimi için iki ayrı yüzde alanı bulunmalı; ikisi de 0–100 aralığında doğrulanmalı ve teklif/satır snapshot'ına yazılmalıdır.
 
 ### 5.7 Rezervasyonlar
 
@@ -1499,6 +1506,11 @@ Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 18. Banka seçilmemiş kart teklifi genel oranla hesaplanır; A4 çıktısında banka alanı boş basılır ve eski teklifin snapshot'ı değişmez.
 19. Klima Ödero oranı tutar bandı olmadan tanımlanır; 20.000 TL altı ve üstü sepetlerde aynı oran kullanılır. Diğer grupta bant zorunludur.
 20. Chippin'de genel 1 taksit tüm bankalarda geçerlidir; Akbank business 3 limiti business kartta 3, diğer kartlarda 1 taksit verir. Limit 2'ye düşürüldüğünde kod değişmeden uygulanır.
+21. Kart ve nakit bayi indirimi ayrı ayrı değiştirilir; %10 kart ve %15 nakit farklı nihai fiyatlar üretir ve ikisi de snapshot'ta saklanır.
+22. Ödero 20.000 TL bandı `card_total` üzerinden seçilir; taban fiyat 21.000, kart indirimi %10 ise 18.900 TL alt bant oranını kullanır.
+23. Karşılaştırma tablosu nakit satırını komisyonsuz, bankasız genel ve bankaya özel kart satırlarını komisyonlu kâr/zararla gösterir; aylık taksit doğru hesaplanır.
+24. "Taksit Seçeneklerini Gör" kayıt oluşturmaz; seçim form alanlarını doldurur ve teklif ancak Kaydet ile oluşur.
+25. Her durumdaki teklif çift onayla silinir; rezervasyona dönüşmüş teklif silinince bağlı rezervasyon korunur.
 
 ### 13.5 Hızlı teslim testleri
 

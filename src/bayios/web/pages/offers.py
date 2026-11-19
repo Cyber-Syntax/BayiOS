@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from bayios.application.campaigns import list_campaigns
 from bayios.application.commissions import list_banks
+from bayios.application.dealer_pricing import get_default_dealer_discount
 from bayios.application.errors import NotFoundError, ValidationError
 from bayios.application.offers import (
     OfferInput,
@@ -19,8 +20,10 @@ from bayios.application.offers import (
     build_offer_profit_summary,
     convert_offer_to_reservation,
     create_offer,
+    delete_offer,
     get_offer_detail,
     list_offers,
+    preview_offer_comparison,
     reserve_offer,
     sell_offer,
     set_offer_status,
@@ -144,6 +147,35 @@ async def create_offer_route(
     )
 
 
+@router.post("/compare", response_class=HTMLResponse)
+async def compare_offer_route(
+    request: Request, uow: UnitOfWorkDep
+) -> HTMLResponse:
+    form = await request.form()
+    try:
+        data = _offer_input_from_form(form)
+        comparison = preview_offer_comparison(uow, data)
+    except (ValidationError, ValueError, NotFoundError) as exc:
+        return templates.TemplateResponse(
+            request,
+            "offers/_comparison.html",
+            {
+                "comparison": None,
+                "error": str(exc),
+                "channel_labels": CHANNEL_LABELS,
+            },
+        )
+    return templates.TemplateResponse(
+        request,
+        "offers/_comparison.html",
+        {
+            "comparison": comparison,
+            "error": None,
+            "channel_labels": CHANNEL_LABELS,
+        },
+    )
+
+
 @router.get("/{offer_id}", response_class=HTMLResponse)
 def offer_detail_page(
     request: Request, offer_id: uuid.UUID, uow: UnitOfWorkDep
@@ -222,6 +254,29 @@ def set_status_route(
     return RedirectResponse(
         url=f"/offers/{offer_id}?{urlencode({'msg': 'status'})}",
         status_code=303,
+    )
+
+
+@router.post("/{offer_id}/delete")
+def delete_offer_route(
+    offer_id: uuid.UUID,
+    uow: UnitOfWorkDep,
+    confirm: Annotated[str | None, Form()] = None,
+) -> RedirectResponse:
+    if confirm != "1":
+        return RedirectResponse(
+            url=f"/offers/{offer_id}?{urlencode({'msg': 'error:Silme onayı gerekli.'})}",
+            status_code=303,
+        )
+    try:
+        delete_offer(uow, offer_id)
+    except (ValidationError, NotFoundError) as exc:
+        return RedirectResponse(
+            url=f"/offers/{offer_id}?{urlencode({'msg': f'error:{exc}'})}",
+            status_code=303,
+        )
+    return RedirectResponse(
+        url=f"/offers?{urlencode({'msg': 'deleted'})}", status_code=303
     )
 
 
@@ -315,6 +370,7 @@ def _render_form(
     banks = list_banks(uow)
     products, _ = search_products(uow, query=None, limit=5, offset=0)
     initial_items: list[dict[str, object]] = []
+    default_discount = get_default_dealer_discount(uow).default_percent
     values: dict[str, object] = {
         "customer_name": "",
         "customer_phone": "",
@@ -324,7 +380,8 @@ def _render_form(
         "bank_id": "",
         "installment_count": "",
         "card_type": "",
-        "dealer_discount_percent": "10",
+        "dealer_discount_percent": str(default_discount),
+        "dealer_discount_cash_percent": str(default_discount),
     }
     if form is not None:
         values, initial_items = _form_state_from_form(uow, form)
@@ -345,6 +402,9 @@ def _render_form(
                 ),
                 "card_type": offer.card_type or "",
                 "dealer_discount_percent": str(offer.dealer_discount_percent),
+                "dealer_discount_cash_percent": str(
+                    offer.dealer_discount_cash_percent
+                ),
             }
         )
         initial_items = [
@@ -408,6 +468,11 @@ def _form_state_from_form(
         "card_type": str(get("card_type") or ""),
         "dealer_discount_percent": str(
             get("dealer_discount_percent") or "10"
+        ),
+        "dealer_discount_cash_percent": str(
+            get("dealer_discount_cash_percent")
+            or get("dealer_discount_percent")
+            or "10"
         ),
     }
     product_ids = [str(value) for value in getlist("product_id")]
@@ -513,6 +578,13 @@ def _offer_input_from_form(form: object) -> OfferInput:
     discount = _decimal_value(
         str(get("dealer_discount_percent") or "10")
     )
+    cash_discount = _decimal_value(
+        str(
+            get("dealer_discount_cash_percent")
+            or get("dealer_discount_percent")
+            or "10"
+        )
+    )
     return OfferInput(
         customer_name=str(get("customer_name") or "") or None,
         customer_phone=str(get("customer_phone") or "") or None,
@@ -527,6 +599,9 @@ def _offer_input_from_form(form: object) -> OfferInput:
         card_type=CardType(card_value) if card_value else None,
         dealer_discount_percent=(
             discount if discount is not None else Decimal(10)
+        ),
+        dealer_discount_cash_percent=(
+            cash_discount if cash_discount is not None else Decimal(10)
         ),
         note=str(get("note") or "") or None,
         items=tuple(items),

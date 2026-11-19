@@ -1,0 +1,60 @@
+{% if error %}
+<div class="alert alert-danger"><span><strong>Karşılaştırma yapılamadı:</strong> {{ error }}</span></div>
+{% elif comparison %}
+<div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+  <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: .75rem;">
+    <h2 style="margin: 0; font-size: 1.1rem;">Taksit Seçenekleri</h2>
+    <span class="muted" style="font-size: .8rem;">Nakit ve kart seçenekleri; seçim form alanlarını doldurur, teklif kaydedilene kadar değişiklik yapılmaz.</span>
+  </div>
+  <div class="table-container" style="max-height: 30rem; overflow: auto;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Ödeme</th><th>Kanal</th><th>Banka</th><th>Taksit</th>
+          <th>Aylık</th><th>Komisyon</th><th>Net</th><th>Kampanya</th>
+          <th>Oliz</th><th>Maliyet</th><th>Kâr</th><th>Marj</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-selected">
+          <td><strong>Nakit</strong></td>
+          <td>—</td><td>—</td><td>—</td><td>—</td>
+          <td>{{ comparison.cash.commission_percent | tr_percent }}</td>
+          <td>{{ comparison.cash.net_after_commission | tr_money }} TL</td>
+          <td>{{ comparison.cash.campaign_share | tr_money }} TL</td>
+          <td>{{ comparison.cash.oliz_share | tr_money }} TL</td>
+          <td>{{ comparison.cash.cost | tr_money }} TL</td>
+          <td>{% if comparison.cash.profit is none %}<span class="badge badge-warning">Maliyet yok</span>{% else %}<strong style="color: {% if comparison.cash.profit < 0 %}#b91c1c{% else %}#166534{% endif %};">{{ comparison.cash.profit | tr_money }} TL</strong>{% endif %}</td>
+          <td>{% if comparison.cash.margin_percent is not none %}{{ comparison.cash.margin_percent | tr_percent }}{% else %}—{% endif %}</td>
+          <td><button type="button" class="btn btn-sm" onclick="applyOfferOption(this)" data-payment="cash">Seç</button></td>
+        </tr>
+        {% for option in comparison.options %}
+        <tr>
+          <td>Kart</td>
+          <td>{{ option.channel_label }}</td>
+          <td>{{ option.bank_name }}</td>
+          <td>{{ option.installment_count }}</td>
+          <td>{{ option.monthly_payment | tr_money }} TL</td>
+          <td>{{ option.commission_percent | tr_percent }}{% if option.commission_source == 'bank_specific' %}<br><small class="muted">banka özel</small>{% endif %}</td>
+          <td>{{ option.net_after_commission | tr_money }} TL</td>
+          <td>{{ option.campaign_share | tr_money }} TL</td>
+          <td>{{ option.oliz_share | tr_money }} TL</td>
+          <td>{{ option.cost | tr_money }} TL</td>
+          <td>{% if option.profit is none %}<span class="badge badge-warning">Maliyet yok</span>{% else %}<strong style="color: {% if option.profit < 0 %}#b91c1c{% else %}#166534{% endif %};">{{ option.profit | tr_money }} TL</strong>{% endif %}</td>
+          <td>{% if option.margin_percent is not none %}{{ option.margin_percent | tr_percent }}{% else %}—{% endif %}</td>
+          <td><button type="button" class="btn btn-sm btn-primary" onclick="applyOfferOption(this)"
+                      data-payment="card"
+                      data-channel="{{ option.channel or '' }}"
+                      data-bank-id="{{ option.bank_id or '' }}"
+                      data-installment="{{ option.installment_count }}"
+                      data-card-type="{{ comparison.card_type }}">Seç</button></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="13" class="muted" style="text-align: center; padding: 1rem;">Bu kart tipi için uygun taksit seçeneği bulunamadı.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if comparison.has_missing_cost %}<p class="muted" style="margin: .75rem 0 0; font-size: .8rem;">Maliyeti olmayan ürünlerde kâr/marj gösterilmez.</p>{% endif %}
+</div>
+{% endif %}

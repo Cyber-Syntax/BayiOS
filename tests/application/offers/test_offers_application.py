@@ -36,6 +36,70 @@ from bayios.domain.offers import OfferStatus, PaymentType
 from tests.fakes import FakeUnitOfWork
 
 
+def test_odero_commission_uses_card_total_not_base_total() -> None:
+    from datetime import UTC, datetime
+
+    from bayios.adapters.db.models.commissions import (
+        CommissionPeriod,
+        CommissionRate,
+    )
+
+    uow = FakeUnitOfWork()
+    product = Product(
+        id=uuid.uuid4(),
+        name="Buzdolabı",
+        name_normalized="buzdolabi",
+        regular_price=Decimal("21000.00"),
+        website_discounted_price=Decimal("21000.00"),
+        cost_price=Decimal("15000.00"),
+        physical_stock=1,
+    )
+    uow.products.add(product)
+    period = CommissionPeriod(
+        id=uuid.uuid4(),
+        period_key="2026-11",
+        valid_from=datetime(2026, 11, 1, tzinfo=UTC),
+        valid_until=datetime(2026, 11, 30, 23, 59, tzinfo=UTC),
+        status="active",
+    )
+    uow.commissions.add_period(period)
+    for tier, percent in (("under_20000", "4.00"), ("over_20000", "5.00")):
+        uow.commissions.add_rate(
+            CommissionRate(
+                id=uuid.uuid4(),
+                period_id=period.id,
+                channel="odero",
+                bank_id=None,
+                product_group="other",
+                amount_tier=tier,
+                installment_count=1,
+                commission_percent=Decimal(percent),
+                scope_key=f"odero||other|{tier}|1",
+            )
+        )
+
+    offer_id = create_offer(
+        uow,
+        OfferInput(
+            customer_name="Kart Müşteri",
+            customer_phone=None,
+            payment_type=PaymentType.CARD,
+            dealer_discount_percent=Decimal(10),
+            dealer_discount_cash_percent=Decimal(15),
+            channel=PaymentChannel.ODERO,
+            installment_count=1,
+            card_type=CardType.CONSUMER,
+            items=(OfferItemInput(product.id, 1),),
+        ),
+    )
+    detail = get_offer_detail(uow, offer_id)
+
+    assert detail is not None
+    assert detail.offer.card_total == Decimal("18900.00")
+    assert detail.offer.commission_percent_snapshot == Decimal("4.00")
+
+
+
 def test_category_cap_applies_to_card_offer() -> None:
     from bayios.adapters.db.models.commissions import CommissionLimit
     from bayios.adapters.db.models.products import ProductCategory

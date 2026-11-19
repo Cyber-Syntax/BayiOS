@@ -94,6 +94,7 @@ class OfferItemQuote:
     quantity: int
     base_price: Decimal | None
     dealer_discount_percent: Decimal
+    dealer_discount_cash_percent: Decimal
     suggested_cash_price: Decimal | None
     suggested_card_price: Decimal | None
     unit_price_cash: Decimal | None
@@ -123,11 +124,19 @@ def quote_offer_item(
     card_floor: Decimal | None = None,
     unit_price_cash: Decimal | None = None,
     unit_price_card: Decimal | None = None,
+    dealer_discount_cash_percent: Decimal | None = None,
 ) -> OfferItemQuote:
     if quantity <= 0:
         raise ValueError("Miktar sıfırdan büyük olmalıdır.")
+    cash_discount = (
+        dealer_discount_cash_percent
+        if dealer_discount_cash_percent is not None
+        else dealer_discount_percent
+    )
     if not (ZERO <= dealer_discount_percent <= HUNDRED):
-        raise ValueError("Bayi indirimi %0 ile %100 arasında olmalıdır.")
+        raise ValueError("Kart bayi indirimi %0 ile %100 arasında olmalıdır.")
+    if not (ZERO <= cash_discount <= HUNDRED):
+        raise ValueError("Nakit bayi indirimi %0 ile %100 arasında olmalıdır.")
 
     base_price = layers.base_price
     reference = calculate_reference_price(
@@ -148,6 +157,7 @@ def quote_offer_item(
             quantity=quantity,
             base_price=None,
             dealer_discount_percent=dealer_discount_percent,
+            dealer_discount_cash_percent=cash_discount,
             suggested_cash_price=None,
             suggested_card_price=None,
             unit_price_cash=unit_price_cash,
@@ -159,10 +169,10 @@ def quote_offer_item(
         )
 
     suggested_cash = quantize_money(
-        base_price * (HUNDRED - dealer_discount_percent) / HUNDRED
+        base_price * (HUNDRED - cash_discount) / HUNDRED
     )
-    suggested_card = (
-        reference.price if reference.price is not None else suggested_cash
+    suggested_card = quantize_money(
+        base_price * (HUNDRED - dealer_discount_percent) / HUNDRED
     )
     final_cash = (
         quantize_money(unit_price_cash)
@@ -189,6 +199,7 @@ def quote_offer_item(
         quantity=quantity,
         base_price=base_price,
         dealer_discount_percent=dealer_discount_percent,
+        dealer_discount_cash_percent=cash_discount,
         suggested_cash_price=suggested_cash,
         suggested_card_price=suggested_card,
         unit_price_cash=final_cash,

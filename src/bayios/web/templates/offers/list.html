@@ -8,6 +8,8 @@
 <div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif güncellendi.</span></div>
 {% elif msg == 'status' %}
 <div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif durumu güncellendi.</span></div>
+{% elif msg == 'deleted' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif silindi.</span></div>
 {% elif msg == 'import_success' %}
 <div class="alert alert-success">
   <span><strong>Başarılı:</strong> Excel içe aktarıldı: {{ request.query_params.get('created', 0) }} yeni, {{ request.query_params.get('updated', 0) }} güncellenen, {{ request.query_params.get('skipped', 0) }} atlanan teklif.</span>
