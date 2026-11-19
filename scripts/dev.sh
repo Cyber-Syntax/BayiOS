@@ -9,7 +9,9 @@ HOST="${DEV_HOST:-0.0.0.0}"
 PORT="${DEV_PORT:-8000}"
 RESET_DB="${DEV_RESET_DB:-0}"
 
-if command -v podman >/dev/null 2>&1; then
+if command -v podman-compose >/dev/null 2>&1; then
+  compose=(podman-compose)
+elif command -v podman >/dev/null 2>&1; then
   compose=(podman compose)
 elif command -v docker >/dev/null 2>&1; then
   compose=(docker compose)

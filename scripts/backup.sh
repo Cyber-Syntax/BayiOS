@@ -12,7 +12,9 @@ RETENTION_WEEKLY="${RETENTION_WEEKLY:-8}"
 RETENTION_MONTHLY="${RETENTION_MONTHLY:-12}"
 
 # Prefer podman; fall back to docker only if podman is unavailable.
-if command -v podman >/dev/null 2>&1 && podman info >/dev/null 2>&1; then
+if command -v podman-compose >/dev/null 2>&1 && podman info >/dev/null 2>&1; then
+  COMPOSE=(podman-compose)
+elif command -v podman >/dev/null 2>&1 && podman info >/dev/null 2>&1; then
   COMPOSE=(podman compose)
 else
   COMPOSE=(docker compose)

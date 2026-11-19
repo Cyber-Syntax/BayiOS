@@ -8,10 +8,56 @@ Bu runbook bir sözleşmedir: aşağıdaki sınırlar (LAN-only, DB portunun pub
 
 ## 1. Ön koşullar
 
-- Windows 11 host, Podman (Podman Desktop veya Podman Machine) kurulu ve `podman compose` çalışıyor.
+- Windows 11 host, Podman (Podman Desktop veya Podman Machine) kurulu ve `podman-compose` çalışıyor.
 - Host üzerinde `git` ve (backup zamanlaması için) Görev Zamanlayıcı erişimi.
 - Bayi LAN'ına sabit/kalıcı IP veya mDNS ile erişilebilen bir host adı.
 - Repository'nin bir kopyası (`BayiOS`) host'ta.
+
+## 1.1 Windows'ta `podman-compose` kurulumu (zorunlu)
+
+Windows'ta `podman compose` bazen Podman'ın kendi compose provider'ı yerine Docker Desktop'ın `docker-compose.exe` dosyasını çağırır. Bu durumda build şu hatayla durur:
+
+```text
+Executing external compose provider "C:\Users\<kullanıcı>\AppData\Local\Microsoft\WindowsApps\docker-compose.exe"
+Can't add file ...\.dockerignore to tar: io: read/write on closed pipe
+failed to connect to the docker API at npipe:////./pipe/podman-machine-default
+```
+
+Bu, Docker Desktop compose provider'ının devrede olduğunu gösterir. **Çözüm:** uv (Astral) ile `podman-compose` aracını kurmak ve tüm compose komutlarında `podman compose` yerine `podman-compose` kullanmak.
+
+1. uv kurulu değilse kur:
+   ```powershell
+   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+   ```
+   Terminali kapatıp yeniden aç; `uv --version` çalıştığını doğrula.
+
+2. podman-compose'u Python 3.12 ile kur:
+   ```powershell
+   uv tool install --python 3.12 podman-compose
+   uv tool update-shell
+   ```
+   Yeni bir terminal aç ve doğrula:
+   ```powershell
+   podman-compose --version
+   ```
+   Komut bulunamazsa geçici olarak PATH'e ekle:
+   ```powershell
+   $env:Path += ";$env:USERPROFILE\.local\bin"
+   ```
+   Kalıcı çözüm için `%USERPROFILE%\.local\bin` dizinini kullanıcı PATH'ine ekle.
+
+3. Podman Machine çalışıyor olmalı:
+   ```powershell
+   podman machine start
+   podman info
+   ```
+
+4. Compose dosyasını doğrula:
+   ```powershell
+   podman-compose -f compose.yaml config
+   ```
+
+> Bu runbook'taki tüm komutlar `podman-compose` ile yazılmıştır. Windows'ta `podman compose` kullanma; Linux'ta native Podman compose kullanılabilir.
 
 ## 2. Compose sınırı
 
@@ -30,14 +76,14 @@ Bu runbook bir sözleşmedir: aşağıdaki sınırlar (LAN-only, DB portunun pub
    ```
 2. Image'ı build et ve servisleri başlat:
    ```powershell
-   podman compose build
-   podman compose up -d postgres
-   podman compose run --rm app alembic upgrade head
-   podman compose up -d
+   podman-compose build
+   podman-compose up -d postgres
+   podman-compose run --rm app alembic upgrade head
+   podman-compose up -d
    ```
 3. Sağlığı doğrula:
    ```powershell
-   podman compose ps
+   podman-compose ps
    curl http://localhost:8000/health
    # => "status": "ok", "database": "ok", "migrations": {"status": "ok"}
    ```
@@ -85,8 +131,8 @@ Production restore gerektiğinde önce yeni DB instance/volume'a restore edilir;
 ## 7. Güncelleme
 
 1. Yeni image ve migration öncesi backup al.
-2. `podman compose build` ile image'ı yeniden build et.
-3. `podman compose run --rm app alembic upgrade head` ile migration'ları ileri yönlü çalıştır.
+2. `podman-compose build` ile image'ı yeniden build et.
+3. `podman-compose run --rm app alembic upgrade head` ile migration'ları ileri yönlü çalıştır.
 4. `/health` ve kritik smoke akışlarını doğrula.
 5. Hata varsa eski DB volume'unu silmeden restore prosedürünü (bölüm 6) uygula.
 
@@ -99,7 +145,7 @@ veya bozulduysa tercih edilir.
 
 > Önemli: Production'daki `.env` dosyası Git'e dahil değildir. Güncelleme
 > sırasında silinmez; fresh clone yaparsan eski `.env` dosyasını ayrıca kopyala.
-> `podman compose down -v` **çalıştırma**; `-v` PostgreSQL volume'unu siler.
+> `podman-compose down -v` **çalıştırma**; `-v` PostgreSQL volume'unu siler.
 
 ### 1. Bakım penceresi ve mevcut durum kontrolü
 
@@ -109,7 +155,7 @@ PowerShell veya Podman Desktop terminalinde repo klasörüne gir:
 cd C:\BayiOS
 git status --short
 git branch --show-current
-podman compose ps
+podman-compose ps
 ```
 
 - Çalışma ağacında takip edilmeyen kritik dosya varsa önce yedekle.
@@ -173,7 +219,7 @@ Kod, template, static JS/CSS ve migration dosyaları image içine girer; bu yüz
 sadece container restart etmek yetmez:
 
 ```powershell
-podman compose build app
+podman-compose build app
 ```
 
 Podman Desktop kullanıyorsan aynı komutu Podman Desktop terminalinde çalıştırmak
@@ -181,26 +227,24 @@ en güvenilir yoldur.
 
 ### 5. Şemayı ileri yönlü migrate et
 
-Bu sürümde Alembic head **0012**'dir ve `data_import_batches` tablosu eklenir.
-Migration additive'dir; mevcut ürün, kampanya, teklif ve rezervasyon verileri
-silinmez.
+Bu sürümde Alembic head **0014**'tür. `0013` bankasız komisyon/kategori limiti ve kanonik ad alanlarını, `0014` Klima Ödero bant muafiyeti ile Chippin banka bazlı satırları ekler. Migration'lar additive'dir; mevcut ürün, kampanya, teklif ve rezervasyon verileri silinmez.
 
 ```powershell
-podman compose run --rm app alembic upgrade head
+podman-compose run --rm app alembic upgrade head
 ```
 
 Migration'ın gerçekten uygulandığını kontrol et:
 
 ```powershell
-podman compose run --rm app alembic current
+podman-compose run --rm app alembic current
 ```
 
-Beklenen çıktı: `0012 (head)`
+Beklenen çıktı: `0014 (head)`
 
 ### 6. Uygulamayı yeni image ile yeniden başlat
 
 ```powershell
-podman compose up -d --force-recreate app
+podman-compose up -d --force-recreate app
 ```
 
 PostgreSQL'e dokunma; volume korunur. Eski app container'ı yeni image ile
@@ -209,8 +253,8 @@ değiştirilir.
 ### 7. Sağlık ve log kontrolü
 
 ```powershell
-podman compose ps
-podman compose logs --tail=100 app
+podman-compose ps
+podman-compose logs --tail=100 app
 ```
 
 Health endpoint'i:
@@ -220,12 +264,12 @@ curl.exe http://localhost:8000/health
 ```
 
 Beklenen: `status=ok`, `database=ok`, `migrations.status=ok` ve current
-migration `0012`. Migration `0012` görünmüyorsa 5. adımı tekrar çalıştır.
+migration `0014`. Migration `0014` görünmüyorsa 5. adımı tekrar çalıştır.
 
 Yeni tablonun varlığını doğrula:
 
 ```powershell
-podman compose exec postgres psql -U bayios -d bayios -c "select count(*) from data_import_batches;"
+podman-compose exec postgres psql -U bayios -d bayios -c "select count(*) from data_import_batches;"
 ```
 
 ### 8. Bu sürümün production smoke testi
@@ -248,13 +292,13 @@ Kod geri dönüşü:
 ```powershell
 git log --oneline -10
 git checkout <önceki-commit>
-podman compose build app
-podman compose up -d --force-recreate app
+podman-compose build app
+podman-compose up -d --force-recreate app
 ```
 
-- `0012` yalnızca yeni tablo eklediği için eski kod bu şemayla çalışmaya devam eder; migration'ı geri almak genelde gerekmez.
+- `0013`/`0014` additive migration'lardır; eski kod bu şemayla çalışmaya devam eder, migration'ı geri almak genelde gerekmez.
 - Migration başarısız olduysa canlı DB üzerine doğrudan restore yapma. Önce [Restore tatbikatı](#6-restore-tatbikatı) bölümündeki scratch DB prosedürünü uygula, doğrula, sonra gerekirse kontrollü restore kararı ver.
-- `podman compose down -v` kullanma; PostgreSQL volume'u silinir.
+- `podman-compose down -v` kullanma; PostgreSQL volume'u silinir.
 
 ## 7.2 Repo klasörü yoksa / bozulduysa: fresh clone ile güncelleme
 
@@ -273,12 +317,12 @@ Ardından eski stack'i durdur, yeni klasörde build/migrate/up yap:
 
 ```powershell
 cd C:\BayiOS
-podman compose stop
+podman-compose stop
 cd C:\BayiOS-new
-podman compose build app
-podman compose up -d postgres
-podman compose run --rm app alembic upgrade head
-podman compose up -d
+podman-compose build app
+podman-compose up -d postgres
+podman-compose run --rm app alembic upgrade head
+podman-compose up -d
 ```
 
 > Compose proje adı `bayios` olduğu için iki klasör aynı anda çalıştırılmamalıdır.
@@ -292,14 +336,15 @@ podman compose up -d
 - Kampanya detayında ürün ilişkileri odaklı Excel dışa/içe aktarma.
 - Teklif detayında hızlı rezervasyon ve hızlı satış/teslim.
 - Yatay kaydırmalı tablolar için yapışkan scrollbar.
-- Alembic `0012_data_import_batches` migration'ı.
+- Alembic `0012_data_import_batches`, `0013_bank_optional_commissions` ve `0014_klima_tier_and_chippin_banks` migration'ları.
 - Yeni environment değişkeni veya yeni Python bağımlılığı yok.
 
 ## 8. Sorun giderme
 
 - `/health` 503 → `database`/`migrations` alanlarına bak; migration `upgrade head` çalıştığından ve postgres sağlıklı olduğundan emin ol.
-- App başlamıyor → `podman compose logs app`; `DATABASE_URL`'ın `postgresql+psycopg://` şemasında olduğunu doğrula.
-- Sayfalar assets'siz görünüyor → `static/vendor/` dosyalarının image içinde olduğunu doğrula (bölüm 3 build'ten sonra `podman compose exec app ls /app/src/bayios/web/static/vendor`).
+- `podman-compose build` Docker Desktop'ın `docker-compose.exe`'sini çağırıp `npipe:////./pipe/podman-machine-default` veya `Can't add file ... .dockerignore` hatası veriyorsa: `podman compose` kullanmayı bırak, bölüm 1.1'deki `uv tool install --python 3.12 podman-compose` kurulumunu yap ve tüm komutları `podman-compose` ile çalıştır. Ayrıca `podman machine start` ve `podman info` ile machine'in çalıştığını doğrula.
+- App başlamıyor → `podman-compose logs app`; `DATABASE_URL`'ın `postgresql+psycopg://` şemasında olduğunu doğrula.
+- Sayfalar assets'siz görünüyor → `static/vendor/` dosyalarının image içinde olduğunu doğrula (bölüm 3 build'ten sonra `podman-compose exec app ls /app/src/bayios/web/static/vendor`).
 
 ## 9. Saklama notu
 

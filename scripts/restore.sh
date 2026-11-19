@@ -10,7 +10,9 @@ DUMP="${1:?usage: restore.sh <path-to-dump>}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET_DB="${TARGET_DB:-bayios_restore_check}"
 
-if command -v podman >/dev/null 2>&1 && podman info >/dev/null 2>&1; then
+if command -v podman-compose >/dev/null 2>&1 && podman info >/dev/null 2>&1; then
+  COMPOSE=(podman-compose)
+elif command -v podman >/dev/null 2>&1 && podman info >/dev/null 2>&1; then
   COMPOSE=(podman compose)
 else
   COMPOSE=(docker compose)

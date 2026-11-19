@@ -16,21 +16,21 @@ Kapsam: Milestone 0–5 (katalog+import, rezervasyon+A4, sayım, kampanya, tekli
 
 ## B. Go-live (Windows 11 + Podman)
 
-1. **Podman kurulum/doğrulama:** `podman --version` ve `podman info` çalışıyor olmalı (Podman Desktop veya Podman Machine).
+1. **Podman kurulum/doğrulama:** `podman --version` ve `podman info` çalışıyor olmalı (Podman Desktop veya Podman Machine). Windows'ta `podman compose` Docker Desktop'ın `docker-compose.exe`'sini çağırırsa [OPERATIONS §1.1](OPERATIONS.md#11-windowsta-podman-compose-kurulumu-zorunlu) uygulanır: `uv tool install --python 3.12 podman-compose` ve tüm komutlarda `podman-compose`.
 2. **Secret:** `.env.production.example` → `.env` kopyala; `POSTGRES_PASSWORD`'ü uzun rastgele bir değerle değiştir.
 3. **Build + deploy:**
    ```
-   podman compose build
-   podman compose up -d postgres
-   podman compose run --rm app alembic upgrade head
-   podman compose up -d
+   podman-compose build
+   podman-compose up -d postgres
+   podman-compose run --rm app alembic upgrade head
+   podman-compose up -d
    ```
-4. **Sağlık:** `podman compose ps` ve `/health` → `status=ok, database=ok, migrations=ok` (current=0014).
+4. **Sağlık:** `podman-compose ps` ve `/health` → `status=ok, database=ok, migrations=ok` (current=0014).
 5. **Güvenlik (zorunlu):**
    - Host firewall yalnızca bayi LAN subnet'inden `BAYIOS_PORT`'a izin.
    - Modemde port forwarding YOK; public URL bind YOK.
    - Guest Wi-Fi ağından izole; guest cihazlar erişemez.
-   - `podman compose config` çıktısında `postgres`'te `ports` olmadığını doğrula (DB LAN'a kapalı).
+   - `podman-compose config` çıktısında `postgres`'te `ports` olmadığını doğrula (DB LAN'a kapalı).
 6. **İlk backup + restore tatbikatı (gerçek veri YÜKLENMEDEN önce):**
    - `bash scripts/backup.sh` → dump oluştuğunu doğrula.
    - `bash scripts/restore.sh <dump>` → scratch DB'ye yükle ve sayımı doğrula.
