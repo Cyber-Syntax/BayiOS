@@ -979,6 +979,16 @@ class FakeCommissionRepository:
             if getattr(offer, "bank_id", None) == source_id:
                 offer.bank_id = target_id
 
+    def delete_bank_rates_limits(self, bank_id: uuid.UUID) -> None:
+        for period_id, bucket in self.rates.items():
+            self.rates[period_id] = [
+                rate for rate in bucket if rate.bank_id != bank_id
+            ]
+        for period_id, bucket in self.limits.items():
+            self.limits[period_id] = [
+                limit for limit in bucket if limit.bank_id != bank_id
+            ]
+
     def delete_bank(self, bank_id: uuid.UUID) -> None:
         self.banks.pop(bank_id, None)
 

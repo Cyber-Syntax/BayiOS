@@ -513,7 +513,7 @@ Hızlı Teslim kaydı doğrulanmış tek Code 128 değeri taşır; görüntü sa
 
 **Use-case akışları**
 
-1. Banka listesi: arama, tekli/toplu ekleme (önizlemeli), yeniden adlandırma, pasifleştirme/aktifleştirme, birleştirme, yalnız kullanılmayan bankayı çift onaylı silme.
+1. Banka listesi: arama, tekli/toplu ekleme (önizlemeli), yeniden adlandırma, pasifleştirme/aktifleştirme, birleştirme, kullanılmayan bankayı çift onaylı silme. Oran/limitlerde kullanılan banka, bağlı oran/limit satırları da silinerek çift onayla silinebilir; tekliflerde kullanılan banka silinemez.
 2. Kategori listesi: arama, tekli/toplu ekleme (önizlemeli), yeniden adlandırma, komisyon grubu değiştirme, birleştirme, yalnız kullanılmayan kategoriyi çift onaylı silme.
 3. Banka/kategori Excel içe/dışa aktarma; banka `Banka, Aktif`, kategori `Kategori, Komisyon Grubu`.
 4. Banka birleştirme: oran ve limitler hedefe taşınır (çakışan satırlar hedefte varsa kaynak satır atlanır), tekliflerin `bank_id` değeri hedefe çevrilir, `bank_name_snapshot` korunur, kaynak banka silinir.
@@ -525,7 +525,7 @@ Hızlı Teslim kaydı doğrulanmış tek Code 128 değeri taşır; görüntü sa
 
 - `AKBANK`/`akbank`/`AkbanK` aynı banka kaydına düşer; görünen ad `Akbank`.
 - Toplu ekleme önizlemesi yeni/mevcut/hatalı satırları ayırır; hatalı satır varken commit engellenir.
-- Kullanılmayan banka/kategori çift onayla silinir; kullanımdaki kayıt silinemez.
+- Kullanılmayan banka/kategori çift onayla silinir. Oran/limitlerde kullanılan banka bağlı satırlarla silinebilir; tekliflerde kullanılan banka ve kullanımdaki kategori silinemez.
 - Banka birleştirme oran/limit/teklif referanslarını hedefe taşır; eski teklif banka adı değişmez.
 - Kategori birleştirme ürünleri ve limitleri hedefe taşır; çakışan limit kaynakta atlanır.
 - Excel banka/kategori roundtrip'i oluşturur/güncelleştirir.

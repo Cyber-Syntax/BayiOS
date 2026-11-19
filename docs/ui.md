@@ -111,7 +111,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 ### Ayarlar
 
 - "Ayarlar" navigasyonunda **Bankalar** ve **Kategoriler** sekmeleri bulunur.
-- Bankalar listesi ad, aktif/pasif durumu ve kullanım sayılarını (oran/limit/teklif) gösterir; tekli ve toplu ekleme (her satıra bir ad, önizlemeli), yeniden adlandırma, pasifleştirme, birleştirme ve yalnız kullanılmayan kaydı çift onaylı silme sunar.
+- Bankalar listesi ad, aktif/pasif durumu ve kullanım sayılarını (oran/limit/teklif) gösterir; tekli ve toplu ekleme (her satıra bir ad, önizlemeli), yeniden adlandırma, pasifleştirme, birleştirme ve çift onaylı silme sunar. Oran/limitlerde kullanılan bankada silme, bağlı oran/limit satırlarının da silineceği uyarısıyla yapılır; tekliflerde kullanılan banka silinemez.
 - Kategoriler listesi ad, komisyon grubu (Klima/Diğer) ve kullanım sayılarını (ürün/limit) gösterir; tekli/toplu ekleme, yeniden adlandırma, grup değiştirme, birleştirme ve yalnız kullanılmayan kaydı silme sunar.
 - Banka ve kategori listeleri Excel ile içe/dışa aktarılır. Banka dosyası `Banka, Aktif`; kategori dosyası `Kategori, Komisyon Grubu` kolonlarını taşır.
 - Stok sayfasında ayrı "Kategori Ekle" modalı yoktur; kategori ekleme ürün detayındaki hızlı alan ve Ayarlar'dadır.

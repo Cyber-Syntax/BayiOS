@@ -96,13 +96,18 @@
                   <button type="submit" class="btn btn-sm">Birleştir</button>
                 </form>
                 {% endif %}
-                {% if row.rate_count == 0 and row.limit_count == 0 and row.offer_count == 0 %}
-                <form method="post" action="/settings/banks/{{ row.bank.id }}/delete" onsubmit="return confirm('Banka kalıcı olarak silinecek. Emin misiniz?') && confirm('Son onay: geri alınamaz. Silinsin mi?');">
+                {% if row.offer_count == 0 %}
+                <form method="post" action="/settings/banks/{{ row.bank.id }}/delete"
+                      onsubmit="return confirm('{% if row.rate_count or row.limit_count %}Bu bankaya bağlı {{ row.rate_count }} oran ve {{ row.limit_count }} limit kaydı da silinecek. Devam edilsin mi?{% else %}Banka kalıcı olarak silinecek. Emin misiniz?{% endif %}') && confirm('Son onay: geri alınamaz. Silinsin mi?');">
                   <input type="hidden" name="confirm" value="1">
-                  <button type="submit" class="btn btn-sm btn-danger">Sil (kullanılmıyor)</button>
+                  {% if row.rate_count or row.limit_count %}<input type="hidden" name="force" value="1">{% endif %}
+                  <button type="submit" class="btn btn-sm btn-danger">{% if row.rate_count or row.limit_count %}Sil (bağlı oran/limitlerle){% else %}Sil (kullanılmıyor){% endif %}</button>
                 </form>
+                {% if row.rate_count or row.limit_count %}
+                <span class="muted" style="font-size: .8rem;">Tüm dönemlerdeki banka özel oran ve limitleri de silinir.</span>
+                {% endif %}
                 {% else %}
-                <span class="muted" style="font-size: .8rem;">Kullanımdaki banka silinemez; pasifleştirin veya birleştirin.</span>
+                <span class="muted" style="font-size: .8rem;">Tekliflerde kullanılıyor; silinemez. Pasifleştirin veya birleştirin.</span>
                 {% endif %}
               </div>
             </details>

@@ -9,6 +9,83 @@ from bayios.web.deps import get_unit_of_work
 from tests.fakes import FakeUnitOfWork
 
 
+def test_empty_bulk_preview_shows_validation_message(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    empty = client.post(
+        "/settings/banks/bulk-preview",
+        data={"names": "   "},
+        follow_redirects=False,
+    )
+    assert empty.status_code == 303
+    page = client.get(empty.headers["location"])
+    assert "En az bir ad girilmelidir" in page.text
+
+    missing = client.post(
+        "/settings/categories/bulk-preview",
+        data={},
+        follow_redirects=False,
+    )
+    assert missing.status_code == 303
+    page = client.get(missing.headers["location"])
+    assert "En az bir ad girilmelidir" in page.text
+
+
+def test_used_bank_requires_force_to_delete_with_rates(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    import uuid
+    from datetime import UTC, datetime
+
+    from bayios.adapters.db.models.commissions import (
+        CommissionPeriod,
+        CommissionRate,
+    )
+
+    client.post("/settings/banks", data={"name": "Silinecek"})
+    bank = next(iter(fake_uow.commissions.banks.values()))
+    period = CommissionPeriod(
+        id=uuid.uuid4(),
+        period_key="2026-11",
+        valid_from=datetime(2026, 11, 1, tzinfo=UTC),
+        valid_until=datetime(2026, 11, 30, tzinfo=UTC),
+        status="inactive",
+    )
+    fake_uow.commissions.add_period(period)
+    fake_uow.commissions.add_rate(
+        CommissionRate(
+            id=uuid.uuid4(),
+            period_id=period.id,
+            channel="pos",
+            bank_id=bank.id,
+            product_group="other",
+            installment_count=2,
+            commission_percent=4,
+            scope_key=f"pos|{bank.id}|other|-|2",
+        )
+    )
+
+    blocked = client.post(
+        f"/settings/banks/{bank.id}/delete",
+        data={"confirm": "1"},
+        follow_redirects=False,
+    )
+    assert blocked.status_code == 303
+    assert bank.id in fake_uow.commissions.banks
+    page = client.get(blocked.headers["location"])
+    assert "silme onayını" in page.text
+
+    forced = client.post(
+        f"/settings/banks/{bank.id}/delete",
+        data={"confirm": "1", "force": "1"},
+        follow_redirects=False,
+    )
+    assert forced.status_code == 303
+    assert bank.id not in fake_uow.commissions.banks
+    assert fake_uow.commissions.rates[period.id] == []
+
+
+
 @pytest.fixture
 def fake_uow() -> FakeUnitOfWork:
     return FakeUnitOfWork()

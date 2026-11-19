@@ -69,10 +69,10 @@ def banks_page(
 @router.post("/banks")
 def create_bank_route(
     uow: UnitOfWorkDep,
-    name: Annotated[str, Form()],
+    name: Annotated[str | None, Form()] = None,
 ) -> RedirectResponse:
     try:
-        result = create_banks_bulk(uow, name)
+        result = create_banks_bulk(uow, name or "")
     except (ValidationError, ValueError) as exc:
         return _redirect_error("/settings/banks", exc)
     return RedirectResponse(
@@ -85,10 +85,10 @@ def create_bank_route(
 def bulk_banks_preview_route(
     request: Request,
     uow: UnitOfWorkDep,
-    names: Annotated[str, Form()],
+    names: Annotated[str | None, Form()] = None,
 ) -> HTMLResponse:
     try:
-        preview = preview_banks(uow, names)
+        preview = preview_banks(uow, names or "")
     except (ValidationError, ValueError) as exc:
         return _redirect_error_response("/settings/banks", exc)
     return _render_bulk_preview(
@@ -104,10 +104,10 @@ def bulk_banks_preview_route(
 @router.post("/banks/bulk")
 def bulk_banks_route(
     uow: UnitOfWorkDep,
-    names: Annotated[str, Form()],
+    names: Annotated[str | None, Form()] = None,
 ) -> RedirectResponse:
     try:
-        result = create_banks_bulk(uow, names)
+        result = create_banks_bulk(uow, names or "")
     except (ValidationError, ValueError) as exc:
         return _redirect_error("/settings/banks", exc)
     return RedirectResponse(
@@ -120,10 +120,10 @@ def bulk_banks_route(
 def rename_bank_route(
     bank_id: uuid.UUID,
     uow: UnitOfWorkDep,
-    name: Annotated[str, Form()],
+    name: Annotated[str | None, Form()] = None,
 ) -> RedirectResponse:
     try:
-        bank = rename_bank(uow, bank_id, name)
+        bank = rename_bank(uow, bank_id, name or "")
     except (NotFoundError, ValidationError, ValueError) as exc:
         return _redirect_error("/settings/banks", exc)
     return RedirectResponse(
@@ -169,9 +169,15 @@ def delete_bank_route(
     bank_id: uuid.UUID,
     uow: UnitOfWorkDep,
     confirm: Annotated[str | None, Form()] = None,
+    force: Annotated[str | None, Form()] = None,
 ) -> RedirectResponse:
     try:
-        delete_bank(uow, bank_id, confirm=confirm == "1")
+        delete_bank(
+            uow,
+            bank_id,
+            confirm=confirm == "1",
+            force=force == "1",
+        )
     except (NotFoundError, ValidationError) as exc:
         return _redirect_error("/settings/banks", exc)
     return RedirectResponse(
@@ -232,10 +238,10 @@ def categories_page(
 @router.post("/categories")
 def create_category_route(
     uow: UnitOfWorkDep,
-    name: Annotated[str, Form()],
+    name: Annotated[str | None, Form()] = None,
 ) -> RedirectResponse:
     try:
-        result = create_categories_bulk(uow, name)
+        result = create_categories_bulk(uow, name or "")
     except (ValidationError, ValueError) as exc:
         return _redirect_error("/settings/categories", exc)
     return RedirectResponse(
@@ -248,10 +254,10 @@ def create_category_route(
 def bulk_categories_preview_route(
     request: Request,
     uow: UnitOfWorkDep,
-    names: Annotated[str, Form()],
+    names: Annotated[str | None, Form()] = None,
 ) -> HTMLResponse:
     try:
-        preview = preview_categories(uow, names)
+        preview = preview_categories(uow, names or "")
     except (ValidationError, ValueError) as exc:
         return _redirect_error_response("/settings/categories", exc)
     return _render_bulk_preview(
@@ -267,10 +273,10 @@ def bulk_categories_preview_route(
 @router.post("/categories/bulk")
 def bulk_categories_route(
     uow: UnitOfWorkDep,
-    names: Annotated[str, Form()],
+    names: Annotated[str | None, Form()] = None,
 ) -> RedirectResponse:
     try:
-        result = create_categories_bulk(uow, names)
+        result = create_categories_bulk(uow, names or "")
     except (ValidationError, ValueError) as exc:
         return _redirect_error("/settings/categories", exc)
     return RedirectResponse(
@@ -283,10 +289,10 @@ def bulk_categories_route(
 def rename_category_route(
     category_id: uuid.UUID,
     uow: UnitOfWorkDep,
-    name: Annotated[str, Form()],
+    name: Annotated[str | None, Form()] = None,
 ) -> RedirectResponse:
     try:
-        category = rename_category(uow, category_id, name)
+        category = rename_category(uow, category_id, name or "")
     except (NotFoundError, ValidationError, ValueError) as exc:
         return _redirect_error("/settings/categories", exc)
     return RedirectResponse(

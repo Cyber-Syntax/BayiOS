@@ -311,6 +311,19 @@ class SqlAlchemyCommissionRepository:
             limit.scope_key = new_scope
         self._session.flush()
 
+    def delete_bank_rates_limits(self, bank_id: uuid.UUID) -> None:
+        self._session.execute(
+            sa.delete(CommissionRate).where(
+                CommissionRate.bank_id == bank_id
+            )
+        )
+        self._session.execute(
+            sa.delete(CommissionLimit).where(
+                CommissionLimit.bank_id == bank_id
+            )
+        )
+        self._session.flush()
+
     def delete_bank(self, bank_id: uuid.UUID) -> None:
         bank = self._session.get(Bank, bank_id)
         if bank is not None:

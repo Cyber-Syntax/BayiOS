@@ -569,7 +569,7 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 
 **FR-FIN-21 (P0):** Komisyon ekranından yeni banka ekleme akışı, ekleme sonrası seçimi ve girilmiş oran/limit alanlarını kaybetmeden forma dönmelidir.
 
-**FR-FIN-22 (P0):** Bankalar Ayarlar ekranından yönetilebilmelidir: tekli ve toplu ekleme, yeniden adlandırma, pasifleştirme/aktifleştirme, kullanılmayan bankayı çift onayla silme ve kullanımdaki bankayı başka bankayla birleştirme. Birleştirmede oran, limit ve teklif referansları hedef bankaya taşınır; geçmiş tekliflerdeki banka adı snapshot olarak korunur.
+**FR-FIN-22 (P0):** Bankalar Ayarlar ekranından yönetilebilmelidir: tekli ve toplu ekleme, yeniden adlandırma, pasifleştirme/aktifleştirme, kullanılmayan bankayı çift onayla silme ve bankaları birleştirme. Oran/limitlerde kullanılan banka, bağlı oran/limit satırlarının da silineceği açıkça onaylanırsa silinebilmelidir; tekliflerde kullanılan banka hiçbir koşulda silinmemeli, pasifleştirilmeli veya birleştirilmelidir. Birleştirmede oran, limit ve teklif referansları hedef bankaya taşınır; geçmiş tekliflerdeki banka adı snapshot olarak korunur.
 
 **FR-FIN-23 (P0):** Banka listesi Excel ile içe/dışa aktarılabilmelidir. Komisyon oran/limit Excel içe aktarmasında bilinmeyen banka önizlemede "yeni" olarak gösterilip oluşturulmalıdır (varsayılan açık). Teklif Excel içe aktarmasında bilinmeyen bankayı otomatik oluşturma varsayılan kapalı olmalı ve kullanıcı onay kutusuyla açabilmelidir.
 
@@ -1514,7 +1514,7 @@ Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 
 1. Ayarlar > Bankalar ekranında tekli ve toplu banka eklenir; toplu ekleme önizlemesi yeni/mevcut/hatalı satırları ayırır.
 2. `AKBANK` yazımı mevcut `Akbank` kaydına eşleşir; yeni kayıt açılmaz.
-3. Kullanılmayan banka çift onayla silinir; oran/limit/teklifte kullanılan banka silinemez, pasifleştirilebilir veya birleştirilebilir.
+3. Kullanılmayan banka çift onayla silinir. Oran/limitlerde kullanılan banka, bağlı oran/limit satırlarını da sileceğini onaylarsa silinir; tekliflerde kullanılan banka silinemez, pasifleştirilebilir veya birleştirilebilir.
 4. Banka birleştirildiğinde oran ve limitler hedefe taşınır; eski tekliflerdeki banka adı değişmez.
 5. Kategoriler Ayarlar'dan toplu eklenir, yeniden adlandırılır, komisyon grubu değiştirilir ve kullanımdaysa silinemez; stok sayfasında kategori ekleme modalı yoktur.
 6. Banka/kategori Excel içe ve dışa aktarması çalışır; komisyon importunda bilinmeyen banka onayla oluşturulur, teklif importunda varsayılan kapalıdır.

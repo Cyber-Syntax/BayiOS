@@ -289,7 +289,11 @@ def merge_banks(
 
 
 def delete_bank(
-    uow: UnitOfWork, bank_id: uuid.UUID, *, confirm: bool
+    uow: UnitOfWork,
+    bank_id: uuid.UUID,
+    *,
+    confirm: bool,
+    force: bool = False,
 ) -> None:
     with uow:
         bank = uow.commissions.get_bank(bank_id)
@@ -301,11 +305,19 @@ def delete_bank(
             bank_id, (0, 0)
         )
         offer_count = uow.offers.count_by_bank(bank_id)
-        if rate_count or limit_count or offer_count:
+        if offer_count:
             raise ValidationError(
-                "Bu banka oran, limit veya tekliflerde kullanılıyor; "
-                "silmek yerine pasifleştirin veya birleştirin."
+                "Bu banka tekliflerde kullanılıyor; silinemez. "
+                "Pasifleştirin veya başka bankayla birleştirin."
             )
+        if (rate_count or limit_count) and not force:
+            raise ValidationError(
+                f"Bu banka {rate_count} oran ve {limit_count} limitte "
+                "kullanılıyor. Bağlı kayıtlarla birlikte silmek için "
+                "silme onayını verin."
+            )
+        if force and (rate_count or limit_count):
+            uow.commissions.delete_bank_rates_limits(bank_id)
         uow.commissions.delete_bank(bank_id)
         uow.commit()
 
