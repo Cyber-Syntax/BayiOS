@@ -12,10 +12,9 @@ MVP'de rol ve hesap yoktur. Her kullanıcı aynı sol navigasyonu görür:
 - Teklifler
 - Rezervasyonlar
 - Stok/Sayım
-- Hızlı Teslim
 - Ayarlar
 
-Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya götürür. MVP'de Ana Sayfa, Ürünler, Kampanyalar, Teklifler, Komisyonlar, Stok/Sayım ve Rezervasyonlar aktiftir; diğer modüller navigasyonda "yakında" etiketiyle devre dışı görünür.
+Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya götürür. MVP'de Ana Sayfa, Ürünler, Kampanyalar, Teklifler, Komisyonlar, Stok/Sayım, Rezervasyonlar ve Ayarlar aktiftir; Hızlı Teslim v2 adayıdır ve v1 navigasyonunda yer almaz.
 
 ## Uygulama kabuğu
 
@@ -183,4 +182,4 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 
 ## Kapsam dışı
 
-Kimlik doğrulama, rol yönetimi, kamera/barkod çözümleme, hızlı teslim modülünün tam ekranı ve yazdırma şablonunun detaylı tasarımı bu UI sözleşmesinin kapsamı dışındadır. Bu modül navigasyonda devre dışı görünür ve ilgili milestone'da açılır.
+Kimlik doğrulama, rol yönetimi, kamera/barkod çözümleme ve Hızlı Teslim modülü v1 kapsamı dışındadır; Hızlı Teslim v2 adayıdır ve navigasyonda yer almaz.

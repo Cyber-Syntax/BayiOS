@@ -44,7 +44,6 @@ MVP'nin başarılı sayılması için:
 - Rezervasyon açma, müşteri teslimat istediğinde depo sürecini izleme ve tamamlandığında stoktan düşme tek kayıt üzerinden yapılmalıdır.
 - Teklifler kaydedilmeli, daha sonra tekrar açılabilmeli ve A4 basılabilmelidir.
 - Rezervasyon, stok sayım listesi ve teklif çıktıları uygulama dışındaki çalışanlarca kullanılabilmelidir.
-- WhatsApp veya başka bir masaüstü penceresinden alınan barkod görüntüsü BayiOS'a dosya yükleme veya `Ctrl+V` ile aktarılabilmeli; yalnızca Code 128 metni çözülebilmelidir. Bu akış ürün/WMS araması yapmaz.
 - POS hesaplayıcısı, scraper veya WMS entegrasyonu olmadan MVP tamamlanabilmelidir.
 
 ---
@@ -59,7 +58,6 @@ MVP'nin başarılı sayılması için:
 - Teklif ve rezervasyon kaydı oluşturur.
 - Müşteri teslimat istediğinde rezervasyon sürecini başlatır ve depocuyla iletişim kurar.
 - Depo onayı, servis ataması ve teslimat durumlarını uygulamada günceller.
-- Hızlı teslim ekranıyla müşteri adı ve barkod kaydı oluşturur.
 
 **Depo çalışanı**
 
@@ -109,13 +107,11 @@ MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uyg
 8. Şirket kampanyaları ve bayi özel fiyat/indirim rehberi.
 9. Banka ve taksit bazlı POS komisyon tablosu; bankasız genel oran, bankaya özel oran ve formdan hızlı banka ekleme; minimum satış fiyatı referans hesabı.
 10. Çok ürünlü teklif oluşturma, kaydetme, teklif geçmişi ve A4 çıktı.
-11. Hızlı teslim kaydı: müşteri adı-soyadı, isteğe bağlı telefon ve tam olarak bir Code 128 metni.
-12. Hızlı teslim barkod resmi içe aktarma: dosya yükleme veya `Ctrl+V` ile panodan yapıştırma.
-13. Temel ana ekran, arama ve bildirim/hatırlatma alanı.
-14. Yerel ağda mobil ve masaüstü tarayıcıdan kullanım.
-15. Veritabanı yedekleme.
-16. Ürün detayından ve ürün listesinden çoklu seçimle kategori atama; kategorisiz bırakma.
-17. Banka ve kategori ana verilerinin Ayarlar ekranından yönetimi; toplu ekleme, yeniden adlandırma, pasifleştirme/birleştirme, kullanılmayan kaydı silme ve Excel içe/dışa aktarma.
+11. Temel ana ekran, arama ve bildirim/hatırlatma alanı.
+12. Yerel ağda mobil ve masaüstü tarayıcıdan kullanım.
+13. Veritabanı yedekleme.
+14. Ürün detayından ve ürün listesinden çoklu seçimle kategori atama; kategorisiz bırakma.
+15. Banka ve kategori ana verilerinin Ayarlar ekranından yönetimi; toplu ekleme, yeniden adlandırma, pasifleştirme/birleştirme, kullanılmayan kaydı silme ve Excel içe/dışa aktarma.
 
 ### 3.2 MVP dışında (sonraki sürüm / good-to-have)
 
@@ -123,6 +119,7 @@ MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uyg
 - GitHub Actions scriptiyle otomatik dosya aktarımı veya API entegrasyonu. İlk sürümde dosya manuel yüklenir.
 - WMS veya Dynamics 365 entegrasyonu.
 - POS kampanya/indirim dağıtım hesaplayıcısı ve karma sepet algoritması.
+- Hızlı Teslim / Code 128 modülü v1 kapsamı dışıdır; v2 adayı olarak değerlendirilecektir.
 - E-fatura PDF/UBL-TR XML otomatik okuma, satırları ürünlere bağlama.
 - Rezervasyonlara PDF ekleme ve uygulama içinde görüntüleme (ilk ek özellik olarak sonraki faz).
 - Rezervasyon devretme ve işlem sorumluluğu yönetimi.
@@ -366,7 +363,7 @@ Bu hesap, POS komisyonu kesintisi sonrasında maliyet + seçilen hedef kârı ka
 
 ### 5.1 Ana ekran ve navigasyon
 
-**FR-HOME-01 (P0):** Ana ekranda hızlı erişim kartları bulunmalıdır: Ürünler, Kampanyalar, Teklifler, Rezervasyonlar, Stok/Sayım, Hızlı Teslim, Komisyonlar.
+**FR-HOME-01 (P0):** Ana ekranda hızlı erişim kartları bulunmalıdır: Ürünler, Kampanyalar, Teklifler, Rezervasyonlar, Stok/Sayım, Komisyonlar, Ayarlar.
 
 **FR-HOME-02 (P0):** Yaklaşan/gecikmiş rezervasyon hatırlatmaları tüm kullanıcılara gösterilmelidir.
 
@@ -714,43 +711,45 @@ Teslim anında fiziksel stok yetersizse sistem uyarı göstermeli ancak onayla d
 
 **FR-STOCK-18 (P0) — Otomatik Filtre:** Stok sayfasında kategori seçildiğinde veya arama kutusuna yazıldığında sonuçlar "Ara" butonuna basılmadan otomatik güncellenmelidir; kullanıcı verimliliği için anında sonuç gösterilmelidir.
 
-### 5.9 Hızlı teslim ve Code 128
+### 5.9 V2 adayı — Hızlı teslim ve Code 128 (v1 dışı)
 
-**FR-QUICK-01 (P0):** Hızlı Teslim ekranında müşteri adı-soyadı zorunlu, telefon isteğe bağlı olmalıdır.
+> Bu bölüm v1 kapsamında değildir; v2 adayı olarak saklanır. v1 navigasyonunda Hızlı Teslim bulunmaz.
 
-**FR-QUICK-02 (P0):** Her Hızlı Teslim kaydı tam olarak bir Code 128 barkod metni ve bir müşteri içermelidir; aynı müşteri için yeni kod ayrı kayıt olur.
+**FR-QUICK-01 (V2):** Hızlı Teslim ekranında müşteri adı-soyadı zorunlu, telefon isteğe bağlı olmalıdır.
 
-**FR-QUICK-03 (P0):** Barkod görüntüsünden yalnızca Code 128 metni otomatik çözümlenmelidir; ürün kataloğu veya WMS lookup yapılmamalıdır.
+**FR-QUICK-02 (V2):** Her Hızlı Teslim kaydı tam olarak bir Code 128 barkod metni ve bir müşteri içermelidir; aynı müşteri için yeni kod ayrı kayıt olur.
 
-**FR-QUICK-04 (P0):** Çözülen barkod tam ve değiştirilmeden saklanmalıdır; baş/son haneler atılmamalıdır.
+**FR-QUICK-03 (V2):** Barkod görüntüsünden yalnızca Code 128 metni otomatik çözümlenmelidir; ürün kataloğu veya WMS lookup yapılmamalıdır.
 
-**FR-QUICK-05 (P0):** Her barkod metni tek tek kopyalanabilmelidir.
+**FR-QUICK-04 (V2):** Çözülen barkod tam ve değiştirilmeden saklanmalıdır; baş/son haneler atılmamalıdır.
 
-**FR-QUICK-06 (P0):** Hızlı teslim kaydı ve barkod çözüm zamanı geçmişte saklanmalıdır.
+**FR-QUICK-05 (V2):** Her barkod metni tek tek kopyalanabilmelidir.
 
-**FR-QUICK-07 (P0):** Resim dosyası yükleme desteklenmelidir.
+**FR-QUICK-06 (V2):** Hızlı teslim kaydı ve barkod çözüm zamanı geçmişte saklanmalıdır.
 
-**FR-QUICK-08 (P0):** Masaüstünde panodan ekran görüntüsü yapıştırma (`Ctrl+V`) desteklenmelidir.
+**FR-QUICK-07 (V2):** Resim dosyası yükleme desteklenmelidir.
 
-**FR-QUICK-09 (P2):** Masaüstünde ekran yakalama akışı sonraki fazda değerlendirilebilir; MVP kapsamı dışındadır.
+**FR-QUICK-08 (V2):** Masaüstünde panodan ekran görüntüsü yapıştırma (`Ctrl+V`) desteklenmelidir.
 
-**FR-QUICK-10 (P0):** Dosya yükleme ve pano yapıştırma MVP'nin alternatif girişleridir; ekran yakalama gerekmez.
+**FR-QUICK-09 (V2):** Masaüstünde ekran yakalama akışı v2 kapsamı dışındadır.
 
-**FR-QUICK-11 (P2):** Mobil kamera veya fotoğraf galerisi üzerinden giriş sonraki fazda desteklenebilir; MVP yalnızca dosya yükleme ve `Ctrl+V` ile görsel yapıştırmayı kapsar.
+**FR-QUICK-10 (V2):** Dosya yükleme ve pano yapıştırma v2'nin alternatif girişleridir; ekran yakalama gerekmez.
 
-**FR-QUICK-12 (P0):** Decoder Code 128 bulamazsa kullanıcıya hata/yeniden deneme sunmalı; birden fazla Code 128 bulursa kullanıcıya seçim yaptırmalı; hatalı veya belirsiz sonucu sessizce kaydetmemelidir.
+**FR-QUICK-11 (V2):** Mobil kamera veya fotoğraf galerisi girişi v2 kapsamı dışındadır; v2 yalnızca dosya yükleme ve `Ctrl+V` ile görsel yapıştırmayı kapsar.
 
-**FR-QUICK-13 (P0):** Kullanıcı çözülen metni doğrulayıp kaydetmelidir.
+**FR-QUICK-12 (V2):** Decoder Code 128 bulamazsa kullanıcıya hata/yeniden deneme sunmalı; birden fazla Code 128 bulursa kullanıcıya seçim yaptırmalı; hatalı veya belirsiz sonucu sessizce kaydetmemelidir.
 
-**FR-QUICK-15 (P0):** MVP'de manuel barkod/metin girişi bulunmamalıdır; yalnızca görüntüden çözülen Code 128 metni kaydedilmelidir.
+**FR-QUICK-13 (V2):** Kullanıcı çözülen metni doğrulayıp kaydetmelidir.
 
-**FR-QUICK-16 (P0):** Aynı Code 128 metni ikinci kez kaydedilememelidir; sistem kullanıcıya mevcut kaydı göstermelidir.
+**FR-QUICK-15 (V2):** v2'de manuel barkod/metin girişi bulunmamalıdır; yalnızca görüntüden çözülen Code 128 metni kaydedilmelidir.
 
-**FR-QUICK-14 (P0):** Hızlı teslim kaydı, WMS'de işlem yapıldığı anlamına gelmemelidir. Ekranda “WMS çıkışı bu uygulamada yapılmaz” açıklaması bulunmalıdır.
+**FR-QUICK-16 (V2):** Aynı Code 128 metni ikinci kez kaydedilememelidir; sistem kullanıcıya mevcut kaydı göstermelidir.
 
-**FR-QUICK-17 (P0):** Code 128 çizgilerinden çözülen değer ile barkod altındaki insan-okunabilir metin doğrulanmalıdır. Değerler uyuşmuyorsa kayıt tamamlanmamalı ve kullanıcıya düzeltme/iptal akışı gösterilmelidir.
+**FR-QUICK-14 (V2):** Hızlı teslim kaydı, WMS'de işlem yapıldığı anlamına gelmemelidir. Ekranda “WMS çıkışı bu uygulamada yapılmaz” açıklaması bulunmalıdır.
 
-**FR-QUICK-18 (P0):** MVP'de orijinal görsel saklanmamalıdır; doğrulanmış Code 128 metni, müşteri adı, isteğe bağlı telefon, kaynak türü ve zaman saklanmalıdır.
+**FR-QUICK-17 (V2):** Code 128 çizgilerinden çözülen değer ile barkod altındaki insan-okunabilir metin doğrulanmalıdır. Değerler uyuşmuyorsa kayıt tamamlanmamalı ve kullanıcıya düzeltme/iptal akışı gösterilmelidir.
+
+**FR-QUICK-18 (V2):** v2'de orijinal görsel saklanmamalıdır; doğrulanmış Code 128 metni, müşteri adı, isteğe bağlı telefon, kaynak türü ve zaman saklanmalıdır.
 
 **Görüntü giriş notu:** MVP'de kullanıcı görüntü dosyası yükler veya panodaki görüntüyü BayiOS'a `Ctrl + V` ile yapıştırır. Uygulama sürekli ekran kaydı tutmaz; kamera, galeri, ekran yakalama ve manuel kod girişi MVP dışıdır.
 
@@ -790,9 +789,8 @@ Mobil alt navigasyon veya sade yan menü:
 4. Teklifler
 5. Rezervasyonlar
 6. Stok / Sayım
-7. Hızlı Teslim
-8. Komisyonlar
-9. Ayarlar (Bankalar, Kategoriler)
+7. Komisyonlar
+8. Ayarlar (Bankalar, Kategoriler)
 
 Ekranların adları kısa ve çalışanların alışık olduğu terimlerle yazılmalıdır.
 
@@ -877,7 +875,7 @@ Ekranların adları kısa ve çalışanların alışık olduğu terimlerle yazı
 9. Stok düzeltmeleri hareket olarak uygulanır.
 10. Sayım oturumu kapanır; önceki değerler korunur.
 
-### 6.9 Hızlı Teslim barkod akışı
+### 6.9 V2 adayı — Hızlı Teslim barkod akışı (v1 dışı)
 
 **Masaüstü – pano:**
 
@@ -888,7 +886,7 @@ Ekranların adları kısa ve çalışanların alışık olduğu terimlerle yazı
 5. Code 128 çözülür ve tam barkod numarası gösterilir.
 6. Çalışan sonucu doğrular, müşteri adını ve isteğe bağlı telefonu girer, kaydeder.
 
-**MVP kapsamı:**
+**v2 kapsamı:**
 
 1. Görsel dosyası yüklenir veya pano görüntüsü `Ctrl + V` ile yapıştırılır.
 2. Yalnızca Code 128 sonuçları aranır; birden fazla sonuç varsa kullanıcı birini seçer.
@@ -1125,7 +1123,7 @@ PDF/ek dosya tablosu MVP'de bulunmaz. Dosya özelliği sonraki fazda eklendiğin
 - `difference` (nullable)
 - `applied_at` (nullable)
 
-### 7.7 Hızlı teslim
+### 7.7 V2 adayı — Hızlı teslim veri modeli (v1 dışı)
 
 **quick_deliveries**
 
@@ -1168,7 +1166,6 @@ PDF/ek dosya tablosu MVP'de bulunmaz. Dosya özelliği sonraki fazda eklendiğin
 - Tamamlanan rezervasyonlar.
 - Kampanya rehberi.
 - Teklif listesi ve durumları.
-- Hızlı teslim kayıtları.
 - Ürün stok hareket geçmişi.
 
 ### 8.2 Arama ve filtreler
@@ -1243,7 +1240,6 @@ Filtrelenmiş ürün sonuçlarını dışa aktarma MVP dışında tutulur; tüm 
 - Etkileşim: HTMX; küçük istemci tarafı durumlar için Alpine.js.
 - UI: Tailwind CSS ve erişilebilir bileşenler.
 - Mobil kullanım: responsive web arayüzü; MVP'de PWA kurulumu zorunlu değildir.
-- Barkod çözme: backend'de `pyzbar`/Code 128 decoder; mevcut Python decoder scripti değerlendirilerek entegre edilir.
 - Zamanlanmış hatırlatma: ilk aşamada uygulama içi günlük görev veya sorgu; ayrı mesajlaşma servisi gerekmez.
 
 ### 10.2 Dağıtım
@@ -1290,7 +1286,6 @@ bayios/
           offers.py
           reservations.py
           inventory.py
-          quick_deliveries.py
       models/
       schemas/
       services/
@@ -1311,7 +1306,6 @@ bayios/
         offers/
         reservations/
         inventory/
-        quick-deliveries/
       services/
       hooks/
       types/
@@ -1351,8 +1345,6 @@ POST           /api/v1/reservations/{id}/items/{item_id}/deliver
 GET/POST       /api/v1/stock-counts
 POST           /api/v1/stock-counts/{id}/complete
 GET            /api/v1/products/{id}/stock-movements
-GET/POST       /api/v1/quick-deliveries
-POST           /api/v1/quick-deliveries/{id}/barcodes/decode
 ```
 
 ### 10.7 Zamanlanmış işler
@@ -1375,7 +1367,7 @@ POST           /api/v1/quick-deliveries/{id}/barcodes/decode
 - Durum adları teknik terimler yerine operasyon dilinde gösterilmelidir.
 - Kaydetme sonrası açık başarı/hata mesajı gösterilmelidir.
 - Hatalı veri sessizce kaydedilmemelidir.
-- 3 çalışan tarafından 5 tekrar ölçümünde medyan hedefler: ürün/fiyat bulma ≤ 10 sn ve ≤ 3 dokunuş; tek ürünlü rezervasyon ≤ 60 sn; teslim edildi geçişi ≤ 20 sn; Hızlı Teslim yapıştırma-doğrulama-kayıt ≤ 30 sn. Pilotta işi engelleyen bulgu olmamalıdır.
+- 3 çalışan tarafından 5 tekrar ölçümünde medyan hedefler: ürün/fiyat bulma ≤ 10 sn ve ≤ 3 dokunuş; tek ürünlü rezervasyon ≤ 60 sn; teslim edildi geçişi ≤ 20 sn; Pilotta işi engelleyen bulgu olmamalıdır.
 
 ### 11.2 Performans hedefleri
 
@@ -1512,7 +1504,7 @@ Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 24. "Taksit Seçeneklerini Gör" kayıt oluşturmaz; seçim form alanlarını doldurur ve teklif ancak Kaydet ile oluşur.
 25. Her durumdaki teklif çift onayla silinir; rezervasyona dönüşmüş teklif silinince bağlı rezervasyon korunur.
 
-### 13.5 Hızlı teslim testleri
+### 13.5 V2 adayı — Hızlı teslim testleri (v1 dışı)
 
 1. Geçerli Code 128 ekran görüntüsü pano ile yapıştırılır ve metin çözülür.
 2. Aynı görüntü dosya olarak yüklenirse aynı barkod metni çözülür.
@@ -1643,7 +1635,9 @@ POS hesaplayıcısı en son milestone olarak kalır. Sıralama, çalışanlara e
 
 **Çıkış kriteri:** Örnek maliyet/komisyon testleri geçer; eski teklifler sonraki fiyat/komisyon güncellemelerinden etkilenmez.
 
-### Milestone 6 — Hızlı Teslim / Code 128
+### V2 adayı — Hızlı Teslim / Code 128 (v1 dışı)
+
+> v1 stabilizasyon kapsamında değildir; yalnızca v2 planlaması için referanstır.
 
 - Müşteri adı-soyadı.
 - Görsel dosyası yükleme.
@@ -1699,8 +1693,6 @@ Bu PRD aşağıdaki kullanıcı kararlarını temel alır:
 - CSV'de bulunmayan ürünler silinmez/pasife alınmaz.
 - Ürün adı çalışan için ana tanımlayıcıdır; dahili değişmez ürün ID'si ayrıca bulunur.
 - Ürün kataloğunda barkod zorunlu değildir.
-- Code 128 yalnızca Hızlı Teslim akışında görüntüden çözülür; tam kod korunur, manuel giriş MVP'de yoktur.
-- Hızlı Teslim bir müşteriyle tek Code 128 metnini, isteğe bağlı telefonu ve çözüm zamanını tutar; ürün/WMS lookup yapmaz. Aynı kod yinelenemez; WMS çıkışı kullanıcı tarafından ayrı yapılır.
 - Rezervasyon ürün satışından sonra açılır; kapora/senet/açık hesap rezervasyonu yoktur.
 - Rezervasyonlar ürün bazında çoklu satır destekler.
 - Rezervasyonun 13 aylık takip hatırlatması vardır; otomatik iptal yoktur; erteleme varsayılan 1 aydır.
@@ -1765,7 +1757,6 @@ Bu maddeler MVP'nin işlevlerini engelleyen ürün kararları değildir; uygulam
 | Depo hazır | Depocunun ilgili ürünün çıkışına izin verdiği durum |
 | Servis atandı | Servis süreci planlandı; henüz teslim/kurulum tamamlanmadı |
 | Teslim edildi | Ürün müşteriye ulaştı/kurulum tamamlandı; fiziksel stoktan düşüm tetiklenir |
-| Hızlı Teslim | Bir müşteriyle tek Code 128 metninin görüntüden çözülüp insan-okunabilir metinle doğrulanarak, kullanıcı onayıyla, ürün/WMS lookup yapılmadan kaydedildiği operasyon modülü |
 | POS milestone | Kart/indirim/karma sepet hesaplama algoritmasının ayrı ve sonraki geliştirme aşaması |
 | Genel komisyon oranı | Banka seçilmeden tanımlanan, tüm bankalarda geçerli varsayılan komisyon oranı |
 | Bankaya özel komisyon oranı | Yalnız seçilen bankada genel oranı geçersiz kılan komisyon oranı |

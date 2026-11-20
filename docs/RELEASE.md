@@ -2,7 +2,7 @@
 
 Bu belge, MVP'nin üretim Windows 11 makinesine kurulması, gerçek veriyle go-live, çalışanlarla pilot ve pilot sonrası değerlendirme adımlarını sıralar. Operasyonel komutlar için [OPERATIONS.md](./OPERATIONS.md)'ye, iş kuralları için [PRD](./prd.md)'ye bakın.
 
-Kapsam: Milestone 0–5 (katalog+import, rezervasyon+A4, sayım, kampanya, teklif+komisyon). **Milestone 6 (Hızlı Teslim) bu release'de YOK** (navigasyonda "yakında"). Auth yok → kesinlikle LAN-only.
+Kapsam: Milestone 0–5 (katalog+import, rezervasyon+A4, sayım, kampanya, teklif+komisyon) ve v1 stabilizasyonu. **Hızlı Teslim / Code 128 v1 kapsamı dışıdır**; v2 adayıdır ve navigasyonda yer almaz. Auth yok → kesinlikle LAN-only.
 
 ---
 
@@ -59,7 +59,7 @@ Kapsam: Milestone 0–5 (katalog+import, rezervasyon+A4, sayım, kampanya, tekli
 
 1. **Go/no-go:** Çalışan feedback'i + hata/veri bütünlüğü kayıtlarına göre karar ver.
 2. **Sonraki release kapsamını belirle** (önerilen sıra):
-   - **Milestone 6 — Hızlı Teslim / Code 128** (şu an backlog).
+   - **Hızlı Teslim / Code 128** (v2 adayı; v1'e alınmadı).
    - Locust 5.000 ürün / 4 client p95 performans kapısı.
    - İnternete açılmadan ÖNCE kullanıcı hesabı + rol + kayıt sahipliği (PRD §2.2).
 3. OPERATIONS.md'yi ve bu belgeyi pilot sonucuna göre güncelle; operasyon kaydına go-live/pilot tarihlerini işle.

@@ -14,6 +14,14 @@ from bayios.web.deps import get_unit_of_work
 from tests.fakes import FakeUnitOfWork
 
 
+def test_navigation_has_no_quick_delivery_tab(client: TestClient) -> None:
+    response = client.get("/products")
+
+    assert "Hızlı Teslim" not in response.text
+    assert "/quick-deliveries" not in response.text
+
+
+
 def test_product_list_has_sticky_bars_and_bulk_select_all(
     client: TestClient,
 ) -> None:

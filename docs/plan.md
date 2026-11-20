@@ -29,7 +29,6 @@ src/bayios/
     reservations/
     campaigns/
     offers/
-    quick_deliveries/
     shared/
   application/
     commands/
@@ -585,36 +584,6 @@ Kart fiyatı henüz girilmemişse önerilen kart fiyatı geçici matrah olur; ç
 
 Nakit ve tüm kanal/banka/taksit kombinasyonları kâr-zararla görülebilir; kart komisyonu kart satış toplamından hesaplanır; kart ve nakit bayi indirimleri ayrı ayrı düzenlenip doğrulanır; seçilen seçenek teklife snapshot'lanır; her durumdaki teklif onayla silinebilir; eski teklifler dönem/oran değişiminden etkilenmez.
 
-### Milestone 6 — Hızlı Teslim / Code 128 (BACKLOG)
-
-**Sınır**
-
-`BarcodeDecoder` application port'udur. Gerçek `pyzbar`/Code 128 adapter'ı görüntüden değer döndürür; application testleri deterministic fake kullanır. Original image kalıcı saklanmaz.
-
-**Use-case akışları**
-
-1. Upload veya clipboard input'u validate et.
-2. Decoder sonucu yoksa açık retry error; birden fazlaysa kullanıcı seçimi.
-3. İnsan-okunabilir metinle decoded değer uyuşmuyorsa confirm etme.
-4. Kullanıcı doğrulamasından sonra customer + exact barcode + source/time metadata'yı kaydet.
-5. `barcode_value` unique conflict'i mevcut kaydı gösterir.
-
-Manuel barcode input, product lookup ve WMS request'i yoktur. UI'da “WMS çıkışı bu uygulamada yapılmaz” açıklaması bulunur.
-
-**Davranış testleri**
-
-- Aynı görüntü upload ve clipboard'dan aynı exact Code 128 değerini üretir.
-- Baş/son haneler korunur.
-- Decode failure success-shaped response üretmez.
-- Birden çok barcode selection gerektirir.
-- Human-readable mismatch kayıt oluşturmaz.
-- Aynı barcode ikinci kez kaydedilemez.
-- WMS'e network call yapılmaz.
-
-**Çıkış kriteri**
-
-Hızlı Teslim kaydı doğrulanmış tek Code 128 değeri taşır; görüntü saklanmaz; duplicate ve mismatch açıkça yönetilir.
-
 ### Cross-milestone — Ayarlar (banka ve kategori ana verisi)
 
 **Kapsam**
@@ -658,3 +627,35 @@ Her milestone şu sırayla teslim edilir:
 7. Milestone çıkış kriteriyle manuel pilot doğrulaması.
 
 Final release öncesi 5.000 ürün ve 4 concurrent client ile PRD p95 hedefleri Locust'ta ölçülür. Hedef aşılırsa yeni özellik eklenmez; query/index/host kararı alınır.
+
+## V2 adayları (v1 dışı)
+
+### Hızlı Teslim / Code 128 (v2 adayı)
+
+**Sınır**
+
+`BarcodeDecoder` application port'udur. Gerçek `pyzbar`/Code 128 adapter'ı görüntüden değer döndürür; application testleri deterministic fake kullanır. Original image kalıcı saklanmaz.
+
+**Use-case akışları**
+
+1. Upload veya clipboard input'u validate et.
+2. Decoder sonucu yoksa açık retry error; birden fazlaysa kullanıcı seçimi.
+3. İnsan-okunabilir metinle decoded değer uyuşmuyorsa confirm etme.
+4. Kullanıcı doğrulamasından sonra customer + exact barcode + source/time metadata'yı kaydet.
+5. `barcode_value` unique conflict'i mevcut kaydı gösterir.
+
+Manuel barcode input, product lookup ve WMS request'i yoktur. UI'da “WMS çıkışı bu uygulamada yapılmaz” açıklaması bulunur.
+
+**Davranış testleri**
+
+- Aynı görüntü upload ve clipboard'dan aynı exact Code 128 değerini üretir.
+- Baş/son haneler korunur.
+- Decode failure success-shaped response üretmez.
+- Birden çok barcode selection gerektirir.
+- Human-readable mismatch kayıt oluşturmaz.
+- Aynı barcode ikinci kez kaydedilemez.
+- WMS'e network call yapılmaz.
+
+**Çıkış kriteri**
+
+Hızlı Teslim kaydı doğrulanmış tek Code 128 değeri taşır; görüntü saklanmaz; duplicate ve mismatch açıkça yönetilir.
