@@ -17,6 +17,8 @@
 <div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
 {% endif %}
 {% set offer = detail.offer %}
+{% set ns = namespace(has_oliz=false) %}
+{% for item in detail.items %}{% if item.website_price_snapshot %}{% set ns.has_oliz = true %}{% endif %}{% endfor %}
 
 <div class="actions-bar">
   <div>
@@ -72,12 +74,16 @@
   <div class="stat-box"><div class="stat-label">Nakit Toplam</div><div class="stat-value">{{ offer.cash_total | tr_money }} TL</div></div>
   <div class="stat-box"><div class="stat-label">Kart Toplam</div><div class="stat-value">{{ offer.card_total | tr_money }} TL</div></div>
   <div class="stat-box"><div class="stat-label">Seçili Toplam</div><div class="stat-value" style="color: #2563eb;">{{ offer.selected_total | tr_money }} TL</div></div>
+  <div class="stat-box"><div class="stat-label">Normal Toplam</div><div class="stat-value" style="font-size: 1.1rem;">{{ display_totals.regular_total | tr_money }} TL</div></div>
+  {% if ns.has_oliz %}<div class="stat-box"><div class="stat-label">Oliz Toplam</div><div class="stat-value" style="font-size: 1.1rem;">{{ display_totals.oliz_total | tr_money }} TL</div></div>{% endif %}
+  <div class="stat-box"><div class="stat-label">Şirket İndirimi</div><div class="stat-value" style="font-size: 1.1rem;">{{ display_totals.company_discount_total | tr_money }} TL</div></div>
+  <div class="stat-box"><div class="stat-label">Maliyet</div><div class="stat-value" style="font-size: 1.1rem;">{{ display_totals.cost_total | tr_money }} TL</div></div>
 </div>
 
 <div class="card" style="padding: 1rem; margin-bottom: 1rem; border-color: #bfdbfe; background: #f8fbff;">
   <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap;">
     <h2 style="margin: 0; font-size: 1.1rem;">Kâr / Komisyon Özeti</h2>
-    <span class="muted" style="font-size: .8rem;">Seçili ödeme tipine göre birim başına hesaplanır.</span>
+    <span class="muted" style="font-size: .8rem;">Satır toplamları üzerinden hesaplanır; maliyet ve hakedişler adetle çarpılır.</span>
   </div>
   {% if profit_summary.has_missing_cost %}
   <div class="alert alert-warning" style="margin: .75rem 0;"><span>Bazı satırlarda maliyet tanımlı değil; toplam kâr yalnızca maliyeti bilinen satırları kapsar.</span></div>
@@ -87,12 +93,13 @@
       <thead>
         <tr>
           <th>Ürün</th>
+          <th>Adet</th>
           <th>Satış Fiyatı</th>
           <th>Taksit</th>
           <th>Komisyon</th>
           <th>Komisyon Sonrası</th>
           <th>Kampanya Hakedişi</th>
-          <th>Oliz Hakedişi</th>
+          {% if ns.has_oliz %}<th>Oliz Hakedişi</th>{% endif %}
           <th>Toplam Gelir</th>
           <th>Maliyet</th>
           <th>Kâr / Zarar</th>
@@ -103,12 +110,13 @@
         {% for line in profit_summary.lines %}
         <tr>
           <td>{{ line.item.product_name_snapshot }}</td>
+          <td>{{ line.quantity }}</td>
           <td>{{ line.sale_price | tr_money }} TL</td>
           <td>{% if line.installment_count == 0 %}Nakit{% else %}{{ line.installment_count }}{% endif %}</td>
           <td>{{ line.commission_percent | tr_percent }}</td>
           <td>{{ line.net_after_commission | tr_money }} TL</td>
           <td>{{ line.campaign_share | tr_money }} TL</td>
-          <td>{{ line.oliz_share | tr_money }} TL</td>
+          {% if ns.has_oliz %}<td>{{ line.oliz_share | tr_money }} TL</td>{% endif %}
           <td><strong>{{ line.total_revenue | tr_money }} TL</strong></td>
           <td>{% if line.cost is not none %}{{ line.cost | tr_money }} TL{% else %}<span class="muted">Eksik</span>{% endif %}</td>
           <td>
@@ -119,13 +127,13 @@
           <td>{% if line.margin_percent is not none %}{{ line.margin_percent | tr_percent }}{% else %}—{% endif %}</td>
         </tr>
         {% else %}
-        <tr><td colspan="11" class="muted" style="text-align: center; padding: 1rem;">Kâr detayı için fiyat ve maliyet bilgisi yok.</td></tr>
+        <tr><td colspan="{{ 12 if ns.has_oliz else 11 }}" class="muted" style="text-align: center; padding: 1rem;">Kâr detayı için fiyat ve maliyet bilgisi yok.</td></tr>
         {% endfor %}
       </tbody>
       {% if profit_summary.lines %}
       <tfoot>
         <tr>
-          <th colspan="7" style="text-align: right;">Toplam</th>
+          <th colspan="{{ 8 if ns.has_oliz else 7 }}" style="text-align: right;">Toplam</th>
           <th>{{ profit_summary.total_revenue | tr_money }} TL</th>
           <th>{{ profit_summary.total_cost | tr_money }} TL</th>
           <th><strong>{{ profit_summary.total_profit | tr_money }} TL</strong></th>
@@ -141,14 +149,14 @@
   <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Teklif Satırları</h2>
   <div class="table-container">
     <table class="data-table">
-      <thead><tr><th>Ürün</th><th>Adet</th><th>Normal</th><th>Oliz</th><th>Kampanya</th><th>Taban</th><th>Nakit</th><th>Kart</th><th>Satır Toplamı</th></tr></thead>
+      <thead><tr><th>Ürün</th><th>Adet</th><th>Normal</th>{% if ns.has_oliz %}<th>Oliz</th>{% endif %}<th>Kampanya</th><th>Taban</th><th>Nakit</th><th>Kart</th><th>Satır Toplamı</th></tr></thead>
       <tbody>
         {% for item in detail.items %}
         <tr>
           <td>{{ item.product_name_snapshot }}{% if item.warning_text %}<br><small class="muted">{{ item.warning_text }}</small>{% endif %}</td>
           <td>{{ item.quantity }}</td>
           <td>{{ item.regular_price_snapshot | tr_money }}</td>
-          <td>{{ item.website_price_snapshot | tr_money }}</td>
+          {% if ns.has_oliz %}<td>{{ item.website_price_snapshot | tr_money }}</td>{% endif %}
           <td>{{ item.campaign_name_snapshot or '—' }}{% if item.campaign_gift_present is not none %}<br><small class="muted">{% if item.campaign_gift_present %}Hediye var{% else %}Hediye yok{% endif %}</small>{% endif %}</td>
           <td>{{ item.base_price_used | tr_money }}</td>
           <td><strong>{{ item.unit_price_cash | tr_money }}</strong></td>
@@ -156,7 +164,7 @@
           <td>{{ item.line_total_cash | tr_money }} / {{ item.line_total_card | tr_money }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="9" class="muted" style="text-align: center; padding: 1.5rem;">Teklif satırı yok.</td></tr>
+        <tr><td colspan="{{ 9 if ns.has_oliz else 8 }}" class="muted" style="text-align: center; padding: 1.5rem;">Teklif satırı yok.</td></tr>
         {% endfor %}
       </tbody>
     </table>

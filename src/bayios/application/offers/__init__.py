@@ -20,7 +20,11 @@ from bayios.application.reservations import (
     create_reservation,
     deliver_item,
 )
-from bayios.domain.campaigns import CampaignPriceInput, campaign_scenarios
+from bayios.domain.campaigns import (
+    CampaignPriceInput,
+    campaign_discount_price,
+    campaign_scenarios,
+)
 from bayios.domain.commissions import (
     CHANNEL_LABELS,
     CardType,
@@ -40,7 +44,16 @@ from bayios.domain.offers import (
     quote_offer_item,
     summarize_offer,
 )
-from bayios.domain.products import ActorContext
+from bayios.domain.offers.pricing import (
+    SCENARIO_LABELS,
+    CompanyDiscountSource,
+    CompanyPriceCandidate,
+    PricingScenario,
+    oliz_candidate,
+    regular_candidate,
+    select_company_price,
+)
+from bayios.domain.products import ActorContext, normalize_website_price
 
 
 class OfferPaymentType(StrEnum):
@@ -104,6 +117,7 @@ class OfferLineAnalysis:
 @dataclass(frozen=True)
 class OfferProfitLine:
     item: OfferItem
+    quantity: int
     sale_price: Decimal | None
     installment_count: int
     commission_percent: Decimal
@@ -141,6 +155,7 @@ def build_offer_line_analyses(
         if isinstance(row, dict) and row.get("installment") is not None
     ]
     analyses: list[OfferLineAnalysis] = []
+    is_v2 = getattr(offer, "pricing_version", "legacy") == "v2"
     for item in detail.items:
         sale_cash = item.unit_price_cash
         sale_card = item.unit_price_card
@@ -174,8 +189,22 @@ def build_offer_line_analyses(
         rows: list[InstallmentProfit] = []
         for installment, percent in options:
             net = quantize_money(sale * (Decimal(100) - percent) / Decimal(100))
-            campaign_share = _campaign_share(item, sale, share)
-            oliz_share = _oliz_share(item, share)
+            if is_v2:
+                company_share = quantize_money(
+                    (item.company_share_amount or Decimal(0))
+                    * share
+                    / Decimal(100)
+                )
+                source = item.company_discount_source or "none"
+                campaign_share = (
+                    company_share if source == "campaign" else Decimal(0)
+                )
+                oliz_share = (
+                    company_share if source == "oliz" else Decimal(0)
+                )
+            else:
+                campaign_share = _campaign_share(item, sale, share)
+                oliz_share = _oliz_share(item, share)
             total = quantize_money(net + campaign_share + oliz_share)
             profit = (
                 quantize_money(total - item.cost_price_snapshot)
@@ -223,14 +252,30 @@ def build_offer_profit_summary(detail: OfferDetail) -> OfferProfitSummary:
             )
         elif offer.payment_type == PaymentType.CASH.value:
             selected = analysis.installments[0]
+        quantity = analysis.item.quantity
+        line_net = quantize_money(selected.net_after_commission * quantity)
+        line_campaign = quantize_money(selected.campaign_share * quantity)
+        line_oliz = quantize_money(selected.oliz_share * quantity)
+        line_revenue = quantize_money(selected.total_revenue * quantity)
+        line_cost = (
+            quantize_money(selected.cost * quantity)
+            if selected.cost is not None
+            else None
+        )
+        line_profit = (
+            quantize_money(line_revenue - line_cost)
+            if line_cost is not None
+            else None
+        )
         margin = (
-            (selected.profit / selected.total_revenue * Decimal(100))
-            if selected.profit is not None and selected.total_revenue
+            (line_profit / line_revenue * Decimal(100))
+            if line_profit is not None and line_revenue
             else None
         )
         lines.append(
             OfferProfitLine(
                 item=analysis.item,
+                quantity=quantity,
                 sale_price=(
                     analysis.sale_price_cash
                     if offer.payment_type == PaymentType.CASH.value
@@ -238,12 +283,12 @@ def build_offer_profit_summary(detail: OfferDetail) -> OfferProfitSummary:
                 ),
                 installment_count=selected.installment_count,
                 commission_percent=selected.commission_percent,
-                net_after_commission=selected.net_after_commission,
-                campaign_share=selected.campaign_share,
-                oliz_share=selected.oliz_share,
-                total_revenue=selected.total_revenue,
-                cost=selected.cost,
-                profit=selected.profit,
+                net_after_commission=line_net,
+                campaign_share=line_campaign,
+                oliz_share=line_oliz,
+                total_revenue=line_revenue,
+                cost=line_cost,
+                profit=line_profit,
                 margin_percent=quantize_money(margin) if margin is not None else None,
             )
         )
@@ -274,6 +319,11 @@ def _campaign_share(
     item: OfferItem, sale_price: Decimal, share_percent: Decimal
 ) -> Decimal:
     snapshot = item.campaign_snapshot or {}
+    raw_amount = snapshot.get("campaign_discount_amount")
+    if raw_amount is not None:
+        return quantize_money(
+            Decimal(str(raw_amount)) * share_percent / Decimal(100)
+        )
     discount_type = snapshot.get("discount_type")
     raw_value = snapshot.get("discount_value")
     if not discount_type or raw_value is None:
@@ -315,6 +365,11 @@ class _PreparedItem:
     category_id: uuid.UUID | None = None
     campaign_version_id: uuid.UUID | None = None
     campaign_snapshot: dict[str, object] | None = None
+    company: CompanyPriceCandidate | None = None
+    best_campaign: CompanyPriceCandidate | None = None
+    regular_price: Decimal | None = None
+    oliz_price: Decimal | None = None
+    cost_price: Decimal | None = None
 
 
 def _estimate_card_total(prepared: list[_PreparedItem]) -> Decimal:
@@ -343,6 +398,9 @@ class _ComparisonItem:
     regular_price: Decimal | None
     website_price: Decimal | None
     product_group: ProductCommissionGroup
+    company_source: str = "none"
+    company_discount_amount: Decimal = Decimal(0)
+    company_share_amount: Decimal = Decimal(0)
 
 
 @dataclass(frozen=True)
@@ -359,6 +417,7 @@ class OfferComparisonOption:
     cash_total: Decimal
     monthly_payment: Decimal | None
     net_after_commission: Decimal
+    company_share: Decimal
     campaign_share: Decimal
     oliz_share: Decimal
     total_revenue: Decimal
@@ -369,6 +428,22 @@ class OfferComparisonOption:
 
 
 @dataclass(frozen=True)
+class OfferScenarioSummary:
+    key: str
+    label: str
+    sale_cash: Decimal
+    sale_card: Decimal
+    company_share: Decimal
+    total_revenue: Decimal
+    cost: Decimal
+    cash_profit: Decimal | None
+    card_profit: Decimal | None
+    margin_percent: Decimal | None
+    has_missing_cost: bool
+    partial: bool = False
+
+
+@dataclass(frozen=True)
 class OfferComparison:
     cash: OfferComparisonOption
     options: tuple[OfferComparisonOption, ...]
@@ -376,48 +451,13 @@ class OfferComparison:
     cash_total: Decimal
     card_type: str
     has_missing_cost: bool
-
-
-def _campaign_share_snapshot(
-    snapshot: dict[str, object] | None,
-    sale_price: Decimal,
-    regular_price: Decimal | None,
-    share_percent: Decimal,
-) -> Decimal:
-    if not snapshot:
-        return Decimal(0)
-    discount_type = snapshot.get("discount_type")
-    raw_value = snapshot.get("discount_value")
-    if not discount_type or raw_value is None:
-        return Decimal(0)
-    value = Decimal(str(raw_value))
-    if discount_type == "percent":
-        discount = sale_price * value / Decimal(100)
-    elif discount_type == "fixed_amount":
-        discount = min(value, sale_price)
-    elif discount_type == "special_price":
-        base = regular_price or sale_price
-        discount = max(Decimal(0), base - value)
-    else:
-        discount = Decimal(0)
-    return quantize_money(discount * share_percent / Decimal(100))
-
-
-def _oliz_share_snapshot(
-    snapshot: dict[str, object] | None,
-    regular_price: Decimal | None,
-    website_price: Decimal | None,
-    share_percent: Decimal,
-) -> Decimal:
-    if snapshot:
-        return Decimal(0)
-    if regular_price is None or website_price is None:
-        return Decimal(0)
-    if regular_price <= website_price:
-        return Decimal(0)
-    return quantize_money(
-        (regular_price - website_price) * share_percent / Decimal(100)
-    )
+    scenarios: tuple[OfferScenarioSummary, ...] = ()
+    has_oliz: bool = False
+    regular_total: Decimal = Decimal(0)
+    oliz_total: Decimal = Decimal(0)
+    company_discount_total: Decimal = Decimal(0)
+    cost_total: Decimal = Decimal(0)
+    selected_scenario: str = "auto"
 
 
 def _option_profit(
@@ -426,10 +466,11 @@ def _option_profit(
     commission_percent: Decimal,
     share_percent: Decimal,
     sale_attr: str,
-) -> tuple[Decimal, Decimal, Decimal, Decimal, Decimal | None, bool]:
+) -> tuple[Decimal, Decimal, Decimal, Decimal, Decimal, Decimal | None, bool, Decimal]:
     net_total = Decimal(0)
     campaign_total = Decimal(0)
     oliz_total = Decimal(0)
+    company_total = Decimal(0)
     revenue_total = Decimal(0)
     cost_total = Decimal(0)
     has_missing_cost = False
@@ -438,22 +479,23 @@ def _option_profit(
         net = quantize_money(
             sale * (Decimal(100) - commission_percent) / Decimal(100)
         )
-        campaign = _campaign_share_snapshot(
-            item.campaign_snapshot,
-            sale,
-            item.regular_price,
-            share_percent,
+        company_share = quantize_money(
+            item.company_share_amount * share_percent / Decimal(100)
         )
-        oliz = _oliz_share_snapshot(
-            item.campaign_snapshot,
-            item.regular_price,
-            item.website_price,
-            share_percent,
-        )
-        revenue = quantize_money(net + campaign + oliz)
+        if item.company_source == "campaign":
+            campaign = company_share
+            oliz = Decimal(0)
+        elif item.company_source == "oliz":
+            campaign = Decimal(0)
+            oliz = company_share
+        else:
+            campaign = Decimal(0)
+            oliz = Decimal(0)
+        revenue = quantize_money(net + company_share)
         net_total += net * item.quantity
         campaign_total += campaign * item.quantity
         oliz_total += oliz * item.quantity
+        company_total += company_share * item.quantity
         revenue_total += revenue * item.quantity
         if item.cost is None:
             has_missing_cost = True
@@ -467,6 +509,7 @@ def _option_profit(
         quantize_money(net_total),
         quantize_money(campaign_total),
         quantize_money(oliz_total),
+        quantize_money(company_total),
         quantize_money(revenue_total),
         cost_total,
         profit,
@@ -492,6 +535,7 @@ def _comparison_row(
         net_total,
         campaign_total,
         oliz_total,
+        company_total,
         revenue_total,
         cost_total,
         profit,
@@ -524,6 +568,7 @@ def _comparison_row(
             else None
         ),
         net_after_commission=net_total,
+        company_share=company_total,
         campaign_share=campaign_total,
         oliz_share=oliz_total,
         total_revenue=revenue_total,
@@ -558,6 +603,43 @@ def preview_offer_comparison(
     card_total = quantize_money(card_total)
     cash_total = quantize_money(cash_total)
     share_percent = DEALER_SHARE_PERCENT
+    regular_total = quantize_money(
+        sum(
+            (
+                (item.regular_price or Decimal(0)) * item.input.quantity
+                for item in prepared
+            ),
+            Decimal(0),
+        )
+    )
+    oliz_total = quantize_money(
+        sum(
+            (
+                (item.oliz_price or Decimal(0)) * item.input.quantity
+                for item in prepared
+            ),
+            Decimal(0),
+        )
+    )
+    company_discount_total = quantize_money(
+        sum(
+            (
+                (item.company.discount_amount if item.company else Decimal(0))
+                * item.input.quantity
+                for item in prepared
+            ),
+            Decimal(0),
+        )
+    )
+    cost_total = quantize_money(
+        sum(
+            (
+                (item.cost_price or Decimal(0)) * item.input.quantity
+                for item in prepared
+            ),
+            Decimal(0),
+        )
+    )
     cash = _comparison_row(
         items,
         payment_type=PaymentType.CASH.value,
@@ -624,6 +706,45 @@ def preview_offer_comparison(
             row.installment_count,
         )
     )
+    selected_commission = Decimal(0)
+    selected_bank = str(data.bank_id) if data.bank_id is not None else None
+    for option in options:
+        option_bank = str(option.bank_id) if option.bank_id is not None else None
+        if (
+            option.channel == (data.channel.value if data.channel else None)
+            and option_bank == selected_bank
+            and option.installment_count == data.installment_count
+        ):
+            selected_commission = option.commission_percent
+            break
+    if selected_commission == Decimal(0) and options:
+        selected_commission = options[0].commission_percent
+
+    scenario_specs: list[PricingScenario] = [
+        PricingScenario.NORMAL,
+        PricingScenario.DEALER,
+    ]
+    if any(item.oliz_price is not None for item in prepared):
+        scenario_specs.append(PricingScenario.OLIZ)
+    if any(item.best_campaign is not None for item in prepared):
+        scenario_specs.extend(
+            [PricingScenario.CAMPAIGN, PricingScenario.CAMPAIGN_DEALER]
+        )
+    if any(
+        item.input.unit_price_cash is not None
+        or item.input.unit_price_card is not None
+        for item in prepared
+    ):
+        scenario_specs.append(PricingScenario.MANUAL)
+    scenarios = tuple(
+        _scenario_summary(
+            prepared,
+            scenario,
+            share_percent=share_percent,
+            card_commission_percent=selected_commission,
+        )
+        for scenario in scenario_specs
+    )
     return OfferComparison(
         cash=cash,
         options=tuple(options),
@@ -631,6 +752,12 @@ def preview_offer_comparison(
         cash_total=cash_total,
         card_type=(data.card_type or CardType.CONSUMER).value,
         has_missing_cost=any(item.cost is None for item in items),
+        scenarios=scenarios,
+        has_oliz=any(item.oliz_price is not None for item in prepared),
+        regular_total=regular_total,
+        oliz_total=oliz_total,
+        company_discount_total=company_discount_total,
+        cost_total=cost_total,
     )
 
 
@@ -642,6 +769,7 @@ def _comparison_item_from_prepared(item: _PreparedItem) -> _ComparisonItem:
     cash = item.input.unit_price_cash
     if cash is None:
         cash = base * (Decimal(100) - item.dealer_discount_cash) / Decimal(100)
+    company = item.company
     return _ComparisonItem(
         sale_card=quantize_money(card),
         sale_cash=quantize_money(cash),
@@ -649,8 +777,197 @@ def _comparison_item_from_prepared(item: _PreparedItem) -> _ComparisonItem:
         cost=item.layers.cost_price,
         campaign_snapshot=item.campaign_snapshot,
         regular_price=item.layers.regular_price,
-        website_price=item.layers.website_price,
+        website_price=item.oliz_price,
         product_group=item.product_group,
+        company_source=(
+            company.source.value if company is not None else "none"
+        ),
+        company_discount_amount=(
+            company.discount_amount if company is not None else Decimal(0)
+        ),
+        company_share_amount=(
+            company.share_amount if company is not None else Decimal(0)
+        ),
+    )
+
+
+def _discounted(price: Decimal, percent: Decimal) -> Decimal:
+    return quantize_money(price * (Decimal(100) - percent) / Decimal(100))
+
+
+def _scenario_item(
+    item: _PreparedItem, scenario: PricingScenario
+) -> tuple[_ComparisonItem, bool]:
+    regular = item.regular_price
+    oliz = item.oliz_price
+    campaign = item.best_campaign
+    selected = item.company
+    dealer = item.dealer_discount
+    dealer_cash = item.dealer_discount_cash
+    partial = False
+
+    if scenario in (PricingScenario.NORMAL, PricingScenario.DEALER):
+        base = regular
+        source = "none"
+        share = Decimal(0)
+        if base is None:
+            partial = True
+            base = Decimal(0)
+        if scenario is PricingScenario.NORMAL:
+            cash = base
+            card = base
+        else:
+            cash = _discounted(base, dealer_cash)
+            card = _discounted(base, dealer)
+        campaign_snapshot = None
+    elif scenario is PricingScenario.OLIZ:
+        if oliz is None:
+            partial = True
+            base = regular or Decimal(0)
+            share = Decimal(0)
+            source = "none"
+        else:
+            base = oliz
+            share = max(Decimal(0), (regular or oliz) - oliz)
+            source = "oliz"
+        cash = _discounted(base, dealer_cash)
+        card = _discounted(base, dealer)
+        campaign_snapshot = None
+    elif scenario in (PricingScenario.CAMPAIGN, PricingScenario.CAMPAIGN_DEALER):
+        if campaign is None:
+            partial = True
+            base = regular or Decimal(0)
+            share = Decimal(0)
+            source = "none"
+            campaign_snapshot = None
+        else:
+            base = campaign.price
+            share = campaign.share_amount
+            source = "campaign"
+            campaign_snapshot = campaign.snapshot
+        if scenario is PricingScenario.CAMPAIGN:
+            cash = base
+            card = base
+        else:
+            cash = _discounted(base, dealer_cash)
+            card = _discounted(base, dealer)
+    else:  # MANUAL
+        if selected is None:
+            partial = True
+            base = regular or Decimal(0)
+            share = Decimal(0)
+            source = "none"
+        else:
+            base = selected.price
+            share = selected.share_amount
+            source = selected.source.value
+        cash = (
+            quantize_money(item.input.unit_price_cash)
+            if item.input.unit_price_cash is not None
+            else _discounted(base, dealer_cash)
+        )
+        card = (
+            quantize_money(item.input.unit_price_card)
+            if item.input.unit_price_card is not None
+            else _discounted(base, dealer)
+        )
+        campaign_snapshot = (
+            selected.snapshot
+            if selected is not None
+            and selected.source is CompanyDiscountSource.CAMPAIGN
+            else None
+        )
+
+    discount = max(Decimal(0), (regular or base) - base)
+    return (
+        _ComparisonItem(
+            sale_card=quantize_money(card),
+            sale_cash=quantize_money(cash),
+            quantity=item.input.quantity,
+            cost=item.cost_price,
+            campaign_snapshot=campaign_snapshot,
+            regular_price=regular,
+            website_price=oliz,
+            product_group=item.product_group,
+            company_source=source,
+            company_discount_amount=discount,
+            company_share_amount=share,
+        ),
+        partial,
+    )
+
+
+def _scenario_summary(
+    prepared: list[_PreparedItem],
+    scenario: PricingScenario,
+    *,
+    share_percent: Decimal,
+    card_commission_percent: Decimal,
+) -> OfferScenarioSummary:
+    items: list[_ComparisonItem] = []
+    partial = False
+    for item in prepared:
+        comparison, item_partial = _scenario_item(item, scenario)
+        items.append(comparison)
+        partial = partial or item_partial
+    sale_cash = quantize_money(
+        sum((item.sale_cash * item.quantity for item in items), Decimal(0))
+    )
+    sale_card = quantize_money(
+        sum((item.sale_card * item.quantity for item in items), Decimal(0))
+    )
+    company_share = quantize_money(
+        sum(
+            (
+                quantize_money(
+                    item.company_share_amount * share_percent / Decimal(100)
+                )
+                * item.quantity
+                for item in items
+            ),
+            Decimal(0),
+        )
+    )
+    missing_cost = any(item.cost is None for item in items)
+    cost_total = quantize_money(
+        sum(
+            (item.cost * item.quantity for item in items if item.cost is not None),
+            Decimal(0),
+        )
+    )
+    cash_revenue = quantize_money(sale_cash + company_share)
+    card_net = quantize_money(
+        sale_card * (Decimal(100) - card_commission_percent) / Decimal(100)
+    )
+    card_revenue = quantize_money(card_net + company_share)
+    if missing_cost:
+        cash_profit = None
+        card_profit = None
+        margin = None
+    else:
+        cash_profit = quantize_money(cash_revenue - cost_total)
+        card_profit = quantize_money(card_revenue - cost_total)
+        margin = (
+            quantize_money(card_profit / card_revenue * Decimal(100))
+            if card_revenue
+            else None
+        )
+    label = SCENARIO_LABELS[scenario]
+    if partial:
+        label = f"{label} (kısmi)"
+    return OfferScenarioSummary(
+        key=scenario.value,
+        label=label,
+        sale_cash=sale_cash,
+        sale_card=sale_card,
+        company_share=company_share,
+        total_revenue=card_revenue,
+        cost=cost_total,
+        cash_profit=cash_profit,
+        card_profit=card_profit,
+        margin_percent=margin,
+        has_missing_cost=missing_cost,
+        partial=partial,
     )
 
 
@@ -720,6 +1037,7 @@ def create_offer(
         )
         if selected_bank_id is not None and bank is None:
             raise ValidationError("Seçilen banka bulunamadı.")
+        extra_totals = _offer_totals(prepared)
         offer = Offer(
             id=uuid.uuid4(),
             customer_name=_clean(data.customer_name),
@@ -741,6 +1059,11 @@ def create_offer(
             commission_source=commission_source,
             commission_options_snapshot=commission_options,
             dealer_share_percent_snapshot=DEALER_SHARE_PERCENT,
+            pricing_version="v2",
+            regular_total=extra_totals.regular_total,
+            oliz_total=extra_totals.oliz_total,
+            company_discount_total=extra_totals.company_discount_total,
+            cost_total=extra_totals.cost_total,
             note=_clean(data.note),
             created_at=now,
             updated_at=now,
@@ -859,6 +1182,12 @@ def update_offer(
         offer.commission_source = commission_source
         offer.commission_options_snapshot = commission_options
         offer.dealer_share_percent_snapshot = DEALER_SHARE_PERCENT
+        extra_totals = _offer_totals(prepared)
+        offer.pricing_version = "v2"
+        offer.regular_total = extra_totals.regular_total
+        offer.oliz_total = extra_totals.oliz_total
+        offer.company_discount_total = extra_totals.company_discount_total
+        offer.cost_total = extra_totals.cost_total
         offer.note = _clean(data.note)
         offer.updated_at = now
         items = _build_items(
@@ -1166,35 +1495,85 @@ def _prepare_items(
         layers = OfferPriceLayers(
             cost_price=product.cost_price,
             regular_price=product.regular_price,
-            website_price=product.website_discounted_price,
+            website_price=normalize_website_price(
+                product.website_discounted_price
+            ),
+        )
+        campaign_candidates: list[CompanyPriceCandidate] = []
+        mode = "none"
+        if item.campaign_id is not None:
+            mode = str(item.campaign_id)
+            campaign_candidates.append(
+                _campaign_candidate(
+                    uow,
+                    item.campaign_id,
+                    product,
+                    item.gift_present,
+                    data.dealer_discount_percent,
+                    layers,
+                )
+            )
+        elif item.auto_campaign:
+            mode = "auto"
+            seen_campaigns: set[uuid.UUID] = set()
+            for link in uow.campaigns.active_for_product(
+                product.id, as_of=datetime.now(UTC)
+            ):
+                if link.campaign.id in seen_campaigns:
+                    continue
+                seen_campaigns.add(link.campaign.id)
+                try:
+                    campaign_candidates.append(
+                        _campaign_candidate(
+                            uow,
+                            link.campaign.id,
+                            product,
+                            item.gift_present,
+                            data.dealer_discount_percent,
+                            layers,
+                        )
+                    )
+                except (ValidationError, ValueError):
+                    # A broken campaign must not hide the other valid offers.
+                    continue
+        selected = select_company_price(
+            regular_price=layers.regular_price,
+            oliz_price=layers.website_price,
+            campaigns=tuple(campaign_candidates),
+            mode=mode,
+        )
+        best_campaign = max(
+            campaign_candidates,
+            key=lambda candidate: candidate.discount_amount,
+            default=None,
         )
         campaign_version_id = None
         campaign_snapshot = None
-        campaign_id = item.campaign_id
-        if campaign_id is None and item.auto_campaign:
-            active_links = uow.campaigns.active_for_product(
-                product.id, as_of=datetime.now(UTC)
-            )
-            if active_links:
-                campaign_id = active_links[0].campaign.id
-        if campaign_id is not None:
-            campaign_price, campaign_name, snapshot = _campaign_price(
-                uow,
-                campaign_id,
-                product,
-                item.gift_present,
-                data.dealer_discount_percent,
-                layers,
-            )
-            campaign_version_id = uuid.UUID(str(snapshot["version_id"]))
-            campaign_snapshot = snapshot
+        if selected is not None and selected.source is CompanyDiscountSource.CAMPAIGN:
+            campaign_snapshot = selected.snapshot
+            if campaign_snapshot is not None:
+                campaign_version_id = uuid.UUID(
+                    str(campaign_snapshot["version_id"])
+                )
             layers = OfferPriceLayers(
                 cost_price=layers.cost_price,
                 regular_price=layers.regular_price,
                 website_price=None,
-                campaign_price=campaign_price,
-                campaign_name=campaign_name,
+                campaign_price=selected.price,
+                campaign_name=selected.campaign_name,
                 campaign_gift_present=item.gift_present,
+            )
+        elif selected is not None and selected.source is CompanyDiscountSource.OLIZ:
+            layers = OfferPriceLayers(
+                cost_price=layers.cost_price,
+                regular_price=layers.regular_price,
+                website_price=selected.price,
+            )
+        elif selected is not None:
+            layers = OfferPriceLayers(
+                cost_price=layers.cost_price,
+                regular_price=layers.regular_price,
+                website_price=None,
             )
         prepared.append(
             _PreparedItem(
@@ -1208,9 +1587,185 @@ def _prepare_items(
                 category_id=getattr(product, "category_id", None),
                 campaign_version_id=campaign_version_id,
                 campaign_snapshot=campaign_snapshot,
+                company=selected,
+                best_campaign=best_campaign,
+                regular_price=layers.regular_price,
+                oliz_price=normalize_website_price(
+                    product.website_discounted_price
+                ),
+                cost_price=layers.cost_price,
             )
         )
     return prepared
+
+
+def _campaign_candidate(
+    uow: UnitOfWork,
+    campaign_id: uuid.UUID,
+    product: object,
+    gift_present: bool | None,
+    dealer_discount: Decimal,
+    layers: OfferPriceLayers,
+) -> CompanyPriceCandidate:
+    campaign_price, campaign_name, snapshot = _campaign_price(
+        uow,
+        campaign_id,
+        product,
+        gift_present,
+        dealer_discount,
+        layers,
+    )
+    regular = layers.regular_price
+    if regular is not None and campaign_price is not None:
+        discount = max(quantize_money(regular - campaign_price), Decimal(0))
+    else:
+        discount = Decimal(0)
+    raw_share = snapshot.get("campaign_discount_amount")
+    share = Decimal(str(raw_share)) if raw_share is not None else Decimal(0)
+    raw_base = snapshot.get("campaign_base_price")
+    raw_price = snapshot.get("campaign_price")
+    return CompanyPriceCandidate(
+        source=CompanyDiscountSource.CAMPAIGN,
+        price=campaign_price,
+        discount_amount=discount,
+        share_amount=share,
+        campaign_id=str(campaign_id),
+        campaign_name=campaign_name,
+        campaign_discount_amount=share,
+        campaign_base_price=(
+            Decimal(str(raw_base)) if raw_base is not None else None
+        ),
+        campaign_price=(
+            Decimal(str(raw_price)) if raw_price is not None else campaign_price
+        ),
+        warning=snapshot.get("warning"),
+        snapshot=snapshot,
+    )
+
+
+
+@dataclass(frozen=True)
+class LineCampaignPreview:
+    key: str
+    source: str
+    campaign_id: str | None
+    campaign_name: str | None
+    price: Decimal
+    discount_amount: Decimal
+    share_amount: Decimal
+    discount_type: str | None = None
+    discount_value: Decimal | None = None
+    gift_description: str | None = None
+
+
+@dataclass(frozen=True)
+class OfferLinePreview:
+    product_id: str
+    product_name: str
+    regular_price: Decimal | None
+    oliz_price: Decimal | None
+    cost_price: Decimal | None
+    previews: dict[str, LineCampaignPreview]
+
+
+def preview_offer_line(
+    uow: UnitOfWork,
+    product_id: uuid.UUID,
+    *,
+    dealer_discount_percent: Decimal,
+    dealer_discount_cash_percent: Decimal,
+    gift_present: bool | None = None,
+) -> OfferLinePreview | None:
+    """Return campaign/Oliz previews for one product in the offer basket."""
+    with uow:
+        product = uow.products.get_by_id(product_id)
+        if product is None:
+            return None
+        layers = OfferPriceLayers(
+            cost_price=product.cost_price,
+            regular_price=product.regular_price,
+            website_price=normalize_website_price(
+                product.website_discounted_price
+            ),
+        )
+        candidates: list[CompanyPriceCandidate] = []
+        seen: set[uuid.UUID] = set()
+        for link in uow.campaigns.active_for_product(
+            product.id, as_of=datetime.now(UTC)
+        ):
+            if link.campaign.id in seen:
+                continue
+            seen.add(link.campaign.id)
+            try:
+                candidates.append(
+                    _campaign_candidate(
+                        uow,
+                        link.campaign.id,
+                        product,
+                        gift_present,
+                        dealer_discount_percent,
+                        layers,
+                    )
+                )
+            except (ValidationError, ValueError):
+                continue
+        oliz = oliz_candidate(layers.regular_price, layers.website_price)
+        regular = regular_candidate(layers.regular_price)
+        auto = select_company_price(
+            regular_price=layers.regular_price,
+            oliz_price=layers.website_price,
+            campaigns=tuple(candidates),
+            mode="auto",
+        )
+
+    previews: dict[str, LineCampaignPreview] = {}
+    none_candidate = oliz or regular
+    if none_candidate is not None:
+        previews["none"] = _line_preview(none_candidate, "none")
+    for candidate in candidates:
+        if candidate.campaign_id is not None:
+            previews[candidate.campaign_id] = _line_preview(
+                candidate, candidate.campaign_id
+            )
+    if auto is not None:
+        previews["auto"] = _line_preview(auto, "auto")
+    return OfferLinePreview(
+        product_id=str(product.id),
+        product_name=product.name,
+        regular_price=layers.regular_price,
+        oliz_price=layers.website_price,
+        cost_price=layers.cost_price,
+        previews=previews,
+    )
+
+
+def _line_preview(
+    candidate: CompanyPriceCandidate, key: str
+) -> LineCampaignPreview:
+    snapshot = candidate.snapshot or {}
+    raw_value = snapshot.get("discount_value")
+    return LineCampaignPreview(
+        key=key,
+        source=candidate.source.value,
+        campaign_id=candidate.campaign_id,
+        campaign_name=candidate.campaign_name,
+        price=candidate.price,
+        discount_amount=candidate.discount_amount,
+        share_amount=candidate.share_amount,
+        discount_type=(
+            str(snapshot["discount_type"])
+            if snapshot.get("discount_type") is not None
+            else None
+        ),
+        discount_value=(
+            Decimal(str(raw_value)) if raw_value is not None else None
+        ),
+        gift_description=(
+            str(snapshot["gift_description"])
+            if snapshot.get("gift_description") is not None
+            else None
+        ),
+    )
 
 
 def _campaign_price(
@@ -1239,13 +1794,21 @@ def _campaign_price(
         ),
         scenarios[0] if scenarios else None,
     )
-    if chosen is None or chosen.final_price is None:
+    if chosen is None:
         raise ValidationError("Seçilen kampanya için fiyat senaryosu üretilemedi.")
+    quote = campaign_discount_price(contract, chosen.base_price)
+    if quote.final_price is None:
+        raise ValidationError("Seçilen kampanya için fiyat senaryosu üretilemedi.")
+    warning = "; ".join(
+        item for item in (chosen.warning, quote.warning) if item
+    ) or None
     snapshot = {
         "campaign_id": str(campaign_id),
         "version_id": str(version.id),
         "version_no": version.version_no,
         "name": version.name,
+        "description": contract.description,
+        "gift_description": contract.gift_description,
         "campaign_type": contract.campaign_type.value,
         "base_price_type": contract.base_price_type.value,
         "discount_type": contract.discount_type.value,
@@ -1255,10 +1818,15 @@ def _campaign_price(
             else None
         ),
         "gift_present": chosen.gift_present,
-        "final_price": str(chosen.final_price),
-        "warning": chosen.warning,
+        "campaign_base_price": (
+            str(quote.base_price) if quote.base_price is not None else None
+        ),
+        "campaign_price": str(quote.final_price),
+        "campaign_discount_amount": str(quote.discount_amount or Decimal(0)),
+        "final_price": str(quote.final_price),
+        "warning": warning,
     }
-    return chosen.final_price, version.name, snapshot
+    return quote.final_price, version.name, snapshot
 
 
 def _build_items(
@@ -1293,6 +1861,7 @@ def _build_items(
             unit_price_card=prepared_item.input.unit_price_card,
         )
         product = prepared_item.product
+        company = prepared_item.company
         rows.append(
             OfferItem(
                 id=uuid.uuid4(),
@@ -1300,14 +1869,34 @@ def _build_items(
                 product_id=product.id,
                 product_name_snapshot=product.name,
                 quantity=prepared_item.input.quantity,
-                regular_price_snapshot=product.regular_price,
-                website_price_snapshot=product.website_discounted_price,
-                cost_price_snapshot=product.cost_price,
+                regular_price_snapshot=prepared_item.regular_price,
+                website_price_snapshot=prepared_item.oliz_price,
+                cost_price_snapshot=prepared_item.cost_price,
                 campaign_version_id=prepared_item.campaign_version_id,
                 campaign_name_snapshot=prepared_item.layers.campaign_name,
                 campaign_snapshot=prepared_item.campaign_snapshot,
                 campaign_gift_present=prepared_item.layers.campaign_gift_present,
                 base_price_used=quote.base_price,
+                company_discount_source=(
+                    company.source.value if company is not None else "none"
+                ),
+                company_discount_amount=(
+                    company.discount_amount if company is not None else Decimal(0)
+                ),
+                company_share_amount=(
+                    company.share_amount if company is not None else Decimal(0)
+                ),
+                campaign_discount_amount=(
+                    company.campaign_discount_amount
+                    if company is not None
+                    else None
+                ),
+                campaign_base_price=(
+                    company.campaign_base_price if company is not None else None
+                ),
+                campaign_price=(
+                    company.campaign_price if company is not None else None
+                ),
                 dealer_discount_percent=prepared_item.dealer_discount,
                 dealer_discount_cash_percent=prepared_item.dealer_discount_cash,
                 suggested_cash_price=quote.suggested_cash_price,
@@ -1346,6 +1935,37 @@ def _totals(
             )
         )
     return summarize_offer(quotes, data.payment_type)
+
+
+@dataclass(frozen=True)
+class _OfferTotals:
+    regular_total: Decimal
+    oliz_total: Decimal
+    company_discount_total: Decimal
+    cost_total: Decimal
+
+
+def _offer_totals(prepared: list[_PreparedItem]) -> _OfferTotals:
+    regular_total = Decimal(0)
+    oliz_total = Decimal(0)
+    company_discount_total = Decimal(0)
+    cost_total = Decimal(0)
+    for item in prepared:
+        quantity = item.input.quantity
+        if item.regular_price is not None:
+            regular_total += item.regular_price * quantity
+        if item.oliz_price is not None:
+            oliz_total += item.oliz_price * quantity
+        if item.company is not None:
+            company_discount_total += item.company.discount_amount * quantity
+        if item.cost_price is not None:
+            cost_total += item.cost_price * quantity
+    return _OfferTotals(
+        regular_total=quantize_money(regular_total),
+        oliz_total=quantize_money(oliz_total),
+        company_discount_total=quantize_money(company_discount_total),
+        cost_total=quantize_money(cost_total),
+    )
 
 
 def _product_group_for(product: object) -> ProductCommissionGroup:

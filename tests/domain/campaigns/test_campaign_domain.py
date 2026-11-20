@@ -14,6 +14,7 @@ from bayios.domain.campaigns import (
     CampaignType,
     DiscountType,
     ProductRelationType,
+    campaign_discount_price,
     campaign_scenarios,
     classify_campaign,
     is_same_contract,
@@ -225,3 +226,51 @@ def test_price_input_and_dealer_percent_validation() -> None:
         _prices(regular_price=Decimal(-1))
     with pytest.raises(ValueError):
         campaign_scenarios(_gift_contract(), _prices(), Decimal(101))
+
+
+def test_offer_campaign_price_uses_its_own_discount() -> None:
+    def contract(**overrides: object) -> CampaignContract:
+        values: dict[str, object] = {
+            "name": "Kampanya",
+            "campaign_type": CampaignType.PRODUCT_DISCOUNT,
+            "starts_at": NOW,
+            "ends_at": LATER,
+            "base_price_type": BasePriceType.REGULAR,
+        }
+        values.update(overrides)
+        return CampaignContract(**values)  # type: ignore[arg-type]
+
+    percent = campaign_discount_price(
+        contract(
+            discount_type=DiscountType.PERCENT,
+            discount_value=Decimal(20),
+        ),
+        Decimal(10000),
+    )
+    assert percent.base_price == Decimal("10000.00")
+    assert percent.discount_amount == Decimal("2000.00")
+    assert percent.final_price == Decimal("8000.00")
+
+    fixed = campaign_discount_price(
+        contract(
+            discount_type=DiscountType.FIXED_AMOUNT,
+            discount_value=Decimal(1500),
+        ),
+        Decimal(10000),
+    )
+    assert fixed.discount_amount == Decimal("1500.00")
+    assert fixed.final_price == Decimal("8500.00")
+
+    special = campaign_discount_price(
+        contract(
+            discount_type=DiscountType.SPECIAL_PRICE,
+            discount_value=Decimal(7000),
+        ),
+        Decimal(10000),
+    )
+    assert special.discount_amount == Decimal("3000.00")
+    assert special.final_price == Decimal("7000.00")
+
+    gift = campaign_discount_price(_gift_contract(), Decimal(25999))
+    assert gift.discount_amount == Decimal("0.00")
+    assert gift.final_price == Decimal("25999.00")

@@ -63,6 +63,8 @@ class OfferPriceLayers:
     campaign_gift_present: bool | None = None
 
     def __post_init__(self) -> None:
+        if self.website_price == ZERO:
+            object.__setattr__(self, "website_price", None)
         for value in (
             self.cost_price,
             self.regular_price,

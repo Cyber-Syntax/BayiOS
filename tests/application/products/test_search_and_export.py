@@ -369,3 +369,37 @@ def test_export_products_includes_active_campaign_names() -> None:
     headers = [cell.value for cell in workbook.active[1]]
     campaign_column = headers.index("Aktif Kampanya") + 1
     assert workbook.active.cell(row=2, column=campaign_column).value == "Kasım İndirimi"
+
+
+def test_zero_website_price_is_stored_as_missing() -> None:
+    from bayios.application.products import create_manual_product, update_product
+
+    uow = FakeUnitOfWork()
+    product = create_manual_product(
+        uow,
+        name="10121",
+        regular_price=Decimal(39999),
+        website_discounted_price=Decimal(0),
+        cost_price=Decimal("32077.86"),
+    )
+
+    assert product.website_discounted_price is None
+    assert not any(
+        history.field_name == "website_discounted_price"
+        for history in uow.products.get_price_history(product.id)
+    )
+
+    product = update_product(
+        uow,
+        product.id,
+        name="10121",
+        regular_price=Decimal(39999),
+        website_discounted_price=Decimal(0),
+        cost_price=Decimal("32077.86"),
+    )
+
+    assert product.website_discounted_price is None
+    assert not any(
+        history.field_name == "website_discounted_price"
+        for history in uow.products.get_price_history(product.id)
+    )

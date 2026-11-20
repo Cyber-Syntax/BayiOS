@@ -584,6 +584,97 @@ Kart fiyatı henüz girilmemişse önerilen kart fiyatı geçici matrah olur; ç
 
 Nakit ve tüm kanal/banka/taksit kombinasyonları kâr-zararla görülebilir; kart komisyonu kart satış toplamından hesaplanır; kart ve nakit bayi indirimleri ayrı ayrı düzenlenip doğrulanır; seçilen seçenek teklife snapshot'lanır; her durumdaki teklif onayla silinebilir; eski teklifler dönem/oran değişiminden etkilenmez.
 
+### Milestone 5.2 — Teklif kâr/zarar doğruluğu, senaryo tablosu ve canlı taksit karşılaştırma
+
+**Durum:** Faz 0 (sıfır Oliz temizliği + kampanya oranı düzeltmesi) ve Faz 1 (v2 fiyat motoru, senaryo özeti, canlı taksit tablosu, sepet toplamları ve kampanya rozetleri) uygulandı. Migration `0017_offer_pricing_v2` çalıştırıldı.
+
+**Sorun**
+
+- Ürünün Oliz fiyatı `0.00` ise kod bunu “Oliz fiyatı var” kabul ediyor. `base_price` sıfıra düşüyor ve kâra `(normal - 0) x %85` “Oliz hakedişi” ekleniyor. 10121 örneğinde bu, satış fiyatı ne olursa olsun yaklaşık `33.999 TL` hayali gelir ve tamamen yanlış kâr/zarar demektir. Aynı sorun veritabanındaki 1.470 üründe vardır.
+- Kampanya fiyatı `campaign_scenarios` içinde kampanyanın kendi yüzdesi yerine bayi indirimi oranını kullanıyordu; bu düzeltildi. Doğru sıra: 40.000 → %10 kampanya → 36.000 → %10 bayi → 32.400.
+- Kampanya hakedişi nihai satış fiyatı üzerinden hesaplanıyor; kampanya indirim tutarı üzerinden hesaplanmalı. Bayi indirimi hakediş üretmez.
+- Teklif formunda sepet toplamları, normal/Oliz toplamı ve kampanya etkisi görünmüyor; taksit tablosu yalnız “Gör”e basılınca ve yalnız bir kez hesaplanıyor.
+
+**Kararlar**
+
+1. **Sıfır Oliz yoktur.** `website_discounted_price` ve `website_price_snapshot` için `0` değeri `NULL` kabul edilir; veri temizlenir ve yeni kayıtlarda sıfır kabul edilmez. Oliz yoksa Oliz hakedişi gösterilmez; kâr normal fiyat üzerinden bayi indirimiyle hesaplanır.
+2. **İndirim sırası:** normal fiyat -> şirket indirimi (kampanya veya Oliz) -> bayi indirimi -> varsa elle girilen nihai fiyat. Kampanya ve bayi indirimi üst üste uygulanır: `40.000 -> düğün %10 -> 36.000 -> bayi %10 -> 32.400`.
+3. **Şirket indirimi seçimi:** kampanya varsa ve Oliz de varsa, normal fiyattan en yüksek indirimi veren kaynak seçilir (`normal - kampanya fiyatı` ile `normal - Oliz` karşılaştırılır). Çalışan belirli bir kampanyayı seçerse o kampanya kullanılır; “Kampanya yok” seçilirse yalnız Oliz değerlendirilir.
+4. **Hakediş:** seçilen şirket indiriminin `%85`’i bayi geliridir. Kampanya seçildiyse kampanya indirim tutarının, Oliz seçildiyse `normal - Oliz` farkının `%85`’i; ikisi aynı anda ödenmez. Hakediş, bayi indiriminden veya elle girilen fiyattan bağımsızdır; bu indirimleri bayi kendi marjından yapar.
+5. **Kâr/zarar:** nakit için `satış + hakediş - maliyet`; kart için `satış x (1 - komisyon/100) + hakediş - maliyet`. Marj, gelir (komisyon sonrası satış + hakediş) üzerinden hesaplanır. Maliyet yoksa kâr/marj gösterilmez.
+6. **Senaryolar:** normal fiyat, bayi indirimi, Oliz (varsa), kampanya, kampanya + bayi indirimi ve elle girilen fiyat ayrı senaryolar olarak gösterilir. Üstte senaryo özeti, altta seçili teklifin tüm nakit/kart/kanal/banka/taksit detayı yer alır.
+7. **Canlı güncelleme:** taksit tablosu formun en üstünde, “Gör” butonu olmadan; bayi indirimi, ürün, miktar, kampanya veya ödeme alanı değiştiğinde otomatik yenilenir. Seçim tablodan yapılır ve form alanlarını doldurur.
+8. **Sepet:** her satırda normal fiyat, Oliz (varsa), seçilen kampanya adı ve etkisi (“Düğün: normal fiyattan %10 indirim -> 36.000 TL”), maliyet, önerilen/nihai nakit-kart fiyatı görünür. Sepet altında toplam normal, toplam Oliz, toplam şirket indirimi, toplam maliyet, nakit/kart toplamı ve kâr/zarar özeti bulunur.
+9. **Toplu alım/bedava ürün** kampanyaları bu adımda yalnız bilgi/rozet olarak gösterilir; adet bazında otomatik fiyatlama kapsam dışıdır.
+
+**Fiyat modeli (v2)**
+
+Her teklif satırı için:
+
+- `N` normal fiyat, `O` Oliz fiyatı (`NULL` olabilir), `C` maliyet, `Q` adet.
+- Kampanya fiyatı `P_k`: kampanya tabanı (normal/Oliz/elle) üzerinden kampanyanın kendi `discount_value` değeri uygulanır. Yüzde kampanyasında bayi indirimi burada **uygulanmaz**.
+- Oliz fiyatı `P_o = O`; Oliz indirimi `N - O`.
+- Seçilen şirket fiyatı `P`: otomatik modda `max(N - P_k, N - P_o)`; açık kampanya seçiminde `P_k`; “Kampanya yok”ta `O` varsa `P_o`, yoksa `N`.
+- Bayi indirimi: nakit `S_cash = P x (1 - nakit_indirimi/100)`, kart `S_card = P x (1 - kart_indirimi/100)`. Elle girilen nihai fiyat `S`’yi ezer.
+- Hakediş `H`: kampanya seçildiyse `kampanya_indirim_tutarı x 85 / 100`; Oliz seçildiyse `(N - O) x 85 / 100`; yoksa `0`.
+- Kâr: nakit `S_cash + H - C`; kart `S_card x (1 - komisyon/100) + H - C`.
+
+**10121 örneği (maliyet 32.077,86 TL, Oliz yok)**
+
+- Kampanyasız, kart bayi indirimi %10: satış 35.999,10; 2 taksit %5 komisyonda net 34.199,15; hakediş 0; kâr **2.121,29 TL**.
+- Düğün %10: kampanya fiyatı 35.999,10; hakediş 3.399,92. Bayi %10 sonrası satış 32.399,19; 2 taksit %5’te net 30.779,23 + 3.399,92 = 34.179,15; kâr **2.101,29 TL**.
+- Düğün + bayi %10 + elle 32.000: hakediş 3.399,92; 2 taksit %5’te net 30.400 + 3.399,92 = 33.799,92; kâr **1.722,06 TL**.
+- Kampanyasız + elle 32.000: hakediş 0; 2 taksit %5’te 30.400 - 32.077,86 = **-1.677,86 TL**.
+
+Not: 10121’in normal fiyatı 39.999 TL olduğu için 40.000’lik örnekteki 32.400 yerine 32.399,19 çıkar. Yukarıdaki hakedişler yalnız kampanya indiriminden hesaplanır; bayi indirimi hakediş üretmez.
+
+**UI**
+
+- Form sırası: müşteri/not -> ödeme ve indirimler -> **Taksit Seçenekleri** (senaryo özeti + detay tablo) -> sepet -> ürün ekle -> kaydet.
+- Taksit tablosu `hx-post="/offers/compare"` ile `change`/`input delay` tetiklenir; ilk açılışta sunucu tarafında hesaplanıp render edilir. Tablo boş sepet için “Ürün ekleyin” durumunu gösterir.
+- Senaryo özeti bilgi amaçlıdır; detay tablo seçili teklifi gösterir. Detay tabloda “Seç” butonu ödeme alanlarını doldurur. Senaryo satırını teklife dönüştürme (manuel fiyatı doldurma) sonraki adımdadır.
+- Sepette kampanya rozeti: kampanya adı, indirim türü/değeri ve hesaplanan kampanya fiyatı. Sabit indirim, özel fiyat, hediye ve bilgi kampanyaları aynı rozet dilini kullanır; bedava ürün yalnız açıklama olarak gösterilir.
+- Oliz fiyatı olmayan tekliflerde Oliz kolonu/hakediş satırı gösterilmez; karışık sepette yalnız Oliz’i olan satırlarda değer bulunur.
+
+**Veri ve migration**
+
+- **Faz 0 (uygulandı) `0016_normalize_zero_oliz_prices`:**
+  - `products.website_discounted_price = 0` -> `NULL`; `offer_items.website_price_snapshot = 0` -> `NULL`.
+  - Temizlenen her ürün için `product_price_history` kaydı (`source='other'`).
+  - `products.website_discounted_price` ve `offer_items.website_price_snapshot` için `> 0 OR NULL` check constraint.
+- **Faz 1 (uygulandı) `0017_offer_pricing_v2`:**
+  - `offers.pricing_version` (`legacy`/`v2`, yeni teklifler `v2`).
+  - `offer_items.company_discount_source` (`campaign`/`oliz`/`none`), `company_discount_amount`, `company_share_amount`, `campaign_discount_amount`, `campaign_base_price`, `campaign_price`.
+  - Teklif toplamları `regular_total`, `oliz_total`, `company_discount_total` ve `cost_total`.
+- Eski teklifler `legacy` olarak okunur; yeni hesaplama yalnız `v2` snapshot’larında kullanılır. Eski snapshot satırları geriye dönük değiştirilmez.
+- Ürün oluşturma/güncelleme, içe aktarma ve teklif hazırlama katmanlarında `0` Oliz değeri `None`’a normalize edilir. Ürün formu ve Excel içe aktarma `0` değerini “Oliz yok” olarak kabul eder.
+
+**Use-case ve domain**
+
+- Yeni saf domain modülü: `bayios.domain.offers.pricing` (veya mevcut `offers` içinde ayrı fonksiyonlar):
+  - `company_price_candidates(...)`
+  - `select_company_price(...)`
+  - `quote_offer_item_v2(...)`
+  - `profit_for_option(...)`
+  - `build_scenarios(...)`
+- `preview_offer_comparison` senaryoları ve tüm taksitleri tek geçişte üretir; `build_offer_line_analyses` v2 snapshot’larından okur.
+- `create_offer`/`update_offer` v2 snapshot alanlarını yazar; toplamlar `regular_total`, `oliz_total`, `company_discount_total` ve `cost_total` olarak teklifte saklanır (mevcut `cash_total`, `card_total`, `selected_total` korunur).
+
+**Testler**
+
+- `OfferPriceLayers(website_price=0)` -> `base_price` normal fiyat; Oliz hakedişi 0.
+- 10121 senaryo tablosu yukarıdaki dört sayıyı üretir; kampanyasız elle 32.000’de kâr negatiftir.
+- `%10 kampanya + %10 bayi` -> 32.400; kampanya hakedişi 4.000 x %85 = 3.400; bayi indirimi hakediş üretmez.
+- Kampanya ve Oliz birlikteyken otomatik seçim en yüksek indirimi seçer; açık kampanya seçimi override eder.
+- Sıfır Oliz içeren ürün içe aktarma ve ürün kaydı `NULL` üretir; migration sonrası 1.470 ürün temizlenir.
+- Karşılaştırma tablosu bayi indirimi değişince yenilenir; formda toplam normal/Oliz/maliyet/kâr görünür.
+- Sepette kampanya adı ve etkisi görünür; Oliz yoksa Oliz kolonu gizlenir.
+- Eski `legacy` teklifin snapshot’ı ve görünen değerleri değişmez.
+
+**Çıkış kriteri**
+
+10121 gibi Oliz’siz ürünlerde kâr/zarar yalnız gerçek indirim sonrası satış, komisyon ve varsa gerçek hakediş üzerinden hesaplanır; kampanya + bayi indirimi sırası doğrudur; tüm taksit ve senaryolar tek ekranda canlı görünür; sıfır Oliz verisi temizlenmiştir; eski teklif snapshot’ları korunur.
+
 ### Cross-milestone — Ayarlar (banka ve kategori ana verisi)
 
 **Kapsam**

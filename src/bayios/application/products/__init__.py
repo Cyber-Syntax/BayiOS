@@ -20,7 +20,11 @@ from bayios.application.tabular import (
     write_xlsx,
 )
 from bayios.domain.inventory import StockSummary
-from bayios.domain.products import ActorContext, normalize_product_name
+from bayios.domain.products import (
+    ActorContext,
+    normalize_product_name,
+    normalize_website_price,
+)
 
 
 @dataclass(frozen=True)
@@ -69,6 +73,7 @@ def create_manual_product(
     clean_name = name.strip()
     if not clean_name:
         raise ValueError("Ürün adı boş olamaz.")
+    website_discounted_price = normalize_website_price(website_discounted_price)
     norm_name = normalize_product_name(clean_name)
     now = datetime.now(UTC)
     actor = actor or ActorContext()
@@ -173,6 +178,7 @@ def update_product(
     clean_name = name.strip()
     if not clean_name:
         raise ValueError("Ürün adı boş olamaz.")
+    website_discounted_price = normalize_website_price(website_discounted_price)
     norm_name = normalize_product_name(clean_name)
     now = datetime.now(UTC)
     actor = actor or ActorContext()

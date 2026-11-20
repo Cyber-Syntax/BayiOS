@@ -181,7 +181,7 @@ def test_offers_list_and_form_render(client: TestClient) -> None:
     assert form.status_code == 200
     assert "Yeni Teklif" in form.text
     assert "Bayi İndirimi" in form.text
-    assert "Otomatik (ürünün aktif kampanyası)" in form.text
+    assert "Otomatik (en yüksek indirim)" in form.text
 
 
 def test_offers_htmx_search_returns_partial(client: TestClient) -> None:
@@ -274,3 +274,106 @@ def test_offer_detail_quick_reserve_and_sell_buttons(
 
     detail = client.get(f"/offers/{offer_id}")
     assert "Rezervasyonu Gör" in detail.text
+
+
+def test_offer_form_has_live_comparison_and_basket_totals(
+    client: TestClient,
+) -> None:
+    form = client.get("/offers/new")
+
+    assert form.status_code == 200
+    assert 'id="offer-comparison"' in form.text
+    assert "hx-trigger=\"load delay:800ms, change from:#offer-form" in form.text
+    assert 'id="basket-totals"' in form.text
+    assert "Normal Toplam" in form.text
+    assert "Kart Bayi İndirimi" in form.text
+
+
+def test_offer_comparison_hides_oliz_when_product_has_none(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from bayios.application.campaigns import (
+        CampaignInput,
+        CampaignProductInput,
+        create_campaign,
+    )
+    from bayios.domain.campaigns import (
+        BasePriceType,
+        CampaignType,
+        DiscountType,
+        ProductRelationType,
+    )
+
+    _seed_pos_commission(fake_uow)
+    product = next(iter(fake_uow.products.get_all()))
+    product.website_discounted_price = None
+    now = datetime.now(UTC)
+    create_campaign(
+        fake_uow,
+        CampaignInput(
+            name="Düğün",
+            campaign_type=CampaignType.PRODUCT_DISCOUNT,
+            starts_at=now - timedelta(days=1),
+            ends_at=now + timedelta(days=30),
+            base_price_type=BasePriceType.REGULAR,
+            discount_type=DiscountType.PERCENT,
+            discount_value=Decimal(10),
+            products=(
+                CampaignProductInput(product.id, ProductRelationType.BENEFIT),
+            ),
+        ),
+    )
+
+    response = client.post(
+        "/offers/compare",
+        data={
+            "payment_type": "card",
+            "dealer_discount_percent": "10",
+            "dealer_discount_cash_percent": "10",
+            "channel": "pos",
+            "installment_count": "1",
+            "card_type": "consumer",
+            "product_id": str(product.id),
+            "quantity": "1",
+            "campaign_id": "auto",
+            "gift_present": "",
+            "unit_price_cash": "",
+            "unit_price_card": "",
+        },
+        headers={"HX-Request": "true"},
+    )
+
+    assert response.status_code == 200
+    assert "Senaryo Özeti" in response.text
+    assert "Kampanya + bayi" in response.text
+    assert "Oliz" not in response.text
+
+
+def test_offer_detail_hides_oliz_when_product_has_none(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = next(iter(fake_uow.products.get_all()))
+    product.website_discounted_price = None
+    created = client.post(
+        "/offers",
+        data={
+            "customer_name": "İndirimsiz",
+            "payment_type": "cash",
+            "dealer_discount_percent": "10",
+            "dealer_discount_cash_percent": "10",
+            "product_id": str(product.id),
+            "quantity": "1",
+            "campaign_id": "",
+            "gift_present": "",
+            "unit_price_cash": "",
+            "unit_price_card": "",
+        },
+        follow_redirects=False,
+    )
+    detail = client.get(created.headers["location"])
+
+    assert detail.status_code == 200
+    assert "Oliz" not in detail.text
+    assert "Normal Toplam" in detail.text

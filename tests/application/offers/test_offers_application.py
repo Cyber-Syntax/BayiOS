@@ -22,6 +22,7 @@ from bayios.application.offers import (
     convert_offer_to_reservation,
     create_offer,
     get_offer_detail,
+    preview_offer_line,
     set_offer_status,
     update_offer,
 )
@@ -98,6 +99,40 @@ def test_odero_commission_uses_card_total_not_base_total() -> None:
     assert detail.offer.card_total == Decimal("18900.00")
     assert detail.offer.commission_percent_snapshot == Decimal("4.00")
 
+
+
+def test_zero_website_price_does_not_create_phantom_oliz_share() -> None:
+    from bayios.application.offers import build_offer_profit_summary
+
+    uow, product_id = _active_card_uow()
+    product = uow.products.products[product_id]
+    product.website_discounted_price = Decimal("0.00")
+
+    offer_id = create_offer(
+        uow,
+        OfferInput(
+            customer_name="Olizsiz",
+            customer_phone=None,
+            payment_type=PaymentType.CARD,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product_id, 1),),
+            channel=PaymentChannel.POS,
+            installment_count=2,
+            card_type=CardType.CONSUMER,
+        ),
+    )
+    detail = get_offer_detail(uow, offer_id)
+    assert detail is not None
+    assert detail.items[0].base_price_used == Decimal("10000.00")
+    assert detail.items[0].website_price_snapshot is None
+    assert detail.items[0].unit_price_card == Decimal("9000.00")
+
+    summary = build_offer_profit_summary(detail)
+    line = summary.lines[0]
+    assert line.oliz_share == Decimal("0.00")
+    assert line.campaign_share == Decimal("0.00")
+    assert line.net_after_commission == Decimal("8550.00")
+    assert line.profit == Decimal("550.00")
 
 
 def test_category_cap_applies_to_card_offer() -> None:
@@ -348,6 +383,67 @@ def test_line_analysis_shows_commission_and_campaign_share() -> None:
     assert row.profit == Decimal("-3735.00")
 
 
+def test_campaign_discount_is_not_dealer_discount_applied_twice() -> None:
+    from bayios.application.offers import build_offer_profit_summary
+
+    uow = FakeUnitOfWork()
+    product = Product(
+        id=uuid.uuid4(),
+        name="Klima",
+        name_normalized="klima",
+        regular_price=Decimal("10000.00"),
+        cost_price=Decimal("8000.00"),
+        physical_stock=1,
+    )
+    uow.products.add(product)
+    now = datetime.now(UTC)
+    create_campaign(
+        uow,
+        CampaignInput(
+            name="Yüzde 20",
+            campaign_type=CampaignType.PRODUCT_DISCOUNT,
+            starts_at=now - timedelta(days=1),
+            ends_at=now + timedelta(days=30),
+            base_price_type=BasePriceType.REGULAR,
+            discount_type=DiscountType.PERCENT,
+            discount_value=Decimal(20),
+            products=(
+                CampaignProductInput(product.id, ProductRelationType.BENEFIT),
+            ),
+        ),
+    )
+
+    offer_id = create_offer(
+        uow,
+        OfferInput(
+            customer_name="Kampanya",
+            customer_phone=None,
+            payment_type=PaymentType.CASH,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product.id, 1, auto_campaign=True),),
+        ),
+    )
+    detail = get_offer_detail(uow, offer_id)
+    assert detail is not None
+    assert detail.offer.pricing_version == "v2"
+    assert detail.offer.regular_total == Decimal("10000.00")
+    assert detail.offer.company_discount_total == Decimal("2000.00")
+    assert detail.offer.cost_total == Decimal("8000.00")
+    item = detail.items[0]
+    assert item.company_discount_source == "campaign"
+    assert item.company_discount_amount == Decimal("2000.00")
+    assert item.company_share_amount == Decimal("2000.00")
+    assert item.base_price_used == Decimal("8000.00")
+    assert item.unit_price_cash == Decimal("7200.00")
+    assert item.campaign_snapshot["campaign_discount_amount"] == "2000.00"
+
+    summary = build_offer_profit_summary(detail)
+    line = summary.lines[0]
+    assert line.campaign_share == Decimal("1700.00")
+    assert line.total_revenue == Decimal("8900.00")
+    assert line.profit == Decimal("900.00")
+
+
 def test_offer_auto_assigns_active_campaign() -> None:
     uow = FakeUnitOfWork()
     product = Product(
@@ -470,3 +566,98 @@ def test_sell_offer_requires_reason_when_stock_is_insufficient() -> None:
     assert product.physical_stock == -1
     lines = uow.reservations.get_items(reservation_id)
     assert lines[0].delivered_quantity == 2
+
+
+def _campaign_fixture(regular: Decimal, oliz: Decimal, percent: Decimal):
+    uow = FakeUnitOfWork()
+    product = Product(
+        id=uuid.uuid4(),
+        name="Klima",
+        name_normalized="klima",
+        regular_price=regular,
+        website_discounted_price=oliz,
+        cost_price=Decimal("30000.00"),
+        physical_stock=1,
+    )
+    uow.products.add(product)
+    now = datetime.now(UTC)
+    create_campaign(
+        uow,
+        CampaignInput(
+            name="Düğün",
+            campaign_type=CampaignType.PRODUCT_DISCOUNT,
+            starts_at=now - timedelta(days=1),
+            ends_at=now + timedelta(days=30),
+            base_price_type=BasePriceType.REGULAR,
+            discount_type=DiscountType.PERCENT,
+            discount_value=percent,
+            products=(
+                CampaignProductInput(product.id, ProductRelationType.BENEFIT),
+            ),
+        ),
+    )
+    return uow, product
+
+
+def test_auto_campaign_chooses_campaign_when_it_beats_oliz() -> None:
+    uow, product = _campaign_fixture(
+        Decimal("50000.00"), Decimal("46000.00"), Decimal(10)
+    )
+    offer_id = create_offer(
+        uow,
+        OfferInput(
+            customer_name="Otomatik",
+            customer_phone=None,
+            payment_type=PaymentType.CASH,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product.id, 1, auto_campaign=True),),
+        ),
+    )
+    detail = get_offer_detail(uow, offer_id)
+    assert detail is not None
+    item = detail.items[0]
+    assert item.company_discount_source == "campaign"
+    assert item.base_price_used == Decimal("45000.00")
+    assert item.unit_price_cash == Decimal("40500.00")
+    assert item.company_share_amount == Decimal("5000.00")
+
+
+def test_auto_campaign_chooses_oliz_when_it_beats_campaign() -> None:
+    uow, product = _campaign_fixture(
+        Decimal("50000.00"), Decimal("40000.00"), Decimal(10)
+    )
+    offer_id = create_offer(
+        uow,
+        OfferInput(
+            customer_name="Otomatik",
+            customer_phone=None,
+            payment_type=PaymentType.CASH,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product.id, 1, auto_campaign=True),),
+        ),
+    )
+    detail = get_offer_detail(uow, offer_id)
+    assert detail is not None
+    item = detail.items[0]
+    assert item.company_discount_source == "oliz"
+    assert item.base_price_used == Decimal("40000.00")
+    assert item.unit_price_cash == Decimal("36000.00")
+    assert item.website_price_snapshot == Decimal("40000.00")
+    assert item.campaign_snapshot is None
+
+
+def test_preview_offer_line_exposes_auto_campaign_preview() -> None:
+    uow, product = _campaign_fixture(
+        Decimal("50000.00"), Decimal("46000.00"), Decimal(10)
+    )
+    preview = preview_offer_line(
+        uow,
+        product.id,
+        dealer_discount_percent=Decimal(10),
+        dealer_discount_cash_percent=Decimal(10),
+    )
+
+    assert preview is not None
+    assert preview.previews["auto"].campaign_name == "Düğün"
+    assert preview.previews["auto"].price == Decimal("45000.00")
+    assert preview.previews["auto"].discount_amount == Decimal("5000.00")

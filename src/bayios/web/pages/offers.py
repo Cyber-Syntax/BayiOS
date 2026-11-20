@@ -15,8 +15,10 @@ from bayios.application.commissions import list_banks
 from bayios.application.dealer_pricing import get_default_dealer_discount
 from bayios.application.errors import NotFoundError, ValidationError
 from bayios.application.offers import (
+    LineCampaignPreview,
     OfferInput,
     OfferItemInput,
+    OfferLinePreview,
     build_offer_profit_summary,
     convert_offer_to_reservation,
     create_offer,
@@ -24,6 +26,7 @@ from bayios.application.offers import (
     get_offer_detail,
     list_offers,
     preview_offer_comparison,
+    preview_offer_line,
     reserve_offer,
     sell_offer,
     set_offer_status,
@@ -36,6 +39,7 @@ from bayios.domain.commissions import (
     CHANNEL_LABELS,
     CardType,
     PaymentChannel,
+    quantize_money,
 )
 from bayios.domain.offers import (
     OFFER_STATUS_LABELS,
@@ -119,10 +123,24 @@ def offer_picker(
     request: Request,
     uow: UnitOfWorkDep,
     q: Annotated[str | None, Query()] = None,
+    dealer_discount_percent: Annotated[Decimal, Query()] = Decimal(10),
+    dealer_discount_cash_percent: Annotated[Decimal, Query()] = Decimal(10),
 ) -> HTMLResponse:
     products, _ = search_products(uow, query=q, limit=5, offset=0)
+    previews = {}
+    for product in products:
+        preview = preview_offer_line(
+            uow,
+            product.id,
+            dealer_discount_percent=dealer_discount_percent,
+            dealer_discount_cash_percent=dealer_discount_cash_percent,
+        )
+        if preview is not None:
+            previews[product.id] = _line_payload(preview)
     return templates.TemplateResponse(
-        request, "offers/_picker.html", {"products": products}
+        request,
+        "offers/_picker.html",
+        {"products": products, "product_previews": previews},
     )
 
 
@@ -154,6 +172,12 @@ async def compare_offer_route(
     request: Request, uow: UnitOfWorkDep
 ) -> HTMLResponse:
     form = await request.form(max_fields=MAX_FORM_FIELDS)
+    if not any(str(value).strip() for value in form.getlist("product_id")):
+        return templates.TemplateResponse(
+            request,
+            "offers/_comparison.html",
+            {"comparison": None, "error": None, "empty": True},
+        )
     try:
         data = _offer_input_from_form(form)
         comparison = preview_offer_comparison(uow, data)
@@ -164,6 +188,7 @@ async def compare_offer_route(
             {
                 "comparison": None,
                 "error": str(exc),
+                "empty": False,
                 "channel_labels": CHANNEL_LABELS,
             },
         )
@@ -173,6 +198,7 @@ async def compare_offer_route(
         {
             "comparison": comparison,
             "error": None,
+            "empty": False,
             "channel_labels": CHANNEL_LABELS,
         },
     )
@@ -192,6 +218,7 @@ def offer_detail_page(
             "active_nav": "offers",
             "detail": detail,
             "profit_summary": build_offer_profit_summary(detail),
+            "display_totals": _offer_display_totals(detail),
             "status_labels": OFFER_STATUS_LABELS,
             "payment_labels": PAYMENT_TYPE_LABELS,
             "channel_labels": CHANNEL_LABELS,
@@ -358,6 +385,337 @@ def print_offer(
     )
 
 
+def _preview_payload(preview: LineCampaignPreview) -> dict[str, object]:
+    return {
+        "key": preview.key,
+        "source": preview.source,
+        "campaign_id": preview.campaign_id,
+        "campaign_name": preview.campaign_name,
+        "price": str(preview.price),
+        "discount_amount": str(preview.discount_amount),
+        "share_amount": str(preview.share_amount),
+        "discount_type": preview.discount_type,
+        "discount_value": (
+            str(preview.discount_value)
+            if preview.discount_value is not None
+            else None
+        ),
+        "gift_description": preview.gift_description,
+    }
+
+
+def _line_payload(preview: OfferLinePreview) -> dict[str, object]:
+    return {
+        "product_id": preview.product_id,
+        "product_name": preview.product_name,
+        "regular_price": (
+            str(preview.regular_price)
+            if preview.regular_price is not None
+            else None
+        ),
+        "oliz_price": (
+            str(preview.oliz_price)
+            if preview.oliz_price is not None
+            else None
+        ),
+        "cost_price": (
+            str(preview.cost_price)
+            if preview.cost_price is not None
+            else None
+        ),
+        "previews": {
+            key: _preview_payload(value)
+            for key, value in preview.previews.items()
+        },
+    }
+
+
+def _selected_preview(
+    previews: dict[str, dict[str, object]], campaign_id: str
+) -> dict[str, object]:
+    if campaign_id in previews:
+        return previews[campaign_id]
+    if campaign_id == "" and "none" in previews:
+        return previews["none"]
+    return previews.get("auto") or previews.get("none") or {}
+
+
+def _item_from_payload(
+    payload: dict[str, object],
+    *,
+    campaign_id: str,
+    quantity: object,
+    gift_present: object,
+    unit_price_cash: object,
+    unit_price_card: object,
+) -> dict[str, object]:
+    previews = payload.get("previews") or {}
+    selected = _selected_preview(previews, campaign_id)  # type: ignore[arg-type]
+    return {
+        "product_id": payload.get("product_id") or "",
+        "product_name": payload.get("product_name") or "",
+        "quantity": quantity,
+        "campaign_id": campaign_id,
+        "gift_present": gift_present,
+        "unit_price_cash": unit_price_cash,
+        "unit_price_card": unit_price_card,
+        "regular_price": payload.get("regular_price"),
+        "oliz_price": payload.get("oliz_price"),
+        "cost_price": payload.get("cost_price"),
+        "previews": previews,
+        "campaign_name": selected.get("campaign_name"),
+        "campaign_price": selected.get("price"),
+        "discount_type": selected.get("discount_type"),
+        "discount_value": selected.get("discount_value"),
+        "gift_description": selected.get("gift_description"),
+        "company_price": selected.get("price"),
+        "company_discount": selected.get("discount_amount"),
+        "company_share": selected.get("share_amount"),
+    }
+
+
+def _enrich_items_with_previews(
+    uow: UnitOfWorkDep,
+    items: list[dict[str, object]],
+    dealer_discount: Decimal,
+    dealer_discount_cash: Decimal,
+) -> list[dict[str, object]]:
+    enriched: list[dict[str, object]] = []
+    for item in items:
+        product_id = _optional_uuid(str(item.get("product_id") or ""))
+        if product_id is None:
+            enriched.append(item)
+            continue
+        preview = preview_offer_line(
+            uow,
+            product_id,
+            dealer_discount_percent=dealer_discount,
+            dealer_discount_cash_percent=dealer_discount_cash,
+            gift_present=(
+                str(item.get("gift_present")) == "1"
+                if item.get("gift_present") in {"0", "1"}
+                else None
+            ),
+        )
+        if preview is None:
+            enriched.append(item)
+            continue
+        enriched.append(
+            _item_from_payload(
+                _line_payload(preview),
+                campaign_id=(
+                    str(item["campaign_id"])
+                    if item.get("campaign_id") is not None
+                    else "auto"
+                ),
+                quantity=item.get("quantity") or 1,
+                gift_present=item.get("gift_present") or "",
+                unit_price_cash=item.get("unit_price_cash") or "",
+                unit_price_card=item.get("unit_price_card") or "",
+            )
+        )
+    return enriched
+
+
+def _detail_initial_items(
+    uow: UnitOfWorkDep,
+    detail: object,
+    dealer_discount: Decimal,
+    dealer_discount_cash: Decimal,
+) -> list[dict[str, object]]:
+    items: list[dict[str, object]] = []
+    for item in detail.items:
+        snapshot = item.campaign_snapshot or {}
+        campaign_id = str(snapshot.get("campaign_id") or "")
+        preview_payload: dict[str, object] = {}
+        if item.product_id is not None:
+            preview = preview_offer_line(
+                uow,
+                item.product_id,
+                dealer_discount_percent=dealer_discount,
+                dealer_discount_cash_percent=dealer_discount_cash,
+                gift_present=item.campaign_gift_present,
+            )
+            if preview is not None:
+                preview_payload = _line_payload(preview)
+        base = _item_from_payload(
+            preview_payload,
+            campaign_id=campaign_id,
+            quantity=item.quantity,
+            gift_present=(
+                "1" if item.campaign_gift_present else "0"
+                if item.campaign_gift_present is not None
+                else ""
+            ),
+            unit_price_cash=(
+                str(item.unit_price_cash)
+                if item.unit_price_cash is not None
+                else ""
+            ),
+            unit_price_card=(
+                str(item.unit_price_card)
+                if item.unit_price_card is not None
+                else ""
+            ),
+        )
+        if not preview_payload:
+            base["product_id"] = str(item.product_id) if item.product_id else ""
+            base["product_name"] = item.product_name_snapshot
+            base["regular_price"] = (
+                str(item.regular_price_snapshot)
+                if item.regular_price_snapshot is not None
+                else None
+            )
+            base["oliz_price"] = (
+                str(item.website_price_snapshot)
+                if item.website_price_snapshot is not None
+                else None
+            )
+            base["cost_price"] = (
+                str(item.cost_price_snapshot)
+                if item.cost_price_snapshot is not None
+                else None
+            )
+        campaign_name = item.campaign_name_snapshot or snapshot.get("name")
+        campaign_price = (
+            item.campaign_price
+            or item.base_price_used
+            or snapshot.get("campaign_price")
+            or snapshot.get("final_price")
+        )
+        discount_type = snapshot.get("discount_type")
+        discount_value = snapshot.get("discount_value")
+        gift_description = snapshot.get("gift_description")
+        company_price = item.base_price_used
+        company_discount = item.company_discount_amount
+        if company_discount is None and item.regular_price_snapshot is not None:
+            if company_price is not None:
+                company_discount = max(
+                    Decimal(0),
+                    item.regular_price_snapshot - company_price,
+                )
+            elif item.website_price_snapshot is not None:
+                company_discount = max(
+                    Decimal(0),
+                    item.regular_price_snapshot - item.website_price_snapshot,
+                )
+            else:
+                company_discount = Decimal(0)
+        company_share = item.company_share_amount
+        if company_share is None:
+            if campaign_price is not None and item.regular_price_snapshot is not None:
+                company_share = max(
+                    Decimal(0),
+                    item.regular_price_snapshot - Decimal(str(campaign_price)),
+                )
+            elif (
+                item.regular_price_snapshot is not None
+                and item.website_price_snapshot is not None
+            ):
+                company_share = max(
+                    Decimal(0),
+                    item.regular_price_snapshot - item.website_price_snapshot,
+                )
+            else:
+                company_share = Decimal(0)
+        base["campaign_id"] = campaign_id
+        base["campaign_name"] = campaign_name
+        base["campaign_price"] = (
+            str(campaign_price) if campaign_price is not None else None
+        )
+        base["discount_type"] = discount_type
+        base["discount_value"] = discount_value
+        base["gift_description"] = gift_description
+        base["company_price"] = (
+            str(company_price) if company_price is not None else None
+        )
+        base["company_discount"] = str(company_discount)
+        base["company_share"] = str(company_share)
+        previews = dict(base.get("previews") or {})
+        if campaign_id:
+            previews[campaign_id] = {
+                "key": campaign_id,
+                "source": "campaign",
+                "campaign_id": campaign_id,
+                "campaign_name": campaign_name,
+                "price": (
+                    str(campaign_price) if campaign_price is not None else None
+                ),
+                "discount_amount": str(company_discount),
+                "share_amount": str(company_share),
+                "discount_type": discount_type,
+                "discount_value": discount_value,
+                "gift_description": gift_description,
+            }
+        else:
+            previews["none"] = {
+                "key": "none",
+                "source": (
+                    "oliz"
+                    if item.website_price_snapshot is not None
+                    else "none"
+                ),
+                "campaign_id": None,
+                "campaign_name": (
+                    "Oliz" if item.website_price_snapshot is not None else None
+                ),
+                "price": (
+                    str(item.website_price_snapshot)
+                    if item.website_price_snapshot is not None
+                    else (
+                        str(item.regular_price_snapshot)
+                        if item.regular_price_snapshot is not None
+                        else None
+                    )
+                ),
+                "discount_amount": str(company_discount),
+                "share_amount": str(company_share),
+                "discount_type": None,
+                "discount_value": None,
+                "gift_description": None,
+            }
+        base["previews"] = previews
+        items.append(base)
+    return items
+
+
+def _offer_display_totals(detail: object) -> dict[str, Decimal]:
+    offer = detail.offer
+    if getattr(offer, "pricing_version", "legacy") == "v2":
+        return {
+            "regular_total": offer.regular_total,
+            "oliz_total": offer.oliz_total,
+            "company_discount_total": offer.company_discount_total,
+            "cost_total": offer.cost_total,
+        }
+    regular_total = Decimal(0)
+    oliz_total = Decimal(0)
+    company_discount_total = Decimal(0)
+    cost_total = Decimal(0)
+    for item in detail.items:
+        quantity = item.quantity
+        if item.regular_price_snapshot is not None:
+            regular_total += item.regular_price_snapshot * quantity
+        if item.website_price_snapshot is not None:
+            oliz_total += item.website_price_snapshot * quantity
+        if item.cost_price_snapshot is not None:
+            cost_total += item.cost_price_snapshot * quantity
+        if (
+            item.regular_price_snapshot is not None
+            and item.base_price_used is not None
+        ):
+            company_discount_total += max(
+                Decimal(0),
+                item.regular_price_snapshot - item.base_price_used,
+            ) * quantity
+    return {
+        "regular_total": quantize_money(regular_total),
+        "oliz_total": quantize_money(oliz_total),
+        "company_discount_total": quantize_money(company_discount_total),
+        "cost_total": quantize_money(cost_total),
+    }
+
+
 def _render_form(
     request: Request,
     uow: UnitOfWorkDep,
@@ -409,28 +767,41 @@ def _render_form(
                 ),
             }
         )
-        initial_items = [
-            {
-                "product_id": str(item.product_id) if item.product_id else "",
-                "product_name": item.product_name_snapshot,
-                "quantity": item.quantity,
-                "campaign_id": str(
-                    (item.campaign_snapshot or {}).get("campaign_id") or "auto"
-                ),
-                "gift_present": "",
-                "unit_price_cash": (
-                    str(item.unit_price_cash)
-                    if item.unit_price_cash is not None
-                    else ""
-                ),
-                "unit_price_card": (
-                    str(item.unit_price_card)
-                    if item.unit_price_card is not None
-                    else ""
-                ),
-            }
-            for item in detail.items
-        ]
+        dealer_discount = _decimal_value(
+            str(values["dealer_discount_percent"])
+        ) or Decimal(10)
+        dealer_discount_cash = _decimal_value(
+            str(values["dealer_discount_cash_percent"])
+        ) or Decimal(10)
+        initial_items = _detail_initial_items(
+            uow,
+            detail,
+            dealer_discount,
+            dealer_discount_cash,
+        )
+    dealer_discount = _decimal_value(
+        str(values["dealer_discount_percent"])
+    ) or Decimal(10)
+    dealer_discount_cash = _decimal_value(
+        str(values["dealer_discount_cash_percent"])
+    ) or Decimal(10)
+    if form is not None:
+        initial_items = _enrich_items_with_previews(
+            uow,
+            initial_items,
+            dealer_discount,
+            dealer_discount_cash,
+        )
+    product_previews = {}
+    for product in products:
+        preview = preview_offer_line(
+            uow,
+            product.id,
+            dealer_discount_percent=dealer_discount,
+            dealer_discount_cash_percent=dealer_discount_cash,
+        )
+        if preview is not None:
+            product_previews[product.id] = _line_payload(preview)
     return templates.TemplateResponse(
         request,
         "offers/form.html",
@@ -442,6 +813,7 @@ def _render_form(
             "campaigns": campaigns,
             "banks": banks,
             "products": products,
+            "product_previews": product_previews,
             "channel_options": tuple(
                 (item.value, CHANNEL_LABELS[item]) for item in PaymentChannel
             ),

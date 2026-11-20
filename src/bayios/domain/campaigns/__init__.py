@@ -271,6 +271,82 @@ class CampaignScenario:
     is_informational: bool = False
 
 
+@dataclass(frozen=True)
+class CampaignOfferPrice:
+    """Campaign price before the dealer discount.
+
+    The campaign guide applies the dealer discount to show a scenario; the
+    offer needs the campaign's own discount first so the dealer discount can
+    be applied exactly once afterwards.
+    """
+
+    base_price: Decimal | None
+    discount_amount: Decimal | None
+    final_price: Decimal | None
+    warning: str | None = None
+
+
+def campaign_discount_price(
+    contract: CampaignContract, base_price: Decimal | None
+) -> CampaignOfferPrice:
+    """Apply the campaign's own discount to a base price, without dealer discount."""
+    if base_price is None:
+        return CampaignOfferPrice(
+            base_price=None,
+            discount_amount=None,
+            final_price=None,
+            warning="Taban fiyat tanımlı değil.",
+        )
+
+    base = quantize_money(base_price)
+    warning: str | None = None
+    if (
+        contract.discount_type is DiscountType.INFO_ONLY
+        or contract.campaign_type is CampaignType.COUPON
+        or contract.discount_type is DiscountType.GIFT
+    ):
+        # Information-only, coupon and gift campaigns do not change the price.
+        return CampaignOfferPrice(
+            base_price=base,
+            discount_amount=ZERO,
+            final_price=base,
+        )
+    if contract.discount_type is DiscountType.PERCENT:
+        value = contract.discount_value or ZERO
+        discount = quantize_money(base * value / HUNDRED)
+        final = quantize_money(base - discount)
+    elif contract.discount_type is DiscountType.FIXED_AMOUNT:
+        value = contract.discount_value
+        if value is None:
+            raise ValueError("Sabit tutar indirimi için değer girilmelidir.")
+        if value > base:
+            discount = base
+            final = ZERO
+            warning = "Sabit indirim taban fiyatı aşıyor."
+        else:
+            discount = quantize_money(value)
+            final = quantize_money(base - discount)
+    elif contract.discount_type is DiscountType.SPECIAL_PRICE:
+        value = contract.discount_value
+        if value is None:
+            raise ValueError("Özel fiyat için değer girilmelidir.")
+        final = quantize_money(value)
+        discount = quantize_money(base - final)
+        if final > base:
+            warning = "Özel fiyat taban fiyatın üzerinde."
+    else:
+        # GIFT / INFO_ONLY: the gift or note is not a price discount.
+        discount = ZERO
+        final = base
+
+    return CampaignOfferPrice(
+        base_price=base,
+        discount_amount=discount,
+        final_price=final,
+        warning=warning,
+    )
+
+
 def campaign_scenarios(
     contract: CampaignContract,
     prices: CampaignPriceInput,

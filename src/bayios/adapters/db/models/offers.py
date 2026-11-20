@@ -71,6 +71,10 @@ class Offer(Base):
             "OR commission_source IN ('bank_specific', 'general', 'none')",
             name="commission_source_valid",
         ),
+        sa.CheckConstraint(
+            "pricing_version IN ('legacy', 'v2')",
+            name="pricing_version_valid",
+        ),
         sa.Index("ix_offers_status", "status"),
         sa.Index("ix_offers_created_at", "created_at"),
     )
@@ -111,6 +115,21 @@ class Offer(Base):
     )
     dealer_share_percent_snapshot: Mapped[Decimal] = mapped_column(
         PERCENT, server_default=sa.text("85.00")
+    )
+    pricing_version: Mapped[str] = mapped_column(
+        sa.Text, server_default=sa.text("'legacy'")
+    )
+    regular_total: Mapped[Decimal] = mapped_column(
+        MONEY, server_default=sa.text("0")
+    )
+    oliz_total: Mapped[Decimal] = mapped_column(
+        MONEY, server_default=sa.text("0")
+    )
+    company_discount_total: Mapped[Decimal] = mapped_column(
+        MONEY, server_default=sa.text("0")
+    )
+    cost_total: Mapped[Decimal] = mapped_column(
+        MONEY, server_default=sa.text("0")
     )
     cash_total: Mapped[Decimal] = mapped_column(
         MONEY, server_default=sa.text("0")
@@ -159,6 +178,10 @@ class OfferItem(Base):
             name="website_price_non_negative",
         ),
         sa.CheckConstraint(
+            "website_price_snapshot IS NULL OR website_price_snapshot > 0",
+            name="website_price_positive",
+        ),
+        sa.CheckConstraint(
             "cost_price_snapshot IS NULL OR cost_price_snapshot >= 0",
             name="cost_price_non_negative",
         ),
@@ -169,6 +192,11 @@ class OfferItem(Base):
         sa.CheckConstraint(
             "unit_price_card IS NULL OR unit_price_card >= 0",
             name="unit_price_card_non_negative",
+        ),
+        sa.CheckConstraint(
+            "company_discount_source IS NULL "
+            "OR company_discount_source IN ('campaign', 'oliz', 'none')",
+            name="company_discount_source_valid",
         ),
         sa.Index("ix_offer_items_offer_id", "offer_id"),
         sa.Index("ix_offer_items_product_id", "product_id"),
@@ -193,6 +221,12 @@ class OfferItem(Base):
     campaign_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     campaign_gift_present: Mapped[bool | None] = mapped_column(sa.Boolean)
     base_price_used: Mapped[Decimal | None] = mapped_column(MONEY)
+    company_discount_source: Mapped[str | None] = mapped_column(sa.Text)
+    company_discount_amount: Mapped[Decimal | None] = mapped_column(MONEY)
+    company_share_amount: Mapped[Decimal | None] = mapped_column(MONEY)
+    campaign_discount_amount: Mapped[Decimal | None] = mapped_column(MONEY)
+    campaign_base_price: Mapped[Decimal | None] = mapped_column(MONEY)
+    campaign_price: Mapped[Decimal | None] = mapped_column(MONEY)
     dealer_discount_percent: Mapped[Decimal] = mapped_column(PERCENT)
     dealer_discount_cash_percent: Mapped[Decimal] = mapped_column(
         PERCENT, server_default=sa.text("10.00")

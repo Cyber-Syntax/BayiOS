@@ -33,6 +33,17 @@ def test_base_price_prefers_campaign_then_website_then_regular() -> None:
     )
 
 
+def test_zero_website_price_means_no_oliz_price() -> None:
+    layers = OfferPriceLayers(
+        regular_price=Decimal(50000),
+        website_price=Decimal(0),
+    )
+
+    assert layers.website_price is None
+    assert layers.base_price == Decimal(50000)
+    assert layers.base_source == "Normal"
+
+
 def test_wedding_example_bay_discount_and_manual_prices() -> None:
     layers = OfferPriceLayers(
         cost_price=Decimal(36000),

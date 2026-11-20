@@ -93,3 +93,14 @@ def test_preview_product_import_parses_arcelik_csv_format() -> None:
     assert result.rows[2].regular_price == "39999"
     assert result.rows[2].website_discounted_price is None
     assert result.rows[2].quantity is None
+
+
+def test_preview_treats_zero_website_price_as_missing() -> None:
+    result = preview_product_import(
+        b"product_name,regular_price,website_discounted_price\n"
+        b"10121,39999,0\n"
+    )
+
+    assert result.rows[0].decision == "create"
+    assert result.rows[0].website_discounted_price is None
+    assert result.rows[0].errors == ()

@@ -145,7 +145,7 @@ def preview_product_import(
         if regular_price and normalized_price is None:
             errors.append("Perakende fiyat sayısal olmalıdır.")
         normalized_discounted_price, clear_discounted = _optional_price(
-            discounted_price, "Oliz indirimli fiyat", errors
+            discounted_price, "Oliz indirimli fiyat", errors, positive_only=True
         )
         normalized_quantity = _normalize_quantity(quantity)
         if quantity and normalized_quantity is None:
@@ -719,7 +719,7 @@ def _is_clear(value: str) -> bool:
 
 
 def _optional_price(
-    value: str, label: str, errors: list[str]
+    value: str, label: str, errors: list[str], *, positive_only: bool = False
 ) -> tuple[str | None, bool]:
     if not value:
         return None, False
@@ -728,6 +728,9 @@ def _optional_price(
     normalized = _normalize_decimal(value)
     if normalized is None:
         errors.append(f"{label} sayısal olmalıdır.")
+        return None, False
+    if positive_only and Decimal(normalized) <= 0:
+        return None, False
     return normalized, False
 
 

@@ -52,6 +52,10 @@ class Product(Base):
             "website_discounted_price >= 0",
             name="website_discounted_price_non_negative",
         ),
+        sa.CheckConstraint(
+            "website_discounted_price IS NULL OR website_discounted_price > 0",
+            name="website_discounted_price_positive",
+        ),
         sa.CheckConstraint("cost_price >= 0", name="cost_price_non_negative"),
     )
 
