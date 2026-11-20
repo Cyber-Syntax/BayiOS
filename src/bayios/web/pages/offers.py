@@ -47,6 +47,8 @@ from bayios.web.templating import templates
 
 router = APIRouter(prefix="/offers", tags=["offers"])
 
+MAX_FORM_FIELDS = 10_000
+
 STATUS_FILTERS = (("", "Tümü"),) + tuple(
     (status.value, label) for status, label in OFFER_STATUS_LABELS.items()
 )
@@ -128,7 +130,7 @@ def offer_picker(
 async def create_offer_route(
     request: Request, uow: UnitOfWorkDep, actor: ActorDep
 ) -> Response:
-    form = await request.form()
+    form = await request.form(max_fields=MAX_FORM_FIELDS)
     try:
         data = _offer_input_from_form(form)
         offer_id = create_offer(uow, data, actor)
@@ -151,7 +153,7 @@ async def create_offer_route(
 async def compare_offer_route(
     request: Request, uow: UnitOfWorkDep
 ) -> HTMLResponse:
-    form = await request.form()
+    form = await request.form(max_fields=MAX_FORM_FIELDS)
     try:
         data = _offer_input_from_form(form)
         comparison = preview_offer_comparison(uow, data)
@@ -216,7 +218,7 @@ async def update_offer_route(
     uow: UnitOfWorkDep,
     actor: ActorDep,
 ) -> Response:
-    form = await request.form()
+    form = await request.form(max_fields=MAX_FORM_FIELDS)
     try:
         data = _offer_input_from_form(form)
         update_offer(uow, offer_id, data, actor)

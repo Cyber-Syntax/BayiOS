@@ -69,6 +69,7 @@ RELATION_TYPE_OPTIONS = tuple(
     for relation in ProductRelationType
 )
 GIFT_BASE_PRICE_OPTIONS = (("", "Varsayılan"),) + BASE_PRICE_OPTIONS
+MAX_FORM_FIELDS = 10_000
 TEXT_FIELDS = (
     "name",
     "description",
@@ -340,7 +341,7 @@ async def create_campaign_route(
     uow: UnitOfWorkDep,
     actor: ActorDep,
 ) -> Response:
-    form = await request.form()
+    form = await request.form(max_fields=MAX_FORM_FIELDS)
     try:
         data = _campaign_input_from_form(form)
         campaign_id = create_campaign(uow, data, actor)
@@ -461,7 +462,7 @@ async def update_campaign_route(
     uow: UnitOfWorkDep,
     actor: ActorDep,
 ) -> Response:
-    form = await request.form()
+    form = await request.form(max_fields=MAX_FORM_FIELDS)
     try:
         data = _campaign_input_from_form(form)
         update_campaign(uow, campaign_id, data, actor)

@@ -13,6 +13,53 @@ from bayios.web.deps import get_unit_of_work
 from tests.fakes import FakeUnitOfWork
 
 
+def test_campaign_accepts_more_than_one_thousand_form_fields(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    products: list[Product] = []
+    for index in range(340):
+        product = Product(
+            id=uuid.uuid4(),
+            name=f"Ürün {index:03d}",
+            name_normalized=f"urun {index:03d}",
+            regular_price=Decimal("1000.00"),
+            physical_stock=1,
+        )
+        fake_uow.products.add(product)
+        products.append(product)
+
+    data: list[tuple[str, str]] = [
+        ("name", "Büyük Yüzde Kampanyası"),
+        ("campaign_type", "product_discount"),
+        ("starts_at", "2026-01-01"),
+        ("ends_at", "2027-12-31"),
+        ("base_price_type", "regular"),
+        ("discount_type", "percent"),
+        ("discount_value", "10"),
+    ]
+    for product in products:
+        data.extend(
+            [
+                ("product_id", str(product.id)),
+                ("relation_type", "benefit"),
+                ("quantity_required", ""),
+            ]
+        )
+
+    from urllib.parse import urlencode
+
+    response = client.post(
+        "/campaigns",
+        content=urlencode(data),
+        headers={"content-type": "application/x-www-form-urlencoded"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"].startswith("/campaigns/")
+
+
+
 @pytest.fixture
 def fake_uow() -> FakeUnitOfWork:
     uow = FakeUnitOfWork()
