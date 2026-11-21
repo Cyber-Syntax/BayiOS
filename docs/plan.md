@@ -184,7 +184,7 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
    - Bazı satırlarda `quantity` boştur (örn. `0.58m  with Anderson cable,475 TL,`).
    - `quantity` boş/eksik olduğunda: Mevcut ürünün fiziksel stoku korunur (`quantity=None`), stok hareketi oluşturulmaz.
    - `quantity=0` olduğunda: Fiziksel stok sıfırlanır ve `stock_movements` tablosuna `csv_update` hareketi yazılır.
-   - `website_discounted_price` boş olduğunda: Mevcut Oliz/indirimli fiyat korunur; indirimi kaldırmak için önizleme ekranından açıkça `clear_discount` kararı seçilmelidir.
+   - `website_discounted_price` kolonu varsa ve hücre boş/`0` ise: Güncellemede mevcut Oliz/indirimli fiyat otomatik silinir (Oliz kampanyası bitti kabul edilir). Kolon hiç yoksa mevcut değer korunur; `clear_discount` kararı yalnızca kolon yokken manuel temizlik için opsiyonel kalır.
 4. **Ürün adı özellikleri ve normalizasyonu:**
    - Baştaki sıfırlar anlamlıdır ve korunur (`07325 A`, `09325 A`, `09605`).
    - Unicode NFKC normalizasyonu uygulanır (örn. `16343\xa0TVN` gibi bölünemez boşluk `\xa0` karakterleri standart boşluğa dönüştürülür).
@@ -201,7 +201,7 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
    - `_normalize_quantity`: Boşluk, tam sayı ve negatif olmama kontrolü.
    - `normalize_category_name`: Kategori eşleştirmesi için NFKC, strip, whitespace collapse ve Türkçe `İ/ı` duyarsızlaştırması.
    - `canonical_display_name`: Banka ve kategori adları için Türkçe kurallarıyla başlık biçimi (`AKBANK`/`akbank`/`AkbanK` -> `Akbank`, `ÇAMAŞIR MAKİNESİ` -> `Çamaşır Makinesi`). Rakam içeren token'lar ve kısa büyük harf kısaltmaları (`TV`, `LED`, `HP`) korunur. **Ürün adlarına uygulanmaz**; ürün adı yazıldığı gibi kalır ve `normalize_product_name` yalnız eşleştirme/arama içindir. Python'un dil duyarsız `title()` davranışı kullanılmaz.
-   - Satır sınıflandırma politikası: `create` (yeni ürün), `update` (fiyat/stok değişimi), `skip` (fark yok veya kullanıcı kararı), `error` (eksik ad veya geçersiz sayı), `clear_discount` (indirimli fiyatı temizleme).
+   - Satır sınıflandırma politikası: `create` (yeni ürün), `update` (fiyat/stok değişimi), `skip` (fark yok veya kullanıcı kararı), `error` (eksik ad veya geçersiz sayı), `clear_discount` (kolon yokken manuel indirimli fiyat temizleme; boş/0 hücre artık otomatik temizler).
 2. **CSV/Excel içe aktarma önizlemesi ve sorunlu satır yönetimi (`PreviewProductImport`):**
    - `utf-8`, `utf-8-sig` (BOM), `cp1254` (Windows-1254) fallback ve otomatik virgül/noktalı virgül delimiter algılama.
    - `.xlsx` desteği (`openpyxl` streaming `iter_rows`).
@@ -276,6 +276,7 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
 - Aynı ürün ikinci kez aktarıldığında yeni ürün açılmaz, mevcut güncellenir.
 - Fiyat değişmemişse `ProductPriceHistory` oluşturulmaz; değişmişse eski/yeni değerlerle tarihçe yazılır.
 - Boş `quantity` mevcut stoku korur; `0` stoku sıfırlar ve stok hareketi oluşturur.
+- Oliz kolonu varsa boş/`0` hücre güncellemede mevcut Oliz fiyatını otomatik siler ve fiyat geçmişi yazar; kolon hiç yoksa mevcut Oliz değeri korunur.
 - CSV'de bulunmayan ürünler silinmez ve `is_archived=True` yapılmaz.
 - Hatalı satırlar geçerli satırların önizlemesini veya aktarımını engellemez; önizleme listesinde hata nedeni gösterilir.
 - Önizleme tablosunda hatalı ve çakışmalı satırlar listenin en başında listelenir.

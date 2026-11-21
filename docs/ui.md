@@ -125,7 +125,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 
 - CSV ve Excel (.xlsx) dosyası yükleme; desteklenen format, fiyat, stok ve indirim kuralları ekranda açıklanır.
 - Önizleme ekranında toplam satır, yeni ürün, güncellenecek ve hatalı satır sayaçları gösterilir.
-- Satır bazında karar: Yeni Ürün Aç, Güncelle, Atla veya İndirimli Fiyatı Temizle.
+- Satır bazında karar: Yeni Ürün Aç, Güncelle veya Atla. Oliz kolonu varsa boş/`0` hücre güncellemede Oliz fiyatını otomatik temizler; "İndirimli Fiyatı Temizle" yalnızca kolon yokken manuel seçenek olarak kalır.
 - Toplu kararlar: Tümünü Güncelle, Tümünü Atla, Tümünü Yeni Ürün ve Sorunluları Atla.
 - Hatalı ve uyarılı satırlar görünür biçimde işaretlenir; önizleme onaylanmadan veritabanına yazılmaz.
 - Onay tek transaction içinde atomik olarak uygulanır; sonuç özeti ürünler ekranında bildirilir.

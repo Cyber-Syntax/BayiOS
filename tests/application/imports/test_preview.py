@@ -103,4 +103,25 @@ def test_preview_treats_zero_website_price_as_missing() -> None:
 
     assert result.rows[0].decision == "create"
     assert result.rows[0].website_discounted_price is None
+    assert result.rows[0].clear_website_discounted_price is True
     assert result.rows[0].errors == ()
+
+
+def test_preview_blank_oliz_cell_requests_clear_when_column_exists() -> None:
+    result = preview_product_import(
+        b"product_name,regular_price,website_discounted_price\n"
+        b"10121,39999,\n"
+    )
+
+    assert result.rows[0].website_discounted_price is None
+    assert result.rows[0].clear_website_discounted_price is True
+
+
+def test_preview_absent_oliz_column_does_not_request_clear() -> None:
+    result = preview_product_import(
+        b"product_name,regular_price\n"
+        b"10121,39999\n"
+    )
+
+    assert result.rows[0].website_discounted_price is None
+    assert result.rows[0].clear_website_discounted_price is False

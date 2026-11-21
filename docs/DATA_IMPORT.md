@@ -7,7 +7,7 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 
 - Yeni modüller **.xlsx** kabul eder; ürünler ayrıca **.csv** (UTF-8/UTF-8-SIG veya cp1254, `,`/`;`) kabul eder.
 - Başlıklar Türkçe veya İngilizce olabilir; `Ürün Adı` = `Urun Adi` = `product_name` eşleşir.
-- Boş hücre “mevcut değeri koru”; `-`, `temizle`, `clear` “değeri kaldır”.
+- Boş hücre genelde “mevcut değeri koru”; **Oliz İndirimli Fiyat istisnadır**: kolon varsa boş/`0` hücre güncellemede Oliz fiyatını siler. `-`, `temizle`, `clear` her zaman “değeri kaldır” anlamına gelir.
 - Para hücreleri `38.099,50`, `38099.50`, `38.099 TL` gibi biçimleri kabul eder.
 - Tarihler `GG.AA.YYYY`, `GG/AA/YYYY`, `YYYY-MM-DD` ve Excel tarih hücresi olarak kabul edilir.
 - Evet/Hayır, Var/Yok, 1/0, TRUE/FALSE boolean olarak kabul edilir.
@@ -23,7 +23,7 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 | Ürün Adı | Zorunlu; normalize ada göre eşleşir |
 | Kategori | Boşsa mevcut korunur; bilinmeyen kategori otomatik oluşturulur |
 | Perakende Fiyat | Boşsa korunur; `-` temizler |
-| Oliz İndirimli Fiyat | Boşsa korunur; `-` temizler |
+| Oliz İndirimli Fiyat | Boş veya `0` ise güncellemede mevcut Oliz fiyatı silinir; doluysa güncellenir. Kolon hiç yoksa mevcut değer korunur; `-` yine temizler |
 | Fiziksel Stok | Boşsa korunur; `0` sıfırlar |
 | Alış Fiyatı | Maliyet; boşsa korunur; `-` temizler |
 | Kredi Kartı Taban Fiyatı | Dealer pricing; boşsa korunur; `-` temizler |

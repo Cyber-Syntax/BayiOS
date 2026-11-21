@@ -75,6 +75,15 @@ class ProductImportCommitResult:
     total_count: int
 
 
+WEBSITE_PRICE_HEADERS = (
+    "website_discounted_price",
+    "website discounted price",
+    "oliz indirimli fiyat",
+    "oliz fiyatı",
+    "indirimli fiyat",
+)
+
+
 def preview_product_import(
     source: bytes, existing_names: set[str] | None = None
 ) -> ProductImportPreview:
@@ -96,14 +105,8 @@ def preview_product_import(
             "perakende fiyat",
             "normal fiyat",
         )
-        discounted_price = _value(
-            raw_row,
-            "website_discounted_price",
-            "website discounted price",
-            "oliz indirimli fiyat",
-            "oliz fiyatı",
-            "indirimli fiyat",
-        )
+        oliz_column_present = _has_column(raw_row, *WEBSITE_PRICE_HEADERS)
+        discounted_price = _value(raw_row, *WEBSITE_PRICE_HEADERS)
         quantity = _value(
             raw_row, "quantity", "fiziksel stok", "stok", "adet"
         )
@@ -147,6 +150,9 @@ def preview_product_import(
         normalized_discounted_price, clear_discounted = _optional_price(
             discounted_price, "Oliz indirimli fiyat", errors, positive_only=True
         )
+        if oliz_column_present and normalized_discounted_price is None:
+            # An empty/zero Oliz cell means the campaign ended; update clears it.
+            clear_discounted = True
         normalized_quantity = _normalize_quantity(quantity)
         if quantity and normalized_quantity is None:
             errors.append("Fiziksel stok negatif olmayan tam sayı olmalıdır.")
@@ -216,7 +222,7 @@ def product_import_template() -> bytes:
             ("Ürün Adı", "Zorunlu", "Ürün kimliği; baştaki sıfırlar korunur."),
             ("Kategori", "Opsiyonel", "Boşsa mevcut kategori korunur; yeni ad otomatik oluşturulur."),
             ("Perakende Fiyat", "Opsiyonel", "Boşsa korunur; - yazılırsa temizlenir."),
-            ("Oliz İndirimli Fiyat", "Opsiyonel", "Boşsa korunur; - yazılırsa temizlenir."),
+            ("Oliz İndirimli Fiyat", "Opsiyonel", "Boş veya 0 ise güncellemede mevcut Oliz fiyatı silinir; doluysa güncellenir."),
             ("Fiziksel Stok", "Opsiyonel", "Boşsa korunur; 0 stoğu sıfırlar."),
             ("Alış Fiyatı", "Opsiyonel", "Maliyet fiyatı; boşsa korunur, - temizler."),
             ("Kredi Kartı Taban Fiyatı", "Opsiyonel", "Boşsa korunur; - temizler."),
@@ -703,6 +709,13 @@ def _decode_source(source: bytes) -> str:
 def _detect_delimiter(text: str) -> str:
     sample = text.splitlines()[0] if text.splitlines() else ""
     return ";" if sample.count(";") > sample.count(",") else ","
+
+
+def _has_column(row: dict[str, str | None], *headers: str) -> bool:
+    normalized_headers = {normalize_header(header) for header in headers}
+    return any(
+        key and normalize_header(key) in normalized_headers for key in row
+    )
 
 
 def _value(row: dict[str, str | None], *headers: str) -> str:

@@ -304,3 +304,58 @@ def test_commit_clears_cost_and_floor_prices_with_dash() -> None:
     assert pricing is not None
     assert pricing.cash_floor_price is None
     assert pricing.card_floor_price is None
+
+
+def test_commit_blank_oliz_clears_existing_discount_on_update() -> None:
+    uow = FakeUnitOfWork()
+    first = b"product_name,regular_price,website_discounted_price\n07325 A,38099,34099\n"
+    commit_product_import(uow=uow, file_name="first.csv", file_type="csv", source=first)
+    product = uow.products.get_by_normalized_name("07325 a")
+    assert product is not None
+    assert product.website_discounted_price == Decimal(34099)
+    history_count = len(uow.products.get_price_history(product.id))
+
+    second = b"product_name,regular_price,website_discounted_price\n07325 A,38099,\n"
+    result = commit_product_import(
+        uow=uow, file_name="second.csv", file_type="csv", source=second
+    )
+
+    assert result.updated_count == 1
+    assert product.website_discounted_price is None
+    histories = uow.products.get_price_history(product.id)
+    assert len(histories) == history_count + 1
+    assert histories[-1].field_name == "website_discounted_price"
+    assert histories[-1].old_value == Decimal(34099)
+    assert histories[-1].new_value is None
+
+
+def test_commit_zero_oliz_clears_existing_discount_on_update() -> None:
+    uow = FakeUnitOfWork()
+    first = b"product_name,regular_price,website_discounted_price\n07325 A,38099,34099\n"
+    commit_product_import(uow=uow, file_name="first.csv", file_type="csv", source=first)
+    product = uow.products.get_by_normalized_name("07325 a")
+    assert product is not None
+
+    second = b"product_name,regular_price,website_discounted_price\n07325 A,38099,0\n"
+    commit_product_import(
+        uow=uow, file_name="second.csv", file_type="csv", source=second
+    )
+
+    assert product.website_discounted_price is None
+
+
+def test_commit_absent_oliz_column_preserves_existing_discount() -> None:
+    uow = FakeUnitOfWork()
+    first = b"product_name,regular_price,website_discounted_price\n07325 A,38099,34099\n"
+    commit_product_import(uow=uow, file_name="first.csv", file_type="csv", source=first)
+    product = uow.products.get_by_normalized_name("07325 a")
+    assert product is not None
+    assert product.website_discounted_price == Decimal(34099)
+
+    second = b"product_name,regular_price\n07325 A,39000\n"
+    commit_product_import(
+        uow=uow, file_name="second.csv", file_type="csv", source=second
+    )
+
+    assert product.regular_price == Decimal(39000)
+    assert product.website_discounted_price == Decimal(34099)

@@ -98,6 +98,8 @@
             <span class="badge badge-info">
               {{ "{:,.2f}".format(row.website_discounted_price|float).replace(",", "X").replace(".", ",").replace("X", ".") }} TL
             </span>
+            {% elif row.clear_website_discounted_price and row.decision == 'update' %}
+            <span class="muted">Temizle</span>
             {% else %}
             <span class="muted">—</span>
             {% endif %}

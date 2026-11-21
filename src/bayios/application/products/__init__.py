@@ -394,7 +394,7 @@ def export_products_xlsx(uow: UnitOfWork) -> bytes:
             ("Ürün Adı", "Zorunlu", "Ürün kimliği; baştaki sıfırlar korunur."),
             ("Kategori", "Opsiyonel", "Boşsa mevcut kategori korunur; yeni ad otomatik oluşturulur."),
             ("Perakende Fiyat", "Opsiyonel", "Boşsa korunur; - yazılırsa temizlenir."),
-            ("Oliz İndirimli Fiyat", "Opsiyonel", "Boşsa korunur; - yazılırsa temizlenir."),
+            ("Oliz İndirimli Fiyat", "Opsiyonel", "Boş veya 0 ise güncellemede mevcut Oliz fiyatı silinir; doluysa güncellenir."),
             ("Fiziksel Stok", "Opsiyonel", "Boşsa korunur; 0 stoğu sıfırlar."),
             ("Alış Fiyatı", "Opsiyonel", "Maliyet fiyatı; boşsa korunur, - temizler."),
             ("Kredi Kartı Taban Fiyatı", "Opsiyonel", "Boşsa korunur; - temizler."),
