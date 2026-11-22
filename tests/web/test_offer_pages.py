@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import uuid
 from decimal import Decimal
 
@@ -7,7 +8,14 @@ import pytest
 from fastapi.testclient import TestClient
 
 from bayios.adapters.db.models.products import Product
+from bayios.application.offers import (
+    OfferInput,
+    OfferItemInput,
+    create_offer,
+)
+from bayios.application.offers.json_io import export_offers_json
 from bayios.bootstrap import ApplicationSettings
+from bayios.domain.offers import PaymentType
 from bayios.main import create_app
 from bayios.web.deps import get_unit_of_work
 from tests.fakes import FakeUnitOfWork
@@ -377,3 +385,74 @@ def test_offer_detail_hides_oliz_when_product_has_none(
     assert detail.status_code == 200
     assert "Oliz" not in detail.text
     assert "Normal Toplam" in detail.text
+
+
+def test_offer_list_products_column_and_json_export(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = next(iter(fake_uow.products.get_all()))
+    create_offer(
+        fake_uow,
+        OfferInput(
+            customer_name="Liste Müşterisi",
+            customer_phone=None,
+            payment_type=PaymentType.CASH,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product.id, 2),),
+            cash_total_override=Decimal("15000.00"),
+        ),
+    )
+
+    listing = client.get("/offers")
+    assert listing.status_code == 200
+    assert "Ürünler" in listing.text
+    assert "Buzdolabı ×2" in listing.text
+    assert "JSON Dışa Aktar" in listing.text
+
+    exported = client.get("/offers/export/json")
+    assert exported.status_code == 200
+    payload = json.loads(exported.content)
+    assert payload["offers"][0]["items"][0]["product_name"] == "Buzdolabı"
+    assert payload["offers"][0]["items"][0]["quantity"] == 2
+    assert payload["offers"][0]["cash_total_override"] == "15000.00"
+
+
+def test_offer_form_has_manual_totals_sticky_bar_and_collapsible_options(
+    client: TestClient,
+) -> None:
+    form = client.get("/offers/new")
+
+    assert form.status_code == 200
+    assert "Nakit Toplam (manuel)" in form.text
+    assert "Kart Toplam (manuel)" in form.text
+    assert "sticky-action-bar" in form.text
+    assert "offer-scenario-summary" in form.text
+    assert "Senaryo Özeti" in form.text
+    assert "<details" in form.text
+    assert "Taksit Seçenekleri" in form.text
+    assert "applyManualTotals" in form.text
+
+
+def test_offer_json_import_preview_accepts_exported_payload(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = next(iter(fake_uow.products.get_all()))
+    create_offer(
+        fake_uow,
+        OfferInput(
+            customer_name="JSON Müşterisi",
+            customer_phone=None,
+            payment_type=PaymentType.CASH,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product.id, 1),),
+        ),
+    )
+    source = export_offers_json(fake_uow)
+
+    preview = client.post(
+        "/imports/offers/preview",
+        files={"file": ("teklifler.json", source, "application/json")},
+    )
+    assert preview.status_code == 200
+    assert "Teklif JSON İçe Aktarma Önizlemesi" in preview.text
+    assert "JSON Müşterisi" in preview.text

@@ -36,8 +36,9 @@
   </div>
   <div class="actions-group">
     <a class="btn btn-primary" href="/reservations/new">Yeni Rezervasyon</a>
-    <a class="btn" href="/imports/reservations">Excel İçe Aktar</a>
+    <a class="btn" href="/imports/reservations">İçe Aktar (Excel/JSON)</a>
     <a class="btn" href="/reservations/export/xlsx?status={{ status | urlencode }}&q={{ q | urlencode }}">Excel Dışa Aktar</a>
+    <a class="btn" href="/reservations/export/json?status={{ status | urlencode }}&q={{ q | urlencode }}">JSON Dışa Aktar</a>
     <a class="btn" href="/reservations/print?status={{ status | urlencode }}&q={{ q | urlencode }}">A4 Liste</a>
   </div>
 </div>

@@ -5,7 +5,7 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 
 ## Ortak kurallar
 
-- Yeni modüller **.xlsx** kabul eder; ürünler ayrıca **.csv** (UTF-8/UTF-8-SIG veya cp1254, `,`/`;`) ve scraper **catalog.json** (schema_version 1.0) kabul eder.
+- Yeni modüller **.xlsx** kabul eder; ürünler ayrıca **.csv** (UTF-8/UTF-8-SIG veya cp1254, `,`/`;`) ve scraper **catalog.json** (schema_version 1.0) kabul eder. Teklifler, rezervasyonlar ve kampanyalar ayrıca **JSON** (schema_version 1.0) içe/dışa aktarır; CSV/Excel yedek/geçiş formatı olarak korunur.
 - Başlıklar Türkçe veya İngilizce olabilir; `Ürün Adı` = `Urun Adi` = `product_name` eşleşir. Ürün referanslı tüm importlarda `Ürün ID` kolonu opsiyoneldir; önce ID, ID boşsa ad ile eşleşir.
 - Boş hücre genelde “mevcut değeri koru”; **Oliz İndirimli Fiyat istisnadır**: kolon varsa boş/`0` hücre güncellemede Oliz fiyatını siler. `-`, `temizle`, `clear` her zaman “değeri kaldır” anlamına gelir.
 - Para hücreleri `38.099,50`, `38099.50`, `38.099 TL` gibi biçimleri kabul eder.
@@ -97,7 +97,7 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 
 ## Teklifler
 
-**Teklifler sayfası:** `Teklif No, Teklif Anahtarı, Müşteri Adı, Telefon, Oluşturma Tarihi, Durum, Ödeme Türü, Kanal, Banka, Taksit, Kart Tipi, Kart Bayi İndirimi %, Nakit Bayi İndirimi %, Komisyon Dönemi, Komisyon %, Nakit Toplam, Kart Toplam, Seçili Toplam, Not, Rezervasyon No, Oluşturan`
+**Teklifler sayfası:** `Teklif No, Teklif Anahtarı, Müşteri Adı, Telefon, Oluşturma Tarihi, Durum, Ödeme Türü, Kanal, Banka, Taksit, Kart Tipi, Kart Bayi İndirimi %, Nakit Bayi İndirimi %, Komisyon Dönemi, Komisyon %, Nakit Toplam, Kart Toplam, Seçili Toplam, Nakit Toplam (Manuel), Kart Toplam (Manuel), Not, Rezervasyon No, Oluşturan, Ürünler`
 
 **Teklif Satırları:** `Teklif No, Teklif Anahtarı, Sıra, Ürün ID, Ürün Adı, Adet, Normal Fiyat, Oliz Fiyatı, Maliyet, Kampanya, Hediye Durumu, Fiyat Tabanı, Önerilen Nakit, Önerilen Kart, Birim Nakit, Birim Kart, Satır Toplam Nakit, Satır Toplam Kart, Uyarı`
 
@@ -106,6 +106,17 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 - Import yalnızca taslak teklif oluşturur/günceller. Durum, komisyon ve kâr kolonları salt okunurdur; sunucu yeniden hesaplar.
 - Yeni tekliflerde `Teklif Anahtarı` satırları gruplar; mevcut taslaklar `Teklif No` ile güncellenir.
 - Kartta kanal, taksit, kart tipi zorunlu; banka isteğe bağlıdır (boşsa genel oran kullanılır). Kart ve nakit bayi indirimi ayrı kolonlardadır; boş bırakılan nakit indirimi kart indirimini kullanır.
+- `Nakit Toplam (Manuel)` / `Kart Toplam (Manuel)` boşsa otomatik hesap kullanılır; doluysa toplam, mevcut satır satış toplamlarına göre orantılı olarak satır birim fiyatlarına dağıtılır. Kuruş yuvarlama artığı kalırsa kâr özetinde manuel fark olarak gösterilir.
+- `Ürünler` sütunu **export-only**'dir; import'ta okunmaz veya opsiyonel olarak yok sayılır. Ürün satırları `Teklif Satırları` sayfasından gelir.
+
+### Teklifler JSON
+
+`schema_version` 1.0, `offers[]`. Her teklifte müşteri, tarih, durum, ödeme/kanal/banka/taksit/kart tipi, indirimler, nakit/kart/seçili toplamlar, manuel toplamlar, not ve `items[]` bulunur. `items[]`: `product_id` (önce scraper ID/alias, yoksa iç UUID veya ad), `product_name`, `quantity`, `campaign_name`, `unit_price_cash`, `unit_price_card`.
+
+- Import önce `offer_number` ile eşleşir; yalnızca taslak teklif güncellenir. Yeni tekliflerde durum, geçerli geçişlerle (taslak → sunuldu → kabul) geri yüklenir.
+- Ürün ID'si bulunamazsa ad denenir; o da yoksa satır hata verir.
+- JSON import/export, CSV/Excel'e alternatif değil; ikisi de desteklenir.
+
 
 ## Komisyonlar
 
@@ -131,9 +142,18 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 
 ## Rezervasyonlar
 
-**Rezervasyonlar:** `Rezervasyon No, Rezervasyon Anahtarı, Müşteri Adı, Rezervasyon Tarihi, Hatırlatma Tarihi, Hatırlatma Durumu, Gecikmiş, Durum, Toplam Adet, Teslim Edilen, İptal Edilen, Açık Adet, Not, Oluşturan`
+**Rezervasyonlar:** `Rezervasyon No, Rezervasyon Anahtarı, Müşteri Adı, Rezervasyon Tarihi, Hatırlatma Tarihi, Hatırlatma Durumu, Gecikmiş, Durum, Toplam Adet, Teslim Edilen, İptal Edilen, Açık Adet, Not, Oluşturan, Ürünler`
 
 **Rezervasyon Satırları:** `Rezervasyon No, Rezervasyon Anahtarı, Ürün ID, Ürün Adı, Miktar, Teslim Edilen, İptal Edilen, Açık, Durum, Servis Tarihi, Diğer Bayi Notu, Satır Notu`
+
+- `Ürünler` sütunu **export-only**'dir; import'ta opsiyonel/yok sayılır. Ürün satırları `Rezervasyon Satırları` sayfasından gelir.
+
+### Rezervasyonlar JSON
+
+`schema_version` 1.0, `reservations[]`. Her rezervasyonda müşteri, rezervasyon/hatırlatma tarihi, hatırlatma durumu, not ve `items[]` bulunur. `items[]`: ürün ID/ad, miktar, teslim/iptal adetleri, satır durumu, servis tarihi ve notlar.
+
+- Import mevcut rezervasyon numaralarını atlar; yeni kayıtları mevcut durumlarıyla (teslim/iptal adetleri, satır durumu) oluşturur.
+- Stok hareketi oluşturmaz; stok ayrı aktarılmalıdır.
 
 - Import yeni ve açık rezervasyon oluşturur; mevcut `Rezervasyon No` atlanır.
 - `Müşteri Adı` ve `Rezervasyon Tarihi` zorunludur; tarih boşsa hata verir.

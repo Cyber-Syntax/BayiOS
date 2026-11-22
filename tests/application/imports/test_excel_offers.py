@@ -161,6 +161,9 @@ def test_offer_export_has_three_sheets_and_profit_rows() -> None:
     workbook = load_workbook(io.BytesIO(data))
     assert workbook.sheetnames == ["Teklifler", "Teklif Satırları", "Kâr Detayı", "Kullanım"]
     assert workbook["Teklifler"]["A1"].value == "Teklif No"
+    main_sheet = workbook["Teklifler"]
+    assert main_sheet.cell(row=1, column=main_sheet.max_column).value == "Ürünler"
+    assert "Buzdolabı" in str(main_sheet.cell(row=2, column=main_sheet.max_column).value)
     assert workbook["Kâr Detayı"]["J1"].value == "Maliyet"
     assert workbook["Kâr Detayı"].max_row == 2
 

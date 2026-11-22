@@ -33,6 +33,7 @@ from bayios.application.offers import (
     update_offer,
 )
 from bayios.application.offers.io import export_offers_xlsx
+from bayios.application.offers.json_io import export_offers_json
 from bayios.application.products import search_products
 from bayios.domain.commissions import (
     CARD_TYPE_LABELS,
@@ -110,6 +111,21 @@ def export_offers_route(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=bayios-teklifler.xlsx"},
+    )
+
+
+@router.get("/export/json")
+def export_offers_json_route(
+    uow: UnitOfWorkDep,
+    status: Annotated[str, Query()] = "",
+    q: Annotated[str | None, Query()] = None,
+) -> Response:
+    selected = status if status in {value for value, _ in STATUS_FILTERS} else ""
+    content = export_offers_json(uow, status=selected or None, query=q)
+    return Response(
+        content=content,
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=bayios-teklifler.json"},
     )
 
 
@@ -764,6 +780,8 @@ def _render_form(
         "card_type": "",
         "dealer_discount_percent": str(default_discount),
         "dealer_discount_cash_percent": str(default_discount),
+        "cash_total_override": "",
+        "card_total_override": "",
     }
     if form is not None:
         values, initial_items = _form_state_from_form(uow, form)
@@ -786,6 +804,16 @@ def _render_form(
                 "dealer_discount_percent": str(offer.dealer_discount_percent),
                 "dealer_discount_cash_percent": str(
                     offer.dealer_discount_cash_percent
+                ),
+                "cash_total_override": (
+                    str(offer.cash_total_override)
+                    if offer.cash_total_override is not None
+                    else ""
+                ),
+                "card_total_override": (
+                    str(offer.card_total_override)
+                    if offer.card_total_override is not None
+                    else ""
                 ),
             }
         )
@@ -870,6 +898,8 @@ def _form_state_from_form(
             or get("dealer_discount_percent")
             or "10"
         ),
+        "cash_total_override": str(get("cash_total_override") or ""),
+        "card_total_override": str(get("card_total_override") or ""),
     }
     product_ids = [str(value) for value in getlist("product_id")]
     quantities = [str(value) for value in getlist("quantity")]
@@ -1000,6 +1030,12 @@ def _offer_input_from_form(form: object) -> OfferInput:
             cash_discount if cash_discount is not None else Decimal(10)
         ),
         note=str(get("note") or "") or None,
+        cash_total_override=_decimal_value(
+            str(get("cash_total_override") or "")
+        ),
+        card_total_override=_decimal_value(
+            str(get("card_total_override") or "")
+        ),
         items=tuple(items),
     )
 

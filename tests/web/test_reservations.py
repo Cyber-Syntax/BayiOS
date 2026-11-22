@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import uuid
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -9,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from bayios.adapters.db.models.products import Product
 from bayios.application.reservations import NewReservationItem, create_reservation
+from bayios.application.reservations.json_io import export_reservations_json
 from bayios.bootstrap import ApplicationSettings
 from bayios.main import create_app
 from bayios.web.deps import get_unit_of_work
@@ -425,3 +427,38 @@ def test_reservation_detail_shows_current_product_external_id(
     assert page.status_code == 200
     assert "ID: 9000" in page.text
     assert "ID: 8000" not in page.text
+
+
+def test_reservation_list_products_column_and_json_export(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    _product(fake_uow)
+    _create_via_ui(client, fake_uow, quantity=2)
+
+    listing = client.get("/reservations")
+    assert listing.status_code == 200
+    assert "Ürünler" in listing.text
+    assert "07325 A" in listing.text
+    assert "JSON Dışa Aktar" in listing.text
+
+    exported = client.get("/reservations/export/json?status=")
+    assert exported.status_code == 200
+    payload = json.loads(exported.content)
+    assert payload["reservations"][0]["items"][0]["product_name"] == "07325 A"
+    assert payload["reservations"][0]["items"][0]["quantity"] == 2
+
+
+def test_reservation_json_import_preview_accepts_exported_payload(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    _create_via_ui(client, fake_uow, quantity=1)
+    source = export_reservations_json(fake_uow, status=None)
+
+    preview = client.post(
+        "/imports/reservations/preview",
+        files={"file": ("rezervasyonlar.json", source, "application/json")},
+    )
+
+    assert preview.status_code == 200
+    assert "Rezervasyon JSON İçe Aktarma Önizlemesi" in preview.text
+    assert "Ayşe Yılmaz" in preview.text

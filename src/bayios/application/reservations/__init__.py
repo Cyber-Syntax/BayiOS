@@ -127,6 +127,7 @@ class ReservationListItem:
     reminder_label: str
     is_overdue: bool
     summary: ReservationSummary
+    products_summary: str = ""
 
     @property
     def open_quantity(self) -> int:
@@ -877,7 +878,29 @@ def _build_list_item(
         reminder_label=reminder_label,
         is_overdue=is_overdue,
         summary=_summary_for(lines),
+        products_summary=_reservation_products_summary(lines),
     )
+
+
+def _reservation_products_summary(
+    lines: Sequence[ReservationItemRow],
+) -> str:
+    parts: list[str] = []
+    for line in lines:
+        name = line.product_name_snapshot
+        if line.cancelled_quantity >= line.quantity:
+            status = "iptal"
+        elif line.delivered_quantity >= line.quantity:
+            status = "teslim edildi"
+        elif line.delivered_quantity or line.cancelled_quantity:
+            status = (
+                f"kısmi: {line.delivered_quantity} teslim"
+                f"{f', {line.cancelled_quantity} iptal' if line.cancelled_quantity else ''}"
+            )
+        else:
+            status = ""
+        parts.append(f"{name} ({status})" if status else name)
+    return " · ".join(parts)
 
 
 def _ensure_utc(moment: datetime) -> datetime:

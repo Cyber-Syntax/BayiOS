@@ -82,6 +82,12 @@ _Avoid_: Base price total, cash total
 A person or organization receiving an offer or delivery, identified by name and optionally by phone number.
 _Avoid_: Client, buyer, account
 
+**Manual offer total**:
+A cash or card total entered by the employee instead of the line-by-line calculated total. Line unit prices stay unchanged; the difference is shown as a manual adjustment in the profit summary.
+
+**Products summary**:
+The single-column text view of an offer's or reservation's lines (`Ürün ×2 · Ürün (teslim edildi)`), used in lists and CSV/Excel exports. It is export-only for CSV/Excel imports; line sheets remain the source of truth.
+
 **Offer**:
 A commercial proposal containing one or more products and payment options that has not yet been accepted.
 _Avoid_: Quote, sale

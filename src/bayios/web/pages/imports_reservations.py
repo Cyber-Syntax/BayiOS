@@ -13,6 +13,10 @@ from bayios.application.imports.reservations import (
     commit_reservation_import,
     preview_reservation_import,
 )
+from bayios.application.imports.reservations_json import (
+    commit_reservation_json,
+    preview_reservation_json,
+)
 from bayios.application.reservations.io import reservation_import_template
 from bayios.web.deps import ActorDep, UnitOfWorkDep
 from bayios.web.templating import templates
@@ -20,7 +24,8 @@ from bayios.web.templating import templates
 router = APIRouter(prefix="/imports/reservations", tags=["imports"])
 
 HELP = (
-    "Excel (.xlsx) dosyası yükleyin. Tek sayfa düz dosya veya Rezervasyonlar + Rezervasyon Satırları sayfaları kabul edilir.",
+    "Excel (.xlsx) veya JSON (schema_version 1.0) dosyası yükleyin. Excel'de tek sayfa düz dosya veya Rezervasyonlar + Rezervasyon Satırları sayfaları kabul edilir.",
+    "JSON içe aktarmada ürünler, teslim/iptal miktarları ve satır durumları korunur; stok hareketi oluşturulmaz.",
     "Yeni rezervasyonlarda satırları gruplamak için Rezervasyon Anahtarı kullanılır.",
     "Mevcut Rezervasyon No varsa satır atlanır; geçmiş teslim/iptal bilgisi içe aktarılmaz.",
     "Müşteri adı ve rezervasyon tarihi zorunludur; tarih boşsa hata verir.",
@@ -52,13 +57,24 @@ async def preview_import(
 ) -> HTMLResponse:
     if not file.filename:
         return _upload(request, error="Lütfen bir dosya seçin.")
-    if not file.filename.lower().endswith(".xlsx"):
-        return _upload(request, error="Yalnızca .xlsx uzantılı dosyalar desteklenir.")
+    suffix = (
+        file.filename.lower().rsplit(".", 1)[-1]
+        if "." in file.filename
+        else ""
+    )
+    if suffix not in {"xlsx", "json"}:
+        return _upload(
+            request, error="Yalnızca .xlsx veya .json uzantılı dosyalar desteklenir."
+        )
     content = await file.read()
     if not content:
         return _upload(request, error="Yüklenen dosya boş.")
     try:
-        preview = preview_reservation_import(uow, content)
+        preview = (
+            preview_reservation_json(uow, content)
+            if suffix == "json"
+            else preview_reservation_import(uow, content)
+        )
     except Exception as exc:  # noqa: BLE001
         return _upload(request, error=str(exc))
     return templates.TemplateResponse(
@@ -68,7 +84,7 @@ async def preview_import(
             "active_nav": "reservations",
             "title": preview.title,
             "file_name": file.filename,
-            "file_type": "xlsx",
+            "file_type": suffix,
             "preview": preview,
             "source_b64": base64.b64encode(content).decode("ascii"),
             "import_token": uuid.uuid4().hex,
@@ -98,15 +114,26 @@ async def commit_import(
     except json.JSONDecodeError:
         return _upload(request, error="Geçersiz karar verisi.")
     try:
-        result = commit_reservation_import(
-            uow,
-            file_name=file_name,
-            file_type=file_type,
-            source=source,
-            decisions=decisions if isinstance(decisions, dict) else {},
-            actor=actor,
-            commit_token=str(import_token) if import_token else None,
-        )
+        if file_type == "json" or source.lstrip().startswith(b"{"):
+            result = commit_reservation_json(
+                uow,
+                file_name=file_name,
+                file_type="json",
+                source=source,
+                decisions=decisions if isinstance(decisions, dict) else {},
+                actor=actor,
+                commit_token=str(import_token) if import_token else None,
+            )
+        else:
+            result = commit_reservation_import(
+                uow,
+                file_name=file_name,
+                file_type=file_type,
+                source=source,
+                decisions=decisions if isinstance(decisions, dict) else {},
+                actor=actor,
+                commit_token=str(import_token) if import_token else None,
+            )
     except Exception as exc:  # noqa: BLE001
         return _upload(request, error=str(exc))
     query = urlencode(
@@ -127,13 +154,16 @@ def _upload(request: Request, *, error: str | None = None) -> HTMLResponse:
         "imports/generic_upload.html",
         {
             "active_nav": "reservations",
-            "title": "Rezervasyon Excel İçe Aktar",
-            "description": "Rezervasyonları ve ürün satırlarını Excel dosyasından yükleyin.",
+            "title": "Rezervasyon İçe Aktar (Excel/JSON)",
+            "description": "Rezervasyonları ve ürün satırlarını Excel veya JSON dosyasından yükleyin.",
             "form_action": "/imports/reservations/preview",
             "template_url": "/imports/reservations/template",
+            "template_label": "Şablon İndir",
+            "json_template_url": "/reservations/export/json?status=",
+            "json_template_label": "Örnek JSON İndir",
             "back_url": "/reservations",
             "back_label": "Rezervasyonlar",
-            "accept": ".xlsx",
+            "accept": ".xlsx,.json",
             "help_lines": HELP,
             "error": error,
         },

@@ -6,6 +6,7 @@
         <tr>
           <th style="width: 6rem;">Rezervasyon</th>
           <th class="col-name">Müşteri</th>
+          <th class="col-name">Ürünler</th>
           <th class="col-date" style="width: 8rem;">Tarih</th>
           <th class="col-date" style="width: 10rem;">Hatırlatma</th>
           <th style="width: 9rem;">Durum</th>
@@ -20,6 +21,7 @@
           <td class="col-name">
             <a href="/reservations/{{ row.id }}">{{ row.customer_name }}</a>
           </td>
+          <td class="col-name" title="{{ row.products_summary }}">{{ row.products_summary or '—' }}</td>
           <td class="col-date">{{ row.reservation_date | tr_date }}</td>
           <td class="col-date">
             {{ row.reminder_due_at | tr_date }}
@@ -36,7 +38,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="7" class="muted" style="text-align: center; padding: 1.5rem;">
+          <td colspan="8" class="muted" style="text-align: center; padding: 1.5rem;">
             Bu filtreye uyan rezervasyon bulunmuyor.
           </td>
         </tr>

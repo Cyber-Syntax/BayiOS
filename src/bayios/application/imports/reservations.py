@@ -36,6 +36,7 @@ RESERVATION_HEADERS = {
     "product_id": ("Ürün ID", "Urun ID", "product_id", "external_id"),
     "product_name": ("Ürün Adı", "Urun Adi", "product_name"),
     "quantity": ("Miktar", "Adet", "quantity"),
+    "products": ("Ürünler", "products"),
 }
 ITEM_HEADERS = {
     "reservation_number": ("Rezervasyon No", "Rezervasyon Numarası", "reservation_number"),

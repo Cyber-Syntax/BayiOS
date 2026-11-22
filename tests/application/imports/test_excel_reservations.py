@@ -64,6 +64,11 @@ def test_reservation_export_has_header_and_lines() -> None:
     workbook = load_workbook(io.BytesIO(data))
     assert workbook.sheetnames == ["Rezervasyonlar", "Rezervasyon Satırları", "Kullanım"]
     assert workbook["Rezervasyonlar"]["C1"].value == "Müşteri Adı"
+    main_sheet = workbook["Rezervasyonlar"]
+    assert main_sheet.cell(row=1, column=main_sheet.max_column).value == "Ürünler"
+    assert workbook["Rezervasyonlar"].cell(
+        row=2, column=main_sheet.max_column
+    ).value == "Buzdolabı"
     assert workbook["Rezervasyon Satırları"]["C1"].value == "Ürün ID"
     assert workbook["Rezervasyon Satırları"]["D1"].value == "Ürün Adı"
     assert workbook["Rezervasyon Satırları"].max_row == 2

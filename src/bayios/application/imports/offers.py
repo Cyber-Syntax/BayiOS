@@ -65,6 +65,16 @@ OFFER_HEADERS = {
         "dealer_discount_cash_percent",
     ),
     "note": ("Not", "note"),
+    "cash_total_override": (
+        "Nakit Toplam (Manuel)",
+        "Nakit Toplam Manuel",
+        "cash_total_override",
+    ),
+    "card_total_override": (
+        "Kart Toplam (Manuel)",
+        "Kart Toplam Manuel",
+        "card_total_override",
+    ),
     "product_id": ("Ürün ID", "Urun ID", "product_id", "external_id"),
     "product_name": ("Ürün Adı", "Urun Adi", "product_name"),
     "quantity": ("Adet", "Miktar", "quantity"),
@@ -72,6 +82,7 @@ OFFER_HEADERS = {
     "gift_present": ("Hediye Durumu", "gift_present"),
     "unit_price_cash": ("Nakit Birim Fiyat", "unit_price_cash"),
     "unit_price_card": ("Kart Birim Fiyat", "unit_price_card"),
+    "products": ("Ürünler", "products"),
 }
 
 ITEM_HEADERS = {
@@ -401,6 +412,23 @@ def _parse_offers(
                 errors.append(
                     "Nakit bayi indirimi %0 ile %100 arasında olmalıdır."
                 )
+            try:
+                cash_override = parse_decimal(
+                    row_value(raw, offer_layout, "cash_total_override"),
+                    "Nakit toplam",
+                )
+                card_override = parse_decimal(
+                    row_value(raw, offer_layout, "card_total_override"),
+                    "Kart toplam",
+                )
+                if (cash_override is not None and cash_override < 0) or (
+                    card_override is not None and card_override < 0
+                ):
+                    errors.append("Manuel toplam negatif olamaz.")
+            except ValueError as exc:
+                errors.append(str(exc))
+                cash_override = None
+                card_override = None
             bank_name = str(row_value(raw, offer_layout, "bank") or "").strip()
             normalized_bank = normalize_name(bank_name) if bank_name else ""
             bank = (
@@ -516,6 +544,8 @@ def _parse_offers(
                 installment_count=installment_count,
                 card_type=card_type,
                 note=str(row_value(raw, offer_layout, "note") or "").strip() or None,
+                cash_total_override=cash_override,
+                card_total_override=card_override,
             )
             if existing is not None and existing.status != "draft":
                 errors.append("Yalnızca taslak teklifler güncellenebilir.")

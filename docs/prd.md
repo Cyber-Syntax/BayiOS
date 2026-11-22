@@ -635,6 +635,16 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 
 **FR-OFFER-22 (P0):** Kart ve nakit bayi indirimi için iki ayrı yüzde alanı bulunmalı; ikisi de 0–100 aralığında doğrulanmalı ve teklif/satır snapshot'ına yazılmalıdır.
 
+**FR-OFFER-23 (P0):** Teklifte nakit ve kart toplamı manuel olarak değiştirilebilmelidir. Boş alan otomatik hesabı kullanır; dolu alan 0'dan küçük olamaz. Manuel toplam satır birim fiyatlarına orantılı dağıtılır; yuvarlama artığı kâr özetinde ayrı satır olarak gösterilir ve komisyon/taksit hesabı manuel kart toplamını kullanır.
+
+**FR-OFFER-24 (P0):** Teklif ve rezervasyon listelerinde ürün adları tek **Ürünler** sütununda gösterilmelidir. CSV/Excel ana sayfalarına son sütun olarak `Ürünler` eklenmeli; bu sütun export-only olmalı, import'ta okunmamalı veya opsiyonel yok sayılmalıdır. Rezervasyonlarda teslim/iptal/kısmi durum etiketi ürün adıyla birlikte yazılmalıdır.
+
+**FR-OFFER-25 (P0):** **Vazgeç** ve **Teklif Oluştur / Kaydet** butonları ekranın altında sticky bar olarak kalmalıdır. **Taksit Seçenekleri** açılır/kapanır panel olmalı; ürün eklendiğinde/çıkarıldığında ekstra input değişikliği gerekmeden otomatik yenilenmelidir. **Senaryo Özeti** sepetin hemen üstünde ayrı kartta gösterilmelidir.
+
+**FR-OFFER-26 (P0):** Teklifler JSON (`schema_version` 1.0) olarak dışa ve içe aktarılabilmelidir. JSON müşteri, tarih, durum, ödeme/kanal/banka/taksit/kart tipi, indirimler, nakit/kart/seçili toplamlar, manuel toplamlar ve ürün satırlarını taşımalıdır. Mevcut taslaklar `offer_number` ile güncellenmeli; taslak olmayanlar atlanmalıdır. CSV/Excel içe/dışa aktarma korunmalıdır.
+
+**FR-RES-28 (P0):** Rezervasyonlar JSON (`schema_version` 1.0) olarak dışa ve içe aktarılabilmelidir. JSON müşteri, tarihler, hatırlatma durumu, not ve ürün satırlarında miktar, teslim/iptal adetleri, durum ve servis bilgisini taşımalıdır. Import mevcut numaraları atlamalı; yeni kayıtları mevcut durumlarıyla stok hareketi oluşturmadan yazmalıdır. CSV/Excel desteği korunmalıdır.
+
 ### 5.7 Rezervasyonlar
 
 **FR-RES-01 (P0):** Rezervasyon oluşturmak için müşteri adı-soyadı zorunlu olmalıdır.

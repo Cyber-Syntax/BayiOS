@@ -166,6 +166,7 @@ class ProductLookup:
     by_external_id: dict[str, Product]
     by_alias: dict[str, Product]
     by_name: dict[str, list[Product]]
+    by_id: dict[uuid.UUID, Product]
 
     @classmethod
     def load(cls, uow: UnitOfWork) -> ProductLookup:
@@ -186,6 +187,7 @@ class ProductLookup:
             by_external_id=by_external_id,
             by_alias=by_alias,
             by_name=by_name,
+            by_id=by_id,
         )
 
     def resolve(

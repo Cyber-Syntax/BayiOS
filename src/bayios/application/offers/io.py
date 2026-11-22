@@ -73,9 +73,16 @@ def export_offers_xlsx(
                 "cash_total": offer.cash_total,
                 "card_total": offer.card_total,
                 "selected_total": offer.selected_total,
+                "cash_total_override": offer.cash_total_override,
+                "card_total_override": offer.card_total_override,
                 "note": offer.note or "",
                 "reservation_number": "",
                 "created_by": offer.created_by_name or "",
+                "products": " · ".join(
+                    f"{item.product_name_snapshot}"
+                    f"{f' ×{item.quantity}' if item.quantity > 1 else ''}"
+                    for item in items
+                ),
             }
         )
         for analysis in analyses:
@@ -146,9 +153,12 @@ def export_offers_xlsx(
             ColumnSpec("Nakit Toplam", "cash_total", "money", 16),
             ColumnSpec("Kart Toplam", "card_total", "money", 16),
             ColumnSpec("Seçili Toplam", "selected_total", "money", 16),
+            ColumnSpec("Nakit Toplam (Manuel)", "cash_total_override", "money", 20),
+            ColumnSpec("Kart Toplam (Manuel)", "card_total_override", "money", 20),
             ColumnSpec("Not", "note", "text", 30),
             ColumnSpec("Rezervasyon No", "reservation_number", "text", 16),
             ColumnSpec("Oluşturan", "created_by", "text", 18),
+            ColumnSpec("Ürünler", "products", "text", 52),
         ),
         rows=offer_rows,
         instructions=(

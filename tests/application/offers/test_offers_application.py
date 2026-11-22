@@ -19,9 +19,11 @@ from bayios.application.offers import (
     OfferInput,
     OfferItemInput,
     build_offer_line_analyses,
+    build_offer_profit_summary,
     convert_offer_to_reservation,
     create_offer,
     get_offer_detail,
+    preview_offer_comparison,
     preview_offer_line,
     set_offer_status,
     update_offer,
@@ -661,3 +663,152 @@ def test_preview_offer_line_exposes_auto_campaign_preview() -> None:
     assert preview.previews["auto"].campaign_name == "Düğün"
     assert preview.previews["auto"].price == Decimal("45000.00")
     assert preview.previews["auto"].discount_amount == Decimal("5000.00")
+
+
+def test_manual_totals_override_selected_total_and_profit() -> None:
+    uow, product_id = _active_card_uow()
+    offer_id = create_offer(
+        uow,
+        OfferInput(
+            customer_name="Manuel Toplam",
+            customer_phone=None,
+            payment_type=PaymentType.CASH,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product_id, 2),),
+            cash_total_override=Decimal("15000.00"),
+            card_total_override=Decimal("16000.00"),
+        ),
+    )
+    offer = uow.offers.get(offer_id)
+    assert offer is not None
+    assert offer.cash_total == Decimal("15000.00")
+    assert offer.card_total == Decimal("16000.00")
+    assert offer.selected_total == Decimal("15000.00")
+    assert offer.cash_total_override == Decimal("15000.00")
+    assert offer.card_total_override == Decimal("16000.00")
+
+    detail = get_offer_detail(uow, offer_id)
+    assert detail is not None
+    summary = build_offer_profit_summary(detail)
+    assert summary.manual_adjustment == Decimal("0.00")
+    assert summary.total_revenue == Decimal("15000.00")
+    assert summary.total_profit == Decimal("-1000.00")
+    item = uow.offers.get_items(offer_id)[0]
+    assert item.unit_price_cash == Decimal("7500.00")
+    assert item.unit_price_card == Decimal("8000.00")
+    assert item.line_total_cash == Decimal("15000.00")
+    assert item.line_total_card == Decimal("16000.00")
+
+    update_offer(
+        uow,
+        offer_id,
+        OfferInput(
+            customer_name="Manuel Toplam",
+            customer_phone=None,
+            payment_type=PaymentType.CASH,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product_id, 2),),
+        ),
+    )
+    refreshed = uow.offers.get(offer_id)
+    assert refreshed is not None
+    assert refreshed.cash_total_override is None
+    assert refreshed.card_total_override is None
+    assert refreshed.cash_total == Decimal("18000.00")
+    assert refreshed.selected_total == Decimal("18000.00")
+
+
+def test_manual_totals_reject_negative_values() -> None:
+    uow, product_id = _active_card_uow()
+    with pytest.raises(ValidationError):
+        create_offer(
+            uow,
+            OfferInput(
+                customer_name="Negatif",
+                customer_phone=None,
+                payment_type=PaymentType.CASH,
+                dealer_discount_percent=Decimal(10),
+                items=(OfferItemInput(product_id, 1),),
+                cash_total_override=Decimal(-1),
+            ),
+        )
+
+
+def test_comparison_uses_manual_card_total_for_monthly_payment() -> None:
+    uow, product_id = _active_card_uow()
+    comparison = preview_offer_comparison(
+        uow,
+        OfferInput(
+            customer_name="Kart",
+            customer_phone=None,
+            payment_type=PaymentType.CARD,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product_id, 1),),
+            channel=PaymentChannel.POS,
+            installment_count=2,
+            card_type=CardType.CONSUMER,
+            card_total_override=Decimal("12000.00"),
+        ),
+    )
+
+    assert comparison.card_total == Decimal("12000.00")
+    option = next(
+        row for row in comparison.options if row.installment_count == 2
+    )
+    assert option.card_total == Decimal("12000.00")
+    assert option.monthly_payment == Decimal("6000.00")
+
+
+def test_manual_totals_are_split_across_multiple_lines() -> None:
+    uow = FakeUnitOfWork()
+    first = Product(
+        id=uuid.uuid4(),
+        name="07325 A",
+        name_normalized="07325 a",
+        regular_price=Decimal("38099.00"),
+        cost_price=Decimal("30000.00"),
+        physical_stock=1,
+    )
+    second = Product(
+        id=uuid.uuid4(),
+        name="09325 A",
+        name_normalized="09325 a",
+        regular_price=Decimal("42199.00"),
+        cost_price=Decimal("34000.00"),
+        physical_stock=1,
+    )
+    uow.products.add(first)
+    uow.products.add(second)
+    offer_id = create_offer(
+        uow,
+        OfferInput(
+            customer_name="Paket",
+            customer_phone=None,
+            payment_type=PaymentType.CASH,
+            dealer_discount_percent=Decimal(10),
+            items=(
+                OfferItemInput(first.id, 1),
+                OfferItemInput(second.id, 1),
+            ),
+            cash_total_override=Decimal("59000.00"),
+            card_total_override=Decimal("61000.00"),
+        ),
+    )
+    items = uow.offers.get_items(offer_id)
+    assert [item.unit_price_cash for item in items] == [
+        Decimal("27993.74"),
+        Decimal("31006.26"),
+    ]
+    assert [item.unit_price_card for item in items] == [
+        Decimal("28942.68"),
+        Decimal("32057.32"),
+    ]
+    assert sum((item.line_total_cash for item in items), Decimal(0)) == Decimal(
+        "59000.00"
+    )
+    assert sum((item.line_total_card for item in items), Decimal(0)) == Decimal(
+        "61000.00"
+    )
+    detail = get_offer_detail(uow, offer_id)
+    assert detail is not None
+    assert build_offer_profit_summary(detail).manual_adjustment == Decimal("0.00")

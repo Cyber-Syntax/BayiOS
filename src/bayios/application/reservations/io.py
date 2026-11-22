@@ -46,6 +46,7 @@ def export_reservations_xlsx(
                 "delivered_quantity": row.summary.delivered_quantity,
                 "cancelled_quantity": row.summary.cancelled_quantity,
                 "open_quantity": row.summary.open_quantity,
+                "products": row.products_summary,
             }
         )
         for item in items_by_reservation.get(row.id, ()):
@@ -90,6 +91,7 @@ def export_reservations_xlsx(
             ColumnSpec("Teslim Edilen", "delivered_quantity", "int", 14),
             ColumnSpec("İptal Edilen", "cancelled_quantity", "int", 14),
             ColumnSpec("Açık Adet", "open_quantity", "int", 12),
+            ColumnSpec("Ürünler", "products", "text", 48),
         ),
         rows=reservation_rows,
         instructions=(

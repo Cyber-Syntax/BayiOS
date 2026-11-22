@@ -2,7 +2,7 @@
 {% from "offers/_basket_totals.html" import basket_totals %}
 {% block title %}{% if offer_id %}Teklif Düzenle{% else %}Yeni Teklif{% endif %}{% endblock %}
 {% block content %}
-<div x-data='{ ...offerBuilder({{ initial_items | tojson }}), paymentType: {{ values.payment_type | tojson }} }'>
+<div x-data='{ ...offerBuilder({{ initial_items | tojson }}), paymentType: {{ values.payment_type | tojson }}, cashTotalOverride: {{ values.cash_total_override | tojson }}, cardTotalOverride: {{ values.card_total_override | tojson }} }'>
   <div class="actions-bar">
     <div>
       <a href="/offers" class="muted" style="text-decoration: none;">&larr; Teklifler</a>
@@ -46,10 +46,11 @@
     </div>
 
     <div class="card" style="padding: 1rem; margin-bottom: 1rem; border-color: #bfdbfe; background: #f8fbff;">
-      <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: .75rem;">
-        <h2 style="margin: 0; font-size: 1.1rem;">Taksit Seçenekleri</h2>
-        <span class="muted" style="font-size: .8rem;">Ürün, indirim veya ödeme değiştiğinde otomatik güncellenir. Seçim form alanlarını doldurur.</span>
-      </div>
+      <details>
+        <summary style="cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap;">
+          <span>Taksit Seçenekleri</span>
+          <span class="muted" style="font-size: .8rem; font-weight: 400;">Aç/kapat · Ürün, indirim veya ödeme değiştiğinde otomatik güncellenir.</span>
+        </summary>
       <div id="offer-comparison"
            hx-post="/offers/compare"
            hx-trigger="load delay:800ms, change from:#offer-form, input delay:600ms from:#offer-form, offer-changed from:body"
@@ -58,10 +59,29 @@
            hx-swap="innerHTML">
         <p class="muted" style="margin: 0;">Taksit seçenekleri hesaplanıyor…</p>
       </div>
+      </details>
+    </div>
+
+    <div id="offer-scenario-summary" class="card" style="padding: 1rem; margin-bottom: 1rem; border-color: #bfdbfe; background: #f8fbff;">
+      <h2 style="margin: 0 0 .5rem; font-size: 1.1rem;">Senaryo Özeti</h2>
+      <p class="muted" style="margin: 0;">Senaryolar hesaplanıyor… Ürün ve ödeme bilgileri değiştiğinde otomatik güncellenir.</p>
     </div>
 
     <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
       <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Sepet</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .75rem; margin-bottom: .85rem; padding: .75rem; border: 1px dashed var(--border, #e5e7eb); border-radius: .5rem; background: var(--bg);">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="offer-cash-total-override">Nakit Toplam (manuel)</label>
+          <input type="text" id="offer-cash-total-override" name="cash_total_override" class="form-control" inputmode="decimal" placeholder="Boş = otomatik" x-model="cashTotalOverride" @input="applyManualTotals()">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="offer-card-total-override">Kart Toplam (manuel)</label>
+          <input type="text" id="offer-card-total-override" name="card_total_override" class="form-control" inputmode="decimal" placeholder="Boş = otomatik" x-model="cardTotalOverride" @input="applyManualTotals()">
+        </div>
+        <div style="align-self: end; font-size: .8rem; color: var(--muted);">
+          Manuel toplam satır fiyatlarına orantılı dağıtılır.
+        </div>
+      </div>
       <template x-for="(item, index) in items" :key="item.key">
         <div class="offer-line" style="padding: .6rem; border: 1px solid var(--border, #e5e7eb); border-radius: .5rem; margin-bottom: .6rem;">
           <input type="hidden" name="product_id" :value="item.product_id">
@@ -106,13 +126,25 @@
       <div id="offer-picker" style="margin-top: .75rem;">{% include "offers/_picker.html" %}</div>
     </div>
 
-    <div style="display: flex; justify-content: flex-end; gap: .5rem;">
-      <a href="/offers" class="btn">Vazgeç</a>
-      <button type="submit" class="btn btn-primary">{% if offer_id %}Kaydet{% else %}Teklif Oluştur{% endif %}</button>
+    <div class="sticky-action-spacer"></div>
+    <div class="sticky-action-bar no-print">
+      <div class="sticky-note muted">Teklif kaydedilmeden önce sepeti ve senaryo özetini kontrol edin.</div>
+      <div class="actions-group">
+        <a href="/offers" class="btn">Vazgeç</a>
+        <button type="submit" class="btn btn-primary" id="offer-submit-button">{% if offer_id %}Kaydet{% else %}Teklif Oluştur{% endif %}</button>
+      </div>
     </div>
   </form>
 </div>
 <script>
+  document.getElementById('offer-form')?.addEventListener('submit', function () {
+    const button = document.getElementById('offer-submit-button');
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Kaydediliyor…';
+    }
+  });
+
   function applyOfferOption(button) {
     const form = document.getElementById('offer-form');
     if (!form) return;
@@ -186,11 +218,63 @@
           company_share: selected.share_amount || '0',
           key: `${payload.product_id}-${Date.now()}`,
         });
-        this.notifyChange();
+        this.$nextTick(() => this.notifyChange());
       },
       remove(index) {
         this.items.splice(index, 1);
-        this.notifyChange();
+        this.$nextTick(() => this.notifyChange());
+      },
+      applyManualTotals() {
+        const parse = (value) => {
+          if (value === null || value === undefined || String(value).trim() === '') return null;
+          const number = Number(String(value).replace(',', '.'));
+          return Number.isFinite(number) ? number : null;
+        };
+        const allocate = (total, weights) => {
+          const target = Math.round(Number(total) * 100) / 100;
+          const positive = weights.map((weight) => (weight > 0 ? weight : 0));
+          let denominator = positive.reduce((sum, weight) => sum + weight, 0);
+          if (denominator <= 0) {
+            denominator = Math.max(1, positive.length);
+            positive.fill(1);
+          }
+          const shares = [];
+          let used = 0;
+          positive.slice(0, -1).forEach((weight) => {
+            const share = Math.round(target * 100 * weight / denominator) / 100;
+            shares.push(share);
+            used += share;
+          });
+          shares.push(Math.round((target - used) * 100) / 100);
+          return shares;
+        };
+        const cashTotal = parse(this.cashTotalOverride);
+        const cardTotal = parse(this.cardTotalOverride);
+        if (cashTotal === null && cardTotal === null) {
+          this.$nextTick(() => this.notifyChange());
+          return;
+        }
+        if (cashTotal !== null) {
+          const weights = this.items.map((item) => {
+            const unit = parse(item.unit_price_cash) ?? parse(item.regular_price) ?? 0;
+            return Math.max(0, unit * (item.quantity || 1));
+          });
+          const shares = allocate(cashTotal, weights);
+          this.items.forEach((item, index) => {
+            item.unit_price_cash = (shares[index] / (item.quantity || 1)).toFixed(2);
+          });
+        }
+        if (cardTotal !== null) {
+          const weights = this.items.map((item) => {
+            const unit = parse(item.unit_price_card) ?? parse(item.regular_price) ?? 0;
+            return Math.max(0, unit * (item.quantity || 1));
+          });
+          const shares = allocate(cardTotal, weights);
+          this.items.forEach((item, index) => {
+            item.unit_price_card = (shares[index] / (item.quantity || 1)).toFixed(2);
+          });
+        }
+        this.$nextTick(() => this.notifyChange());
       },
       notifyChange() {
         document.body.dispatchEvent(new CustomEvent('offer-changed'));

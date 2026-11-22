@@ -62,6 +62,14 @@ class Offer(Base):
             name="totals_non_negative",
         ),
         sa.CheckConstraint(
+            "cash_total_override IS NULL OR cash_total_override >= 0",
+            name="cash_total_override_non_negative",
+        ),
+        sa.CheckConstraint(
+            "card_total_override IS NULL OR card_total_override >= 0",
+            name="card_total_override_non_negative",
+        ),
+        sa.CheckConstraint(
             "(payment_type = 'cash') OR "
             "(channel IS NOT NULL AND installment_count IS NOT NULL)",
             name="card_payment_requires_channel",
@@ -140,6 +148,8 @@ class Offer(Base):
     selected_total: Mapped[Decimal] = mapped_column(
         MONEY, server_default=sa.text("0")
     )
+    cash_total_override: Mapped[Decimal | None] = mapped_column(MONEY)
+    card_total_override: Mapped[Decimal | None] = mapped_column(MONEY)
     note: Mapped[str | None] = mapped_column(sa.Text)
     follow_up_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True))
     converted_reservation_id: Mapped[uuid.UUID | None] = mapped_column(

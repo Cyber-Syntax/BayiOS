@@ -719,6 +719,16 @@ Not: 10121’in normal fiyatı 39.999 TL olduğu için 40.000’lik örnekteki 3
 
 Scraper Excel/CSV ve catalog.json aynı ürün modeline düşer; yeni ID eski ürünü günceller ve eski ID alias olarak korunur; teklif/rezervasyonlar güncel ID'yi gösterir; detaylar JSONB'de saklanır ve ürün ekranında görünür; eski 9/10 sütunlu dosyalar çalışmaya devam eder.
 
+### Milestone 7 — Teklif UX, manuel toplam ve JSON aktarım
+
+- `offers.cash_total_override` / `card_total_override` (migration `0020`): manuel nakit/kart toplamı; toplam satır satış fiyatlarına orantılı dağıtılır, yuvarlama artığı kâr özetinde manuel fark olarak gösterilir.
+- Teklif formu: manuel toplam alanları, sticky **Vazgeç / Teklif Oluştur** barı, açılır/kapanır **Taksit Seçenekleri**, ürün eklenince `$nextTick` sonrası otomatik karşılaştırma yenileme, sepetin hemen üstünde senaryo özeti.
+- Teklif ve rezervasyon listelerinde tek **Ürünler** sütunu; rezervasyon satırlarında teslim/iptal/kısmi durum etiketi.
+- Teklif ve rezervasyon JSON içe/dışa aktarma; CSV/Excel içe/dışa aktarma korunur.
+- CSV/Excel ana sayfalarına son sütun olarak **Ürünler** eklenir; bu sütun export-only'dir, import'ta okunmaz/opsiyoneldir. Ürün satırları ayrı satır sayfalarından gelir.
+- Rezervasyon JSON import'u mevcut durumu (teslim/iptal adetleri, satır durumu) stok hareketi oluşturmadan aktarır; teklif JSON import'u durum geçmişini transition kurallarıyla korur.
+- Testler: manuel toplam create/update/compare/kâr, JSON round-trip, export `Ürünler` sütunu, form/sticky/details markup, liste sütunları.
+
 ### Cross-milestone — Ayarlar (banka ve kategori ana verisi)
 
 **Kapsam**

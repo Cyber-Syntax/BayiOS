@@ -1,0 +1,30 @@
+<div id="offer-scenario-summary" class="card" hx-swap-oob="true" style="padding: 1rem; margin-bottom: 1rem; border-color: #bfdbfe; background: #f8fbff;">
+  <h2 style="margin: 0 0 .5rem; font-size: 1.1rem;">Senaryo Özeti</h2>
+  {% if comparison and comparison.scenarios %}
+  <div class="table-container" style="margin-bottom: .75rem;">
+    <table class="data-table" style="min-width: 0;">
+      <thead>
+        <tr>
+          <th>Senaryo</th><th>Nakit Satış</th><th>Nakit Kâr</th>
+          <th>Kart Satış</th><th>Kart Kâr</th><th>Marj</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for scenario in comparison.scenarios %}
+        <tr>
+          <td><strong>{{ scenario.label }}</strong></td>
+          <td>{{ scenario.sale_cash | tr_money }} TL</td>
+          <td>{% if scenario.cash_profit is none %}<span class="badge badge-warning">Maliyet yok</span>{% else %}<strong style="color: {% if scenario.cash_profit < 0 %}#b91c1c{% else %}#166534{% endif %};">{{ scenario.cash_profit | tr_money }} TL</strong>{% endif %}</td>
+          <td>{{ scenario.sale_card | tr_money }} TL</td>
+          <td>{% if scenario.card_profit is none %}<span class="badge badge-warning">Maliyet yok</span>{% else %}<strong style="color: {% if scenario.card_profit < 0 %}#b91c1c{% else %}#166534{% endif %};">{{ scenario.card_profit | tr_money }} TL</strong>{% endif %}</td>
+          <td>{% if scenario.margin_percent is not none %}{{ scenario.margin_percent | tr_percent }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted" style="margin: 0; font-size: .8rem;">Senaryolar bilgi amaçlıdır; teklif seçili ödeme ve indirimlerle kaydedilir. Kart kârı seçili taksit komisyonuyla hesaplanır.</p>
+  {% else %}
+  <p class="muted" style="margin: 0;">Senaryolar hesaplanıyor… Ürün ve ödeme bilgileri değiştiğinde otomatik güncellenir.</p>
+  {% endif %}
+</div>

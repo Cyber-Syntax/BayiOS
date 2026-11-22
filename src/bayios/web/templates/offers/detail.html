@@ -74,6 +74,9 @@
   <div class="stat-box"><div class="stat-label">Nakit Toplam</div><div class="stat-value">{{ offer.cash_total | tr_money }} TL</div></div>
   <div class="stat-box"><div class="stat-label">Kart Toplam</div><div class="stat-value">{{ offer.card_total | tr_money }} TL</div></div>
   <div class="stat-box"><div class="stat-label">Seçili Toplam</div><div class="stat-value" style="color: #2563eb;">{{ offer.selected_total | tr_money }} TL</div></div>
+  {% if offer.cash_total_override is not none or offer.card_total_override is not none %}
+  <div class="stat-box"><div class="stat-label">Manuel Toplam</div><div class="stat-value" style="font-size: .95rem;">Nakit: {% if offer.cash_total_override is not none %}{{ offer.cash_total_override | tr_money }} TL{% else %}—{% endif %}<br>Kart: {% if offer.card_total_override is not none %}{{ offer.card_total_override | tr_money }} TL{% else %}—{% endif %}</div></div>
+  {% endif %}
   <div class="stat-box"><div class="stat-label">Normal Toplam</div><div class="stat-value" style="font-size: 1.1rem;">{{ display_totals.regular_total | tr_money }} TL</div></div>
   {% if ns.has_oliz %}<div class="stat-box"><div class="stat-label">Oliz Toplam</div><div class="stat-value" style="font-size: 1.1rem;">{{ display_totals.oliz_total | tr_money }} TL</div></div>{% endif %}
   <div class="stat-box"><div class="stat-label">Şirket İndirimi</div><div class="stat-value" style="font-size: 1.1rem;">{{ display_totals.company_discount_total | tr_money }} TL</div></div>
@@ -83,8 +86,11 @@
 <div class="card" style="padding: 1rem; margin-bottom: 1rem; border-color: #bfdbfe; background: #f8fbff;">
   <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap;">
     <h2 style="margin: 0; font-size: 1.1rem;">Kâr / Komisyon Özeti</h2>
-    <span class="muted" style="font-size: .8rem;">Satır toplamları üzerinden hesaplanır; maliyet ve hakedişler adetle çarpılır.</span>
+    <span class="muted" style="font-size: .8rem;">Satır toplamları ve manuel toplam farkı üzerinden hesaplanır; maliyet ve hakedişler adetle çarpılır.</span>
   </div>
+  {% if profit_summary.manual_adjustment %}
+  <p class="muted" style="margin: .75rem 0 0; font-size: .85rem;">Manuel toplam farkı: <strong>{{ profit_summary.manual_adjustment | tr_money }} TL</strong></p>
+  {% endif %}
   {% if profit_summary.has_missing_cost %}
   <div class="alert alert-warning" style="margin: .75rem 0;"><span>Bazı satırlarda maliyet tanımlı değil; toplam kâr yalnızca maliyeti bilinen satırları kapsar.</span></div>
   {% endif %}

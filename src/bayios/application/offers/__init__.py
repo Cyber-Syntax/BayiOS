@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from enum import StrEnum
@@ -39,6 +39,7 @@ from bayios.domain.offers import (
     DEALER_SHARE_PERCENT,
     OfferPriceLayers,
     OfferStatus,
+    OfferTotals,
     PaymentType,
     ensure_status_transition,
     quote_offer_item,
@@ -85,6 +86,9 @@ class OfferInput:
     card_type: CardType | None = None
     note: str | None = None
     dealer_discount_cash_percent: Decimal = Decimal(10)
+    cash_total_override: Decimal | None = None
+    card_total_override: Decimal | None = None
+    created_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -138,6 +142,7 @@ class OfferProfitSummary:
     total_profit: Decimal
     margin_percent: Decimal | None
     has_missing_cost: bool
+    manual_adjustment: Decimal = Decimal(0)
 
 
 def build_offer_line_analyses(
@@ -292,12 +297,39 @@ def build_offer_profit_summary(detail: OfferDetail) -> OfferProfitSummary:
                 margin_percent=quantize_money(margin) if margin is not None else None,
             )
         )
-    total_revenue = sum((line.total_revenue for line in lines), Decimal(0))
+    line_sales_total = sum(
+        (
+            (
+                analysis.sale_price_cash
+                if offer.payment_type == PaymentType.CASH.value
+                else analysis.sale_price_card
+            )
+            or Decimal(0)
+        )
+        * analysis.item.quantity
+        for analysis in build_offer_line_analyses(detail)
+    )
+    effective_total = (
+        offer.cash_total
+        if offer.payment_type == PaymentType.CASH.value
+        else offer.card_total
+    )
+    manual_adjustment = quantize_money(
+        effective_total - quantize_money(line_sales_total)
+    )
+    total_revenue = (
+        sum((line.total_revenue for line in lines), Decimal(0))
+        + manual_adjustment
+    )
     total_cost = sum(
         (line.cost for line in lines if line.cost is not None), Decimal(0)
     )
-    total_profit = sum(
-        (line.profit for line in lines if line.profit is not None), Decimal(0)
+    total_profit = (
+        sum(
+            (line.profit for line in lines if line.profit is not None),
+            Decimal(0),
+        )
+        + manual_adjustment
     )
     has_missing_cost = any(line.cost is None for line in lines)
     margin = (
@@ -312,6 +344,7 @@ def build_offer_profit_summary(detail: OfferDetail) -> OfferProfitSummary:
         total_profit=quantize_money(total_profit),
         margin_percent=margin,
         has_missing_cost=has_missing_cost,
+        manual_adjustment=manual_adjustment,
     )
 
 
@@ -372,7 +405,110 @@ class _PreparedItem:
     cost_price: Decimal | None = None
 
 
-def _estimate_card_total(prepared: list[_PreparedItem]) -> Decimal:
+def _apply_manual_totals(
+    prepared: list[_PreparedItem], data: OfferInput
+) -> list[_PreparedItem]:
+    """Distribute manual cash/card totals across line unit prices.
+
+    Line prices are recalculated proportionally to their current sale totals;
+    the manual total remains the authoritative offer total for any rounding
+    residue on non-unit quantities.
+    """
+    if (
+        data.cash_total_override is None
+        and data.card_total_override is None
+    ):
+        return prepared
+    quotes = [
+        quote_offer_item(
+            item.layers,
+            quantity=item.input.quantity,
+            dealer_discount_percent=item.dealer_discount,
+            dealer_discount_cash_percent=item.dealer_discount_cash,
+            commission_percent=Decimal(0),
+            target_type=None,
+            target_value=None,
+            cash_floor=getattr(item.pricing, "cash_floor_price", None),
+            card_floor=getattr(item.pricing, "card_floor_price", None),
+            unit_price_cash=item.input.unit_price_cash,
+            unit_price_card=item.input.unit_price_card,
+        )
+        for item in prepared
+    ]
+    cash_line_totals = [
+        quote.line_total_cash or Decimal(0) for quote in quotes
+    ]
+    card_line_totals = [
+        quote.line_total_card or Decimal(0) for quote in quotes
+    ]
+    cash_weights = [
+        total if total > 0 else (item.regular_price or Decimal(0)) * item.input.quantity
+        for total, item in zip(cash_line_totals, prepared, strict=True)
+    ]
+    card_weights = [
+        total if total > 0 else (item.regular_price or Decimal(0)) * item.input.quantity
+        for total, item in zip(card_line_totals, prepared, strict=True)
+    ]
+    cash_lines = (
+        _allocate_total(data.cash_total_override, cash_weights)
+        if data.cash_total_override is not None
+        else None
+    )
+    card_lines = (
+        _allocate_total(data.card_total_override, card_weights)
+        if data.card_total_override is not None
+        else None
+    )
+    updated: list[_PreparedItem] = []
+    for index, item in enumerate(prepared):
+        unit_cash = item.input.unit_price_cash
+        unit_card = item.input.unit_price_card
+        if cash_lines is not None:
+            unit_cash = quantize_money(
+                cash_lines[index] / item.input.quantity
+            )
+        if card_lines is not None:
+            unit_card = quantize_money(
+                card_lines[index] / item.input.quantity
+            )
+        updated.append(
+            replace(
+                item,
+                input=replace(
+                    item.input,
+                    unit_price_cash=unit_cash,
+                    unit_price_card=unit_card,
+                ),
+            )
+        )
+    return updated
+
+
+def _allocate_total(
+    total: Decimal, weights: list[Decimal]
+) -> list[Decimal]:
+    target = quantize_money(total)
+    if not weights:
+        return []
+    positive = [weight if weight > 0 else Decimal(0) for weight in weights]
+    denominator = sum(positive, Decimal(0))
+    if denominator <= 0:
+        positive = [Decimal(1) for _ in weights]
+        denominator = Decimal(len(weights))
+    allocated = [
+        quantize_money(target * weight / denominator)
+        for weight in positive[:-1]
+    ]
+    allocated.append(quantize_money(target - sum(allocated, Decimal(0))))
+    return allocated
+
+
+def _estimate_card_total(
+    prepared: list[_PreparedItem],
+    override: Decimal | None = None,
+) -> Decimal:
+    if override is not None:
+        return quantize_money(override)
     total = Decimal(0)
     for item in prepared:
         unit = item.input.unit_price_card
@@ -593,6 +729,7 @@ def preview_offer_comparison(
         limits = _domain_limits(raw_limits)
         banks = list(uow.commissions.get_banks(active_only=True))
         prepared = _prepare_items(uow, data)
+        prepared = _apply_manual_totals(prepared, data)
 
     if not prepared:
         raise ValidationError("En az bir ürün satırı gereklidir.")
@@ -600,8 +737,16 @@ def preview_offer_comparison(
     items = tuple(_comparison_item_from_prepared(item) for item in prepared)
     card_total = sum((item.sale_card * item.quantity for item in items), Decimal(0))
     cash_total = sum((item.sale_cash * item.quantity for item in items), Decimal(0))
-    card_total = quantize_money(card_total)
-    cash_total = quantize_money(cash_total)
+    card_total = (
+        quantize_money(data.card_total_override)
+        if data.card_total_override is not None
+        else quantize_money(card_total)
+    )
+    cash_total = (
+        quantize_money(data.cash_total_override)
+        if data.cash_total_override is not None
+        else quantize_money(cash_total)
+    )
     share_percent = DEALER_SHARE_PERCENT
     regular_total = quantize_money(
         sum(
@@ -978,6 +1123,7 @@ def create_offer(
 ) -> uuid.UUID:
     actor = actor or ActorContext()
     now = datetime.now(UTC)
+    created_at = data.created_at or now
     if not data.items:
         raise ValidationError("En az bir ürün satırı gereklidir.")
     if not (Decimal(0) <= data.dealer_discount_percent <= Decimal(100)):
@@ -986,10 +1132,14 @@ def create_offer(
         Decimal(0) <= data.dealer_discount_cash_percent <= Decimal(100)
     ):
         raise ValidationError("Nakit bayi indirimi %0 ile %100 arasında olmalıdır.")
+    _validate_totals_overrides(data)
 
     with uow:
         prepared = _prepare_items(uow, data)
-        card_total_estimate = _estimate_card_total(prepared)
+        prepared = _apply_manual_totals(prepared, data)
+        card_total_estimate = _estimate_card_total(
+            prepared, data.card_total_override
+        )
 
     commission_percent = Decimal(0)
     commission_source = "none"
@@ -1064,8 +1214,10 @@ def create_offer(
             oliz_total=extra_totals.oliz_total,
             company_discount_total=extra_totals.company_discount_total,
             cost_total=extra_totals.cost_total,
+            cash_total_override=data.cash_total_override,
+            card_total_override=data.card_total_override,
             note=_clean(data.note),
-            created_at=now,
+            created_at=created_at,
             updated_at=now,
             created_by_name=actor.worker_name,
             created_by_device=actor.device_name,
@@ -1110,6 +1262,7 @@ def update_offer(
         Decimal(0) <= data.dealer_discount_cash_percent <= Decimal(100)
     ):
         raise ValidationError("Nakit bayi indirimi %0 ile %100 arasında olmalıdır.")
+    _validate_totals_overrides(data)
     with uow:
         offer = uow.offers.get_for_update(offer_id)
         if offer is None:
@@ -1117,7 +1270,10 @@ def update_offer(
         if offer.status != OfferStatus.DRAFT.value:
             raise ValidationError("Yalnızca taslak teklif düzenlenebilir.")
         prepared = _prepare_items(uow, data)
-        card_total_estimate = _estimate_card_total(prepared)
+        prepared = _apply_manual_totals(prepared, data)
+        card_total_estimate = _estimate_card_total(
+            prepared, data.card_total_override
+        )
     commission_percent = Decimal(0)
     commission_source = "none"
     period = None
@@ -1174,6 +1330,8 @@ def update_offer(
         offer.card_type = data.card_type.value if data.card_type else None
         offer.dealer_discount_percent = data.dealer_discount_percent
         offer.dealer_discount_cash_percent = data.dealer_discount_cash_percent
+        offer.cash_total_override = data.cash_total_override
+        offer.card_total_override = data.card_total_override
         offer.commission_period_id = period.id if period else None
         offer.commission_period_key_snapshot = period.period_key if period else None
         offer.commission_percent_snapshot = (
@@ -1233,9 +1391,29 @@ def list_offers(
     offset: int = 0,
 ):
     with uow:
-        return uow.offers.list(
+        offers, total = uow.offers.list(
             status=status, query=query, limit=limit, offset=offset
         )
+        items_by_offer = uow.offers.get_items_for_offers(
+            [offer.id for offer in offers]
+        )
+        for offer in offers:
+            offer.products_summary = _offer_products_summary(  # type: ignore[attr-defined]
+                items_by_offer.get(offer.id, ())
+            )
+        return offers, total
+
+
+def _offer_products_summary(items: object) -> str:
+    parts: list[str] = []
+    for item in items:  # type: ignore[union-attr]
+        quantity = getattr(item, "quantity", 1) or 1
+        name = getattr(item, "product_name_snapshot", "")
+        if quantity > 1:
+            parts.append(f"{name} ×{quantity}")
+        else:
+            parts.append(name)
+    return " · ".join(parts)
 
 
 def set_offer_status(
@@ -1934,7 +2112,27 @@ def _totals(
                 unit_price_card=item.input.unit_price_card,
             )
         )
-    return summarize_offer(quotes, data.payment_type)
+    computed = summarize_offer(quotes, data.payment_type)
+    cash_total = (
+        quantize_money(data.cash_total_override)
+        if data.cash_total_override is not None
+        else computed.cash_total
+    )
+    card_total = (
+        quantize_money(data.card_total_override)
+        if data.card_total_override is not None
+        else computed.card_total
+    )
+    selected_total = (
+        cash_total
+        if data.payment_type is PaymentType.CASH
+        else card_total
+    )
+    return OfferTotals(
+        cash_total=cash_total,
+        card_total=card_total,
+        selected_total=selected_total,
+    )
 
 
 @dataclass(frozen=True)
@@ -1977,6 +2175,15 @@ def _product_group_for(product: object) -> ProductCommissionGroup:
         return ProductCommissionGroup(group)
     except ValueError:
         return ProductCommissionGroup.OTHER
+
+
+def _validate_totals_overrides(data: OfferInput) -> None:
+    for label, value in (
+        ("Nakit toplam", data.cash_total_override),
+        ("Kart toplam", data.card_total_override),
+    ):
+        if value is not None and value < 0:
+            raise ValidationError(f"{label} negatif olamaz.")
 
 
 def _clean(value: str | None) -> str | None:

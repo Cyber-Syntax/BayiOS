@@ -13,6 +13,10 @@ from bayios.application.imports.offers import (
     commit_offer_import,
     preview_offer_import,
 )
+from bayios.application.imports.offers_json import (
+    commit_offer_json,
+    preview_offer_json,
+)
 from bayios.application.offers.io import offer_import_template
 from bayios.web.deps import ActorDep, UnitOfWorkDep
 from bayios.web.templating import templates
@@ -20,7 +24,8 @@ from bayios.web.templating import templates
 router = APIRouter(prefix="/imports/offers", tags=["imports"])
 
 HELP = (
-    "Excel (.xlsx) dosyası yükleyin. Tek sayfa düz dosya veya Teklifler + Teklif Satırları sayfaları kabul edilir.",
+    "Excel (.xlsx) veya scraper/backup JSON (schema_version 1.0) dosyası yükleyin. Excel'de tek sayfa düz dosya veya Teklifler + Teklif Satırları sayfaları kabul edilir.",
+    "JSON içe aktarmada teklif ürünleri, kampanya adı, manuel nakit/kart toplamı ve durum bilgisi korunur.",
     "Yeni tekliflerde satırları gruplamak için Teklif Anahtarı kullanılır; mevcut taslaklar Teklif No ile güncellenir.",
     "Yalnızca taslak teklifler güncellenir. Komisyon ve kâr sunucuda yeniden hesaplanır.",
     "Kart tekliflerinde kanal, taksit ve kart tipi zorunludur; banka isteğe bağlıdır (boşsa genel oran kullanılır).",
@@ -53,15 +58,26 @@ async def preview_import(
 ) -> HTMLResponse:
     if not file.filename:
         return _upload(request, error="Lütfen bir dosya seçin.")
-    if not file.filename.lower().endswith(".xlsx"):
-        return _upload(request, error="Yalnızca .xlsx uzantılı dosyalar desteklenir.")
+    suffix = (
+        file.filename.lower().rsplit(".", 1)[-1]
+        if "." in file.filename
+        else ""
+    )
+    if suffix not in {"xlsx", "json"}:
+        return _upload(
+            request, error="Yalnızca .xlsx veya .json uzantılı dosyalar desteklenir."
+        )
     content = await file.read()
     if not content:
         return _upload(request, error="Yüklenen dosya boş.")
     create_banks = (auto_create_banks or "") == "1"
     try:
-        preview = preview_offer_import(
-            uow, content, auto_create_banks=create_banks
+        preview = (
+            preview_offer_json(uow, content, auto_create_banks=create_banks)
+            if suffix == "json"
+            else preview_offer_import(
+                uow, content, auto_create_banks=create_banks
+            )
         )
     except Exception as exc:  # noqa: BLE001
         return _upload(request, error=str(exc))
@@ -72,7 +88,7 @@ async def preview_import(
             "active_nav": "offers",
             "title": preview.title,
             "file_name": file.filename,
-            "file_type": "xlsx",
+            "file_type": suffix,
             "preview": preview,
             "source_b64": base64.b64encode(content).decode("ascii"),
             "import_token": uuid.uuid4().hex,
@@ -104,16 +120,28 @@ async def commit_import(
     except json.JSONDecodeError:
         return _upload(request, error="Geçersiz karar verisi.")
     try:
-        result = commit_offer_import(
-            uow,
-            file_name=file_name,
-            file_type=file_type,
-            source=source,
-            decisions=decisions if isinstance(decisions, dict) else {},
-            actor=actor,
-            commit_token=str(import_token) if import_token else None,
-            auto_create_banks=(auto_create_banks or "") == "1",
-        )
+        if file_type == "json" or source.lstrip().startswith(b"{"):
+            result = commit_offer_json(
+                uow,
+                file_name=file_name,
+                file_type="json",
+                source=source,
+                decisions=decisions if isinstance(decisions, dict) else {},
+                actor=actor,
+                commit_token=str(import_token) if import_token else None,
+                auto_create_banks=(auto_create_banks or "") == "1",
+            )
+        else:
+            result = commit_offer_import(
+                uow,
+                file_name=file_name,
+                file_type=file_type,
+                source=source,
+                decisions=decisions if isinstance(decisions, dict) else {},
+                actor=actor,
+                commit_token=str(import_token) if import_token else None,
+                auto_create_banks=(auto_create_banks or "") == "1",
+            )
     except Exception as exc:  # noqa: BLE001
         return _upload(request, error=str(exc))
     query = urlencode(
@@ -134,13 +162,16 @@ def _upload(request: Request, *, error: str | None = None) -> HTMLResponse:
         "imports/generic_upload.html",
         {
             "active_nav": "offers",
-            "title": "Teklif Excel İçe Aktar",
-            "description": "Teklifleri ve ürün satırlarını Excel dosyasından yükleyin.",
+            "title": "Teklif İçe Aktar (Excel/JSON)",
+            "description": "Teklifleri ve ürün satırlarını Excel veya JSON dosyasından yükleyin.",
             "form_action": "/imports/offers/preview",
             "template_url": "/imports/offers/template",
+            "template_label": "Şablon İndir",
+            "json_template_url": "/offers/export/json",
+            "json_template_label": "Örnek JSON İndir",
             "back_url": "/offers",
             "back_label": "Teklifler",
-            "accept": ".xlsx",
+            "accept": ".xlsx,.json",
             "help_lines": HELP,
             "error": error,
             "show_bank_autocreate": True,
