@@ -5,6 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from bayios.adapters.db.models.base import MONEY, Base, uuid_pk
@@ -25,9 +26,12 @@ class Campaign(Base):
     __tablename__ = "campaigns"
     __table_args__ = (
         sa.Index("ix_campaigns_is_archived", "is_archived"),
+        sa.Index("uq_campaigns_external_id", "external_id", unique=True),
     )
 
     id: Mapped[uuid.UUID] = uuid_pk()
+    external_id: Mapped[str | None] = mapped_column(sa.Text)
+    source_url: Mapped[str | None] = mapped_column(sa.Text)
     # Circular reference to campaign_versions; the FK is added by ALTER in migration.
     current_version_id: Mapped[uuid.UUID | None] = mapped_column(
         sa.ForeignKey(
@@ -123,6 +127,10 @@ class CampaignVersion(Base):
     gift_yes_base_price_type: Mapped[str | None] = mapped_column(sa.Text)
     gift_no_base_price_type: Mapped[str | None] = mapped_column(sa.Text)
     employee_note: Mapped[str | None] = mapped_column(sa.Text)
+    conditions: Mapped[list[str] | None] = mapped_column(JSONB)
+    source_category: Mapped[str | None] = mapped_column(sa.Text)
+    source_product_count: Mapped[int | None] = mapped_column(sa.Integer)
+    scraped_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True), server_default=sa.func.now()
     )

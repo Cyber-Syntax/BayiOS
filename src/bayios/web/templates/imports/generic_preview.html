@@ -15,6 +15,10 @@
 <div class="alert alert-warning"><span><strong>Bilgi:</strong> Tanınmayan kolonlar yok sayıldı: {{ preview.unknown_headers | join(', ') }}</span></div>
 {% endif %}
 
+{% if preview.module == 'campaigns' and file_type == 'json' %}
+<div class="alert alert-info"><span><strong>Bilgi:</strong> Katalogda bulunamayan ürünler otomatik atlanır; kampanya koşulları ve eşleşen ürünlerle oluşturulur.</span></div>
+{% endif %}
+
 <div class="grid-stats">
   <div class="stat-box"><div class="stat-label">Toplam</div><div class="stat-value">{{ preview.rows | length }}</div></div>
   <div class="stat-box"><div class="stat-label">Yeni</div><div class="stat-value" style="color: #059669;">{{ preview.created_count }}</div></div>

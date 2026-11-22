@@ -16,6 +16,12 @@ _Avoid_: Audit log, duplicate product
 The scraper-provided `features` and `specifications` text stored in `products.details` JSONB, together with optional `source_url`, `kind` and `scraped_at` metadata. Media files are not part of the model.
 _Avoid_: Media gallery, HTML description, scraped page
 
+**Campaign external ID**:
+The scraper-provided campaign slug stored as `campaigns.external_id`; it identifies the campaign across JSON imports while the internal campaign UUID stays stable.
+
+**Campaign conditions**:
+The scraped participation/condition text stored as a list on the campaign version and shown in a collapsible panel on the campaign detail. Conditions are informational; the JSON does not carry structured discount amounts.
+
 **Campaign**:
 A dated commercial promotion or pricing guide that may reference condition products, benefit products, discounts, gifts, and a price basis. In MVP it is a guide and scenario source, not a general basket optimization engine.
 _Avoid_: Scraped promotion, automatic POS campaign

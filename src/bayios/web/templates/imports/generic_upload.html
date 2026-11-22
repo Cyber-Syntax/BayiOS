@@ -30,7 +30,8 @@
     {% endif %}
     <div style="margin-top: 1.5rem; display: flex; gap: .75rem; flex-wrap: wrap;">
       <button type="submit" class="btn btn-primary">Önizlemeyi Göster</button>
-      <a href="{{ template_url }}" class="btn">Şablon İndir</a>
+      <a href="{{ template_url }}" class="btn">{{ template_label | default('Şablon İndir') }}</a>
+      {% if json_template_url %}<a href="{{ json_template_url }}" class="btn">{{ json_template_label | default('Örnek JSON İndir') }}</a>{% endif %}
       <a href="{{ back_url }}" class="btn">İptal</a>
     </div>
   </form>

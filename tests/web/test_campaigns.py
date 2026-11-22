@@ -1,13 +1,22 @@
 from __future__ import annotations
 
+import base64
+import json
 import uuid
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
 
 from bayios.adapters.db.models.products import Product
+from bayios.application.campaigns import (
+    CampaignInput,
+    CampaignProductInput,
+    create_campaign,
+)
 from bayios.bootstrap import ApplicationSettings
+from bayios.domain.campaigns import CampaignType, DiscountType, ProductRelationType
 from bayios.main import create_app
 from bayios.web.deps import get_unit_of_work
 from tests.fakes import FakeUnitOfWork
@@ -369,3 +378,111 @@ def test_campaign_print_pages_render(
     assert detail.status_code == 200
     assert "A4 Kampanya Rehberi" in detail.text
     assert "23.399,10 TL" in detail.text
+
+
+def test_campaign_json_preview_commit_and_conditions_panel(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = _product(fake_uow)
+    payload = {
+        "schema_version": "1.0",
+        "scraped_at": "2026-11-22T14:26:27Z",
+        "campaigns": [
+            {
+                "id": "json-web-kampanya",
+                "name": "JSON Web Kampanyası",
+                "category": "beyaz-esya-kampanyalari",
+                "url": "https://example.test/json-web",
+                "date_text": "1 Kasım - 30 Kasım 2026",
+                "start_date": "2026-11-01",
+                "end_date": "2026-11-30",
+                "conditions": ["Koşul 1", "Koşul 2"],
+                "product_count": 1,
+                "products": [
+                    {
+                        "name": product.name,
+                        "product_id": "9000",
+                        "relationship": "İlgili ürün",
+                        "required_quantity": None,
+                    }
+                ],
+                "scraped_at": "2026-11-22T14:26:27Z",
+            }
+        ],
+    }
+    source = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+
+    preview = client.post(
+        "/imports/campaigns/preview",
+        files={"file": ("kampanyalar.json", source, "application/json")},
+    )
+
+    assert preview.status_code == 200
+    assert "Kampanya JSON İçe Aktarma Önizlemesi" in preview.text
+    assert "JSON Web Kampanyası" in preview.text
+    assert "Koşul" in preview.text
+
+    commit = client.post(
+        "/imports/campaigns/commit",
+        data={
+            "file_name": "kampanyalar.json",
+            "file_type": "json",
+            "source_b64": base64.b64encode(source).decode("ascii"),
+            "decisions_json": "{}",
+        },
+        follow_redirects=False,
+    )
+    assert commit.status_code == 303
+
+    campaign = next(iter(fake_uow.campaigns.campaigns.values()))
+    page = client.get(f"/campaigns/{campaign.id}")
+    assert page.status_code == 200
+    assert "Koşullar" in page.text
+    assert "Koşul 1" in page.text
+    assert "<details" in page.text
+
+    exported = client.get(f"/campaigns/{campaign.id}/export/json")
+    assert exported.status_code == 200
+    body = json.loads(exported.content)
+    assert body["campaigns"][0]["id"] == "json-web-kampanya"
+    assert body["campaigns"][0]["conditions"] == ["Koşul 1", "Koşul 2"]
+
+    all_exported = client.get("/campaigns/export/json")
+    assert all_exported.status_code == 200
+    assert len(json.loads(all_exported.content)["campaigns"]) == 1
+
+    upload = client.get("/imports/campaigns")
+    assert upload.status_code == 200
+    assert "Kampanya İçe Aktar (Excel/JSON)" in upload.text
+    assert ".json" in upload.text
+
+
+def test_campaign_list_paginates_without_missing_request_context(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = _product(fake_uow)
+    now = datetime.now(UTC)
+    for index in range(6):
+        create_campaign(
+            fake_uow,
+            CampaignInput(
+                name=f"Sayfalama Kampanyası {index}",
+                campaign_type=CampaignType.GENERAL,
+                starts_at=now - timedelta(days=1),
+                ends_at=now + timedelta(days=1),
+                discount_type=DiscountType.INFO_ONLY,
+                products=(
+                    CampaignProductInput(
+                        product_id=product.id,
+                        relation_type=ProductRelationType.RELATED,
+                    ),
+                ),
+            ),
+        )
+
+    response = client.get("/campaigns?limit=5&state=active")
+
+    assert response.status_code == 200
+    assert "Sayfalama Kampanyası" in response.text
+    assert "Sonraki" in response.text
+    assert "Sayfa" in response.text

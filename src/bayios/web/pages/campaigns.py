@@ -24,6 +24,10 @@ from bayios.application.campaigns.io import (
     export_campaign_products_xlsx,
     export_campaigns_xlsx,
 )
+from bayios.application.campaigns.json_io import (
+    export_campaign_detail_json,
+    export_campaigns_json,
+)
 from bayios.application.dealer_pricing import (
     get_default_dealer_discount,
     update_default_dealer_discount,
@@ -251,6 +255,63 @@ def export_campaigns_route(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=bayios-kampanyalar.xlsx"},
+    )
+
+
+@router.get("/export/json")
+def export_campaigns_json_route(
+    uow: UnitOfWorkDep,
+    q: Annotated[str | None, Query()] = None,
+    campaign_type: Annotated[str, Query()] = "",
+    state: Annotated[str, Query()] = "active",
+    date_from: Annotated[str | None, Query()] = None,
+    date_to: Annotated[str | None, Query()] = None,
+) -> Response:
+    selected_type = (
+        campaign_type
+        if campaign_type in {value for value, _ in TYPE_FILTERS}
+        else ""
+    )
+    selected_state = (
+        state if state in {value for value, _ in STATE_FILTERS} else "active"
+    )
+    try:
+        from_moment = _parse_date(date_from)
+        to_moment = _parse_date(date_to)
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    content = export_campaigns_json(
+        uow,
+        query=q,
+        campaign_type=selected_type or None,
+        state=selected_state or None,
+        date_from=from_moment,
+        date_to=to_moment,
+    )
+    return Response(
+        content=content,
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=bayios-kampanyalar.json"},
+    )
+
+
+@router.get("/{campaign_id}/export/json")
+def export_campaign_detail_json_route(
+    campaign_id: uuid.UUID,
+    uow: UnitOfWorkDep,
+) -> Response:
+    try:
+        content = export_campaign_detail_json(uow, campaign_id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return Response(
+        content=content,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": (
+                f"attachment; filename=bayios-kampanya-{campaign_id}.json"
+            )
+        },
     )
 
 

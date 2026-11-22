@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import Decimal
 
@@ -65,6 +65,12 @@ class CampaignInput:
     gift_yes_base_price_type: BasePriceType | None = None
     gift_no_base_price_type: BasePriceType | None = None
     employee_note: str | None = None
+    external_id: str | None = None
+    source_url: str | None = None
+    conditions: tuple[str, ...] = ()
+    source_category: str | None = None
+    source_product_count: int | None = None
+    scraped_at: datetime | None = None
     products: tuple[CampaignProductInput, ...] = ()
 
 
@@ -99,6 +105,10 @@ class CampaignVersionView:
     gift_yes_base_price_type: str | None
     gift_no_base_price_type: str | None
     employee_note: str | None
+    conditions: tuple[str, ...]
+    source_category: str | None
+    source_product_count: int | None
+    scraped_at: datetime | None
     created_at: datetime | None
     created_by_name: str | None
     products: tuple[CampaignProductView, ...]
@@ -126,6 +136,8 @@ class CampaignListItem:
 @dataclass(frozen=True)
 class CampaignDetail:
     id: uuid.UUID
+    external_id: str | None
+    source_url: str | None
     is_archived: bool
     state: str
     state_label: str
@@ -179,6 +191,8 @@ def create_campaign_in_uow(
     contract = _build_contract(uow, data)
     campaign = Campaign(
         id=uuid.uuid4(),
+        external_id=data.external_id,
+        source_url=data.source_url,
         is_archived=False,
         created_at=now,
         updated_at=now,
@@ -186,7 +200,14 @@ def create_campaign_in_uow(
         created_by_device=actor.device_name,
     )
     uow.campaigns.add(campaign)
-    version = _version_row(contract, campaign.id, 1, actor, now)
+    version = _version_row(
+        contract,
+        campaign.id,
+        1,
+        actor,
+        now,
+        scraped_at=data.scraped_at,
+    )
     uow.campaigns.add_version(version)
     uow.campaigns.add_version_products(_link_rows(contract, version.id))
     uow.campaigns.set_current_version(campaign.id, version.id)
@@ -224,8 +245,31 @@ def update_campaign_in_uow(
     current = uow.campaigns.get_current_version(campaign_id)
     if current is None:
         raise NotFoundError("Kampanya sürümü bulunamadı.")
+    if data.external_id is not None:
+        campaign.external_id = data.external_id
+    if data.source_url is not None:
+        campaign.source_url = data.source_url
 
-    contract = _build_contract(uow, data)
+    effective_data = data
+    if not data.conditions and current.conditions:
+        effective_data = replace(
+            effective_data, conditions=tuple(current.conditions)
+        )
+    if data.source_category is None:
+        effective_data = replace(
+            effective_data, source_category=current.source_category
+        )
+    if data.source_product_count is None:
+        effective_data = replace(
+            effective_data,
+            source_product_count=current.source_product_count,
+        )
+    if data.scraped_at is None:
+        effective_data = replace(
+            effective_data, scraped_at=current.scraped_at
+        )
+
+    contract = _build_contract(uow, effective_data)
     current_links = uow.campaigns.get_version_products(current.id)
     current_contract = _contract_from_row(current, current_links)
     if is_same_contract(current_contract, contract):
@@ -237,6 +281,7 @@ def update_campaign_in_uow(
         next_version_no(current.version_no),
         actor,
         now,
+        scraped_at=effective_data.scraped_at,
     )
     uow.campaigns.add_version(version)
     uow.campaigns.add_version_products(_link_rows(contract, version.id))
@@ -350,6 +395,8 @@ def get_campaign_detail(
         state = _state(campaign, current, reference)
         return CampaignDetail(
             id=campaign.id,
+            external_id=campaign.external_id,
+            source_url=campaign.source_url,
             is_archived=campaign.is_archived,
             state=state.value,
             state_label=CAMPAIGN_STATE_LABELS[state],
@@ -484,6 +531,13 @@ def _build_contract(uow: UnitOfWork, data: CampaignInput) -> CampaignContract:
             gift_yes_base_price_type=data.gift_yes_base_price_type,
             gift_no_base_price_type=data.gift_no_base_price_type,
             employee_note=_clean_text(data.employee_note),
+            conditions=tuple(
+                condition.strip()
+                for condition in data.conditions
+                if condition and condition.strip()
+            ),
+            source_category=_clean_text(data.source_category),
+            source_product_count=data.source_product_count,
             products=links,
         )
     except ValueError as exc:
@@ -496,6 +550,8 @@ def _version_row(
     version_no: int,
     actor: ActorContext,
     now: datetime,
+    *,
+    scraped_at: datetime | None = None,
 ) -> CampaignVersion:
     return CampaignVersion(
         id=uuid.uuid4(),
@@ -522,6 +578,10 @@ def _version_row(
             else None
         ),
         employee_note=contract.employee_note,
+        conditions=list(contract.conditions) if contract.conditions else None,
+        source_category=contract.source_category,
+        source_product_count=contract.source_product_count,
+        scraped_at=scraped_at,
         created_at=now,
         created_by_name=actor.worker_name,
         created_by_device=actor.device_name,
@@ -570,6 +630,9 @@ def _contract_from_row(
             else None
         ),
         employee_note=version.employee_note,
+        conditions=tuple(version.conditions or ()),
+        source_category=version.source_category,
+        source_product_count=version.source_product_count,
         products=tuple(
             CampaignProductLink(
                 product_id=str(link.product_id) if link.product_id else None,
@@ -613,6 +676,10 @@ def _version_view(
         gift_yes_base_price_type=version.gift_yes_base_price_type,
         gift_no_base_price_type=version.gift_no_base_price_type,
         employee_note=version.employee_note,
+        conditions=tuple(version.conditions or ()),
+        source_category=version.source_category,
+        source_product_count=version.source_product_count,
+        scraped_at=version.scraped_at,
         created_at=version.created_at,
         created_by_name=version.created_by_name,
         products=tuple(_product_view(link) for link in links),

@@ -84,10 +84,11 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Yeni ve düzenleme formu; ad, tip, başlangıç/bitiş tarihi, açıklama, fiyat tabanı, indirim türü/değeri, hediye açıklaması ve hediye var/yok fiyat tabanı, çalışan notu ve ürün ilişkilerini (şart, fayda, hediye, ilgili) içerir.
 - Her fiili düzenleme değişmez yeni sürüm oluşturur; değişiklik yoksa yeni sürüm üretilmez. Detay ekranında sürüm geçmişi ve her sürümün ürün ilişkileri görünür.
 - Detay ekranı seçilen ürün için hediye var/yok bayi fiyat senaryosunu gösterir; varsayılan oran %10'dur ve çalışan tarafından değiştirilebilir. Ürüne özel nakit/kart taban fiyatları genel oranla karıştırılmaz.
+- Scraper JSON'undan gelen kampanyalarda kaynak ID, kategori, kaynak URL ve scraper tarihi gösterilir; **Koşullar (N)** bölümü varsayılan kapalı açılır/kapanır paneldedir. Kaynakta olup Bayios kataloğunda eşleşmeyen ürünler için "kaynakta X, eşleşen Y" notu görünür.
 - Kampanyalar ekranında global bayi indirimi varsayılanı ve değişiklik geçmişi yönetilir.
 - Kampanya listesi ve detayı A4 basılabilir; çıktı otomatik fiyat uygulaması değil, çalışan rehberidir.
-- Listede "Excel İçe Aktar" ve "Excel Dışa Aktar" eylemleri vardır; içe aktarma önizlemesi kampanya başlığı ve ürün ilişkilerini ayrı satırlarda gösterir.
-- Kampanya detayında da "Excel İçe Aktar" ve "Excel Dışa Aktar" bulunur. Detay dışa aktarması yalnızca **Ürün Adı, İlişki Türü, Gerekli Adet** kolonlarını içeren "Kampanya Ürünleri" sayfasını indirir; 100'e kadar ürün satırı bu sayfaya eklenebilir. Detaydan açılan içe aktarma yalnızca o kampanyayı günceller; ürün satırları kampanya başlığı tekrar edilmeden yüklenebilir.
+- Listede **"İçe Aktar (Excel/JSON)"**, **"Excel Dışa Aktar"** ve **"JSON Dışa Aktar"** eylemleri vardır; içe aktarma önizlemesi kampanya başlığı ve ürün ilişkilerini ayrı satırlarda gösterir.
+- Kampanya detayında da **"İçe Aktar (Excel/JSON)"**, **"Excel Dışa Aktar"** ve **"JSON Dışa Aktar"** bulunur. Excel detay dışa aktarması yalnızca **Ürün Adı, İlişki Türü, Gerekli Adet** kolonlarını içeren "Kampanya Ürünleri" sayfasını indirir; 100'e kadar ürün satırı bu sayfaya eklenebilir. JSON detay dışa aktarması kampanyanın adı, tarihleri, koşulları ve ürün ilişkileriyle tek kampanyalı şema üretir. Detaydan açılan içe aktarma yalnızca o kampanyayı günceller; ürün satırları kampanya başlığı tekrar edilmeden yüklenebilir.
 
 ### Teklifler
 

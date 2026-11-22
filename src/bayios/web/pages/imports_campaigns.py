@@ -14,13 +14,18 @@ from bayios.application.imports.campaigns import (
     commit_campaign_import,
     preview_campaign_import,
 )
+from bayios.application.imports.campaigns_json import (
+    commit_campaign_json,
+    preview_campaign_json,
+)
 from bayios.web.deps import ActorDep, UnitOfWorkDep
 from bayios.web.templating import templates
 
 router = APIRouter(prefix="/imports/campaigns", tags=["imports"])
 
 UPLOAD_HELP = (
-    "Excel (.xlsx) dosyası yükleyin. Tercih edilen format: <strong>Kampanyalar</strong> ve <strong>Kampanya Ürünleri</strong> sayfaları.",
+    "Excel (.xlsx) veya scraper <strong>kampanya JSON</strong> (schema_version 1.0) dosyası yükleyin.",
+    "JSON içe aktarmada kampanya adı, tarihler, koşullar ve ürün ilişkileri okunur; eşleşmeyen ürünler uyarıyla atlanır.",
     "Kampanya detayından açıldıysa yalnızca o kampanya güncellenir; ürün listesi tek başına da yüklenebilir.",
     "Tek sayfa şirket dosyası da kabul edilir; aynı kampanya satırları kampanya adı ve tarihlerle gruplanır.",
     "Kampanya adı, başlangıç ve bitiş tarihi zorunludur. Bitiş tarihi başlangıçtan önce olamaz.",
@@ -60,16 +65,27 @@ async def preview_import(
     target = _optional_uuid(campaign_id)
     if not file.filename:
         return _upload(request, target, error="Lütfen bir dosya seçin.")
-    if not file.filename.lower().endswith(".xlsx"):
+    suffix = (
+        file.filename.lower().rsplit(".", 1)[-1]
+        if "." in file.filename
+        else ""
+    )
+    if suffix not in {"xlsx", "json"}:
         return _upload(
-            request, target, error="Yalnızca .xlsx uzantılı dosyalar desteklenir."
+            request,
+            target,
+            error="Yalnızca .xlsx veya .json uzantılı dosyalar desteklenir.",
         )
     content = await file.read()
     if not content:
         return _upload(request, target, error="Yüklenen dosya boş.")
     try:
-        preview = preview_campaign_import(
-            uow, content, target_campaign_id=target
+        preview = (
+            preview_campaign_json(uow, content, target_campaign_id=target)
+            if suffix == "json"
+            else preview_campaign_import(
+                uow, content, target_campaign_id=target
+            )
         )
     except Exception as exc:  # noqa: BLE001
         return _upload(request, target, error=str(exc))
@@ -80,7 +96,7 @@ async def preview_import(
             "active_nav": "campaigns",
             "title": preview.title,
             "file_name": file.filename,
-            "file_type": "xlsx",
+            "file_type": suffix,
             "preview": preview,
             "source_b64": base64.b64encode(content).decode("ascii"),
             "import_token": uuid.uuid4().hex,
@@ -115,16 +131,28 @@ async def commit_import(
     except json.JSONDecodeError:
         return _upload(request, target, error="Geçersiz karar verisi.")
     try:
-        result = commit_campaign_import(
-            uow,
-            file_name=file_name,
-            file_type=file_type,
-            source=source,
-            decisions=decisions if isinstance(decisions, dict) else {},
-            actor=actor,
-            commit_token=str(import_token) if import_token else None,
-            target_campaign_id=target,
-        )
+        if file_type == "json" or source.lstrip().startswith(b"{"):
+            result = commit_campaign_json(
+                uow,
+                file_name=file_name,
+                file_type="json",
+                source=source,
+                decisions=decisions if isinstance(decisions, dict) else {},
+                actor=actor,
+                commit_token=str(import_token) if import_token else None,
+                target_campaign_id=target,
+            )
+        else:
+            result = commit_campaign_import(
+                uow,
+                file_name=file_name,
+                file_type=file_type,
+                source=source,
+                decisions=decisions if isinstance(decisions, dict) else {},
+                actor=actor,
+                commit_token=str(import_token) if import_token else None,
+                target_campaign_id=target,
+            )
     except Exception as exc:  # noqa: BLE001
         return _upload(request, target, error=str(exc))
     query = urlencode(
@@ -151,11 +179,11 @@ def _upload(
         "imports/generic_upload.html",
         {
             "active_nav": "campaigns",
-            "title": "Kampanya Excel İçe Aktar",
+            "title": "Kampanya İçe Aktar (Excel/JSON)",
             "description": (
-                "Bu kampanyanın ürün ilişkilerini Excel dosyasından yükleyin."
+                "Bu kampanyanın ürün ilişkilerini Excel veya scraper JSON dosyasından yükleyin."
                 if target is not None
-                else "Kampanya ve ürün ilişkilerini Excel dosyasından yükleyin."
+                else "Kampanya ve ürün ilişkilerini Excel veya scraper JSON dosyasından yükleyin."
             ),
             "form_action": "/imports/campaigns/preview",
             "template_url": (
@@ -163,11 +191,18 @@ def _upload(
                 if target is not None
                 else "/imports/campaigns/template"
             ),
+            "template_label": "Şablon İndir",
+            "json_template_url": (
+                f"/campaigns/{target}/export/json"
+                if target is not None
+                else "/campaigns/export/json?state="
+            ),
+            "json_template_label": "Örnek JSON İndir",
             "back_url": (
                 f"/campaigns/{target}" if target is not None else "/campaigns"
             ),
             "back_label": "Kampanyalar",
-            "accept": ".xlsx",
+            "accept": ".xlsx,.json",
             "help_lines": UPLOAD_HELP,
             "error": error,
             "campaign_id": str(target) if target is not None else "",

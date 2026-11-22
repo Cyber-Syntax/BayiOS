@@ -213,3 +213,12 @@ JSON detay hücresi (11. sütun):
 - Ayrı bir iş: scraper reposunun latest GitHub release asset'inden `catalog.json` indirilip aynı preview/commit akışına verilecek.
 - Bayios içinde scraping yapılmaz; yalnızca yayınlanmış JSON asset'i indirilir.
 - Ağ erişimi, asset adı, sürüm doğrulama ve hata mesajları bu işte ele alınacak; mevcut `catalog.json` importu değişmeden kullanılacak.
+
+## 11. Kampanya JSON içe/dışa aktarma (uygulandı)
+
+- Kaynak: `docs/scrapper/kampanyalar_20261122-142627.json` (`schema_version` 1.0, 25 kampanya).
+- `campaigns.external_id` slug; `campaigns.source_url`; `campaign_versions.conditions` JSONB, `source_category`, `source_product_count`, `scraped_at`.
+- Import eşleştirmesi: önce slug, yoksa ad + tarih; ürünler önce ürün ID'si/alias, yoksa ad. Bulunamayan ürünler uyarıyla atlanır, kampanya yine oluşturulur.
+- JSON'da yapısal indirim alanı olmadığı için kampanyalar `Genel` + `Sadece bilgi` olarak aktarılır; koşullar detay ekranında açılır/kapanır panelde gösterilir.
+- Aynı şema JSON dışa aktarmada üretilir; kampanya listesi ve detayında JSON butonları vardır.
+- Migration: `0019_campaign_scraper_metadata`.

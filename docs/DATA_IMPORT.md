@@ -56,6 +56,45 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 - `Kampanya Ürünleri` sayfası yoksa mevcut ilişkiler korunur.
 - Kampanya detayından yapılan dışa aktarma `Ürün ID, Ürün Adı, İlişki Türü, Gerekli Adet` kolonlarını içerir. Aynı dosyaya yüzlerce ürün satırı eklenip detaydan içe aktarılabilir; kampanya başlığı tekrar edilmez.
 
+### Kampanyalar JSON
+
+**Dosya:** `kampanyalar_*.json` · `schema_version` `1.0`
+
+```json
+{
+  "schema_version": "1.0",
+  "scraped_at": "2026-11-22T14:26:27Z",
+  "campaigns": [
+    {
+      "id": "kampanya-slug",
+      "name": "Kampanya adı",
+      "category": "beyaz-esya-kampanyalari",
+      "url": "https://...",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "date_text": "1 Kasım - 30 Kasım 2026",
+      "conditions": ["Koşul 1", "Koşul 2"],
+      "product_count": 2,
+      "products": [
+        {
+          "name": "Ürün adı",
+          "product_id": "9000",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    }
+  ]
+}
+```
+
+- Kampanya kimliği `id` slug'ıdır; `campaigns.external_id` olarak saklanır. Aynı slug tekrar gelirse mevcut kampanya güncellenir; dosyada aynı slug iki kez varsa ilk kayıt işlenir.
+- `conditions` listesi kampanya sürümünde JSONB olarak saklanır; detay ekranında açılır/kapanır panelde gösterilir.
+- Ürünler önce `product_id` (güncel ID veya alias), bulunamazsa ad ile çözülür. Katalogda olmayan ürünler atlanır ve uyarı gösterilir; kampanya yine oluşturulur.
+- JSON'da yapısal indirim/tutar alanı yoktur; kampanya `Genel` / `Sadece bilgi` olarak içe aktarılır, koşullar bilgi amaçlıdır.
+- Dışa aktarma aynı şemayı üretir. Kampanya listesi ve detayından **JSON Dışa Aktar**, import ekranından **Örnek JSON İndir** kullanılabilir.
+
 ## Teklifler
 
 **Teklifler sayfası:** `Teklif No, Teklif Anahtarı, Müşteri Adı, Telefon, Oluşturma Tarihi, Durum, Ödeme Türü, Kanal, Banka, Taksit, Kart Tipi, Kart Bayi İndirimi %, Nakit Bayi İndirimi %, Komisyon Dönemi, Komisyon %, Nakit Toplam, Kart Toplam, Seçili Toplam, Not, Rezervasyon No, Oluşturan`

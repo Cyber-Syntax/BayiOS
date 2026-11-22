@@ -122,6 +122,9 @@ class CampaignContract:
     gift_yes_base_price_type: BasePriceType | None = None
     gift_no_base_price_type: BasePriceType | None = None
     employee_note: str | None = None
+    conditions: tuple[str, ...] = ()
+    source_category: str | None = None
+    source_product_count: int | None = None
     products: tuple[CampaignProductLink, ...] = ()
 
     def __post_init__(self) -> None:
@@ -135,6 +138,8 @@ class CampaignContract:
             raise ValueError("Hediye indirimlerinde hediye açıklaması zorunludur.")
         if self.gift_optional and not _has_text(self.gift_description):
             raise ValueError("İsteğe bağlı hediyelerde hediye açıklaması zorunludur.")
+        if self.source_product_count is not None and self.source_product_count < 0:
+            raise ValueError("Kaynak ürün sayısı negatif olamaz.")
         _validate_product_links(self.products)
 
     def signature(self) -> tuple[object, ...]:
@@ -168,6 +173,9 @@ class CampaignContract:
             if self.gift_no_base_price_type is not None
             else None,
             self.employee_note or "",
+            tuple(condition.strip() for condition in self.conditions if condition.strip()),
+            self.source_category or "",
+            self.source_product_count or 0,
             products,
         )
 

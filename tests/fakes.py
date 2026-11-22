@@ -572,6 +572,16 @@ class FakeCampaignRepository:
     def get(self, campaign_id: uuid.UUID) -> Campaign | None:
         return self.campaigns.get(campaign_id)
 
+    def get_by_external_id(self, external_id: str) -> Campaign | None:
+        return next(
+            (
+                campaign
+                for campaign in self.campaigns.values()
+                if campaign.external_id == external_id
+            ),
+            None,
+        )
+
     def get_for_update(self, campaign_id: uuid.UUID) -> Campaign | None:
         return self.get(campaign_id)
 

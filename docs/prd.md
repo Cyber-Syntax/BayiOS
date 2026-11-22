@@ -533,6 +533,14 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 
 **FR-CAMP-15 (P2):** Çok ürünlü sepet için kampanyaların otomatik uygulanması ve indirim dağıtımı POS milestone'unda ele alınmalıdır.
 
+**FR-CAMP-16 (P0):** Scraper kampanya JSON'u (`schema_version` 1.0) içe aktarılabilmelidir: kampanya `id` slug'ı, adı, kategorisi, URL'si, tarihleri, koşul listesi, ürün sayısı ve ürün ilişkileri okunmalıdır.
+
+**FR-CAMP-17 (P0):** Kampanya JSON'unda kimlik önce `external_id` (slug), yoksa ad + tarih ile eşleşmelidir. Ürünler önce ürün ID'si (güncel/alias), yoksa adla çözülmelidir; bulunamayan ürünler kampanyayı düşürmemeli, uyarıyla atlanmalıdır. Aynı slug dosyada tekrar ederse ilk kayıt işlenmeli, sonrakiler hata/atla olmalıdır.
+
+**FR-CAMP-18 (P0):** JSON'da yapısal indirim alanı olmadığı için scraper kampanyaları `Genel` + `Sadece bilgi` olarak kaydedilmelidir; koşul metinleri kampanya sürümünde saklanmalı ve fiyat senaryosu üretmemelidir. Kampanyanın kaynak URL'si, kategori, scraper tarihi ve kaynak ürün sayısı saklanmalıdır.
+
+**FR-CAMP-19 (P0):** Kampanyalar JSON olarak dışa aktarılabilmeli; aynı şema (`schema_version` 1.0) ile tekrar içe aktarılabilmelidir. Kampanya detayında "Koşullar" bölümü varsayılan kapalı açılır/kapanır panel olarak gösterilmeli; kaynak ID, kategori, URL ve eşleşen/kaynak ürün sayısı görünmelidir.
+
 ### 5.5 Banka komisyonları ve fiyat referansı
 
 **FR-FIN-01 (P0):** Banka tanımlanabilmeli ve formdan hızlıca eklenebilmelidir. Banka adı büyük/küçük harf ve Türkçe `İ/ı` duyarsız tekil olmalıdır (`AKBANK` = `akbank` = `Akbank`); görünen ad canonical biçimde (`Akbank`) saklanır. Komisyon ve teklif formlarında listede olmayan banka, formdan ayrılmadan hızlıca eklenebilmeli ve eklenen banka anında seçilebilmelidir; var olan banka yeniden yazılırsa yeni kayıt açılmaz, mevcut kayıt seçilir.

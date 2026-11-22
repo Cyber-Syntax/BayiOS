@@ -38,6 +38,11 @@ class SqlAlchemyCampaignRepository:
     def get(self, campaign_id: uuid.UUID) -> Campaign | None:
         return self._session.get(Campaign, campaign_id)
 
+    def get_by_external_id(self, external_id: str) -> Campaign | None:
+        return self._session.scalar(
+            sa.select(Campaign).where(Campaign.external_id == external_id)
+        )
+
     def get_for_update(self, campaign_id: uuid.UUID) -> Campaign | None:
         return self._session.scalar(
             sa.select(Campaign).where(Campaign.id == campaign_id).with_for_update()
