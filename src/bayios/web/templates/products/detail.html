@@ -164,35 +164,43 @@
 {% endif %}
 
 {% if product_details and not product_details.is_empty %}
-<div class="card" style="padding: 1rem; margin-bottom: 1rem;">
-  <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Ürün Özellikleri</h2>
+<div class="card" style="padding: 0; margin-bottom: 1rem;">
   {% if product_details.features %}
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .75rem; margin-bottom: 1.25rem;">
-    {% for feature in product_details.features %}
-    <div class="card" style="padding: .75rem; margin: 0; background: var(--bg);">
-      {% if feature.title %}<h3 style="margin: 0 0 .35rem; font-size: .95rem;">{{ feature.title }}</h3>{% endif %}
-      {% if feature.text %}<p style="margin: 0; font-size: .85rem; white-space: pre-line;">{{ feature.text }}</p>{% endif %}
-      {% if feature.note %}<small class="muted" style="display: block; margin-top: .45rem; white-space: pre-line;">{{ feature.note }}</small>{% endif %}
+  <details style="padding: .75rem 1rem;">
+    <summary style="cursor: pointer; font-weight: 600;">
+      Ürün Özellikleri ({{ product_details.features | length }})
+    </summary>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .75rem; margin-top: .75rem;">
+      {% for feature in product_details.features %}
+      <div class="card" style="padding: .75rem; margin: 0; background: var(--bg);">
+        {% if feature.title %}<h3 style="margin: 0 0 .35rem; font-size: .95rem;">{{ feature.title }}</h3>{% endif %}
+        {% if feature.text %}<p style="margin: 0; font-size: .85rem; white-space: pre-line;">{{ feature.text }}</p>{% endif %}
+        {% if feature.note %}<small class="muted" style="display: block; margin-top: .45rem; white-space: pre-line;">{{ feature.note }}</small>{% endif %}
+      </div>
+      {% endfor %}
     </div>
-    {% endfor %}
-  </div>
+  </details>
   {% endif %}
   {% if product_details.specifications %}
-  <h3 style="margin: 0 0 .5rem; font-size: 1rem;">Teknik Özellikler</h3>
-  <div class="table-container">
-    <table class="data-table" style="min-width: 0;">
-      <thead><tr><th>Grup</th><th>Özellik</th><th>Değer</th></tr></thead>
-      <tbody>
-        {% for specification in product_details.specifications %}
-        <tr>
-          <td><small class="muted">{{ specification.group or '—' }}</small></td>
-          <td>{{ specification.name }}</td>
-          <td>{{ specification.value }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  <details style="padding: .75rem 1rem;{% if product_details.features %} border-top: 1px solid var(--border, #e5e7eb);{% endif %}">
+    <summary style="cursor: pointer; font-weight: 600;">
+      Teknik Özellikler ({{ product_details.specifications | length }})
+    </summary>
+    <div class="table-container" style="margin-top: .75rem;">
+      <table class="data-table" style="min-width: 0;">
+        <thead><tr><th>Grup</th><th>Özellik</th><th>Değer</th></tr></thead>
+        <tbody>
+          {% for specification in product_details.specifications %}
+          <tr>
+            <td><small class="muted">{{ specification.group or '—' }}</small></td>
+            <td>{{ specification.name }}</td>
+            <td>{{ specification.value }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
   {% endif %}
 </div>
 {% endif %}

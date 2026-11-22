@@ -74,7 +74,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Düzenleme ve stok güncelleme modalları; stok güncellemede açıklama/not alanı.
 - Ürüne özel bayi nakit/kart taban fiyatları ve değişiklik geçmişi; "Fiyatları Güncelle" modalı.
 - Ürünle ilişkili aktif kampanyalar ve hediye var/yok bayi fiyat senaryoları.
-- Scraper detayları varsa "Ürün Özellikleri" (features) ve gruplanmış "Teknik Özellikler" (specifications) bölümleri gösterilir; detay yoksa bu bölümler gizlenir.
+- Scraper detayları varsa "Ürün Özellikleri (N)" ve "Teknik Özellikler (N)" bölümleri **varsayılan kapalı** açılır-kapanır paneller olarak gösterilir; detay yoksa bu bölümler gizlenir.
 - Silme iki aşamalı onay ister; ikinci adım açık teyit olmadan kalıcı silme yapılmaz.
 
 ### Kampanyalar

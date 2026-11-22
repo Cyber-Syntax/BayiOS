@@ -15,6 +15,10 @@
 <div class="alert alert-danger">{{ error }}</div>
 {% endif %}
 
+<div class="alert alert-info">
+  <span><strong>Scraper entegrasyonu:</strong> <code>catalog.json</code> (schema_version 1.0) dosyasını da aynı ekrandan yükleyebilirsiniz. Ürün ID, fiyatlar ve JSON detayları otomatik eşleştirilir.</span>
+</div>
+
 <div class="card">
   <form action="/imports/products/preview" method="post" enctype="multipart/form-data">
     <div class="form-group">

@@ -524,3 +524,6 @@ def test_product_detail_shows_scraper_id_kind_and_details(
     assert "Kapasite" in response.text
     assert "10 kg" in response.text
     assert "https://example.test/10122" in response.text
+    assert "<details" in response.text
+    assert "Ürün Özellikleri (1)" in response.text
+    assert "Teknik Özellikler (1)" in response.text
