@@ -149,9 +149,9 @@ def test_export_products_csv_and_xlsx() -> None:
     csv_bytes = export_products_csv(uow)
     assert csv_bytes.startswith(b"\xef\xbb\xbf")  # UTF-8 BOM
     csv_text = csv_bytes.decode("utf-8-sig")
-    assert "Ürün Adı,Kategori,Perakende Fiyat" in csv_text
-    assert "07325 A,Buzdolabı,38099.00,34099.00,5,25000.00,37000.00,36000.00," in csv_text
-    assert "09325 A,,42199.00,,0,,,," in csv_text
+    assert "Ürün ID,Ürün Adı,Kategori,Perakende Fiyat" in csv_text
+    assert ",07325 A,Buzdolabı,38099.00,34099.00,5,25000.00,37000.00,36000.00," in csv_text
+    assert ",09325 A,,42199.00,,0,,,," in csv_text
 
     # 2. Test XLSX export
     xlsx_bytes = export_products_xlsx(uow)
@@ -160,6 +160,7 @@ def test_export_products_csv_and_xlsx() -> None:
     sheet = wb.active
     rows = list(sheet.iter_rows(values_only=True))
     assert rows[0] == (
+        "Ürün ID",
         "Ürün Adı",
         "Kategori",
         "Perakende Fiyat",
@@ -169,15 +170,18 @@ def test_export_products_csv_and_xlsx() -> None:
         "Kredi Kartı Taban Fiyatı",
         "Nakit Taban Fiyatı",
         "Aktif Kampanya",
+        "Ürün Özellikleri (JSON)",
+        "scraped_at",
     )
-    assert rows[1][0] == "07325 A"
-    assert rows[1][1] == "Buzdolabı"
-    assert rows[1][2] == 38099
-    assert rows[1][3] == 34099
-    assert rows[1][4] == 5
-    assert rows[1][5] == 25000
-    assert rows[1][6] == 37000
-    assert rows[1][7] == 36000
+    assert rows[1][0] in (None, "")
+    assert rows[1][1] == "07325 A"
+    assert rows[1][2] == "Buzdolabı"
+    assert rows[1][3] == 38099
+    assert rows[1][4] == 34099
+    assert rows[1][5] == 5
+    assert rows[1][6] == 25000
+    assert rows[1][7] == 37000
+    assert rows[1][8] == 36000
     wb.close()
 
 
@@ -403,3 +407,21 @@ def test_zero_website_price_is_stored_as_missing() -> None:
         history.field_name == "website_discounted_price"
         for history in uow.products.get_price_history(product.id)
     )
+
+
+def test_search_finds_product_by_external_id() -> None:
+    uow = FakeUnitOfWork()
+    product = Product(
+        id=uuid.uuid4(),
+        external_id="457100070000",
+        name="10122 SuperWash",
+        name_normalized="10122 superwash",
+        regular_price=Decimal(42999),
+        physical_stock=1,
+    )
+    uow.products.add(product)
+
+    results, count = search_products(uow, query="457100070000")
+
+    assert count == 1
+    assert results[0].id == product.id

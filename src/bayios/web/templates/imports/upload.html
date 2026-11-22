@@ -7,7 +7,7 @@
       <a href="/products" class="muted" style="text-decoration: none;">&larr; Ürünler</a>
     </div>
     <h1>Ürün Kataloğu İçe Aktar</h1>
-    <p class="muted" style="margin: 0;">CSV veya Excel (.xlsx) dosyası yükleyerek ürün kataloğunu güncelleyin.</p>
+    <p class="muted" style="margin: 0;">CSV, Excel (.xlsx) veya scraper <code>catalog.json</code> dosyası yükleyerek ürün kataloğunu güncelleyin.</p>
   </div>
 </div>
 
@@ -18,8 +18,8 @@
 <div class="card">
   <form action="/imports/products/preview" method="post" enctype="multipart/form-data">
     <div class="form-group">
-      <label for="import-file">Dosya Seçin (.csv, .xlsx):</label>
-      <input type="file" id="import-file" name="file" class="form-control" accept=".csv,.xlsx" required>
+      <label for="import-file">Dosya Seçin (.csv, .xlsx, .json):</label>
+      <input type="file" id="import-file" name="file" class="form-control" accept=".csv,.xlsx,.json" required>
     </div>
 
     <div style="margin-top: 1.5rem; display: flex; gap: .75rem;">
@@ -36,9 +36,10 @@
 <div class="card" style="background: var(--bg); border: 1px dashed var(--border);">
   <h3 style="margin-top: 0;">Dosya ve Format Kuralları</h3>
   <ul style="color: var(--muted); font-size: .9rem; line-height: 1.6; margin: 0; padding-left: 1.25rem;">
-    <li><strong>Desteklenen Formatlar:</strong> Gerçek bayi CSV'si (<code>arcelik-06-09-2026.csv</code>), standart CSV (virgül veya noktalı virgül ayracı, <code>utf-8</code>, <code>cp1254</code>) ve Excel <code>.xlsx</code> dosyaları.</li>
-    <li><strong>Türkçe Başlıklar:</strong> <code>Ürün Adı, Kategori, Perakende Fiyat, Oliz İndirimli Fiyat, Fiziksel Stok, Alış Fiyatı, Kredi Kartı Taban Fiyatı, Nakit Taban Fiyatı</code> ve <code>Aktif Kampanya</code> desteklenir. Eski İngilizce başlıklar da okunur.</li>
-    <li><strong>Fiyat Formatı:</strong> <code>38.099 TL</code>, <code>475 TL</code> gibi binlik noktalı ve <code>TL</code> sonekli fiyatlar ile <code>12,50</code> gibi virgüllü ondalıklar otomatik algılanır.</li>
+    <li><strong>Desteklenen Formatlar:</strong> Gerçek bayi CSV'si, standart CSV (virgül veya noktalı virgül ayracı, <code>utf-8</code>, <code>cp1254</code>), Excel <code>.xlsx</code> ve scraper <code>catalog.json</code> (schema_version 1.0).</li>
+    <li><strong>Türkçe Başlıklar:</strong> <code>Ürün ID, Ürün Adı, Kategori, Perakende Fiyat, Oliz İndirimli Fiyat, Fiziksel Stok, Alış Fiyatı, Kredi Kartı Taban Fiyatı, Nakit Taban Fiyatı, Aktif Kampanya, Ürün Özellikleri (JSON)</code> desteklenir. 9/10 sütunlu eski dosyalar ve İngilizce başlıklar da okunur.</li>
+    <li><strong>Ürün ID:</strong> Güncel scraper ID'sidir; eski ID'ler alias olarak saklanır. ID boşsa ada göre eşleşir. Ürün detayları <code>{"features":[],"specifications":[]}</code> JSON hücresinden okunur; boş hücre mevcut detayı korur, boş listeler temizler.</li>
+    <li><strong>Fiyat Formatı:</strong> <code>38.099 TL</code>, <code>475 TL</code> gibi binlik noktalı ve <code>TL</code> sonekli fiyatlar ile <code>12,50</code> gibi virgüllü ondalıklar otomatik algılanır. Oliz boş/0 ise mevcut Oliz silinir.</li>
     <li><strong>Stok Durumu:</strong> <code>Fiziksel Stok</code> boş veya eksik bırakılırsa mevcut stok korunur; <code>0</code> girilirse fiziksel stok sıfırlanır.</li>
     <li><strong>Kategori:</strong> Boş gelirse mevcut kategori korunur; bilinmeyen kategori adları otomatik oluşturulur.</li>
     <li><strong>Alış / Taban Fiyatlar:</strong> Boş hücre mevcut değeri korur; değeri tamamen kaldırmak için <code>-</code> veya <code>temizle</code> yazın.</li>

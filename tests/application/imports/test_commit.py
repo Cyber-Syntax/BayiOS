@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import csv
+import io
+import json
 from decimal import Decimal
 
 from bayios.application.imports import commit_product_import
@@ -359,3 +362,211 @@ def test_commit_absent_oliz_column_preserves_existing_discount() -> None:
 
     assert product.regular_price == Decimal(39000)
     assert product.website_discounted_price == Decimal(34099)
+
+
+def _csv_bytes(headers: list[str], rows: list[list[object]]) -> bytes:
+    stream = io.StringIO()
+    writer = csv.writer(stream)
+    writer.writerow(headers)
+    for row in rows:
+        writer.writerow(row)
+    return stream.getvalue().encode("utf-8")
+
+
+def _catalog_bytes(products: list[dict[str, object]]) -> bytes:
+    return json.dumps(
+        {
+            "schema_version": "1.0",
+            "scraped_at": "2026-11-22T11:53:05Z",
+            "products": products,
+        },
+        ensure_ascii=False,
+    ).encode("utf-8")
+
+
+def test_commit_updates_external_id_and_keeps_old_id_alias() -> None:
+    uow = FakeUnitOfWork()
+    first = _csv_bytes(
+        ["Ürün ID", "Ürün Adı", "Perakende Fiyat"],
+        [["8000", "Ürün A", "10000"]],
+    )
+    commit_product_import(uow=uow, file_name="first.csv", file_type="csv", source=first)
+    product = uow.products.get_by_normalized_name("ürün a")
+    assert product is not None
+    assert product.external_id == "8000"
+
+    second = _csv_bytes(
+        ["Ürün ID", "Ürün Adı", "Perakende Fiyat"],
+        [["9000", "Ürün A", "12000"]],
+    )
+    result = commit_product_import(
+        uow=uow, file_name="second.csv", file_type="csv", source=second
+    )
+
+    assert result.updated_count == 1
+    assert product.external_id == "9000"
+    assert product.regular_price == Decimal(12000)
+    assert uow.products.get_by_external_id("9000") is product
+    assert uow.products.get_by_external_id_including_history("8000") is product
+    same_name = [
+        item
+        for item in uow.products.get_all()
+        if item.name_normalized == "ürün a"
+    ]
+    assert len(same_name) == 1
+
+
+def test_commit_catalog_json_saves_details_meta_and_kind() -> None:
+    uow = FakeUnitOfWork()
+    source = _catalog_bytes(
+        [
+            {
+                "id": "457100070000",
+                "product_name": "10122 SuperWash",
+                "category": "Çamaşır Makinesi",
+                "price": 42999.0,
+                "discounted_price": None,
+                "currency": "TRY",
+                "source_url": "https://example.test/10122",
+                "features": [
+                    {"title": "SuperWash", "text": "Aciklama", "note": "Not"}
+                ],
+                "specifications": [
+                    {"group": "Genel", "name": "Kapasite", "value": "10 kg"}
+                ],
+                "kind": "explicit",
+                "scraped_at": "2026-11-22T11:53:05Z",
+            }
+        ]
+    )
+
+    result = commit_product_import(
+        uow=uow, file_name="catalog.json", file_type="json", source=source
+    )
+
+    assert result.created_count == 1
+    product = uow.products.get_by_external_id("457100070000")
+    assert product is not None
+    assert product.name == "10122 SuperWash"
+    assert product.kind == "explicit"
+    assert product.source_url == "https://example.test/10122"
+    assert product.scraped_at is not None
+    assert product.details == {
+        "features": [{"title": "SuperWash", "text": "Aciklama", "note": "Not"}],
+        "specifications": [
+            {"group": "Genel", "name": "Kapasite", "value": "10 kg"}
+        ],
+    }
+
+
+def test_commit_warranty_catalog_row_without_id_creates_product() -> None:
+    uow = FakeUnitOfWork()
+    source = _catalog_bytes(
+        [
+            {
+                "id": "",
+                "product_name": "2 Yıl Garanti",
+                "category": "Ek Garanti",
+                "price": 3099.0,
+                "discounted_price": None,
+                "currency": "TRY",
+                "source_url": "https://example.test/garanti",
+                "features": [],
+                "specifications": [],
+                "kind": "warranty",
+                "scraped_at": "2026-11-22T11:53:05Z",
+            }
+        ]
+    )
+
+    result = commit_product_import(
+        uow=uow, file_name="catalog.json", file_type="json", source=source
+    )
+
+    assert result.created_count == 1
+    product = uow.products.get_by_normalized_name("2 yıl garanti")
+    assert product is not None
+    assert product.external_id is None
+    assert product.kind == "warranty"
+
+
+def test_commit_json_details_blank_preserves_and_empty_lists_clear() -> None:
+    uow = FakeUnitOfWork()
+    headers = [
+        "Ürün Adı",
+        "Perakende Fiyat",
+        "Ürün Özellikleri (JSON)",
+    ]
+    details = {
+        "features": [{"title": "T", "text": "X", "note": ""}],
+        "specifications": [{"group": "G", "name": "N", "value": "V"}],
+    }
+    first = _csv_bytes(
+        headers, [["Ürün Detay", "10000", json.dumps(details)]]
+    )
+    commit_product_import(uow=uow, file_name="first.csv", file_type="csv", source=first)
+    product = uow.products.get_by_normalized_name("ürün detay")
+    assert product is not None
+    assert product.details == details
+
+    second = _csv_bytes(headers, [["Ürün Detay", "11000", ""]])
+    commit_product_import(
+        uow=uow, file_name="second.csv", file_type="csv", source=second
+    )
+    assert product.details == details
+
+    third = _csv_bytes(
+        headers,
+        [["Ürün Detay", "11000", '{"features":[],"specifications":[]}']],
+    )
+    commit_product_import(
+        uow=uow, file_name="third.csv", file_type="csv", source=third
+    )
+    assert product.details == {"features": [], "specifications": []}
+
+
+def test_commit_broken_json_details_updates_fields_but_preserves_details() -> None:
+    uow = FakeUnitOfWork()
+    headers = ["Ürün Adı", "Perakende Fiyat", "Ürün Özellikleri (JSON)"]
+    first = _csv_bytes(
+        headers,
+        [
+            [
+                "Ürün Detay",
+                "10000",
+                '{"features":[{"title":"T","text":"X","note":""}],"specifications":[]}',
+            ]
+        ],
+    )
+    commit_product_import(uow=uow, file_name="first.csv", file_type="csv", source=first)
+    product = uow.products.get_by_normalized_name("ürün detay")
+    assert product is not None
+    original_details = product.details
+
+    second = _csv_bytes(headers, [["Ürün Detay", "12000", "{bozuk json"]])
+    result = commit_product_import(
+        uow=uow, file_name="second.csv", file_type="csv", source=second
+    )
+
+    assert product.regular_price == Decimal(12000)
+    assert product.details == original_details
+    assert result.error_count == 1
+
+
+def test_commit_duplicate_external_id_first_row_wins() -> None:
+    uow = FakeUnitOfWork()
+    source = _csv_bytes(
+        ["Ürün ID", "Ürün Adı", "Perakende Fiyat"],
+        [
+            ["8000", "Ürün A", "10000"],
+            ["8000", "Ürün B", "20000"],
+        ],
+    )
+    result = commit_product_import(
+        uow=uow, file_name="duplicate.csv", file_type="csv", source=source
+    )
+
+    assert result.created_count == 1
+    assert result.skipped_count == 1
+    assert uow.products.get_by_external_id("8000") is not None
+    assert uow.products.get_by_normalized_name("ürün b") is None

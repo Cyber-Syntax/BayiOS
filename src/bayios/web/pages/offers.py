@@ -211,6 +211,7 @@ def offer_detail_page(
     detail = get_offer_detail(uow, offer_id)
     if detail is None:
         raise HTTPException(status_code=404, detail="Teklif bulunamadı.")
+    external_ids = _offer_external_ids(uow, detail)
     return templates.TemplateResponse(
         request,
         "offers/detail.html",
@@ -219,6 +220,7 @@ def offer_detail_page(
             "detail": detail,
             "profit_summary": build_offer_profit_summary(detail),
             "display_totals": _offer_display_totals(detail),
+            "external_ids": external_ids,
             "status_labels": OFFER_STATUS_LABELS,
             "payment_labels": PAYMENT_TYPE_LABELS,
             "channel_labels": CHANNEL_LABELS,
@@ -378,6 +380,7 @@ def print_offer(
         {
             "active_nav": "offers",
             "detail": detail,
+            "external_ids": _offer_external_ids(uow, detail),
             "payment_labels": PAYMENT_TYPE_LABELS,
             "channel_labels": CHANNEL_LABELS,
             "generated_at": datetime.now(UTC),
@@ -677,6 +680,25 @@ def _detail_initial_items(
         base["previews"] = previews
         items.append(base)
     return items
+
+
+def _offer_external_ids(
+    uow: UnitOfWorkDep, detail: object
+) -> dict[uuid.UUID, str]:
+    product_ids = [
+        item.product_id
+        for item in detail.items
+        if getattr(item, "product_id", None) is not None
+    ]
+    if not product_ids:
+        return {}
+    with uow:
+        products = uow.products.get_by_ids(product_ids)
+    return {
+        product.id: product.external_id
+        for product in products
+        if product.external_id
+    }
 
 
 def _offer_display_totals(detail: object) -> dict[str, Decimal]:

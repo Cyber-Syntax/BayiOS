@@ -80,6 +80,7 @@
           <tr>
             <td class="col-name">
               {{ item.product_name }}
+              {% if item.external_id %}<br><small class="muted">ID: {{ item.external_id }}</small>{% endif %}
               {% if item.product_id is none %}<br><small class="muted">Ürün kaydı silinmiş; geçmiş snapshot'tan gösteriliyor.</small>{% endif %}
               {% if item.service_date %}<br><small class="muted">Servis tarihi: {{ item.service_date | tr_date_long }}</small>{% endif %}
               {% if item.other_dealer_note %}<br><small class="muted">Temin: {{ item.other_dealer_note }}</small>{% endif %}

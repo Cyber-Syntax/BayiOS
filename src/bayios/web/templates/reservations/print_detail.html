@@ -52,6 +52,7 @@
         <td>{{ loop.index }}</td>
         <td>
           {{ item.product_name }}
+          {% if item.external_id %}<br><small>ID: {{ item.external_id }}</small>{% endif %}
           {% if item.service_date %}<br><small>Servis: {{ item.service_date | tr_date }}</small>{% endif %}
           {% if item.other_dealer_note %}<br><small>Temin: {{ item.other_dealer_note }}</small>{% endif %}
         </td>

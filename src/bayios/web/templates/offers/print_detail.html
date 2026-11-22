@@ -29,7 +29,7 @@
       {% for item in detail.items %}
       <tr>
         <td>{{ loop.index }}</td>
-        <td>{{ item.product_name_snapshot }}</td>
+        <td>{{ item.product_name_snapshot }}{% if external_ids.get(item.product_id) %}<br><small>ID: {{ external_ids.get(item.product_id) }}</small>{% endif %}</td>
         <td>{{ item.quantity }}</td>
         <td>{% if offer.payment_type == 'cash' %}{{ item.unit_price_cash | tr_money }}{% else %}{{ item.unit_price_card | tr_money }}{% endif %} TL</td>
         <td>{% if offer.payment_type == 'cash' %}{{ item.line_total_cash | tr_money }}{% else %}{{ item.line_total_card | tr_money }}{% endif %} TL</td>

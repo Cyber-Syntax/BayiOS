@@ -7,7 +7,7 @@
       {% set preview = product_previews.get(product.id) if product_previews else none %}
       {% set auto = preview.previews.get('auto') if preview else none %}
       <tr>
-        <td>{{ product.name }}</td>
+        <td>{{ product.name }}{% if product.external_id %}<br><small class="muted">ID: {{ product.external_id }}</small>{% endif %}</td>
         <td>{{ product.regular_price | tr_money }} TL</td>
         <td>{% if product.website_discounted_price %}{{ product.website_discounted_price | tr_money }} TL{% else %}—{% endif %}</td>
         <td>

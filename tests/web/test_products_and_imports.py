@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import json
 import uuid
 from decimal import Decimal
 
@@ -457,3 +458,69 @@ def test_product_edit_creates_category_with_commission_group(
     page = client.get(f"/products/{product.id}")
     assert page.status_code == 200
     assert "Klima" in page.text
+
+
+def test_post_imports_preview_accepts_catalog_json(
+    client: TestClient,
+) -> None:
+    catalog = {
+        "schema_version": "1.0",
+        "scraped_at": "2026-11-22T11:53:05Z",
+        "products": [
+            {
+                "id": "457100070000",
+                "product_name": "10122 SuperWash",
+                "category": "Çamaşır Makinesi",
+                "price": 42999.0,
+                "discounted_price": None,
+                "currency": "TRY",
+                "source_url": "https://example.test/10122",
+                "features": [
+                    {"title": "SuperWash", "text": "Aciklama", "note": ""}
+                ],
+                "specifications": [
+                    {"group": "Genel", "name": "Kapasite", "value": "10 kg"}
+                ],
+                "kind": "explicit",
+                "scraped_at": "2026-11-22T11:53:05Z",
+            }
+        ],
+    }
+    content = json.dumps(catalog, ensure_ascii=False).encode("utf-8")
+    response = client.post(
+        "/imports/products/preview",
+        files={"file": ("catalog.json", content, "application/json")},
+    )
+
+    assert response.status_code == 200
+    assert "catalog.json" in response.text
+    assert "schema 1.0" in response.text
+    assert "457100070000" in response.text
+    assert "1 özellik / 1 teknik" in response.text
+    assert "Ürün ID" in response.text
+
+
+def test_product_detail_shows_scraper_id_kind_and_details(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = next(iter(fake_uow.products.get_all()))
+    product.external_id = "457100070000"
+    product.kind = "explicit"
+    product.source_url = "https://example.test/10122"
+    product.details = {
+        "features": [
+            {"title": "SuperWash", "text": "Aciklama", "note": "Not"}
+        ],
+        "specifications": [
+            {"group": "Genel", "name": "Kapasite", "value": "10 kg"}
+        ],
+    }
+
+    response = client.get(f"/products/{product.id}")
+
+    assert response.status_code == 200
+    assert "457100070000" in response.text
+    assert "SuperWash" in response.text
+    assert "Kapasite" in response.text
+    assert "10 kg" in response.text
+    assert "https://example.test/10122" in response.text

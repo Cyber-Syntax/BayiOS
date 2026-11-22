@@ -8,6 +8,7 @@ from bayios.adapters.db.models.inventory import StockMovement
 from bayios.adapters.db.models.products import (
     Product,
     ProductCategory,
+    ProductExternalIdHistory,
     ProductImportBatch,
     ProductPriceHistory,
 )
@@ -38,9 +39,31 @@ class ProductRepository(Protocol):
 
     def delete_products(self, product_ids: Sequence[uuid.UUID]) -> int: ...
 
+    def get_by_external_id(self, external_id: str) -> Product | None: ...
+
+    def get_by_external_ids(
+        self, external_ids: Sequence[str]
+    ) -> dict[str, Product]: ...
+
+    def get_by_external_id_including_history(
+        self, external_id: str
+    ) -> Product | None: ...
+
     def get_by_normalized_name(self, normalized_name: str) -> Product | None: ...
 
     def get_by_normalized_names(self, names: Sequence[str]) -> dict[str, Product]: ...
+
+    def find_by_normalized_names(
+        self, names: Sequence[str]
+    ) -> dict[str, list[Product]]: ...
+
+    def add_external_id_history(
+        self, entry: ProductExternalIdHistory
+    ) -> None: ...
+
+    def get_external_id_history(self) -> Sequence[ProductExternalIdHistory]: ...
+
+    def delete_external_id_history(self, external_id: str) -> None: ...
 
     def add(self, product: Product) -> None: ...
 

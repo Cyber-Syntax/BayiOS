@@ -52,6 +52,16 @@ def export_campaigns_xlsx(
         links_by_version = uow.campaigns.get_version_products_for_versions(
             [version.id for _campaign, version in rows]
         )
+        product_ids = [
+            link.product_id
+            for links in links_by_version.values()
+            for link in links
+            if link.product_id is not None
+        ]
+        products = {
+            product.id: product
+            for product in uow.products.get_by_ids(product_ids)
+        }
 
     campaign_rows: list[dict[str, object]] = []
     product_rows: list[dict[str, object]] = []
@@ -108,6 +118,11 @@ def export_campaigns_xlsx(
                     "campaign_name": version.name,
                     "starts_at": version.starts_at.date(),
                     "ends_at": version.ends_at.date(),
+                    "external_id": (
+                        products[link.product_id].external_id
+                        if link.product_id in products
+                        else ""
+                    ),
                     "product_name": link.product_name_snapshot,
                     "relation_type": PRODUCT_RELATION_TYPE_LABELS[
                         ProductRelationType(link.relation_type)
@@ -156,13 +171,14 @@ def export_campaigns_xlsx(
             ColumnSpec("Kampanya Adı", "campaign_name", "text", 32),
             ColumnSpec("Başlangıç Tarihi", "starts_at", "date", 16),
             ColumnSpec("Bitiş Tarihi", "ends_at", "date", 16),
+            ColumnSpec("Ürün ID", "external_id", "text", 18),
             ColumnSpec("Ürün Adı", "product_name", "text", 34),
             ColumnSpec("İlişki Türü", "relation_type", "text", 20),
             ColumnSpec("Gerekli Adet", "quantity_required", "int", 14),
         ),
         rows=product_rows,
         instructions=(
-            ("Ürün Adı", "Zorunlu", "Mevcut ürünlerden biri olmalıdır."),
+            ("Ürün ID / Ürün Adı", "Zorunlu", "Önce ürün ID; boşsa ürün adı ile eşleşir."),
             ("İlişki Türü", "Zorunlu", "Şart ürünü, Fayda ürünü, Hediye ürünü, İlgili ürün."),
             ("Gerekli Adet", "Opsiyonel", "Pozitif tam sayı."),
         ),
@@ -205,13 +221,14 @@ def campaign_import_template() -> bytes:
             ColumnSpec("Kampanya Adı", "campaign_name", "text", 32),
             ColumnSpec("Başlangıç Tarihi", "starts_at", "date", 16),
             ColumnSpec("Bitiş Tarihi", "ends_at", "date", 16),
+            ColumnSpec("Ürün ID", "external_id", "text", 18),
             ColumnSpec("Ürün Adı", "product_name", "text", 34),
             ColumnSpec("İlişki Türü", "relation_type", "text", 20),
             ColumnSpec("Gerekli Adet", "quantity_required", "int", 14),
         ),
         rows=(),
         instructions=(
-            ("Ürün Adı", "Zorunlu", "Mevcut ürünlerden biri olmalıdır."),
+            ("Ürün ID / Ürün Adı", "Zorunlu", "Önce ürün ID; boşsa ürün adı ile eşleşir."),
             ("İlişki Türü", "Zorunlu", "Şart ürünü, Fayda ürünü, Hediye ürünü, İlgili ürün."),
             ("Gerekli Adet", "Opsiyonel", "Pozitif tam sayı."),
         ),
@@ -229,9 +246,20 @@ def export_campaign_products_xlsx(
         if campaign is None or version is None:
             raise NotFoundError("Kampanya bulunamadı.")
         links = uow.campaigns.get_version_products(version.id)
+        products = {
+            product.id: product
+            for product in uow.products.get_by_ids(
+                [link.product_id for link in links if link.product_id is not None]
+            )
+        }
 
     rows = tuple(
         {
+            "external_id": (
+                products[link.product_id].external_id
+                if link.product_id in products
+                else ""
+            ),
             "product_name": link.product_name_snapshot,
             "relation_type": PRODUCT_RELATION_TYPE_LABELS[
                 ProductRelationType(link.relation_type)
@@ -243,13 +271,14 @@ def export_campaign_products_xlsx(
     sheet = SheetSpec(
         title="Kampanya Ürünleri",
         columns=(
+            ColumnSpec("Ürün ID", "external_id", "text", 18),
             ColumnSpec("Ürün Adı", "product_name", "text", 38),
             ColumnSpec("İlişki Türü", "relation_type", "text", 22),
             ColumnSpec("Gerekli Adet", "quantity_required", "int", 14),
         ),
         rows=rows,
         instructions=(
-            ("Ürün Adı", "Zorunlu", "Mevcut ürünlerden biri olmalıdır."),
+            ("Ürün ID / Ürün Adı", "Zorunlu", "Önce ürün ID; boşsa ürün adı ile eşleşir."),
             ("İlişki Türü", "Zorunlu", "Şart ürünü, Fayda ürünü, Hediye ürünü, İlgili ürün."),
             ("Gerekli Adet", "Opsiyonel", "Pozitif tam sayı."),
             ("Toplu giriş", "Bilgi", "Yeni ürün satırlarını ekleyip aynı dosyayı detaydan içe aktarabilirsiniz."),

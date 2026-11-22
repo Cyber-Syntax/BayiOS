@@ -8,6 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from bayios.application.errors import ImportFormatError
 from bayios.application.imports import (
     commit_product_import,
     preview_product_import,
@@ -54,13 +55,13 @@ async def preview_import(
 
     file_name = file.filename
     ext = file_name.rsplit(".", 1)[-1].lower() if "." in file_name else ""
-    if ext not in ("csv", "xlsx"):
+    if ext not in ("csv", "xlsx", "json"):
         return templates.TemplateResponse(
             request,
             "imports/upload.html",
             {
                 "active_nav": "products",
-                "error": "Yalnızca .csv ve .xlsx uzantılı dosyalar desteklenir.",
+                "error": "Yalnızca .csv, .xlsx ve .json uzantılı dosyalar desteklenir.",
             },
         )
 
@@ -74,14 +75,38 @@ async def preview_import(
 
     # Find existing products to pre-populate update vs create decision
     with uow:
-        all_products = uow.products.get_all()
+        all_products = list(uow.products.get_all())
         existing_names = {p.name_normalized for p in all_products}
+        existing_name_counts: dict[str, int] = {}
+        known_external_ids: set[str] = set()
+        for product in all_products:
+            existing_name_counts[product.name_normalized] = (
+                existing_name_counts.get(product.name_normalized, 0) + 1
+            )
+            if product.external_id:
+                known_external_ids.add(product.external_id)
+        for entry in uow.products.get_external_id_history():
+            known_external_ids.add(entry.external_id)
 
-    preview = preview_product_import(content, existing_names=existing_names)
+    try:
+        preview = preview_product_import(
+            content,
+            existing_names=existing_names,
+            known_external_ids=known_external_ids,
+            existing_name_counts=existing_name_counts,
+        )
+    except ImportFormatError as exc:
+        return templates.TemplateResponse(
+            request,
+            "imports/upload.html",
+            {"active_nav": "products", "error": str(exc)},
+        )
 
     create_count = sum(1 for r in preview.rows if r.decision == "create")
     update_count = sum(1 for r in preview.rows if r.decision == "update")
-    error_count = sum(1 for r in preview.rows if r.decision == "error")
+    error_count = sum(
+        1 for r in preview.rows if r.decision == "error" or r.details_error
+    )
 
     source_b64 = base64.b64encode(content).decode("ascii")
 
@@ -100,7 +125,10 @@ async def preview_import(
         {
             "active_nav": "products",
             "file_name": file_name,
-            "file_type": ext,
+            "file_type": preview.source_type,
+            "source_type": preview.source_type,
+            "schema_version": preview.schema_version,
+            "catalog_scraped_at": preview.catalog_scraped_at,
             "total_rows": len(preview.rows),
             "create_count": create_count,
             "update_count": update_count,
@@ -136,15 +164,22 @@ async def commit_import(
     except json.JSONDecodeError as exc:
         raise HTTPException(status_code=400, detail="Geçersiz karar verisi") from exc
 
-    result = commit_product_import(
-        uow=uow,
-        file_name=file_name,
-        file_type=file_type,
-        source=source_bytes,
-        decisions=decisions,
-        actor=actor,
-        commit_token=str(import_token) if import_token else None,
-    )
+    try:
+        result = commit_product_import(
+            uow=uow,
+            file_name=file_name,
+            file_type=file_type,
+            source=source_bytes,
+            decisions=decisions,
+            actor=actor,
+            commit_token=str(import_token) if import_token else None,
+        )
+    except ImportFormatError as exc:
+        return templates.TemplateResponse(
+            request,
+            "imports/upload.html",
+            {"active_nav": "products", "error": str(exc)},
+        )
 
     # Redirect back to products with feedback
     return RedirectResponse(

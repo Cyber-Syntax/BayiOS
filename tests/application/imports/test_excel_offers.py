@@ -182,3 +182,31 @@ def test_offer_round_trip_updates_draft() -> None:
     assert result.updated_count == 1
     assert len(uow.offers.offers) == 1
     assert offer_id in uow.offers.offers
+
+
+def test_offer_import_resolves_product_by_external_id_before_name() -> None:
+    uow, _offer_id = _card_offer_without_bank()
+    product = next(iter(uow.products.get_all()))
+    product.external_id = "9000"
+    data = export_offers_xlsx(uow)
+    workbook = load_workbook(io.BytesIO(data))
+    sheet = workbook["Teklif Satırları"]
+    headers = [
+        sheet.cell(row=1, column=index).value
+        for index in range(1, sheet.max_column + 1)
+    ]
+    name_column = headers.index("Ürün Adı") + 1
+    id_column = headers.index("Ürün ID") + 1
+    sheet.cell(row=2, column=name_column, value="Tamamen Farkli Ad")
+    stream = io.BytesIO()
+    workbook.save(stream)
+    modified = stream.getvalue()
+
+    preview = preview_offer_import(uow, modified)
+    assert not preview.rows[0].errors, preview.rows[0].errors
+
+    sheet.cell(row=2, column=id_column, value="9999")
+    stream = io.BytesIO()
+    workbook.save(stream)
+    missing = preview_offer_import(uow, stream.getvalue())
+    assert any("Ürün ID bulunamadı" in error for error in missing.rows[0].errors)

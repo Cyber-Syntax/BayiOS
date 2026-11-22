@@ -50,7 +50,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Arama/filtre alanı üstte sticky kalır. Satır seçimi checkbox veya satırın boş alanına tıklayarak yapılır; bu davranış tüm ekran boyutlarında geçerlidir (bağlantı, buton, checkbox ve form alanları hariç).
 - Seçim varken toplu işlem çubuğu ekranın altında sticky footer olarak görünür; seçilen sayısı, "Tümünü seç" checkbox'ı, kategori atama, arşivleme ve iki aşamalı onaylı kalıcı silme eylemlerini taşır. Dar ekranda da "Tümünü seç" bu çubuktan kullanılabilir.
 - Seçili satır mavi dolguyla değil, accent renkli kenarlık ve hafif vurguyla gösterilir; bu kural masaüstü tabloda da küçük ekran kartında da aynıdır.
-- Tablo kolonları: seçim, Ürün Adı, Kategori, Normal Fiyat, Oliz / Web İndirimli, Fiziksel Stok, Son Fiyat Değişimi ve İşlem.
+- Tablo kolonları: seçim, Ürün Adı (altında scraper ID), Kategori, Normal Fiyat, Oliz / Web İndirimli, Fiziksel Stok, Son Fiyat Değişimi ve İşlem.
 - Her satırda fiziksel stok alanı ve "Stok" düğmesi ile doğrudan güncelleme, ayrıca "Detay" bağlantısı bulunur.
 - Arşivdeki ürünler soluk gösterilir ve "Arşivde" rozeti taşır.
 - Boş sonuç ve arama eşleşmemesi durumları görünür metinle bildirilir.
@@ -68,12 +68,13 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 ### Ürün Detayı
 
 - Ürün adı, kayıt numarası ve arşiv durumu; "Düzenle", "Stok Güncelle", "Arşivle / Arşivden Çıkar", "Sil" ve "Listeye Dön" eylemleri.
-- Özet kartları: Normal Fiyat, Oliz / Web İndirimli, Alış Maliyeti, Fiziksel Stok ve Açık Rezervasyon.
+- Özet kartları: Normal Fiyat, Oliz / Web İndirimli, Alış Maliyeti, Fiziksel Stok ve Açık Rezervasyon. Ayrıca "Scraper Bilgisi" kartında güncel Ürün ID, Tür, kaynak URL ve scraper tarihi gösterilir.
 - Fiyat Geçmişi tablosu: tarih, fiyat türü, eski/yeni değer, kaynak ve işlemi yapan.
 - Stok Hareket Geçmişi tablosu: tarih, hareket türü, önceki miktar, değişim, yeni miktar, not ve işlemi yapan.
 - Düzenleme ve stok güncelleme modalları; stok güncellemede açıklama/not alanı.
 - Ürüne özel bayi nakit/kart taban fiyatları ve değişiklik geçmişi; "Fiyatları Güncelle" modalı.
 - Ürünle ilişkili aktif kampanyalar ve hediye var/yok bayi fiyat senaryoları.
+- Scraper detayları varsa "Ürün Özellikleri" (features) ve gruplanmış "Teknik Özellikler" (specifications) bölümleri gösterilir; detay yoksa bu bölümler gizlenir.
 - Silme iki aşamalı onay ister; ikinci adım açık teyit olmadan kalıcı silme yapılmaz.
 
 ### Kampanyalar
@@ -98,6 +99,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Detay ekranı toplamları, komisyon snapshot'ını, durum geçmişini ve iç kâr özetini gösterir; müşteri A4 çıktısında maliyet, iç kâr ve komisyon detayı bulunmaz.
 - Taslak teklif düzenlenebilir; sunuldu/kabul/lost/expired sonrası fiyat snapshot'ı değişmez. Kabul edilen tekliften rezervasyona dönüşüm retry edildiğinde aynı rezervasyon döner.
 - Teklif detayında ve listede **Sil** eylemi bulunur; tüm durumlardaki teklifler çift onayla silinebilir. Rezervasyona dönüşmüş teklifte onay metni bağlı rezervasyonun silinmeyeceğini belirtir.
+- Teklif detayında ve A4 çıktısında ürünün **güncel scraper ID'si** gösterilir.
 - Detay ekranında "Kâr / Komisyon Özeti" kartı her zaman görünür; seçili taksitin komisyonu, kampanya/Oliz hakedişi, satır toplamı maliyet, kâr ve marjı gösterir. Oliz fiyatı olmayan tekliflerde Oliz kolonu ve hakediş satırı gizlenir. A4 müşteri çıktısında bu bilgiler yer almaz.
 - Teklif detayında iki hızlı işlem vardır: "Rezervasyon Aç" teklifi kabul edildi durumuna alıp rezervasyon oluşturur; "Teslim Et (Hızlı Sat)" aynı rezervasyonu açar ve tüm satırları teslim ederek fiziksel stoktan düşer. Stok yetersizse gerekçe alanı kullanılır; işlemler tekrar edildiğinde aynı rezervasyon kullanılır.
 - Listede "Excel İçe Aktar" ve "Excel Dışa Aktar" eylemleri vardır; dışa aktarılan çalışma kitabı Teklifler, Teklif Satırları ve Kâr Detayı sayfalarını içerir. İçe aktarma yalnızca taslak teklif oluşturur/günceller.
@@ -123,11 +125,11 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 
 ### Ürün Kataloğu İçe Aktarma
 
-- CSV ve Excel (.xlsx) dosyası yükleme; desteklenen format, fiyat, stok ve indirim kuralları ekranda açıklanır.
-- Önizleme ekranında toplam satır, yeni ürün, güncellenecek ve hatalı satır sayaçları gösterilir.
+- CSV, Excel (.xlsx) ve scraper catalog.json dosyası yükleme; dosya tipi otomatik algılanır, desteklenen format, ID, detay, fiyat ve stok kuralları ekranda açıklanır.
+- Önizleme ekranında toplam satır, yeni ürün, güncellenecek ve hatalı satır sayaçları gösterilir; tabloda Ürün ID, Tür ve Detay özeti (özellik/teknik sayısı veya JSON hatası) yer alır.
 - Satır bazında karar: Yeni Ürün Aç, Güncelle veya Atla. Oliz kolonu varsa boş/`0` hücre güncellemede Oliz fiyatını otomatik temizler; "İndirimli Fiyatı Temizle" yalnızca kolon yokken manuel seçenek olarak kalır.
 - Toplu kararlar: Tümünü Güncelle, Tümünü Atla, Tümünü Yeni Ürün ve Sorunluları Atla.
-- Hatalı ve uyarılı satırlar görünür biçimde işaretlenir; önizleme onaylanmadan veritabanına yazılmaz.
+- Hatalı ve uyarılı satırlar görünür biçimde işaretlenir; ID güncellenecek satırlar uyarı alır. Bozuk JSON satırında ürün alanları güncellenir, mevcut detay korunur ve hata gösterilir. Önizleme onaylanmadan veritabanına yazılmaz.
 - Onay tek transaction içinde atomik olarak uygulanır; sonuç özeti ürünler ekranında bildirilir.
 
 ### Rezervasyonlar
@@ -135,7 +137,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Liste; müşteri araması, durum filtresi (Açık / Teslim edildi / İptal / Hatırlatması geciken / Tümü) ve sayfalama sunar; arama HTMX ile tabloyu yeniler.
 - Satırlar rezervasyon numarası, müşteri, tarih, hatırlatma tarihi ve durumu, özet durum (Rezerve / Kısmi süreçte / Teslim edildi / İptal) ile açık/toplam miktarı gösterir.
 - Yeni rezervasyon ekranı müşteri adı (zorunlu), tarih, not ve ürün satırlarından oluşur; ürün aramasından "Ekle" ile satır eklenir, miktar satır bazında girilir ve aynı ürün ikinci kez eklenmez.
-- Detay ekranı satır bazında miktar, teslim, iptal, açık miktar, durum ve işlemleri (durum değiştir, teslim et, iptal et, miktar güncelle, satır sil, satır ekle) sunar; hareket ve erteleme geçmişi açılır bölümlerde görünür.
+- Detay ekranı satır bazında miktar, teslim, iptal, açık miktar, durum ve işlemleri (durum değiştir, teslim et, iptal et, miktar güncelle, satır sil, satır ekle) sunar; hareket ve erteleme geçmişi açılır bölümlerde görünür. Ürün satırında ürünün **güncel scraper ID'si** gösterilir; ürün ID'si değişince eski rezervasyonlar da yeni ID'yi gösterir.
 - Durum adımları opsiyoneldir ve teslimden önce geri alınabilir; teslim her aktif durumdan yapılabilir. Teslim ve iptal kendi formlarından yürütülür.
 - Düşük stokta teslim, gerekçe girildiğinde onaylanır; fiziksel stok negatife düşebilir ve bu durum görünür metinle bildirilir.
 - Hatırlatma rezervasyon tarihinden 13 ay sonrasına otomatik atanır; varsayılan erteleme 1 aydır ve geçmişi tutulur. Tüm satırlar kapanınca hatırlatma "Tamamlandı" olur.
@@ -148,7 +150,8 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Ürünler, Kampanyalar, Teklifler, Komisyonlar ve Rezervasyonlar için Türkçe başlıklı Excel (.xlsx) export vardır; Ürünler ayrıca CSV export/import destekler.
 - Yeni modüllerin import ekranlarında "Şablon İndir" bağlantısı bulunur; şablonun "Kullanım" sayfası kolonları, zorunlulukları ve kabul edilen değerleri açıklar.
 - Import akışı: dosya seç → önizleme (hatalı/uyarılı satırlar üstte, yeni/güncellenecek/hatalı sayaçları) → satır veya toplu karar → tek transaction commit. Önizleme onaylanmadan veritabanına yazılmaz.
-- Ürün import'unda Alış Fiyatı, Kredi Kartı Taban Fiyatı ve Nakit Taban Fiyatı güncellenebilir; boş hücre mevcut değeri korur, `-` temizler. Aktif Kampanya salt okunurdur.
+- Ürün import'unda Alış Fiyatı, Kredi Kartı Taban Fiyatı ve Nakit Taban Fiyatı güncellenebilir; boş hücre mevcut değeri korur, `-` temizler. Aktif Kampanya salt okunurdur. Ürün ID güncel ID'yi günceller, eski ID alias olarak saklanır.
+- Teklif, rezervasyon ve kampanya ürün satırlarında `Ürün ID` kolonu bulunur; ID yoksa adla legacy eşleşir.
 - Kampanya import'u kampanya başlığı + ürün ilişkisi satırlarını kabul eder; başlangıç/bitiş tarihi zorunludur. Aynı sözleşme yeni sürüm oluşturmaz.
 - Komisyon oranları ve taksit limitleri ayrı dosya/ekranlarda içe ve dışa aktarılır; dönem yoksa taslak dönem oluşturulur.
 - Rezervasyon import'u yalnızca yeni açık rezervasyon oluşturur; mevcut Rezervasyon No atlanır. Teslim/iptal geçmişi import edilmez.

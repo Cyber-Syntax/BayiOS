@@ -83,6 +83,7 @@ class ReservationItemView:
     other_dealer_note: str | None
     note: str | None
     events: tuple[ReservationEventView, ...]
+    external_id: str | None = None
 
     @property
     def is_terminal(self) -> bool:
@@ -210,7 +211,18 @@ def create_reservation(
             uow.reservations.add_event(event)
         uow.commit()
 
-        return _build_view(reservation, lines, events, (), now)
+        return _build_view(
+            reservation,
+            lines,
+            events,
+            (),
+            now,
+            external_ids={
+                product_id: product.external_id
+                for product_id, product in products.items()
+                if product.external_id
+            },
+        )
 
 
 def get_reservation_detail(
@@ -728,7 +740,26 @@ def _load_view(
     lines = uow.reservations.get_items(reservation.id)
     events = uow.reservations.get_events(reservation.id)
     reminders = uow.reservations.get_reminders(reservation.id)
-    return _build_view(reservation, lines, events, reminders, now)
+    product_ids = [
+        line.product_id for line in lines if line.product_id is not None
+    ]
+    products = {
+        product.id: product
+        for product in uow.products.get_by_ids(product_ids)
+    }
+    external_ids = {
+        product_id: product.external_id
+        for product_id, product in products.items()
+        if product.external_id
+    }
+    return _build_view(
+        reservation,
+        lines,
+        events,
+        reminders,
+        now,
+        external_ids=external_ids,
+    )
 
 
 def _summary_for(lines: Sequence[ReservationItemRow]) -> ReservationSummary:
@@ -750,6 +781,8 @@ def _build_view(
     events: Sequence[ReservationItemEvent],
     reminders: Sequence[ReservationReminder],
     now: datetime,
+    *,
+    external_ids: dict[uuid.UUID, str] | None = None,
 ) -> ReservationView:
     reminder_label, is_overdue = _reminder_state(
         reservation.reminder_status, reservation.reminder_due_at, now
@@ -770,7 +803,11 @@ def _build_view(
         note=reservation.note,
         created_by_name=reservation.created_by_name,
         items=tuple(
-            _build_item_view(line, events_by_item.get(line.id, ()))
+            _build_item_view(
+                line,
+                events_by_item.get(line.id, ()),
+                (external_ids or {}).get(line.product_id),
+            )
             for line in lines
         ),
         reminders=tuple(
@@ -788,7 +825,9 @@ def _build_view(
 
 
 def _build_item_view(
-    line: ReservationItemRow, events: Sequence[ReservationItemEvent]
+    line: ReservationItemRow,
+    events: Sequence[ReservationItemEvent],
+    external_id: str | None = None,
 ) -> ReservationItemView:
     status = ReservationStatus(line.status)
     open_quantity = line.quantity - line.delivered_quantity - line.cancelled_quantity
@@ -805,6 +844,7 @@ def _build_item_view(
         service_date=line.service_date,
         other_dealer_note=line.other_dealer_note,
         note=line.note,
+        external_id=external_id,
         events=tuple(
             ReservationEventView(
                 event_at=event.event_at,

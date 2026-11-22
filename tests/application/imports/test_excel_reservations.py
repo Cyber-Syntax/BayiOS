@@ -64,7 +64,8 @@ def test_reservation_export_has_header_and_lines() -> None:
     workbook = load_workbook(io.BytesIO(data))
     assert workbook.sheetnames == ["Rezervasyonlar", "Rezervasyon Satırları", "Kullanım"]
     assert workbook["Rezervasyonlar"]["C1"].value == "Müşteri Adı"
-    assert workbook["Rezervasyon Satırları"]["C1"].value == "Ürün Adı"
+    assert workbook["Rezervasyon Satırları"]["C1"].value == "Ürün ID"
+    assert workbook["Rezervasyon Satırları"]["D1"].value == "Ürün Adı"
     assert workbook["Rezervasyon Satırları"].max_row == 2
 
 
@@ -124,3 +125,77 @@ def test_reservation_flat_import_creates_open_reservation() -> None:
     assert reservation.customer_name == "Mehmet"
     assert reservation.reservation_date.date().isoformat() == "2026-11-10"
     assert reservation.reminder_due_at.date().isoformat() == "2027-12-10"
+
+
+def test_reservation_import_resolves_product_by_external_id_before_name() -> None:
+    uow, product = _fixture()
+    product.external_id = "9000"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Rezervasyonlar"
+    sheet.append(
+        [
+            "Rezervasyon Anahtarı",
+            "Müşteri Adı",
+            "Rezervasyon Tarihi",
+            "Ürün ID",
+            "Ürün Adı",
+            "Miktar",
+        ]
+    )
+    sheet.append(
+        [
+            "res-id",
+            "Ayşe",
+            "10.11.2026",
+            "9000",
+            "Tamamen Farkli Ad",
+            1,
+        ]
+    )
+    stream = io.BytesIO()
+    workbook.save(stream)
+    data = stream.getvalue()
+
+    preview = preview_reservation_import(uow, data)
+    assert not preview.rows[0].errors, preview.rows[0].errors
+
+    sheet.cell(row=2, column=4, value="9999")
+    stream = io.BytesIO()
+    workbook.save(stream)
+    missing = preview_reservation_import(uow, stream.getvalue())
+    assert any("Ürün ID bulunamadı" in error for error in missing.rows[0].errors)
+
+
+def test_reservation_import_resolves_old_product_id_alias() -> None:
+    from bayios.adapters.db.models.products import ProductExternalIdHistory
+
+    uow, product = _fixture()
+    product.external_id = "9000"
+    uow.products.add_external_id_history(
+        ProductExternalIdHistory(
+            id=uuid.uuid4(),
+            product_id=product.id,
+            external_id="8000",
+        )
+    )
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Rezervasyonlar"
+    sheet.append(
+        [
+            "Rezervasyon Anahtarı",
+            "Müşteri Adı",
+            "Rezervasyon Tarihi",
+            "Ürün ID",
+            "Ürün Adı",
+            "Miktar",
+        ]
+    )
+    sheet.append(["alias-res", "Ayşe", "10.11.2026", "8000", "Eski Ad", 1])
+    stream = io.BytesIO()
+    workbook.save(stream)
+
+    preview = preview_reservation_import(uow, stream.getvalue())
+
+    assert not preview.rows[0].errors, preview.rows[0].errors

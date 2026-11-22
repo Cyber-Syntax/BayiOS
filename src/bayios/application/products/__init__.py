@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -341,6 +342,7 @@ def get_product_detail(
 
 
 PRODUCT_EXPORT_HEADERS = (
+    "Ürün ID",
     "Ürün Adı",
     "Kategori",
     "Perakende Fiyat",
@@ -350,6 +352,8 @@ PRODUCT_EXPORT_HEADERS = (
     "Kredi Kartı Taban Fiyatı",
     "Nakit Taban Fiyatı",
     "Aktif Kampanya",
+    "Ürün Özellikleri (JSON)",
+    "scraped_at",
 )
 
 
@@ -359,6 +363,7 @@ def export_products_csv(uow: UnitOfWork) -> bytes:
         PRODUCT_EXPORT_HEADERS,
         [
             (
+                row["external_id"],
                 row["product_name"],
                 row["category"],
                 row["regular_price"],
@@ -368,6 +373,8 @@ def export_products_csv(uow: UnitOfWork) -> bytes:
                 row["card_floor_price"],
                 row["cash_floor_price"],
                 row["active_campaigns"],
+                row["details"],
+                row["scraped_at"],
             )
             for row in rows
         ],
@@ -379,6 +386,7 @@ def export_products_xlsx(uow: UnitOfWork) -> bytes:
     sheet = SheetSpec(
         title="Ürünler",
         columns=(
+            ColumnSpec("Ürün ID", "external_id", "text", 18),
             ColumnSpec("Ürün Adı", "product_name", "text", 32),
             ColumnSpec("Kategori", "category", "text", 22),
             ColumnSpec("Perakende Fiyat", "regular_price", "money", 16),
@@ -388,9 +396,12 @@ def export_products_xlsx(uow: UnitOfWork) -> bytes:
             ColumnSpec("Kredi Kartı Taban Fiyatı", "card_floor_price", "money", 22),
             ColumnSpec("Nakit Taban Fiyatı", "cash_floor_price", "money", 20),
             ColumnSpec("Aktif Kampanya", "active_campaigns", "text", 34),
+            ColumnSpec("Ürün Özellikleri (JSON)", "details", "text", 60),
+            ColumnSpec("scraped_at", "scraped_at", "text", 22),
         ),
         rows=rows,
         instructions=(
+            ("Ürün ID", "Opsiyonel", "Scraper ID'si; baştaki sıfırlar korunur. Boşsa ada göre eşleşir."),
             ("Ürün Adı", "Zorunlu", "Ürün kimliği; baştaki sıfırlar korunur."),
             ("Kategori", "Opsiyonel", "Boşsa mevcut kategori korunur; yeni ad otomatik oluşturulur."),
             ("Perakende Fiyat", "Opsiyonel", "Boşsa korunur; - yazılırsa temizlenir."),
@@ -432,6 +443,7 @@ def _product_export_rows(uow: UnitOfWork) -> list[dict[str, object]]:
         dealer = pricing.get(product.id)
         rows.append(
             {
+                "external_id": product.external_id or "",
                 "product_name": product.name,
                 "category": category_names.get(product.category_id, ""),
                 "regular_price": product.regular_price,
@@ -446,6 +458,14 @@ def _product_export_rows(uow: UnitOfWork) -> list[dict[str, object]]:
                 ),
                 "active_campaigns": "; ".join(
                     sorted(active_campaigns.get(product.id, set()))
+                ),
+                "details": (
+                    json.dumps(product.details, ensure_ascii=False)
+                    if product.details
+                    else ""
+                ),
+                "scraped_at": (
+                    product.scraped_at.isoformat() if product.scraped_at else ""
                 ),
             }
         )

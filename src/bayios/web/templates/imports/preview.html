@@ -30,6 +30,12 @@
   </div>
 </div>
 
+{% if source_type == 'json' %}
+<div class="alert alert-info">
+  <span><strong>catalog.json</strong> · schema {{ schema_version or '—' }}{% if catalog_scraped_at %} · scraper: {{ catalog_scraped_at }}{% endif %}</span>
+</div>
+{% endif %}
+
 <form id="importCommitForm" action="/imports/products/commit" method="post">
   <input type="hidden" name="file_name" value="{{ file_name }}">
   <input type="hidden" name="file_type" value="{{ file_type }}">
@@ -59,8 +65,10 @@
       <thead>
         <tr>
           <th>Satır</th>
+          <th>Ürün ID</th>
           <th>Ürün Adı</th>
           <th>Kategori</th>
+          <th>Tür</th>
           <th>Perakende</th>
           <th>Oliz / İndirimli</th>
           <th>Fiziksel Stok</th>
@@ -68,20 +76,39 @@
           <th>Kart Taban</th>
           <th>Nakit Taban</th>
           <th>Aktif Kampanya</th>
+          <th>Detay</th>
           <th>Karar</th>
           <th>Hata / Uyarı</th>
         </tr>
       </thead>
       <tbody>
         {% for row in rows %}
-        <tr {% if row.errors %}style="background: #fff5f5;"{% elif row.warnings %}style="background: #fffdf5;"{% endif %}>
+        <tr {% if row.errors %}style="background: #fff5f5;"{% elif row.is_problematic %}style="background: #fffdf5;"{% endif %}>
           <td>{{ row.row_number }}</td>
+          <td>
+            {% if row.external_id %}
+            <code style="font-size: .8rem;">{{ row.external_id }}</code>
+            {% else %}
+            <span class="muted">—</span>
+            {% endif %}
+          </td>
           <td>
             <strong>{{ row.product_name or '—' }}</strong>
           </td>
           <td>
             {% if row.category_name %}
             <span class="badge badge-info">{{ row.category_name }}</span>
+            {% else %}
+            <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if row.kind == 'warranty' %}
+            <span class="badge badge-warning">Garanti</span>
+            {% elif row.kind == 'explicit' %}
+            <span class="badge badge-info">Açık</span>
+            {% elif row.kind %}
+            <span class="badge">Ürün</span>
             {% else %}
             <span class="muted">—</span>
             {% endif %}
@@ -115,10 +142,21 @@
           <td>{% if row.card_floor_price %}{{ row.card_floor_price }} TL{% elif row.clear_card_floor_price %}<span class="muted">Temizle</span>{% else %}<small class="muted">(Değişmez)</small>{% endif %}</td>
           <td>{% if row.cash_floor_price %}{{ row.cash_floor_price }} TL{% elif row.clear_cash_floor_price %}<span class="muted">Temizle</span>{% else %}<small class="muted">(Değişmez)</small>{% endif %}</td>
           <td>{% if row.active_campaigns %}{{ row.active_campaigns }}{% else %}<small class="muted">—</small>{% endif %}</td>
-          <td>{% if row.cost_price %}{{ row.cost_price }} TL{% elif row.clear_cost_price %}<span class="muted">Temizle</span>{% else %}<small class="muted">(Değişmez)</small>{% endif %}</td>
-          <td>{% if row.card_floor_price %}{{ row.card_floor_price }} TL{% elif row.clear_card_floor_price %}<span class="muted">Temizle</span>{% else %}<small class="muted">(Değişmez)</small>{% endif %}</td>
-          <td>{% if row.cash_floor_price %}{{ row.cash_floor_price }} TL{% elif row.clear_cash_floor_price %}<span class="muted">Temizle</span>{% else %}<small class="muted">(Değişmez)</small>{% endif %}</td>
-          <td>{% if row.active_campaigns %}{{ row.active_campaigns }}{% else %}<small class="muted">—</small>{% endif %}</td>
+          <td>
+            {% if row.details_error %}
+            <span style="color: #dc2626; font-size: .8rem;">JSON hatası</span>
+            {% elif row.details_present and row.details %}
+            {% set feature_count = row.details.get('features', []) | length %}
+            {% set spec_count = row.details.get('specifications', []) | length %}
+            {% if feature_count or spec_count %}
+            <span class="badge badge-info">{{ feature_count }} özellik / {{ spec_count }} teknik</span>
+            {% else %}
+            <span class="muted">Temizle</span>
+            {% endif %}
+            {% else %}
+            <small class="muted">(Değişmez)</small>
+            {% endif %}
+          </td>
           <td>
             {% if row.errors %}
             <select class="form-control decision-select"
@@ -143,10 +181,13 @@
             {% for err in row.errors %}
             <div style="color: #dc2626; font-size: .8rem;">• {{ err }}</div>
             {% endfor %}
+            {% if row.details_error %}
+            <div style="color: #dc2626; font-size: .8rem;">• {{ row.details_error }}</div>
+            {% endif %}
             {% for warn in row.warnings %}
             <div style="color: #d97706; font-size: .8rem;">• {{ warn }}</div>
             {% endfor %}
-            {% if not row.errors and not row.warnings %}
+            {% if not row.errors and not row.details_error and not row.warnings %}
             <span class="muted" style="font-size: .8rem;">Sorunsuz</span>
             {% endif %}
           </td>

@@ -25,6 +25,7 @@ from bayios.adapters.db.models.inventory import (
 from bayios.adapters.db.models.products import (
     Product,
     ProductCategory,
+    ProductExternalIdHistory,
     ProductImportBatch,
     ProductPriceHistory,
 )
@@ -45,6 +46,7 @@ class FakeProductRepository:
         self.price_history: list[ProductPriceHistory] = []
         self.stock_movements: list[StockMovement] = []
         self.import_batches: list[ProductImportBatch] = []
+        self.external_id_history: list[ProductExternalIdHistory] = []
 
     def search(
         self,
@@ -70,7 +72,11 @@ class FakeProductRepository:
             results = [
                 p
                 for p in results
-                if normalized in p.name_normalized or clean in p.name.lower()
+                if (
+                    normalized in p.name_normalized
+                    or clean in p.name.lower()
+                    or (p.external_id and clean in p.external_id.lower())
+                )
             ]
         results.sort(key=lambda p: p.name)
         total = len(results)
@@ -113,19 +119,75 @@ class FakeProductRepository:
                 count += 1
         return count
 
+    def get_by_external_id(self, external_id: str) -> Product | None:
+        for product in self.products.values():
+            if product.external_id == external_id:
+                return product
+        return None
+
+    def get_by_external_ids(
+        self, external_ids: Sequence[str]
+    ) -> dict[str, Product]:
+        target = set(external_ids)
+        return {
+            product.external_id: product
+            for product in self.products.values()
+            if product.external_id in target
+        }
+
+    def get_by_external_id_including_history(
+        self, external_id: str
+    ) -> Product | None:
+        current = self.get_by_external_id(external_id)
+        if current is not None:
+            return current
+        for entry in self.external_id_history:
+            if entry.external_id == external_id:
+                return self.products.get(entry.product_id)
+        return None
+
     def get_by_normalized_name(self, normalized_name: str) -> Product | None:
-        for p in self.products.values():
+        for p in sorted(
+            self.products.values(), key=lambda item: str(getattr(item, "created_at", "") or "")
+        ):
             if p.name_normalized == normalized_name:
                 return p
         return None
 
     def get_by_normalized_names(self, names: Sequence[str]) -> dict[str, Product]:
-        target = set(names)
+        grouped = self.find_by_normalized_names(names)
         return {
-            p.name_normalized: p
-            for p in self.products.values()
-            if p.name_normalized in target
+            name: products[0]
+            for name, products in grouped.items()
+            if products
         }
+
+    def find_by_normalized_names(
+        self, names: Sequence[str]
+    ) -> dict[str, list[Product]]:
+        target = set(names)
+        grouped: dict[str, list[Product]] = {}
+        for product in sorted(
+            self.products.values(), key=lambda item: str(getattr(item, "created_at", "") or "")
+        ):
+            if product.name_normalized in target:
+                grouped.setdefault(product.name_normalized, []).append(product)
+        return grouped
+
+    def add_external_id_history(
+        self, entry: ProductExternalIdHistory
+    ) -> None:
+        self.external_id_history.append(entry)
+
+    def get_external_id_history(self) -> Sequence[ProductExternalIdHistory]:
+        return list(self.external_id_history)
+
+    def delete_external_id_history(self, external_id: str) -> None:
+        self.external_id_history = [
+            entry
+            for entry in self.external_id_history
+            if entry.external_id != external_id
+        ]
 
     def add(self, product: Product) -> None:
         self.products[product.id] = product

@@ -5,8 +5,8 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 
 ## Ortak kurallar
 
-- Yeni modüller **.xlsx** kabul eder; ürünler ayrıca **.csv** (UTF-8/UTF-8-SIG veya cp1254, `,`/`;`) kabul eder.
-- Başlıklar Türkçe veya İngilizce olabilir; `Ürün Adı` = `Urun Adi` = `product_name` eşleşir.
+- Yeni modüller **.xlsx** kabul eder; ürünler ayrıca **.csv** (UTF-8/UTF-8-SIG veya cp1254, `,`/`;`) ve scraper **catalog.json** (schema_version 1.0) kabul eder.
+- Başlıklar Türkçe veya İngilizce olabilir; `Ürün Adı` = `Urun Adi` = `product_name` eşleşir. Ürün referanslı tüm importlarda `Ürün ID` kolonu opsiyoneldir; önce ID, ID boşsa ad ile eşleşir.
 - Boş hücre genelde “mevcut değeri koru”; **Oliz İndirimli Fiyat istisnadır**: kolon varsa boş/`0` hücre güncellemede Oliz fiyatını siler. `-`, `temizle`, `clear` her zaman “değeri kaldır” anlamına gelir.
 - Para hücreleri `38.099,50`, `38099.50`, `38.099 TL` gibi biçimleri kabul eder.
 - Tarihler `GG.AA.YYYY`, `GG/AA/YYYY`, `YYYY-MM-DD` ve Excel tarih hücresi olarak kabul edilir.
@@ -20,7 +20,8 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 
 | Kolon | Açıklama |
 |---|---|
-| Ürün Adı | Zorunlu; normalize ada göre eşleşir |
+| Ürün ID | Scraper ID'si; güncel veya eski alias ile eşleşir; boşsa ad kullanılır |
+| Ürün Adı | ID yoksa zorunlu; normalize ada göre eşleşir |
 | Kategori | Boşsa mevcut korunur; bilinmeyen kategori otomatik oluşturulur |
 | Perakende Fiyat | Boşsa korunur; `-` temizler |
 | Oliz İndirimli Fiyat | Boş veya `0` ise güncellemede mevcut Oliz fiyatı silinir; doluysa güncellenir. Kolon hiç yoksa mevcut değer korunur; `-` yine temizler |
@@ -29,14 +30,23 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 | Kredi Kartı Taban Fiyatı | Dealer pricing; boşsa korunur; `-` temizler |
 | Nakit Taban Fiyatı | Dealer pricing; boşsa korunur; `-` temizler |
 | Aktif Kampanya | Salt okunur; import'ta kampanya oluşturmaz |
+| Ürün Özellikleri (JSON) | `features` + `specifications`; boş hücre korur, boş listeler temizler, bozuk JSON ürün alanlarını yine günceller |
+| scraped_at | ISO tarih; boşsa mevcut değer korunur |
 
-Ürün import'u fiyat ve dealer pricing değişikliklerinde geçmiş kaydı yazar; stok değişiminde `csv_update` hareketi oluşturur.
+Ürün import'u fiyat ve dealer pricing değişikliklerinde geçmiş kaydı yazar; stok değişiminde `csv_update` hareketi oluşturur. Yeni ID geldiğinde ürünün `external_id` değeri güncellenir, eski ID alias olarak saklanır; boş ID mevcut değeri korur. `catalog.json` null `discounted_price` mevcut Oliz fiyatını siler.
+
+**Ürün ID eşleştirme kuralları**
+
+- ID doluysa yalnızca güncel `external_id` veya `product_external_id_history` alias'ı ile eşleşir; ID bulunamazsa satır hata verir, ada göre fallback yapılmaz.
+- ID boşsa normalize ürün adıyla legacy eşleşir; aynı ad birden fazla ürüne denk gelirse ID girmesi istenir.
+- Ürün kataloğu importunda yeni ID, mevcut ürünün adıyla tek eşleşiyorsa `external_id` güncellenir; eski ID alias olarak saklanır. Aynı ad farklı ID ile ayrı ürün olabilir.
+- Teklif/rezervasyon/kampanya importları ürün ID'sini yalnızca çözer; ürünün güncel ID'sini değiştirmez.
 
 ## Kampanyalar
 
 **Kampanyalar sayfası:** `Kampanya ID, Kampanya Adı, Açıklama, Kampanya Tipi, Başlangıç Tarihi, Bitiş Tarihi, Fiyat Tabanı, İndirim Türü, İndirim Değeri, Hediye Açıklaması, Hediye İsteğe Bağlı, Hediye Varsa Taban, Hediye Yoksa Taban, Çalışan Notu, Durum, Sürüm No, Arşivde`
 
-**Kampanya Ürünleri sayfası:** `Kampanya ID, Kampanya Adı, Başlangıç Tarihi, Bitiş Tarihi, Ürün Adı, İlişki Türü, Gerekli Adet`
+**Kampanya Ürünleri sayfası:** `Kampanya ID, Kampanya Adı, Başlangıç Tarihi, Bitiş Tarihi, Ürün ID, Ürün Adı, İlişki Türü, Gerekli Adet`
 
 - `Kampanya Adı`, `Başlangıç Tarihi`, `Bitiş Tarihi` zorunludur.
 - İlişki türleri: `Şart ürünü`, `Fayda ürünü`, `Hediye ürünü`, `İlgili ürün`.
@@ -44,13 +54,13 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 - Eşleşme önce `Kampanya ID` ile, yoksa normalize ad + başlangıç + bitiş ile yapılır. Aynı sözleşme yeni sürüm üretmez.
 - Tek sayfa şirket dosyası da kabul edilir; aynı kampanya satırları kampanya adı ve tarihlerle gruplanır.
 - `Kampanya Ürünleri` sayfası yoksa mevcut ilişkiler korunur.
-- Kampanya detayından yapılan dışa aktarma yalnızca `Ürün Adı, İlişki Türü, Gerekli Adet` kolonlarını içerir. Aynı dosyaya yüzlerce ürün satırı eklenip detaydan içe aktarılabilir; kampanya başlığı tekrar edilmez.
+- Kampanya detayından yapılan dışa aktarma `Ürün ID, Ürün Adı, İlişki Türü, Gerekli Adet` kolonlarını içerir. Aynı dosyaya yüzlerce ürün satırı eklenip detaydan içe aktarılabilir; kampanya başlığı tekrar edilmez.
 
 ## Teklifler
 
 **Teklifler sayfası:** `Teklif No, Teklif Anahtarı, Müşteri Adı, Telefon, Oluşturma Tarihi, Durum, Ödeme Türü, Kanal, Banka, Taksit, Kart Tipi, Kart Bayi İndirimi %, Nakit Bayi İndirimi %, Komisyon Dönemi, Komisyon %, Nakit Toplam, Kart Toplam, Seçili Toplam, Not, Rezervasyon No, Oluşturan`
 
-**Teklif Satırları:** `Teklif No, Teklif Anahtarı, Sıra, Ürün Adı, Adet, Normal Fiyat, Oliz Fiyatı, Maliyet, Kampanya, Hediye Durumu, Fiyat Tabanı, Önerilen Nakit, Önerilen Kart, Birim Nakit, Birim Kart, Satır Toplam Nakit, Satır Toplam Kart, Uyarı`
+**Teklif Satırları:** `Teklif No, Teklif Anahtarı, Sıra, Ürün ID, Ürün Adı, Adet, Normal Fiyat, Oliz Fiyatı, Maliyet, Kampanya, Hediye Durumu, Fiyat Tabanı, Önerilen Nakit, Önerilen Kart, Birim Nakit, Birim Kart, Satır Toplam Nakit, Satır Toplam Kart, Uyarı`
 
 **Kâr Detayı:** `Teklif No, Teklif Anahtarı, Ürün Adı, Taksit, Komisyon %, Komisyon Sonrası, Kampanya Hakedişi, Oliz Hakedişi, Toplam Gelir, Maliyet, Kâr/Zarar, Kâr Marjı %`
 
@@ -84,7 +94,7 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 
 **Rezervasyonlar:** `Rezervasyon No, Rezervasyon Anahtarı, Müşteri Adı, Rezervasyon Tarihi, Hatırlatma Tarihi, Hatırlatma Durumu, Gecikmiş, Durum, Toplam Adet, Teslim Edilen, İptal Edilen, Açık Adet, Not, Oluşturan`
 
-**Rezervasyon Satırları:** `Rezervasyon No, Rezervasyon Anahtarı, Ürün Adı, Miktar, Teslim Edilen, İptal Edilen, Açık, Durum, Servis Tarihi, Diğer Bayi Notu, Satır Notu`
+**Rezervasyon Satırları:** `Rezervasyon No, Rezervasyon Anahtarı, Ürün ID, Ürün Adı, Miktar, Teslim Edilen, İptal Edilen, Açık, Durum, Servis Tarihi, Diğer Bayi Notu, Satır Notu`
 
 - Import yeni ve açık rezervasyon oluşturur; mevcut `Rezervasyon No` atlanır.
 - `Müşteri Adı` ve `Rezervasyon Tarihi` zorunludur; tarih boşsa hata verir.

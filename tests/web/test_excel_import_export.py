@@ -205,8 +205,9 @@ def test_campaign_detail_excel_routes(
     assert export.status_code == 200
     assert export.content.startswith(b"PK")
     workbook = load_workbook(io.BytesIO(export.content))
-    assert workbook["Kampanya Ürünleri"]["A1"].value == "Ürün Adı"
-    assert workbook["Kampanya Ürünleri"]["B1"].value == "İlişki Türü"
+    assert workbook["Kampanya Ürünleri"]["A1"].value == "Ürün ID"
+    assert workbook["Kampanya Ürünleri"]["B1"].value == "Ürün Adı"
+    assert workbook["Kampanya Ürünleri"]["C1"].value == "İlişki Türü"
 
     page = client.get(f"/imports/campaigns?campaign_id={campaign.id}")
     assert page.status_code == 200

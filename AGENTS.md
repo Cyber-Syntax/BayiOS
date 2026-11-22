@@ -16,9 +16,9 @@ LAN-only dealer operations system for a Turkish appliance dealer: products, impo
 uv sync                                     # install dependencies (uv.lock)
 bash scripts/dev.sh                         # dev Postgres + migrations + uvicorn --reload
 uv run uvicorn bayios.main:create_app --factory --reload
-uv run alembic upgrade head                 # apply migrations (head: 0015)
+uv run alembic upgrade head                 # apply migrations (head: 0018)
 uv run alembic revision -m "message"        # add a migration
-uv run pytest -q                            # full suite: 292 tests (286 pass, 6 skip without a test DB)
+uv run pytest -q                            # full suite: 330 tests (324 pass, 6 skip without a test DB)
 BAYIOS_TEST_DATABASE_URL=postgresql+psycopg://bayios:bayios@127.0.0.1:5432/bayios_test \
   uv run pytest tests/integration -q        # PostgreSQL integration tests
 uv run ruff check src tests                 # lint (currently clean)
@@ -44,14 +44,14 @@ Route handlers stay thin: parse the request, call an application use case with a
 - **Language:** all user-facing text is Turkish — UI labels, validation/conflict messages, flash messages, print output. Comments, docstrings, identifiers, logs, and technical errors are English. English technical messages must never leak into the UI; domain/application code may raise Turkish user-facing messages.
 - **Money:** always `Decimal`/`NUMERIC`, two decimals, `ROUND_HALF_UP`. Never use `float`. Render with the Jinja filters `tr_money` and `tr_percent`.
 - **Dates:** store UTC, display `Europe/Istanbul` via `tr_date` (`10.11.2026`), `tr_date_long` (`10 Kasım 2026`), `tr_datetime`, and `iso_date` for form values. Date inputs use Flatpickr with the Turkish locale; ISO stays the submitted value.
-- **Product identity:** match only on `name_normalized` (Unicode NFKC, whitespace collapse, Turkish `I/ı/İ/i` folding, leading zeros preserved). No fuzzy matching; ambiguity surfaces as a conflict for the user.
+- **Product identity:** match on `external_id` first; when it is empty, match on `name_normalized` (Unicode NFKC, whitespace collapse, Turkish `I/ı/İ/i` folding, leading zeros preserved). Old IDs resolve through `product_external_id_history`. No fuzzy matching; ambiguity surfaces as a conflict for the user.
 - **Stock semantics:** physical stock is directly sellable. Reservations never reserve or reduce stock; only marking a reservation line `DELIVERED` reduces stock via an idempotent `delivery_out` movement. `stock_movements` is append-only.
 - **Transactions:** use `with uow:` and call `uow.commit()` explicitly. A failed operation must roll back and must never render as success.
 - **UI:** server-rendered Jinja2; HTMX only for partial updates (`_*.html` fragments); Alpine.js only for local UI state. No CDN and no runtime internet dependency. Vendored assets live in `web/static/vendor/` with hashes in `VERSIONS.txt`.
 - **CSS:** edit `web/static/css/app.css` and `print.css` directly. No Tailwind, Node, or CSS build step.
 - **Immutability:** campaign versions, offer snapshots, commission periods, and reservation events are append-only; edits must not rewrite history. Only actual changes create history/version rows.
 - **Migrations:** Alembic revisions follow `00NN_slug.py`, forward-only; never edit an applied revision.
-- **Out of scope:** auth/roles, web scraping, WMS/Dynamics integration, POS basket optimization, PDF attachments, barcode product lookup, and manual barcode entry. Do not imply these exist.
+- **Out of scope:** auth/roles, in-app/web scraping, WMS/Dynamics integration, POS basket optimization, PDF attachments, barcode product lookup, and manual barcode entry. Do not imply these exist. Importing the external scraper's Excel/CSV/`catalog.json` output is in scope; the app never scrapes websites itself.
 - **Tests:** assert observable behavior, not implementation details. Use `FakeUnitOfWork` for application/web tests; add PostgreSQL integration coverage for transaction, idempotency, and concurrency changes. Keep Turkish UI strings exact in assertions.
 
 ## Agent skills

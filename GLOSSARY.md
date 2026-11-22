@@ -4,6 +4,18 @@ BayiOS is a local dealer operations context for managing products, offers, reser
 
 ## Commercial concepts
 
+**External product ID**:
+The scraper-provided string identifier stored on a product as `external_id`; it can change when the same product is re-released under a new serial series. It is separate from the internal UUID used by offers and reservations.
+_Avoid_: Primary key, product code, barcode
+
+**Product ID history**:
+The aliases (`product_external_id_history`) that map previous external IDs to a product. They let old offer, reservation and campaign files resolve to the current product while the product keeps its newest ID.
+_Avoid_: Audit log, duplicate product
+
+**Product details**:
+The scraper-provided `features` and `specifications` text stored in `products.details` JSONB, together with optional `source_url`, `kind` and `scraped_at` metadata. Media files are not part of the model.
+_Avoid_: Media gallery, HTML description, scraped page
+
 **Campaign**:
 A dated commercial promotion or pricing guide that may reference condition products, benefit products, discounts, gifts, and a price basis. In MVP it is a guide and scenario source, not a general basket optimization engine.
 _Avoid_: Scraped promotion, automatic POS campaign

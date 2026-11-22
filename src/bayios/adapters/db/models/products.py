@@ -43,9 +43,15 @@ class ProductCategory(Base):
 class Product(Base):
     __tablename__ = "products"
     __table_args__ = (
-        sa.UniqueConstraint("name_normalized"),
         sa.CheckConstraint(
             "char_length(name_normalized) > 0", name="name_normalized_not_empty"
+        ),
+        sa.CheckConstraint(
+            "external_id IS NULL OR char_length(external_id) > 0",
+            name="external_id_not_empty",
+        ),
+        sa.CheckConstraint(
+            "kind IN ('product', 'warranty', 'explicit')", name="kind_valid"
         ),
         sa.CheckConstraint("regular_price >= 0", name="regular_price_non_negative"),
         sa.CheckConstraint(
@@ -57,11 +63,17 @@ class Product(Base):
             name="website_discounted_price_positive",
         ),
         sa.CheckConstraint("cost_price >= 0", name="cost_price_non_negative"),
+        sa.Index("uq_products_external_id", "external_id", unique=True),
     )
 
     id: Mapped[uuid.UUID] = uuid_pk()
+    external_id: Mapped[str | None] = mapped_column(sa.Text)
     name: Mapped[str] = mapped_column(sa.Text)
-    name_normalized: Mapped[str] = mapped_column(sa.Text)
+    name_normalized: Mapped[str] = mapped_column(sa.Text, index=True)
+    details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    source_url: Mapped[str | None] = mapped_column(sa.Text)
+    kind: Mapped[str] = mapped_column(sa.Text, server_default=sa.text("'product'"))
+    scraped_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True))
     regular_price: Mapped[Decimal | None] = mapped_column(MONEY)
     website_discounted_price: Mapped[Decimal | None] = mapped_column(MONEY)
     cost_price: Mapped[Decimal | None] = mapped_column(MONEY)
@@ -83,11 +95,30 @@ class Product(Base):
     )
 
 
+class ProductExternalIdHistory(Base):
+    __tablename__ = "product_external_id_history"
+    __table_args__ = (
+        sa.UniqueConstraint("external_id"),
+        sa.Index("ix_product_external_id_history_product_id", "product_id"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    product_id: Mapped[uuid.UUID] = mapped_column(
+        sa.ForeignKey("products.id", ondelete="CASCADE")
+    )
+    external_id: Mapped[str] = mapped_column(sa.Text)
+    created_at: Mapped[datetime] = mapped_column(
+        sa.DateTime(timezone=True), server_default=sa.func.now()
+    )
+
+
 class ProductImportBatch(Base):
     __tablename__ = "product_import_batches"
     __table_args__ = (
         sa.UniqueConstraint("import_number"),
-        sa.CheckConstraint("file_type IN ('csv', 'xlsx')", name="file_type_valid"),
+        sa.CheckConstraint(
+            "file_type IN ('csv', 'xlsx', 'json')", name="file_type_valid"
+        ),
         sa.CheckConstraint(
             "status IN ('previewed', 'committed', 'cancelled')", name="status_valid"
         ),
@@ -121,7 +152,8 @@ class ProductPriceHistory(Base):
             name="field_name_valid",
         ),
         sa.CheckConstraint(
-            "source IN ('csv_import', 'manual', 'other')", name="source_valid"
+            "source IN ('csv_import', 'scraper_import', 'manual', 'other')",
+            name="source_valid",
         ),
         sa.Index(
             "ix_product_price_history_product_id_changed_at", "product_id", "changed_at"

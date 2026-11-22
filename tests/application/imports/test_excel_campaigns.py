@@ -226,7 +226,8 @@ def test_campaign_detail_export_contains_only_target_campaign() -> None:
     data = export_campaign_products_xlsx(uow, campaign.id)
     workbook = load_workbook(io.BytesIO(data))
     assert workbook["Kampanya Ürünleri"].max_row == 3
-    assert workbook["Kampanya Ürünleri"]["A1"].value == "Ürün Adı"
+    assert workbook["Kampanya Ürünleri"]["A1"].value == "Ürün ID"
+    assert workbook["Kampanya Ürünleri"]["B1"].value == "Ürün Adı"
 
 
 def test_campaign_detail_import_can_replace_products_from_product_only_sheet() -> None:
@@ -261,3 +262,53 @@ def test_campaign_detail_import_can_replace_products_from_product_only_sheet() -
     assert current is not None
     links = uow.campaigns.get_version_products(current.id)
     assert {link.product_id for link in links} == {fridge.id, freezer.id}
+
+
+def test_campaign_import_resolves_product_by_external_id_before_name() -> None:
+    uow, fridge, _freezer = _fixture()
+    fridge.external_id = "9000"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Kampanyalar"
+    sheet.append(
+        [
+            "Kampanya Adı",
+            "Başlangıç Tarihi",
+            "Bitiş Tarihi",
+            "Kampanya Tipi",
+            "İndirim Türü",
+            "İndirim Değeri",
+            "Hediye Açıklaması",
+            "Ürün ID",
+            "Ürün Adı",
+            "İlişki Türü",
+            "Gerekli Adet",
+        ]
+    )
+    sheet.append(
+        [
+            "ID Kampanyası",
+            "01.11.2026",
+            "30.11.2026",
+            "Genel",
+            "Sadece bilgi",
+            "",
+            "",
+            "9000",
+            "Tamamen Farkli Ad",
+            "Şart ürünü",
+            1,
+        ]
+    )
+    stream = io.BytesIO()
+    workbook.save(stream)
+    data = stream.getvalue()
+
+    preview = preview_campaign_import(uow, data)
+    assert not preview.rows[0].errors, preview.rows[0].errors
+
+    sheet.cell(row=2, column=8, value="9999")
+    stream = io.BytesIO()
+    workbook.save(stream)
+    missing = preview_campaign_import(uow, stream.getvalue())
+    assert any("Ürün ID bulunamadı" in error for error in missing.rows[0].errors)

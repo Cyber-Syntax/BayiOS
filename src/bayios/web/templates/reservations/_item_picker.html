@@ -11,7 +11,7 @@
     <tbody>
       {% for product in products %}
       <tr>
-        <td class="col-name">{{ product.name }}</td>
+        <td class="col-name">{{ product.name }}{% if product.external_id %}<br><small class="muted">ID: {{ product.external_id }}</small>{% endif %}</td>
         <td class="col-stock">{{ product.physical_stock }}</td>
         <td>
           <form method="post" action="/reservations/{{ reservation_id }}/items" style="display: flex; gap: .25rem; align-items: center;">

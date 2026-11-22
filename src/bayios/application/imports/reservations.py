@@ -8,6 +8,7 @@ from bayios.application.imports.common import (
     ImportPreview,
     ImportResult,
     PreviewRow,
+    ProductLookup,
     record_batch,
     replay_result,
 )
@@ -23,7 +24,7 @@ from bayios.application.tabular import (
     row_value,
     sheet_named,
 )
-from bayios.domain.products import ActorContext, normalize_product_name
+from bayios.domain.products import ActorContext
 
 RESERVATION_HEADERS = {
     "reservation_number": ("Rezervasyon No", "Rezervasyon Numarası", "reservation_number"),
@@ -32,12 +33,14 @@ RESERVATION_HEADERS = {
     "reservation_date": ("Rezervasyon Tarihi", "reservation_date"),
     "reminder_due_at": ("Hatırlatma Tarihi", "reminder_due_at"),
     "note": ("Not", "note"),
+    "product_id": ("Ürün ID", "Urun ID", "product_id", "external_id"),
     "product_name": ("Ürün Adı", "Urun Adi", "product_name"),
     "quantity": ("Miktar", "Adet", "quantity"),
 }
 ITEM_HEADERS = {
     "reservation_number": ("Rezervasyon No", "Rezervasyon Numarası", "reservation_number"),
     "reservation_key": ("Rezervasyon Anahtarı", "Rezervasyon Anahtari", "reservation_key"),
+    "product_id": ("Ürün ID", "Urun ID", "product_id", "external_id"),
     "product_name": ("Ürün Adı", "Urun Adi", "product_name"),
     "quantity": ("Miktar", "Adet", "quantity"),
     "note": ("Satır Notu", "note"),
@@ -223,6 +226,7 @@ def _parse_reservations(
         if flat:
             grouped[key]["items"].append(  # type: ignore[index]
                 {
+                    "product_id": row_value(raw, reservation_layout, "product_id"),
                     "product_name": row_value(raw, reservation_layout, "product_name"),
                     "quantity": row_value(raw, reservation_layout, "quantity"),
                     "note": row_value(raw, reservation_layout, "note"),
@@ -235,6 +239,7 @@ def _parse_reservations(
                 continue
             grouped[key]["items"].append(  # type: ignore[index]
                 {
+                    "product_id": row_value(raw, item_layout, "product_id"),
                     "product_name": row_value(raw, item_layout, "product_name"),
                     "quantity": row_value(raw, item_layout, "quantity"),
                     "note": row_value(raw, item_layout, "note"),
@@ -306,25 +311,23 @@ def _parse_reservations(
             item_rows = group["items"]  # type: ignore[assignment]
             if not item_rows:
                 errors.append("En az bir ürün satırı gereklidir.")
-            products_by_name = uow.products.get_by_normalized_names(
-                [
-                    normalize_product_name(str(item["product_name"]))
-                    for item in item_rows
-                    if str(item["product_name"] or "").strip()
-                ]
-            )
+            product_lookup = ProductLookup.load(uow)
             items: list[NewReservationItem] = []
             seen: set[uuid.UUID] = set()
             for item in item_rows:
                 product_name = str(item["product_name"] or "").strip()
-                if not product_name:
+                product_id = str(item["product_id"] or "").strip() or None
+                if not product_name and not product_id:
                     continue
-                product = products_by_name.get(normalize_product_name(product_name))
-                if product is None:
-                    errors.append(f"Ürün bulunamadı: {product_name}")
+                product, product_error = product_lookup.resolve(
+                    product_id, product_name
+                )
+                if product_error is not None:
+                    errors.append(product_error)
                     continue
+                assert product is not None
                 if product.id in seen:
-                    errors.append(f"Aynı ürün tekrar ediyor: {product_name}")
+                    errors.append(f"Aynı ürün tekrar ediyor: {product_name or product_id}")
                     continue
                 seen.add(product.id)
                 try:

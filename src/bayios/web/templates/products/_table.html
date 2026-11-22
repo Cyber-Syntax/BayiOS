@@ -24,6 +24,9 @@
         </td>
         <td class="col-name" data-label="Ürün Adı">
           <a href="/products/{{ product.id }}"><strong>{{ product.name }}</strong></a>
+          {% if product.external_id %}
+          <br><small class="muted">ID: {{ product.external_id }}</small>
+          {% endif %}
           {% if product.is_archived %}
           <span class="badge" style="margin-left: .25rem; font-size: .75rem;">Arşivde</span>
           {% endif %}

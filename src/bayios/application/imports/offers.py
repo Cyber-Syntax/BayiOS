@@ -10,6 +10,7 @@ from bayios.application.imports.common import (
     ImportPreview,
     ImportResult,
     PreviewRow,
+    ProductLookup,
     record_batch,
     replay_result,
 )
@@ -40,7 +41,7 @@ from bayios.domain.commissions import (
 )
 from bayios.domain.naming import canonical_display_name, normalize_name
 from bayios.domain.offers import PAYMENT_TYPE_LABELS, PaymentType
-from bayios.domain.products import ActorContext, normalize_product_name
+from bayios.domain.products import ActorContext
 
 OFFER_HEADERS = {
     "offer_number": ("Teklif No", "Teklif Numarası", "offer_number"),
@@ -64,6 +65,7 @@ OFFER_HEADERS = {
         "dealer_discount_cash_percent",
     ),
     "note": ("Not", "note"),
+    "product_id": ("Ürün ID", "Urun ID", "product_id", "external_id"),
     "product_name": ("Ürün Adı", "Urun Adi", "product_name"),
     "quantity": ("Adet", "Miktar", "quantity"),
     "campaign": ("Kampanya", "campaign", "campaign_name"),
@@ -75,6 +77,7 @@ OFFER_HEADERS = {
 ITEM_HEADERS = {
     "offer_number": ("Teklif No", "Teklif Numarası", "offer_number"),
     "offer_key": ("Teklif Anahtarı", "Teklif Anahtari", "offer_key"),
+    "product_id": ("Ürün ID", "Urun ID", "product_id", "external_id"),
     "product_name": ("Ürün Adı", "Urun Adi", "product_name"),
     "quantity": ("Adet", "Miktar", "quantity"),
     "campaign": ("Kampanya", "campaign", "campaign_name"),
@@ -267,6 +270,7 @@ def _parse_offers(
             }
             order.append(key)
         item = {
+            "product_id": row_value(raw, offer_layout, "product_id"),
             "product_name": row_value(raw, offer_layout, "product_name"),
             "quantity": row_value(raw, offer_layout, "quantity"),
             "campaign": row_value(raw, offer_layout, "campaign"),
@@ -286,6 +290,7 @@ def _parse_offers(
                 continue
             grouped[key]["items"].append(  # type: ignore[index]
                 {
+                    "product_id": row_value(raw, item_layout, "product_id"),
                     "product_name": row_value(raw, item_layout, "product_name"),
                     "quantity": row_value(raw, item_layout, "quantity"),
                     "campaign": row_value(raw, item_layout, "campaign"),
@@ -435,23 +440,21 @@ def _parse_offers(
             item_rows = group["items"]  # type: ignore[assignment]
             if not item_rows:
                 errors.append("En az bir ürün satırı gereklidir.")
-            products_by_name = uow.products.get_by_normalized_names(
-                [
-                    normalize_product_name(str(item["product_name"]))
-                    for item in item_rows
-                    if str(item["product_name"] or "").strip()
-                ]
-            )
+            product_lookup = ProductLookup.load(uow)
             offer_items: list[OfferItemInput] = []
             for item in item_rows:
                 product_name = str(item["product_name"] or "").strip()
-                if not product_name:
-                    errors.append("Ürün adı zorunludur.")
+                if not product_name and not str(item["product_id"] or "").strip():
+                    errors.append("Ürün adı veya ürün ID zorunludur.")
                     continue
-                product = products_by_name.get(normalize_product_name(product_name))
-                if product is None:
-                    errors.append(f"Ürün bulunamadı: {product_name}")
+                product, product_error = product_lookup.resolve(
+                    str(item["product_id"] or "").strip() or None,
+                    product_name,
+                )
+                if product_error is not None:
+                    errors.append(product_error)
                     continue
+                assert product is not None
                 try:
                     quantity = parse_int(item["quantity"], "Adet", minimum=1) or 1
                 except ValueError as exc:

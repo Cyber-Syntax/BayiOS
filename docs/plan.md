@@ -676,6 +676,40 @@ Not: 10121’in normal fiyatı 39.999 TL olduğu için 40.000’lik örnekteki 3
 
 10121 gibi Oliz’siz ürünlerde kâr/zarar yalnız gerçek indirim sonrası satış, komisyon ve varsa gerçek hakediş üzerinden hesaplanır; kampanya + bayi indirimi sırası doğrudur; tüm taksit ve senaryolar tek ekranda canlı görünür; sıfır Oliz verisi temizlenmiştir; eski teklif snapshot’ları korunur.
 
+### Milestone 6 — Scraper ürün ID'si, JSON detayları ve çoklu import ID desteği
+
+**Kapsam ve kararlar**
+
+- Dış scraper çıktısı içe aktarılır; uygulama içinde scraping yapılmaz.
+- Ürün kimliği: iç UUID korunur; scraper ID'si `products.external_id` alanındadır.
+- `product_external_id_history` eski ID'leri alias olarak saklar. Ürün kataloğu yeni ID getirdiğinde `external_id` doğrudan güncellenir, eski ID alias'a yazılır; boş ID mevcut değeri korur.
+- Teklif/rezervasyon/kampanya importları ID'yi yalnızca çözer (güncel veya alias); ID dolu ama bulunamazsa hata verir, ada göre fallback yapmaz. ID boşsa adla legacy eşleşir; aynı ad birden fazlaysa ID istenir.
+- Ürün adı tekilliği kaldırıldı; manuel ekleme/düzenleme formundaki çift-ad koruması devam eder.
+- `products.details` JSONB: `features[]` ve `specifications[]`; `source_url`, `kind` (`product`/`warranty`/`explicit`), `scraped_at` saklanır.
+- Excel/CSV 9/10/11/12 sütunlu dosyaları destekler; 11. sütun JSON detayıdır, 12. sütun `scraped_at`. `catalog.json` schema_version `1.0` aynı preview/commit modeline dönüşür.
+- Boş JSON hücresi mevcut detayı korur; boş listeler temizler; bozuk JSON'da ürün alanları güncellenir, detay korunur ve hata raporlanır.
+- Normal fiyat boş/0 ise korunur; Oliz boş/0/null ise silinir. `catalog.json`'da `discounted_price: null` da Oliz'i siler.
+- Ürün detayında ID, tür, kaynak URL, scraper tarihi, öne çıkan özellikler ve teknik özellikler gösterilir; arama ad veya ID ile çalışır.
+- Import önizlemesi ID, tür ve detay özetini gösterir; `.json` yükleme aynı ekrandan yapılır.
+
+**Veri ve migration**
+
+- `0018_scraper_product_details`: `external_id`, `details`, `source_url`, `kind`, `scraped_at`; `name_normalized` unique kaldırılır; `external_id` unique index; `product_external_id_history`; `product_import_batches.file_type` `json`; `product_price_history.source` `scraper_import`.
+
+**Testler**
+
+- 9/10/11/12 sütunlu CSV/XLSX; başlıksız dosya hatası.
+- `catalog.json` parse ve şema kontrolü.
+- ID güncelleme + eski ID alias; aynı ID tekrarında ilk kayıt.
+- ID'siz garanti satırı ada göre eşleşme/oluşturma.
+- Boş JSON koruma, boş liste temizleme, bozuk JSON kısmi güncelleme.
+- Teklif/rezervasyon/kampanya importlarında ID-öncelikli eşleşme, legacy ad eşleşmesi ve ID bulunamadı hatası.
+- Ürün detayında özellikler/teknik özellikler/kaynak gösterimi.
+
+**Çıkış kriteri**
+
+Scraper Excel/CSV ve catalog.json aynı ürün modeline düşer; yeni ID eski ürünü günceller ve eski ID alias olarak korunur; teklif/rezervasyonlar güncel ID'yi gösterir; detaylar JSONB'de saklanır ve ürün ekranında görünür; eski 9/10 sütunlu dosyalar çalışmaya devam eder.
+
 ### Cross-milestone — Ayarlar (banka ve kategori ana verisi)
 
 **Kapsam**

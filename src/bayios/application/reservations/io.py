@@ -19,6 +19,16 @@ def export_reservations_xlsx(
         items_by_reservation = uow.reservations.get_items_for_reservations(
             [row.id for row in rows]
         )
+        product_ids = [
+            item.product_id
+            for items in items_by_reservation.values()
+            for item in items
+            if getattr(item, "product_id", None) is not None
+        ]
+        products = {
+            product.id: product
+            for product in uow.products.get_by_ids(product_ids)
+        }
     reservation_rows: list[dict[str, object]] = []
     item_rows: list[dict[str, object]] = []
     for row in rows:
@@ -43,6 +53,11 @@ def export_reservations_xlsx(
                 {
                     "reservation_number": row.reservation_number,
                     "reservation_key": f"#{row.reservation_number}",
+                    "external_id": (
+                        products[item.product_id].external_id
+                        if getattr(item, "product_id", None) in products
+                        else ""
+                    ),
                     "product_name": item.product_name_snapshot,
                     "quantity": item.quantity,
                     "delivered_quantity": item.delivered_quantity,
@@ -89,6 +104,7 @@ def export_reservations_xlsx(
         columns=(
             ColumnSpec("Rezervasyon No", "reservation_number", "int", 16),
             ColumnSpec("Rezervasyon Anahtarı", "reservation_key", "text", 18),
+            ColumnSpec("Ürün ID", "external_id", "text", 18),
             ColumnSpec("Ürün Adı", "product_name", "text", 34),
             ColumnSpec("Miktar", "quantity", "int", 10),
             ColumnSpec("Teslim Edilen", "delivered_quantity", "int", 14),
@@ -101,7 +117,7 @@ def export_reservations_xlsx(
         ),
         rows=item_rows,
         instructions=(
-            ("Ürün Adı", "Zorunlu", "Mevcut ürünlerden biri olmalıdır."),
+            ("Ürün ID / Ürün Adı", "Zorunlu", "Önce ürün ID; boşsa ürün adı ile eşleşir."),
             ("Miktar", "Zorunlu", "Pozitif tam sayı."),
             ("Teslim / İptal / Durum", "Salt okunur", "İçe aktarmada yok sayılır."),
         ),
@@ -133,13 +149,14 @@ def reservation_import_template() -> bytes:
         columns=(
             ColumnSpec("Rezervasyon No", "reservation_number", "int", 16),
             ColumnSpec("Rezervasyon Anahtarı", "reservation_key", "text", 18),
+            ColumnSpec("Ürün ID", "external_id", "text", 18),
             ColumnSpec("Ürün Adı", "product_name", "text", 34),
             ColumnSpec("Miktar", "quantity", "int", 10),
             ColumnSpec("Satır Notu", "note", "text", 28),
         ),
         rows=(),
         instructions=(
-            ("Ürün Adı", "Zorunlu", "Mevcut ürünlerden biri."),
+            ("Ürün ID / Ürün Adı", "Zorunlu", "Önce ürün ID; boşsa ürün adı."),
             ("Miktar", "Zorunlu", "Pozitif tam sayı."),
         ),
     )

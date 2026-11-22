@@ -153,7 +153,7 @@
       <tbody>
         {% for item in detail.items %}
         <tr>
-          <td>{{ item.product_name_snapshot }}{% if item.warning_text %}<br><small class="muted">{{ item.warning_text }}</small>{% endif %}</td>
+          <td>{{ item.product_name_snapshot }}{% if external_ids.get(item.product_id) %}<br><small class="muted">ID: {{ external_ids.get(item.product_id) }}</small>{% endif %}{% if item.warning_text %}<br><small class="muted">{{ item.warning_text }}</small>{% endif %}</td>
           <td>{{ item.quantity }}</td>
           <td>{{ item.regular_price_snapshot | tr_money }}</td>
           {% if ns.has_oliz %}<td>{{ item.website_price_snapshot | tr_money }}</td>{% endif %}

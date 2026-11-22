@@ -410,3 +410,18 @@ def test_delete_products_blocked_by_open_reservation(
     assert response.status_code == 303
     assert response.headers["location"].endswith("msg=delete_blocked")
     assert product.id in fake_uow.products.products
+
+
+def test_reservation_detail_shows_current_product_external_id(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = _product(fake_uow)
+    product.external_id = "8000"
+    location = _create_via_ui(client, fake_uow, quantity=1)
+
+    product.external_id = "9000"
+    page = client.get(location)
+
+    assert page.status_code == 200
+    assert "ID: 9000" in page.text
+    assert "ID: 8000" not in page.text

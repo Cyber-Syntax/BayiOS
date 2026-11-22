@@ -16,6 +16,7 @@ from bayios.application.imports.common import (
     ImportPreview,
     ImportResult,
     PreviewRow,
+    ProductLookup,
     record_batch,
     replay_result,
 )
@@ -44,7 +45,7 @@ from bayios.domain.campaigns import (
     DiscountType,
     ProductRelationType,
 )
-from bayios.domain.products import ActorContext, normalize_product_name
+from bayios.domain.products import ActorContext
 
 CAMPAIGN_HEADERS = {
     "campaign_id": ("Kampanya ID", "campaign_id", "id"),
@@ -67,6 +68,7 @@ CAMPAIGN_HEADERS = {
         "gift_no_base_price_type",
     ),
     "employee_note": ("Çalışan Notu", "Calisan Notu", "employee_note"),
+    "product_id": ("Ürün ID", "Urun ID", "product_id", "external_id"),
     "product_name": ("Ürün Adı", "Urun Adi", "product_name"),
     "relation_type": ("İlişki Türü", "Iliski Turu", "relation_type"),
     "quantity_required": ("Gerekli Adet", "quantity_required"),
@@ -77,6 +79,7 @@ PRODUCT_HEADERS = {
     "campaign_name": ("Kampanya Adı", "Kampanya Adi", "campaign_name", "name"),
     "starts_at": ("Başlangıç Tarihi", "Baslangic Tarihi", "starts_at"),
     "ends_at": ("Bitiş Tarihi", "Bitis Tarihi", "ends_at"),
+    "product_id": ("Ürün ID", "Urun ID", "product_id", "external_id"),
     "product_name": ("Ürün Adı", "Urun Adi", "product_name"),
     "relation_type": ("İlişki Türü", "Iliski Turu", "relation_type"),
     "quantity_required": ("Gerekli Adet", "quantity_required"),
@@ -301,7 +304,8 @@ def _parse_campaigns(
 
     def add_product(row: dict[str, object], values: dict[str, object]) -> None:
         name = str(values.get("product_name") or "").strip()
-        if not name:
+        product_id = str(values.get("product_id") or "").strip() or None
+        if not name and not product_id:
             return
         raw_relation = values.get("relation_type")
         try:
@@ -323,7 +327,7 @@ def _parse_campaigns(
             row.setdefault("errors", []).append(str(exc))
             return
         row.setdefault("products", []).append(
-            (name, relation, quantity)
+            (product_id, name, relation, quantity)
         )
 
     for offset, raw in enumerate(campaign_sheet.rows[campaign_layout.row_index + 1 :], start=1):
@@ -401,6 +405,7 @@ def _parse_campaigns(
             add_product(
                 grouped[key],
                 {
+                    "product_id": row_value(raw, campaign_layout, "product_id"),
                     "product_name": row_value(raw, campaign_layout, "product_name"),
                     "relation_type": row_value(raw, campaign_layout, "relation_type"),
                     "quantity_required": row_value(
@@ -448,6 +453,7 @@ def _parse_campaigns(
             add_product(
                 grouped[key],
                 {
+                    "product_id": row_value(raw, product_layout, "product_id"),
                     "product_name": row_value(raw, product_layout, "product_name"),
                     "relation_type": row_value(raw, product_layout, "relation_type"),
                     "quantity_required": row_value(
@@ -511,27 +517,24 @@ def _parse_campaigns(
             gift_yes = None
             gift_no = None
 
-        product_names = [str(link[0]) for link in product_links]  # type: ignore[index]
-        products_by_name = (
-            uow.products.get_by_normalized_names(
-                [normalize_product_name(name) for name in product_names]
-            )
-            if product_names
-            else {}
-        )
+        product_lookup = ProductLookup.load(uow)
         inputs: list[CampaignProductInput] = []
         seen: set[tuple[uuid.UUID, str]] = set()
-        for product_name, relation, quantity in product_links:  # type: ignore[misc]
-            product = products_by_name.get(normalize_product_name(product_name))
-            if product is None:
-                errors.append(f"Ürün bulunamadı: {product_name}")
+        for product_id, product_name, relation, quantity in product_links:  # type: ignore[misc]
+            product, product_error = product_lookup.resolve(
+                str(product_id or "").strip() or None,
+                str(product_name or "").strip(),
+            )
+            if product_error is not None:
+                errors.append(product_error)
                 continue
+            assert product is not None
             relation_value = (
                 relation.value if isinstance(relation, ProductRelationType) else str(relation)
             )
             key_pair = (product.id, relation_value)
             if key_pair in seen:
-                errors.append(f"Aynı ürün ilişkisi tekrar ediyor: {product_name}")
+                errors.append(f"Aynı ürün ilişkisi tekrar ediyor: {product_name or product_id}")
                 continue
             seen.add(key_pair)
             inputs.append(

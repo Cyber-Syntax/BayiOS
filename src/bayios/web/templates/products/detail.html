@@ -132,6 +132,71 @@
   </div>
 </div>
 
+{% set product_kind = product.kind or 'product' %}
+{% if product.external_id or product.source_url or product.scraped_at or product_kind != 'product' %}
+<div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+  <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Scraper Bilgisi</h2>
+  <div class="grid-stats" style="margin-top: 0;">
+    <div class="stat-box">
+      <div class="stat-label">Ürün ID</div>
+      <div class="stat-value" style="font-size: 1rem;">{{ product.external_id or '—' }}</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Tür</div>
+      <div class="stat-value" style="font-size: 1rem;">
+        {% if product_kind == 'warranty' %}Garanti{% elif product_kind == 'explicit' %}Açık{% else %}Ürün{% endif %}
+      </div>
+    </div>
+    {% if product.source_url %}
+    <div class="stat-box">
+      <div class="stat-label">Kaynak</div>
+      <div class="stat-value" style="font-size: 1rem;"><a href="{{ product.source_url }}" target="_blank" rel="noopener">Ürün sayfası</a></div>
+    </div>
+    {% endif %}
+    {% if product.scraped_at %}
+    <div class="stat-box">
+      <div class="stat-label">Scraper Tarihi</div>
+      <div class="stat-value" style="font-size: 1rem;">{{ product.scraped_at | tr_datetime }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if product_details and not product_details.is_empty %}
+<div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+  <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Ürün Özellikleri</h2>
+  {% if product_details.features %}
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .75rem; margin-bottom: 1.25rem;">
+    {% for feature in product_details.features %}
+    <div class="card" style="padding: .75rem; margin: 0; background: var(--bg);">
+      {% if feature.title %}<h3 style="margin: 0 0 .35rem; font-size: .95rem;">{{ feature.title }}</h3>{% endif %}
+      {% if feature.text %}<p style="margin: 0; font-size: .85rem; white-space: pre-line;">{{ feature.text }}</p>{% endif %}
+      {% if feature.note %}<small class="muted" style="display: block; margin-top: .45rem; white-space: pre-line;">{{ feature.note }}</small>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if product_details.specifications %}
+  <h3 style="margin: 0 0 .5rem; font-size: 1rem;">Teknik Özellikler</h3>
+  <div class="table-container">
+    <table class="data-table" style="min-width: 0;">
+      <thead><tr><th>Grup</th><th>Özellik</th><th>Değer</th></tr></thead>
+      <tbody>
+        {% for specification in product_details.specifications %}
+        <tr>
+          <td><small class="muted">{{ specification.group or '—' }}</small></td>
+          <td>{{ specification.name }}</td>
+          <td>{{ specification.value }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
 <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
   <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
     <div>

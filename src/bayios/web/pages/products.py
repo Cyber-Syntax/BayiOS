@@ -39,6 +39,7 @@ from bayios.application.products import (
 )
 from bayios.application.reservations import get_open_reservation_totals
 from bayios.domain.commissions import PRODUCT_GROUP_LABELS, ProductCommissionGroup
+from bayios.domain.products.details import ProductDetails
 from bayios.web.deps import ActorDep, UnitOfWorkDep
 from bayios.web.templating import templates
 
@@ -412,12 +413,17 @@ def product_detail(
         for group in ProductCommissionGroup
     )
     category_group_labels = dict(category_group_options)
+    try:
+        product_details = ProductDetails.from_json(detail.product.details)
+    except (TypeError, ValueError):
+        product_details = ProductDetails()
     return templates.TemplateResponse(
         request,
         "products/detail.html",
         {
             "active_nav": "products",
             "product": detail.product,
+            "product_details": product_details,
             "price_history": detail.price_history,
             "stock_movements": detail.stock_movements,
             "open_reservation": detail.open_reservation,

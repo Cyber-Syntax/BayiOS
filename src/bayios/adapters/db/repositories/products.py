@@ -10,6 +10,7 @@ from bayios.adapters.db.models.inventory import StockMovement
 from bayios.adapters.db.models.products import (
     Product,
     ProductCategory,
+    ProductExternalIdHistory,
     ProductImportBatch,
     ProductPriceHistory,
 )
@@ -50,6 +51,7 @@ class SqlAlchemyProductRepository:
             filter_clause = sa.or_(
                 Product.name_normalized.contains(normalized),
                 Product.name.ilike(f"%{clean_query}%"),
+                Product.external_id.ilike(f"%{clean_query}%"),
             )
             stmt = stmt.where(filter_clause)
             count_stmt = count_stmt.where(filter_clause)
@@ -101,18 +103,84 @@ class SqlAlchemyProductRepository:
         )
         return result.rowcount or 0
 
+    def get_by_external_id(self, external_id: str) -> Product | None:
+        return self._session.scalar(
+            sa.select(Product).where(Product.external_id == external_id)
+        )
+
+    def get_by_external_ids(
+        self, external_ids: Sequence[str]
+    ) -> dict[str, Product]:
+        if not external_ids:
+            return {}
+        products = self._session.scalars(
+            sa.select(Product).where(Product.external_id.in_(external_ids))
+        ).all()
+        return {p.external_id: p for p in products if p.external_id}
+
+    def get_by_external_id_including_history(
+        self, external_id: str
+    ) -> Product | None:
+        current = self.get_by_external_id(external_id)
+        if current is not None:
+            return current
+        return self._session.scalar(
+            sa.select(Product)
+            .join(
+                ProductExternalIdHistory,
+                ProductExternalIdHistory.product_id == Product.id,
+            )
+            .where(ProductExternalIdHistory.external_id == external_id)
+        )
+
     def get_by_normalized_name(self, normalized_name: str) -> Product | None:
         return self._session.scalar(
-            sa.select(Product).where(Product.name_normalized == normalized_name)
+            sa.select(Product)
+            .where(Product.name_normalized == normalized_name)
+            .order_by(Product.created_at)
         )
 
     def get_by_normalized_names(self, names: Sequence[str]) -> dict[str, Product]:
+        grouped = self.find_by_normalized_names(names)
+        return {
+            name: products[0]
+            for name, products in grouped.items()
+            if products
+        }
+
+    def find_by_normalized_names(
+        self, names: Sequence[str]
+    ) -> dict[str, list[Product]]:
         if not names:
             return {}
         products = self._session.scalars(
-            sa.select(Product).where(Product.name_normalized.in_(names))
+            sa.select(Product)
+            .where(Product.name_normalized.in_(names))
+            .order_by(Product.created_at)
         ).all()
-        return {p.name_normalized: p for p in products}
+        grouped: dict[str, list[Product]] = {}
+        for product in products:
+            grouped.setdefault(product.name_normalized, []).append(product)
+        return grouped
+
+    def add_external_id_history(
+        self, entry: ProductExternalIdHistory
+    ) -> None:
+        self._session.add(entry)
+        self._session.flush()
+
+    def get_external_id_history(self) -> Sequence[ProductExternalIdHistory]:
+        return self._session.scalars(
+            sa.select(ProductExternalIdHistory)
+        ).all()
+
+    def delete_external_id_history(self, external_id: str) -> None:
+        self._session.execute(
+            sa.delete(ProductExternalIdHistory).where(
+                ProductExternalIdHistory.external_id == external_id
+            )
+        )
+        self._session.flush()
 
     def add(self, product: Product) -> None:
         # Flush immediately so dependent rows (price history / stock movements)
@@ -157,6 +225,7 @@ class SqlAlchemyProductRepository:
             filter_clause = sa.or_(
                 Product.name_normalized.contains(normalized),
                 Product.name.ilike(f"%{clean_query}%"),
+                Product.external_id.ilike(f"%{clean_query}%"),
             )
             stmt = stmt.where(filter_clause)
             count_stmt = count_stmt.where(filter_clause)

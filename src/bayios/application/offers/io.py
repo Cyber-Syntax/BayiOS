@@ -27,6 +27,16 @@ def export_offers_xlsx(
         bank_names = {
             bank.id: bank.name for bank in uow.commissions.get_banks(active_only=False)
         }
+        product_ids = [
+            item.product_id
+            for offer_items in items_by_offer.values()
+            for item in offer_items
+            if item.product_id is not None
+        ]
+        products = {
+            product.id: product
+            for product in uow.products.get_by_ids(product_ids)
+        }
 
     offer_rows: list[dict[str, object]] = []
     item_rows: list[dict[str, object]] = []
@@ -75,6 +85,11 @@ def export_offers_xlsx(
                     "offer_number": offer.offer_number,
                     "offer_key": f"#{offer.offer_number}",
                     "position": item.position,
+                    "external_id": (
+                        products[item.product_id].external_id
+                        if item.product_id in products
+                        else ""
+                    ),
                     "product_name": item.product_name_snapshot,
                     "quantity": item.quantity,
                     "regular_price": item.regular_price_snapshot,
@@ -150,6 +165,7 @@ def export_offers_xlsx(
             ColumnSpec("Teklif No", "offer_number", "int", 12),
             ColumnSpec("Teklif Anahtarı", "offer_key", "text", 16),
             ColumnSpec("Sıra", "position", "int", 8),
+            ColumnSpec("Ürün ID", "external_id", "text", 18),
             ColumnSpec("Ürün Adı", "product_name", "text", 34),
             ColumnSpec("Adet", "quantity", "int", 10),
             ColumnSpec("Normal Fiyat", "regular_price", "money", 16),
@@ -168,7 +184,7 @@ def export_offers_xlsx(
         ),
         rows=item_rows,
         instructions=(
-            ("Ürün Adı", "Zorunlu", "Mevcut ürünlerden biri olmalıdır."),
+            ("Ürün ID / Ürün Adı", "Zorunlu", "Önce ürün ID; boşsa ürün adı ile eşleşir."),
             ("Adet", "Zorunlu", "Pozitif tam sayı."),
             ("Kampanya", "Opsiyonel", "Aktif kampanya adı."),
             ("Hediye Durumu", "Opsiyonel", "Evet/Hayır."),
@@ -215,6 +231,7 @@ def offer_import_template() -> bytes:
             ColumnSpec("Kart Bayi İndirimi %", "dealer_discount_percent", "percent", 16),
             ColumnSpec("Nakit Bayi İndirimi %", "dealer_discount_cash_percent", "percent", 18),
             ColumnSpec("Not", "note", "text", 30),
+            ColumnSpec("Ürün ID", "external_id", "text", 18),
             ColumnSpec("Ürün Adı", "product_name", "text", 34),
             ColumnSpec("Adet", "quantity", "int", 10),
             ColumnSpec("Kampanya", "campaign", "text", 26),
@@ -227,7 +244,7 @@ def offer_import_template() -> bytes:
             ("Teklif Anahtarı", "Gruplama", "Yeni tekliflerde satırları gruplamak için zorunlu."),
             ("Müşteri Adı", "Zorunlu", "Teklif müşterisi."),
             ("Ödeme Türü", "Zorunlu", "Nakit veya Kart."),
-            ("Ürün Adı", "Zorunlu", "Mevcut ürünlerden biri."),
+            ("Ürün ID / Ürün Adı", "Zorunlu", "Önce ürün ID; boşsa ürün adı."),
             ("Adet", "Zorunlu", "Pozitif tam sayı."),
             ("Kampanya", "Opsiyonel", "Aktif kampanya adı."),
             ("Hediye Durumu", "Opsiyonel", "Evet/Hayır."),
