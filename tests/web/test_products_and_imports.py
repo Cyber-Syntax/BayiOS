@@ -527,3 +527,48 @@ def test_product_detail_shows_scraper_id_kind_and_details(
     assert "<details" in response.text
     assert "Ürün Özellikleri (1)" in response.text
     assert "Teknik Özellikler (1)" in response.text
+
+
+def test_post_imports_commit_accepts_large_catalog_field(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    large_text = "A" * (1_100_000)  # source_b64 alone is > 1 MB
+    catalog = {
+        "schema_version": "1.0",
+        "scraped_at": "2026-11-22T11:53:05Z",
+        "products": [
+            {
+                "id": "LARGE-1",
+                "product_name": "Büyük Katalog Ürünü",
+                "category": "Çamaşır Makinesi",
+                "price": 1000.0,
+                "discounted_price": None,
+                "currency": "TRY",
+                "source_url": "https://example.test/large",
+                "features": [{"title": "Uzun", "text": large_text, "note": ""}],
+                "specifications": [],
+                "kind": "explicit",
+                "scraped_at": "2026-11-22T11:53:05Z",
+            }
+        ],
+    }
+    content = json.dumps(catalog, ensure_ascii=False).encode("utf-8")
+    source_b64 = base64.b64encode(content).decode("ascii")
+    assert len(source_b64) > 1024 * 1024
+
+    response = client.post(
+        "/imports/products/commit",
+        data={
+            "file_name": "catalog.json",
+            "file_type": "json",
+            "source_b64": source_b64,
+            "decisions_json": "{}",
+            "import_token": "large-catalog-test",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    product = fake_uow.products.get_by_external_id("LARGE-1")
+    assert product is not None
+    assert product.details["features"][0]["text"] == large_text

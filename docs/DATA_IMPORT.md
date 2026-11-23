@@ -12,6 +12,7 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 - Tarihler `GG.AA.YYYY`, `GG/AA/YYYY`, `YYYY-MM-DD` ve Excel tarih hücresi olarak kabul edilir.
 - Evet/Hayır, Var/Yok, 1/0, TRUE/FALSE boolean olarak kabul edilir.
 - Önizleme onaylanmadan yazılmaz; commit tek transaction'dır. Aynı import token'ı tekrar gönderilirse önceki sonuç döner.
+- Büyük `catalog.json` dosyaları preview/commit arasında Base64 olarak taşınır; commit multipart parça limiti 32 MB'tır. 8–10 MB dosyalar desteklenir. Ters proxy kullanılıyorsa `client_max_body_size` en az Base64 boyutu (~1.34× dosya) kadar olmalıdır.
 - Ürün adı metin olarak tutulmalıdır; Excel sayısal hücreye çevirirse baştaki sıfırlar kaybolabilir.
 
 ## Ürünler

@@ -5,7 +5,7 @@ import json
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, Response, UploadFile
+from fastapi import APIRouter, File, HTTPException, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from bayios.application.errors import ImportFormatError
@@ -146,19 +146,26 @@ async def commit_import(
     request: Request,
     uow: UnitOfWorkDep,
     actor: ActorDep,
-    file_name: Annotated[str, Form()],
-    file_type: Annotated[str, Form()],
-    source_b64: Annotated[str, Form()],
 ) -> Response:
+    # Large catalog.json files arrive as Base64 in one multipart field. Starlette's
+    # default part limit is 1 MB; allow enough room for a 32 MB file plus Base64.
+    async with request.form(max_part_size=32 * 1024 * 1024) as form_data:
+        file_name = str(form_data.get("file_name") or "")
+        file_type = str(form_data.get("file_type") or "")
+        source_b64 = str(form_data.get("source_b64") or "")
+        decisions_json_str = str(form_data.get("decisions_json") or "{}")
+        import_token = form_data.get("import_token")
+
+    if not source_b64:
+        raise HTTPException(status_code=400, detail="Dosya verisi bulunamadı")
+
     try:
-        source_bytes = base64.b64decode(source_b64.encode("ascii"))
+        source_bytes = base64.b64decode(
+            source_b64.encode("ascii"), validate=True
+        )
     except Exception as exc:
         raise HTTPException(status_code=400, detail="Geçersiz dosya verisi") from exc
 
-    # Parse decisions from single JSON field — avoids multipart field-count limits
-    form_data = await request.form()
-    decisions_json_str = form_data.get("decisions_json") or "{}"
-    import_token = form_data.get("import_token")
     try:
         decisions: dict[str, str] = json.loads(decisions_json_str)
     except json.JSONDecodeError as exc:
