@@ -172,7 +172,8 @@ def test_campaign_json_missing_products_are_warned_and_skipped() -> None:
 
     assert not preview.rows[0].errors
     assert any(
-        "bulunamadı" in warning for warning in preview.rows[0].warnings
+        "otomatik oluşturulacak" in warning
+        for warning in preview.rows[0].warnings
     )
     assert preview.rows[0].values["products"] == "2 / 3"
 
@@ -189,7 +190,11 @@ def test_campaign_json_missing_products_are_warned_and_skipped() -> None:
     version = uow.campaigns.get_current_version(campaign.id)
     assert version is not None
     assert version.source_product_count == 3
-    assert len(uow.campaigns.get_version_products(version.id)) == 2
+    assert len(uow.campaigns.get_version_products(version.id)) == 3
+    created = uow.products.get_by_external_id("9999999999")
+    assert created is not None
+    assert created.name == "Katalogda Olmayan Ürün"
+    assert created.regular_price is None
 
 
 def test_campaign_json_export_round_trips_conditions_and_product_ids() -> None:
@@ -239,3 +244,48 @@ def test_campaign_json_duplicate_external_id_is_skipped() -> None:
     )
     assert result.created_count == 1
     assert result.error_count == 1
+
+
+def test_campaign_json_creates_same_missing_product_once_across_campaigns() -> None:
+    uow = FakeUnitOfWork()
+    product = {
+        "name": "6433 OK",
+        "product_id": "6433",
+        "relationship": "İlgili ürün",
+        "required_quantity": None,
+    }
+    payload = {
+        "schema_version": "1.0",
+        "scraped_at": "2026-11-22T14:26:27Z",
+        "campaigns": [
+            {
+                "id": "campaign-a",
+                "name": "Kampanya A",
+                "start_date": "2026-11-01",
+                "end_date": "2026-11-30",
+                "products": [product],
+            },
+            {
+                "id": "campaign-b",
+                "name": "Kampanya B",
+                "start_date": "2026-11-01",
+                "end_date": "2026-11-30",
+                "products": [product],
+            },
+        ],
+    }
+    source = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+
+    result = commit_campaign_json(
+        uow,
+        file_name="kampanyalar.json",
+        file_type="json",
+        source=source,
+        decisions={},
+    )
+
+    assert result.created_count == 2
+    created = uow.products.get_all()
+    assert len(created) == 1
+    assert created[0].external_id == "6433"
+    assert created[0].name == "6433 OK"

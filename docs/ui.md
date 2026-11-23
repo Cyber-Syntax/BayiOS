@@ -88,6 +88,7 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 - Kampanyalar ekranında global bayi indirimi varsayılanı ve değişiklik geçmişi yönetilir.
 - Kampanya listesi ve detayı A4 basılabilir; çıktı otomatik fiyat uygulaması değil, çalışan rehberidir.
 - Listede **"İçe Aktar (Excel/JSON)"**, **"Excel Dışa Aktar"** ve **"JSON Dışa Aktar"** eylemleri vardır; içe aktarma önizlemesi kampanya başlığı ve ürün ilişkilerini ayrı satırlarda gösterir.
+- JSON kampanya importunda katalogda olmayan ürünler fiyatsız/stoksuz otomatik oluşturulur; çalışan ürün detayından fiyatı sonra girer.
 - Kampanya detayında da **"İçe Aktar (Excel/JSON)"**, **"Excel Dışa Aktar"** ve **"JSON Dışa Aktar"** bulunur. Excel detay dışa aktarması yalnızca **Ürün Adı, İlişki Türü, Gerekli Adet** kolonlarını içeren "Kampanya Ürünleri" sayfasını indirir; 100'e kadar ürün satırı bu sayfaya eklenebilir. JSON detay dışa aktarması kampanyanın adı, tarihleri, koşulları ve ürün ilişkileriyle tek kampanyalı şema üretir. Detaydan açılan içe aktarma yalnızca o kampanyayı günceller; ürün satırları kampanya başlığı tekrar edilmeden yüklenebilir.
 
 ### Teklifler

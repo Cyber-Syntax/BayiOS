@@ -218,7 +218,7 @@ JSON detay hücresi (11. sütun):
 
 - Kaynak: `docs/scrapper/kampanyalar_20261122-142627.json` (`schema_version` 1.0, 25 kampanya).
 - `campaigns.external_id` slug; `campaigns.source_url`; `campaign_versions.conditions` JSONB, `source_category`, `source_product_count`, `scraped_at`.
-- Import eşleştirmesi: önce slug, yoksa ad + tarih; ürünler önce ürün ID'si/alias, yoksa ad. Bulunamayan ürünler uyarıyla atlanır, kampanya yine oluşturulur.
+- Import eşleştirmesi: önce slug, yoksa ad + tarih; ürünler önce ürün ID'si/alias, yoksa ad. Bulunamayan ürünler commit sırasında fiyatsız/stoksuz otomatik oluşturulur ve kampanyaya bağlanır; önizleme yalnızca uyarı gösterir.
 - JSON'da yapısal indirim alanı olmadığı için kampanyalar `Genel` + `Sadece bilgi` olarak aktarılır; koşullar detay ekranında açılır/kapanır panelde gösterilir.
 - Aynı şema JSON dışa aktarmada üretilir; kampanya listesi ve detayında JSON butonları vardır.
 - Migration: `0019_campaign_scraper_metadata`.

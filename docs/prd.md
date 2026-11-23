@@ -541,6 +541,8 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 
 **FR-CAMP-19 (P0):** Kampanyalar JSON olarak dışa aktarılabilmeli; aynı şema (`schema_version` 1.0) ile tekrar içe aktarılabilmelidir. Kampanya detayında "Koşullar" bölümü varsayılan kapalı açılır/kapanır panel olarak gösterilmeli; kaynak ID, kategori, URL ve eşleşen/kaynak ürün sayısı görünmelidir.
 
+**FR-CAMP-20 (P0):** Kampanya JSON importunda Bayios kataloğunda bulunmayan ürünler otomatik oluşturulmalıdır. Ürün adı `product_name`, scraper ID'si varsa `external_id` olarak yazılmalı; fiyat, maliyet ve stok boş/0 bırakılmalıdır. Çalışan ürün detayından fiyat ve diğer bilgileri daha sonra girebilmelidir. Aynı ürün birden fazla kampanyada geçerse tek ürün oluşturulmalı; kampanya ürün ilişkisi bu ürüne bağlanmalıdır. Ürün oluşturma yalnızca commit aşamasında yapılmalı, önizleme veritabanına yazmamalıdır.
+
 ### 5.5 Banka komisyonları ve fiyat referansı
 
 **FR-FIN-01 (P0):** Banka tanımlanabilmeli ve formdan hızlıca eklenebilmelidir. Banka adı büyük/küçük harf ve Türkçe `İ/ı` duyarsız tekil olmalıdır (`AKBANK` = `akbank` = `Akbank`); görünen ad canonical biçimde (`Akbank`) saklanır. Komisyon ve teklif formlarında listede olmayan banka, formdan ayrılmadan hızlıca eklenebilmeli ve eklenen banka anında seçilebilmelidir; var olan banka yeniden yazılırsa yeni kayıt açılmaz, mevcut kayıt seçilir.

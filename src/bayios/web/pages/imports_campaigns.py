@@ -25,7 +25,7 @@ router = APIRouter(prefix="/imports/campaigns", tags=["imports"])
 
 UPLOAD_HELP = (
     "Excel (.xlsx) veya scraper <strong>kampanya JSON</strong> (schema_version 1.0) dosyası yükleyin.",
-    "JSON içe aktarmada kampanya adı, tarihler, koşullar ve ürün ilişkileri okunur; eşleşmeyen ürünler uyarıyla atlanır.",
+    "JSON içe aktarmada kampanya adı, tarihler, koşullar ve ürün ilişkileri okunur; katalogda bulunmayan ürünler fiyatsız olarak otomatik oluşturulur.",
     "Kampanya detayından açıldıysa yalnızca o kampanya güncellenir; ürün listesi tek başına da yüklenebilir.",
     "Tek sayfa şirket dosyası da kabul edilir; aynı kampanya satırları kampanya adı ve tarihlerle gruplanır.",
     "Kampanya adı, başlangıç ve bitiş tarihi zorunludur. Bitiş tarihi başlangıçtan önce olamaz.",

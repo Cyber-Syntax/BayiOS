@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 from typing import Any
 
+from bayios.adapters.db.models.products import Product
 from bayios.application.campaigns import (
     CampaignInput,
     CampaignProductInput,
@@ -29,7 +30,10 @@ from bayios.domain.campaigns import (
     DiscountType,
     ProductRelationType,
 )
-from bayios.domain.products import ActorContext, normalize_product_name
+from bayios.domain.products import (
+    ActorContext,
+    normalize_product_name,
+)
 
 DECISION_OPTIONS = (
     ("create", "Yeni Kampanya"),
@@ -73,7 +77,9 @@ def preview_campaign_json(
 ) -> ImportPreview:
     with uow:
         campaigns = _parse_json(
-            uow, source, target_campaign_id=target_campaign_id
+            uow,
+            source,
+            target_campaign_id=target_campaign_id,
         )
     rows = tuple(
         PreviewRow(
@@ -133,7 +139,10 @@ def commit_campaign_json(
         if replay is not None:
             return replay
         campaigns = _parse_json(
-            uow, source, target_campaign_id=target_campaign_id
+            uow,
+            source,
+            target_campaign_id=target_campaign_id,
+            auto_create_products=True,
         )
         now = datetime.now(UTC)
         created = updated = skipped = errors = 0
@@ -186,6 +195,7 @@ def _parse_json(
     source: bytes,
     *,
     target_campaign_id: uuid.UUID | None,
+    auto_create_products: bool = False,
 ) -> list[_JsonCampaign]:
     try:
         payload = json.loads(source.decode("utf-8-sig"))
@@ -251,6 +261,7 @@ def _parse_json(
                 target_version=target_version,
                 seen_ids=seen_ids,
                 seen_keys=seen_keys,
+                auto_create_products=auto_create_products,
             )
         )
     return parsed
@@ -267,6 +278,7 @@ def _parse_one(
     target_version: Any,
     seen_ids: set[str],
     seen_keys: set[str],
+    auto_create_products: bool,
 ) -> _JsonCampaign:
     errors: list[str] = []
     warnings: list[str] = []
@@ -309,6 +321,13 @@ def _parse_one(
     seen_product_relations: set[tuple[uuid.UUID, str]] = set()
     missing_products = 0
     missing_names: list[str] = []
+    created_product_names: list[str] = []
+    can_create = (
+        bool(name)
+        and start_value is not None
+        and end_value is not None
+        and not errors
+    )
     for raw_product in raw_products:
         if not isinstance(raw_product, dict):
             missing_products += 1
@@ -317,10 +336,17 @@ def _parse_one(
         product_id = _text(raw_product.get("product_id")) or None
         product = _resolve_product(lookup, product_id, product_name)
         if product is None:
-            missing_products += 1
-            if product_name or product_id:
-                missing_names.append(product_name or product_id or "—")
-            continue
+            if can_create and auto_create_products:
+                product = _create_missing_product(
+                    uow, lookup, product_id, product_name
+                )
+                if product is not None:
+                    created_product_names.append(product.name)
+            if product is None:
+                missing_products += 1
+                if product_name or product_id:
+                    missing_names.append(product_name or product_id or "—")
+                continue
         relation = _parse_relation(raw_product.get("relationship"), warnings)
         quantity = _positive_int_or_none(raw_product.get("required_quantity"))
         key = (product.id, relation.value)
@@ -338,9 +364,21 @@ def _parse_one(
         sample = ", ".join(missing_names[:3])
         if len(missing_names) > 3:
             sample += "…"
+        action = (
+            "içe aktarımda otomatik oluşturulacak"
+            if not auto_create_products
+            else "atlandı (ad/ID eksik)"
+        )
         warnings.append(
             f"{missing_products} ürün Bayios kataloğunda bulunamadı "
-            f"({sample}); atlandı."
+            f"({sample}); {action}."
+        )
+    if created_product_names:
+        sample = ", ".join(created_product_names[:3])
+        if len(created_product_names) > 3:
+            sample += "…"
+        warnings.append(
+            f"{len(created_product_names)} ürün otomatik oluşturuldu: {sample}."
         )
     if not products and raw_products:
         warnings.append("Hiçbir kampanya ürünü eşleşmedi; yalnızca koşullar aktarılacak.")
@@ -475,6 +513,44 @@ def _resolve_product(
     if len(matches) == 1:
         return matches[0]
     return None
+
+
+def _create_missing_product(
+    uow: UnitOfWork,
+    lookup: ProductLookup,
+    product_id: str | None,
+    product_name: str,
+) -> Product | None:
+    name = (product_name or product_id or "").strip()
+    if not name:
+        return None
+    if not product_id:
+        matches = lookup.by_name.get(normalize_product_name(name), ())
+        if len(matches) > 1:
+            return None
+    now = datetime.now(UTC)
+    product = Product(
+        id=uuid.uuid4(),
+        external_id=product_id or None,
+        name=name,
+        name_normalized=normalize_product_name(name),
+        regular_price=None,
+        website_discounted_price=None,
+        cost_price=None,
+        physical_stock=0,
+        kind="product",
+        is_archived=False,
+        created_at=now,
+        updated_at=now,
+        last_seen_at=now,
+        last_price_changed_at=None,
+    )
+    uow.products.add(product)
+    if product_id:
+        lookup.by_external_id[product_id] = product
+    lookup.by_name.setdefault(product.name_normalized, []).append(product)
+    lookup.by_id[product.id] = product
+    return product
 
 
 def _parse_relation(

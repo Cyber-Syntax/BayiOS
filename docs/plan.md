@@ -700,7 +700,7 @@ Not: 10121’in normal fiyatı 39.999 TL olduğu için 40.000’lik örnekteki 3
 
 - `catalog.json` ile aynı schema_version `1.0` yaklaşımı; kampanya JSON'u `campaigns[]`, `id` (slug), `name`, `category`, `url`, `start_date`, `end_date`, `conditions[]` ve `products[]` taşır.
 - Kampanya kimliği: `campaigns.external_id` (slug) nullable/unique; kaynak URL'si `campaigns.source_url`; koşullar, kaynak kategori, kaynak ürün sayısı ve `scraped_at` değişmez sürümde (`campaign_versions`) saklanır.
-- JSON importunda kampanya önce `external_id`, yoksa ad + tarih ile eşleşir; ürünler önce ürün ID'si (güncel/alias), yoksa adla çözülür. Bulunamayan ürünler kampanyayı düşürmez; uyarıyla atlanır.
+- JSON importunda kampanya önce `external_id`, yoksa ad + tarih ile eşleşir; ürünler önce ürün ID'si (güncel/alias), yoksa adla çözülür. Bulunamayan ürünler **fiyatsız/stoksuz otomatik oluşturulur** ve kampanyaya bağlanır; çalışan fiyatı sonra girer.
 - JSON'da yapısal indirim alanı olmadığı için scraper kampanyaları `Genel` + `Sadece bilgi` olarak içe aktarılır; koşul metinleri kampanya detayında gösterilir, fiyat senaryosu üretmez.
 - JSON export aynı şemayı üretir; kampanya detayında koşullar varsayılan kapalı açılır/kapanır panelde, kaynak ID/kategori/URL ve eşleşen ürün sayısıyla gösterilir.
 - `0019_campaign_scraper_metadata` migration'ı yeni kampanya alanlarını ekler.

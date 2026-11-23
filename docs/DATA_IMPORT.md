@@ -92,7 +92,7 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 
 - Kampanya kimliği `id` slug'ıdır; `campaigns.external_id` olarak saklanır. Aynı slug tekrar gelirse mevcut kampanya güncellenir; dosyada aynı slug iki kez varsa ilk kayıt işlenir.
 - `conditions` listesi kampanya sürümünde JSONB olarak saklanır; detay ekranında açılır/kapanır panelde gösterilir.
-- Ürünler önce `product_id` (güncel ID veya alias), bulunamazsa ad ile çözülür. Katalogda olmayan ürünler atlanır ve uyarı gösterilir; kampanya yine oluşturulur.
+- Ürünler önce `product_id` (güncel ID veya alias), bulunamazsa ad ile çözülür. Katalogda olmayan ürünler **commit sırasında fiyatsız/stoksuz otomatik oluşturulur** (`external_id` scraper ID'si, ad `product_name`); önizleme yalnızca uyarı gösterir ve veritabanına yazmaz. Aynı ürün birden fazla kampanyada geçerse tek kayıt oluşturulur.
 - JSON'da yapısal indirim/tutar alanı yoktur; kampanya `Genel` / `Sadece bilgi` olarak içe aktarılır, koşullar bilgi amaçlıdır.
 - Dışa aktarma aynı şemayı üretir. Kampanya listesi ve detayından **JSON Dışa Aktar**, import ekranından **Örnek JSON İndir** kullanılabilir.
 
