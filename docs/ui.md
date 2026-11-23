@@ -191,3 +191,116 @@ Ana Sayfa varsayılan ekrandır. Üst arama tüm ekranlardan ürün aramaya göt
 ## Kapsam dışı
 
 Kimlik doğrulama, rol yönetimi, kamera/barkod çözümleme ve Hızlı Teslim modülü v1 kapsamı dışındadır; Hızlı Teslim v2 adayıdır ve navigasyonda yer almaz.
+
+# Cihaz Kullanım Kuralları (telefon + laptop) - YENİ GÜNCELLENECEK KURALLAR:
+
+## Temel ilke
+
+BayiOS iki ayrı iş için kullanılır ve arayüz buna göre öncelik verir:
+
+- **Telefon = hızlı bakma.** Ürün bul, fiyatı/stoku/özelliği oku, teklif için fiyat ver.
+- **Laptop = yönetme.** Kampanya, komisyon, import/export, ayarlar, toplu işlem, A4 çıktı.
+
+Tüm ekranlar telefonda da çalışır; ancak "hızlı bakma" ekranları telefon için optimize edilir, "yönetme" ekranları laptop için optimize edilir ve telefonda sadece kullanılabilir kalır.
+
+## Breakpoint'ler
+
+| Genişlik    | Navigasyon              | Ürün listesi  |
+| ----------- | ----------------------- | ------------- |
+| < 1024px    | Alt sekme çubuğu        | Kart görünümü |
+| 1024–1279px | Sol menü, yalnız ikon   | Tablo         |
+| ≥ 1280px    | Sol menü, ikon + etiket | Tablo         |
+
+## Navigasyon
+
+- **Telefon:** Alt sekme çubuğu, 5 öğe: Ana Sayfa, Ürünler, Teklifler, Rezervasyonlar, Daha fazla. "Daha fazla" Kampanyalar, Stok/Sayım, Komisyonlar ve Ayarlar'ı listeler.
+- **Laptop:** Sol menüde 8 öğenin hepsi (Ana Sayfa, Ürünler, Kampanyalar, Teklifler, Rezervasyonlar, Stok/Sayım, Komisyonlar, Ayarlar).
+- Üst çubukta arama her ekranda sabit kalır (sticky). Arama ürün aramasına gider.
+- Aktif sekme/menü öğesi `aria-current="page"` taşır; yalnız renkle değil, vurgulu arka planla da gösterilir.
+- Odaklı ekranlarda (teklif formu, sayım oturumu) alt sekme çubuğu gizlenir; yerine ekranın altında sticky eylem çubuğu (Vazgeç / Kaydet) gösterilir.
+- Toplu işlem çubuğu ve sticky eylem çubuğu hiçbir zaman alt sekme çubuğunun altında kalmaz; sekme çubuğunun üstüne dizilir.
+
+## Yoğunluk
+
+- **Telefon (ferah):** Dokunma alanları en az 44px yüksekliğinde, kart aralıkları geniş, tek sütun, metin en az 14px.
+- **Laptop (sıkı):** Buton yüksekliği 36px, tablo satırları kompakt, iki sütunlu yerleşim, çok kolonlu tablolar (`data-table-scroll` ile).
+
+## Genel bileşen kuralları
+
+- Fiyat her zaman `38.199 TL` biçiminde, tek satırda, kırılmadan gösterilir. Önemli fiyat (Oliz) ekranın en büyük metnidir.
+- Stok ve durumlar renk + metinle gösterilir ("Stok: 3", "Stokta yok"). Stok 0 ise uyarı rozeti, negatifse kırmızı + "Stok düzeltmesi gerekli".
+- Uzun içerik (özellikler, teknik özellikler, geçmişler, koşullar) varsayılan **kapalı** açılır-kapanır bölümlerdedir; başlıkta adet yazar ("Teknik özellikler (24)").
+- Modallar telefonda ekranın altından açılan panel (bottom sheet), laptopta ortada modal olarak açılır. İkisi de ekran dışına taşmaz, uzun içerik dikey kayar.
+- İki aşamalı silme her iki cihazda aynıdır; ikinci adımda açık teyit butonu olmadan silme yapılmaz.
+- Tehlikeli eylemler (Sil, Arşivle) telefonda "Diğer işlemler" altında durur; birincil eylemler önde kalır.
+- Hover'a bağlı hiçbir bilgi veya eylem yoktur; her şey dokunma ile erişilebilir.
+- Bir ekranda en fazla bir birincil (dolu) buton bulunur.
+- İç ticari bilgiler (alış maliyeti, kâr, komisyon) telefonda ilk ekranda gösterilmez; "İç bilgiler" gibi kapalı bölümde durur. Müşteri A4 çıktısında hiçbir zaman yer almaz.
+
+## Ekranlar: telefon ve laptop davranışı
+
+### Ana Sayfa (dashboard)
+
+Amaç: "Bugün ne yapmam gerekiyor?" ve "Nereye gitmem lazım?" sorularına tek bakışta cevap vermek.
+
+- **Telefon:** Üstte arama; altında "Hatırlatmalar" kartı (gecikmiş rezervasyonlar kırmızı etiketli, önümüzdeki 30 gün normal etiketli); altında 2 sütunlu modül kartları (Ürünler, Teklifler, Rezervasyonlar, Kampanyalar...). Pasif modüller "Yakında" rozetiyle soluk gösterilir.
+- **Laptop:** Hatırlatmalar solda, son teklifler ve son rezervasyonlar sağda; altında modül kartları tek sırada. Sayılar (açık teklif, açık rezervasyon, gecikmiş hatırlatma) kartların üstünde özet olarak görünür.
+- Hatırlatma satırına dokunmak ilgili rezervasyonu açar.
+
+### Ürünler (liste)
+
+- **Telefon:** Arama kutusu ve "Ara" butonu aynı satırda, üstte sabit. Her ürün bir kart: ürün adı, kategori, Oliz fiyatı (büyük), stok rozeti. Karta dokunmak ürün detayına gider. Filtreler (durum, kategori) arama altında tek satırda, dar ekranda alt satıra geçer. Telefonda toplu seçim ve toplu işlem gizlidir.
+- **Laptop:** Tablo (seçim, ürün adı + ID, kategori, normal fiyat, Oliz, stok, son fiyat değişimi, işlem). İşlem kolonu sağa sabit, satır seçimi ve alt toplu işlem çubuğu çalışır. Sayfa numarasıyla doğrudan geçiş vardır.
+
+### Ürün Detayı
+
+Telefon ve laptopta aynı sıra, laptopta fiyat kartı iki sütun:
+
+1. Ürün adı, kategori rozeti, arşiv rozeti.
+2. **Fiyat kartı:** Oliz fiyatı en büyük metin; normal fiyat üstü çizili; stok ve açık rezervasyon rozetleri; yanında (telefonda altında) bayi nakit taban ve kart taban fiyatı ile son güncelleme tarihi.
+3. Birincil eylemler: "Teklife ekle", "Rezervasyon aç". "Diğer işlemler" altında: Stok güncelle, Düzenle, Arşivle, Sil.
+4. **Aktif kampanyalar:** Ad, geçerlilik, durum, "Hediye var / yok" bayi fiyat senaryosu.
+5. Kapalı bölümler: Ürün özellikleri (N), Teknik özellikler (N), Fiyat geçmişi, Stok hareketleri, İç bilgiler (alış maliyeti, ürün ID, tür, kaynak, scraper tarihi).
+
+### Teklifler
+
+- **Telefon:** Liste kart görünümünde (teklif no, müşteri, ürünler, durum, seçili toplam). Teklif oluşturma telefonda mümkündür ve "fiyat verme" odaklıdır: ürün ara → miktar → kampanya → önerilen nakit/kart fiyatı → fiyatı gir. Taksit seçenekleri ve Senaryo Özeti kapalı bölümlerde, sepetin üstünde. Vazgeç / Kaydet sticky eylem çubuğunda.
+- **Laptop:** Liste tablo olarak. Teklif formu iki sütun: solda müşteri ve ödeme alanları, sağda sepet ve canlı toplamlar. Kâr/Komisyon özeti ve taksit karşılaştırma tablosu yan yana okunur.
+- Floor veya kâr referansı altı uyarı verir, kaydı engellemez (her iki cihazda).
+
+### Kampanyalar
+
+- **Telefon:** Sadece okuma ve hızlı kontrol için: liste kartları, detayda koşullar (kapalı bölüm) ve hediye var/yok senaryosu. Düzenleme formu açılır ama laptop önerilir; formun üstünde bilgilendirici bir not gösterilebilir.
+- **Laptop:** Tam yönetim: filtreli tablo, yeni/düzenleme formu, sürüm geçmişi, global bayi indirimi, import/export, A4 çıktı.
+
+### Rezervasyonlar
+
+- **Telefon:** Liste kartları (no, müşteri, hatırlatma tarihi, özet durum). Detayda satır bazında teslim et / iptal et büyük butonlarla. Yeni rezervasyon hızlı form: müşteri adı, ürün arama, miktar.
+- **Laptop:** Tablo + satır bazlı işlem paneli, hareket ve erteleme geçmişi, A4 depo/bayi kopyası, import/export.
+
+### Stok/Sayım
+
+- **Telefon:** Sayım girişi için optimize: açık oturumlar en üstte, sayılan miktar alanı büyük, "Miktarları Kaydet" sticky çubukta. Kategori seçince liste otomatik yenilenir.
+- **Laptop:** Stok özet tablosu, sayfalama, sayım oturum geçmişi, A4 sayım listesi.
+
+### Komisyonlar
+
+- **Telefon:** Yalnız okuma önerilir: dönem, kanal sekmeleri, oran matrisi yatay kaydırılabilir kapta. Düzenleme mümkündür fakat laptop öncelikli.
+- **Laptop:** Tam yönetim: dönem kopyalama, kanal sekmeleri, matris girişi, limitler paneli, kategori-grup eşlemesi, Excel import/export.
+
+### Ayarlar
+
+- **Telefon ve laptop:** Bankalar ve Kategoriler sekmeleri. Telefonda liste kartları, laptopta tablo; toplu ekleme ve import/export laptopta öncelikli.
+
+### İçe/Dışa Aktarma
+
+- **Laptop odaklıdır.** Telefonda dosya yükleme çalışır, ancak önizleme tablosu yatay kaydırılabilir kapta gösterilir ve ekranın üstünde "Bu işlem laptopta daha rahattır" notu çıkar. Önizleme onaylanmadan hiçbir veri yazılmaz.
+
+## Görsel dil
+
+- Açık zemin, lacivert/indigo vurgu, sakin durum renkleri.
+- Kartlar ince kenarlıklı, gölgesiz; seçili öğe dolgu yerine vurgulu kenarlık alır.
+- İkonlar tek tip çizgi ikon setinden gelir; ikon tek başına anlam taşımaz, yanında etiket vardır (alt çubukta bile).
+- Türkçe metin, cümle düzeni; tarihler `10.11.2026` ve `10 Kasım 2026`.
+- Yazdırmada üst çubuk, sol menü, alt sekme çubuğu ve sticky çubuklar gizlenir.
+- Hareket azaltma tercihine saygı gösterilir.

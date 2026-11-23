@@ -307,6 +307,11 @@ Genel bayi indirimi sabit bir oran değildir. Uygulama %10'u varsayılan öneri 
 
 Özel ürünlerde yüzde yerine doğrudan bayi minimum nakit ve kart satış fiyatı girilir. Bu değerler aylık veya ihtiyaç oldukça değişebilir ve tarihçeli tutulur.
 
+**Kurutma + klima aynı sepette (not):** Seçili kurutma (17.850 TL) ve klima (19.200 TL) indirimleri ayrı
+benefit kurallarıdır. Bayiler bu iki kampanyayı aynı sepette birleştirmek yerine ürünleri ayrı satar / ayrı
+fatura keserek her iki indirimden ayrı ayrı yararlanır. Bu nedenle aynı sepette kurutma + klima
+indirimlerinin "toplanması" davranışı modellenmez.
+
 ### 4.8 Komisyon ve minimum fiyat hesabı
 
 - Birden fazla banka desteklenir; banka listesi kullanıcı tarafından yönetilir ve formdan hızlıca yeni banka eklenebilir (§5.5 FR-FIN-01).
