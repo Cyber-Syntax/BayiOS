@@ -486,3 +486,16 @@ def test_campaign_list_paginates_without_missing_request_context(
     assert "Sayfalama Kampanyası" in response.text
     assert "Sonraki" in response.text
     assert "Sayfa" in response.text
+
+
+def test_home_active_campaigns_kpi_shows_count(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    _create_campaign(client, fake_uow)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "CampaignListItem" not in response.text
+    assert '<div class="kpi-value">1</div>' in response.text
+

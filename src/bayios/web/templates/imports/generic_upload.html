@@ -15,6 +15,8 @@
 <div class="alert alert-danger"><span><strong>Hata:</strong> {{ error }}</span></div>
 {% endif %}
 
+<div class="alert alert-info mobile-note-only"><span><strong>Not:</strong> Bu işlem laptopta daha rahattır. Telefonda önizleme tablosunu yatay kaydırabilirsiniz.</span></div>
+
 <div class="card">
   <form action="{{ form_action }}" method="post" enctype="multipart/form-data">
     {% if campaign_id %}<input type="hidden" name="campaign_id" value="{{ campaign_id }}">{% endif %}

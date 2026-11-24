@@ -1,34 +1,62 @@
 {% from "_pagination.html" import pagination with context %}
-<div class="card">
-  <div class="table-container">
-    <table class="data-table">
-      <thead><tr><th>Teklif</th><th>Müşteri</th><th>Ürünler</th><th>Tarih</th><th>Durum</th><th>Ödeme</th><th>Toplam</th><th class="col-actions">İşlem</th></tr></thead>
-      <tbody>
-        {% for row in rows %}
-        <tr>
-          <td>#{{ row.offer_number }}</td>
-          <td><a href="/offers/{{ row.id }}">{{ row.customer_name or '—' }}</a></td>
-          <td class="col-name" title="{{ row.products_summary }}">{{ row.products_summary or '—' }}</td>
-          <td>{{ row.created_at | tr_date }}</td>
-          <td><span class="badge {% if row.status == 'accepted' %}badge-success{% elif row.status == 'lost' or row.status == 'expired' %}badge-danger{% else %}badge-info{% endif %}">{{ status_labels.get(row.status, row.status) }}</span></td>
-          <td>{{ payment_labels.get(row.payment_type, row.payment_type) }}</td>
-          <td>{{ row.selected_total | tr_money }} TL</td>
-          <td class="col-actions">
-            <a class="btn btn-sm" href="/offers/{{ row.id }}">Detay</a>
-            <form method="post" action="/offers/{{ row.id }}/delete" style="display: inline;"
+{% from "_icons.html" import icon %}
+<div class="table-container mobile-cards-container">
+  <table class="data-table mobile-cards">
+    <thead>
+      <tr>
+        <th>Teklif</th>
+        <th class="col-name">Müşteri</th>
+        <th class="col-name">Ürünler</th>
+        <th class="col-date">Tarih</th>
+        <th>Durum</th>
+        <th>Ödeme</th>
+        <th class="col-stock">Toplam</th>
+        <th class="col-actions">İşlem</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td data-label="Teklif"><span class="mono">#{{ row.offer_number }}</span></td>
+        <td class="col-name" data-label="Müşteri">
+          <a href="/offers/{{ row.id }}"><strong>{{ row.customer_name or '—' }}</strong></a>
+          {% if row.customer_phone %}<div class="muted small">{{ row.customer_phone }}</div>{% endif %}
+        </td>
+        <td class="col-name" data-label="Ürünler" title="{{ row.products_summary }}">{{ row.products_summary or '—' }}</td>
+        <td class="col-date" data-label="Tarih">{{ row.created_at | tr_date }}</td>
+        <td data-label="Durum">
+          <span class="badge {% if row.status == 'accepted' %}badge-success{% elif row.status == 'lost' or row.status == 'expired' %}badge-danger{% elif row.status == 'presented' %}badge-info{% else %}badge-neutral{% endif %}">
+            {{ status_labels.get(row.status, row.status) }}
+          </span>
+        </td>
+        <td data-label="Ödeme">{{ payment_labels.get(row.payment_type, row.payment_type) }}</td>
+        <td class="col-stock" data-label="Toplam"><span class="product-price"><strong>{{ row.selected_total | tr_money }} TL</strong></span></td>
+        <td class="col-actions" data-label="İşlem">
+          <div class="actions-inline">
+            <a class="btn btn-sm" href="/offers/{{ row.id }}">Detay {{ icon("chevron-right", "icon icon-sm") }}</a>
+            <form method="post" action="/offers/{{ row.id }}/delete"
                   onsubmit="return confirm('Teklif kalıcı olarak silinecek. Emin misiniz?') && confirm('Son onay: teklif, satırları ve durum geçmişi silinecek. Geri alınamaz.');">
               <input type="hidden" name="confirm" value="1">
-              <button class="btn btn-sm btn-danger" type="submit">Sil</button>
+              <button class="btn btn-sm btn-danger" type="submit" title="Teklifi sil">{{ icon("trash", "icon icon-sm") }}</button>
             </form>
-          </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="8" class="muted" style="text-align: center; padding: 1.5rem;">Teklif bulunmuyor.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% if total_pages > 1 %}
-  <div style="padding: 0 1rem 1rem;">{{ pagination(page, total_pages) }}</div>
-  {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8" style="padding: 0;">
+          <div class="table-empty">
+            {{ icon("offers") }}
+            <strong>Teklif bulunmuyor.</strong>
+            <p>Arama veya durum filtresini değiştirin; yeni teklif oluşturun.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="table-footer">
+  <small class="muted">Toplam {{ total_count }} teklif</small>
+  {{ pagination(page, total_pages) }}
 </div>

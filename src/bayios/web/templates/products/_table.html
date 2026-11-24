@@ -1,15 +1,16 @@
 {% from "_pagination.html" import pagination with context %}
+{% from "_icons.html" import icon %}
 <div class="table-container products-table-container">
   <table class="data-table products-table">
     <thead>
       <tr>
-        <th style="width: 40px; text-align: center;">
-          <input type="checkbox" class="product-checkbox-all" title="Tümünü Seç">
+        <th class="col-select" style="width: 40px;">
+          <input type="checkbox" class="product-checkbox-all" title="Sayfadaki tüm ürünleri seç" aria-label="Sayfadaki tüm ürünleri seç">
         </th>
-        <th class="col-name">Ürün Adı</th>
+        <th class="col-name">Ürün</th>
         <th class="col-category">Kategori</th>
         <th class="col-price">Normal Fiyat</th>
-        <th class="col-price">Oliz / Web İndirimli</th>
+        <th class="col-price">Oliz / Web</th>
         <th class="col-stock">Fiziksel Stok</th>
         <th class="col-date">Son Fiyat Değişimi</th>
         <th class="col-actions">İşlem</th>
@@ -17,21 +18,23 @@
     </thead>
     <tbody>
       {% for product in products %}
-      <tr data-product-id="{{ product.id }}"
-          {% if product.is_archived %}style="opacity: 0.7; background: #fafafa;"{% endif %}>
-        <td class="col-select" style="text-align: center;">
-          <input type="checkbox" class="product-checkbox" value="{{ product.id }}">
+      <tr data-product-id="{{ product.id }}"{% if product.is_archived %} class="row-archived"{% endif %}>
+        <td class="col-select">
+          <input type="checkbox" class="product-checkbox" value="{{ product.id }}" aria-label="{{ product.name }} ürününü seç">
         </td>
-        <td class="col-name" data-label="Ürün Adı">
-          <a href="/products/{{ product.id }}"><strong>{{ product.name }}</strong></a>
-          {% if product.external_id %}
-          <br><small class="muted">ID: {{ product.external_id }}</small>
-          {% endif %}
-          {% if product.is_archived %}
-          <span class="badge" style="margin-left: .25rem; font-size: .75rem;">Arşivde</span>
-          {% endif %}
+        <td class="col-name" data-label="Ürün">
+          <div class="product-identity">
+            <span class="product-glyph" aria-hidden="true">{{ icon("products") }}</span>
+            <div style="min-width: 0;">
+              <div class="product-title"><a href="/products/{{ product.id }}">{{ product.name }}</a></div>
+              <div class="product-meta">
+                {% if product.external_id %}<span class="mono">ID: {{ product.external_id }}</span>{% endif %}
+                {% if product.is_archived %}<span class="badge badge-warning">Arşivde</span>{% endif %}
+              </div>
+            </div>
+          </div>
         </td>
-        <td class="col-category" data-label="Kategori">
+        <td class="col-category{% if not (product.category_id and category_names.get(product.category_id)) %} is-empty{% endif %}" data-label="Kategori">
           {% if product.category_id and category_names.get(product.category_id) %}
           <span class="badge badge-info">{{ category_names.get(product.category_id) }}</span>
           {% else %}
@@ -40,62 +43,65 @@
         </td>
         <td class="col-price" data-label="Normal Fiyat">
           {% if product.regular_price is not none %}
-          {{ "{:,.2f}".format(product.regular_price).replace(",", "X").replace(".", ",").replace("X", ".") }} TL
+          <span class="product-price">{{ product.regular_price | tr_money }} TL</span>
           {% else %}
           <span class="muted">—</span>
           {% endif %}
         </td>
-        <td class="col-price" data-label="Oliz / Web İndirimli">
+        <td class="col-price" data-label="Oliz / Web">
           {% if product.website_discounted_price is not none %}
-          <span class="badge badge-info">
-            {{ "{:,.2f}".format(product.website_discounted_price).replace(",", "X").replace(".", ",").replace("X", ".") }} TL
-          </span>
+          <span class="product-price price-accent">{{ product.website_discounted_price | tr_money }} TL</span>
           {% else %}
           <span class="muted">—</span>
           {% endif %}
         </td>
         <td class="col-stock" data-label="Fiziksel Stok">
           {% if product.physical_stock > 0 %}
-          <span class="badge badge-success">{{ product.physical_stock }} adet</span>
+          <span class="badge badge-success">Stok: {{ product.physical_stock }}</span>
           {% elif product.physical_stock == 0 %}
-          <span class="badge badge-warning">0 adet</span>
+          <span class="badge badge-warning">Stokta yok</span>
           {% else %}
-          <span class="badge badge-danger">{{ product.physical_stock }} adet</span>
+          <span class="badge badge-danger">Stok: {{ product.physical_stock }}</span>
           {% endif %}
         </td>
         <td class="col-date" data-label="Son Fiyat Değişimi">
           {% if product.last_price_changed_at %}
-          <small class="muted">{{ product.last_price_changed_at | tr_datetime }}</small>
+          <span class="mono small">{{ product.last_price_changed_at | tr_datetime }}</span>
           {% else %}
-          <small class="muted">—</small>
+          <span class="muted">—</span>
           {% endif %}
         </td>
         <td class="col-actions" data-label="İşlem">
           <div class="actions-inline">
             <form method="post" action="/products/{{ product.id }}/stock" class="stock-form">
               <input type="hidden" name="redirect_to" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
-              <input type="number" name="physical_stock" value="{{ product.physical_stock }}" min="0" class="form-control stock-input" aria-label="Fiziksel stok" required>
-              <button type="submit" class="btn btn-sm" title="Stok güncelle">Stok Güncelle</button>
+              <input type="number" name="physical_stock" value="{{ product.physical_stock }}" min="0" class="form-control stock-input" aria-label="{{ product.name }} fiziksel stoku" required>
+              <button type="submit" class="btn btn-sm" title="Stok güncelle" aria-label="Stok güncelle">{{ icon("save", "icon icon-sm") }}</button>
             </form>
-            <a class="btn btn-sm" href="/products/{{ product.id }}">Detay</a>
+            <a class="btn btn-sm" href="/products/{{ product.id }}" title="Detay" aria-label="Ürün detayı">{{ icon("chevron-right", "icon icon-sm") }}</a>
           </div>
         </td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="8" style="text-align: center; padding: 2.5rem;" class="muted">
-          {% if q %}
-          "{{ q }}" aramasıyla eşleşen ürün bulunamadı.
-          {% else %}
-          Katalogda henüz ürün bulunmuyor. <a href="/imports/products">CSV / Excel ile ürün yükleyin</a> veya manuel ekleyin.
-          {% endif %}
+        <td colspan="8" style="padding: 0;">
+          <div class="table-empty">
+            {{ icon("search") }}
+            {% if q %}
+            <strong>"{{ q }}" aramasıyla eşleşen ürün bulunamadı</strong>
+            <p>Arama terimini veya filtreleri değiştirin.</p>
+            {% else %}
+            <strong>Katalogda henüz ürün yok</strong>
+            <p><a href="/imports/products">CSV / Excel ile ürün yükleyin</a> veya manuel ürün ekleyin.</p>
+            {% endif %}
+          </div>
         </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
-<div style="display: flex; justify-content: space-between; align-items: center; margin-top: .75rem; gap: .5rem; flex-wrap: wrap;">
+<div class="table-footer">
   <small class="muted">Toplam {{ total_count }} ürün</small>
   {{ pagination(page, total_pages) }}
 </div>

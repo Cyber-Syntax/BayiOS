@@ -1,56 +1,257 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Ana Sayfa{% endblock %}
 {% block content %}
-<h1>Ana Sayfa</h1>
-<p class="muted">Modüller ilgili milestone tamamlandıkça açılır.</p>
+{% set module_copy = {
+  'products': ('Katalog ve fiyat', 'Ürün, stok ve kategori yönetimi'),
+  'campaigns': ('Kampanya rehberi', 'Aktif fırsatlar ve hediye senaryoları'),
+  'offers': ('Teklifler', 'Müşteri teklifi ve fiyat çalışması'),
+  'reservations': ('Rezervasyonlar', 'Teslim takibi ve hatırlatmalar'),
+  'stock': ('Stok / Sayım', 'Fiziksel stok ve sayım oturumları'),
+  'commissions': ('Komisyonlar', 'Banka oranları ve taksit limitleri'),
+  'settings': ('Ayarlar', 'Banka ve kategori ana verisi')
+} %}
+{% set offer_badges = {
+  'draft': 'badge-neutral',
+  'presented': 'badge-info',
+  'accepted': 'badge-success',
+  'lost': 'badge-danger',
+  'expired': 'badge-warning'
+} %}
+<div class="dashboard">
 
-{% if reminders %}
-<section class="card" style="padding: 1rem; margin-bottom: 1rem;">
-  <h2 style="margin: 0 0 .25rem; font-size: 1.1rem;">Rezervasyon Hatırlatmaları</h2>
-  <p class="muted" style="margin: 0 0 .75rem; font-size: .9rem;">
-    Gecikmiş ve önümüzdeki 30 gün içinde hatırlatması olan rezervasyonlar. Hatırlatma otomatik iptal oluşturmaz.
-  </p>
-  <div class="table-container">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Rezervasyon</th>
-          <th class="col-name">Müşteri</th>
-          <th class="col-date">Hatırlatma</th>
-          <th>Durum</th>
-          <th class="col-stock">Açık Miktar</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for reminder in reminders %}
-        <tr>
-          <td>#{{ reminder.reservation_number }}</td>
-          <td class="col-name"><a href="/reservations/{{ reminder.id }}">{{ reminder.customer_name }}</a></td>
-          <td class="col-date">
-            {{ reminder.reminder_due_at | tr_date }}
-            <br>
-            <small class="badge {% if reminder.is_overdue %}badge-danger{% else %}badge-info{% endif %}">{{ reminder.reminder_label }}</small>
-          </td>
-          <td><span class="badge {% if reminder.summary.label == 'Kısmi süreçte' %}badge-warning{% else %}badge-info{% endif %}">{{ reminder.summary.label }}</span></td>
-          <td class="col-stock">{{ reminder.summary.open_quantity }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <section class="dashboard-hero" aria-label="Günlük özet">
+    <div>
+      <div class="eyebrow">{{ today | tr_date_long }}</div>
+      <h1>Merhaba, bugünün özeti</h1>
+      <p>Açık teklifler, rezervasyon hatırlatmaları ve güncel kampanyalar tek ekranda.</p>
+    </div>
+    <a class="btn btn-primary" href="/offers/new">
+      {{ icon("plus") }}
+      Yeni Teklif
+    </a>
+  </section>
+
+  <section class="kpi-grid" aria-label="Özet sayılar">
+    <a class="kpi-card" href="/offers">
+      <div class="kpi-top">
+        <span class="kpi-label">Açık Teklif</span>
+        <span class="kpi-icon">{{ icon("offers") }}</span>
+      </div>
+      <div class="kpi-value">{{ open_offers }}</div>
+      <div class="kpi-hint">Taslak ve müşteriye sunulmuş teklifler</div>
+    </a>
+    <a class="kpi-card is-info" href="/reservations?status=open">
+      <div class="kpi-top">
+        <span class="kpi-label">Açık Rezervasyon</span>
+        <span class="kpi-icon">{{ icon("reservations") }}</span>
+      </div>
+      <div class="kpi-value">{{ open_reservations }}</div>
+      <div class="kpi-hint">Teslim bekleyen açık rezervasyonlar</div>
+    </a>
+    <a class="kpi-card{% if overdue_reminders %} is-danger{% endif %}" href="/reservations?status=overdue">
+      <div class="kpi-top">
+        <span class="kpi-label">Gecikmiş Hatırlatma</span>
+        <span class="kpi-icon">{{ icon("clock") }}</span>
+      </div>
+      <div class="kpi-value">{{ overdue_reminders }}</div>
+      <div class="kpi-hint">Takip tarihi geçmiş rezervasyonlar</div>
+    </a>
+    <a class="kpi-card is-success" href="/campaigns?state=active">
+      <div class="kpi-top">
+        <span class="kpi-label">Aktif Kampanya</span>
+        <span class="kpi-icon">{{ icon("campaigns") }}</span>
+      </div>
+      <div class="kpi-value">{{ active_campaigns }}</div>
+      <div class="kpi-hint">Tarihi geçerli kampanyalar</div>
+    </a>
+  </section>
+
+  <section class="panel" aria-labelledby="quick-actions-title">
+    <div class="panel-header">
+      <div>
+        <h2 id="quick-actions-title">Hızlı işlemler</h2>
+        <p>En sık kullanılan akışlara tek dokunuşla geçin.</p>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="quick-grid">
+        <a class="quick-link" href="/offers/new">
+          <span class="quick-icon">{{ icon("plus") }}</span>
+          <span>Yeni Teklif</span>
+        </a>
+        <a class="quick-link" href="/reservations/new">
+          <span class="quick-icon">{{ icon("reservations") }}</span>
+          <span>Yeni Rezervasyon</span>
+        </a>
+        <a class="quick-link" href="/stock">
+          <span class="quick-icon">{{ icon("stock") }}</span>
+          <span>Stok Sayımı</span>
+        </a>
+        <a class="quick-link" href="/products?new=1">
+          <span class="quick-icon">{{ icon("products") }}</span>
+          <span>Ürün Ekle</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div class="dashboard-grid">
+    <div class="dashboard-stack">
+
+      <section class="panel" aria-labelledby="reminders-title">
+        <div class="panel-header">
+          <div>
+            <h2 id="reminders-title">Hatırlatmalar</h2>
+            <p>Gecikmiş ve önümüzdeki 30 gün içindeki rezervasyonlar.</p>
+          </div>
+          <a class="btn btn-sm" href="/reservations?status=overdue">Tümünü gör</a>
+        </div>
+        <div class="panel-body">
+          {% if reminders %}
+          <div class="reminder-list">
+            {% for reminder in reminders %}
+            <a class="reminder-item{% if reminder.is_overdue %} is-overdue{% endif %}" href="/reservations/{{ reminder.id }}">
+              <div class="reminder-main">
+                <div class="reminder-customer">{{ reminder.customer_name }}</div>
+                <div class="reminder-meta">
+                  #{{ reminder.reservation_number }} · {{ reminder.reminder_due_at | tr_date }}
+                  {% if reminder.products_summary %} · {{ reminder.products_summary }}{% endif %}
+                </div>
+              </div>
+              <div class="reminder-side">
+                <span class="badge {% if reminder.is_overdue %}badge-danger{% else %}badge-warning{% endif %}">
+                  {{ reminder.reminder_label }}
+                </span>
+                <span class="badge badge-neutral">{{ reminder.summary.label }}</span>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="table-empty">
+            {{ icon("check") }}
+            <strong>Gecikmiş hatırlatma yok</strong>
+            <p>Takip tarihi yaklaşan rezervasyonlar burada görünür.</p>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="modules-title">
+        <div class="panel-header">
+          <div>
+            <h2 id="modules-title">Modüller</h2>
+            <p>Tüm çalışma alanlarına doğrudan geçin.</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="module-grid">
+            {% for item in nav_items if item.key != "home" %}
+            {% set copy = module_copy.get(item.key, (item.label, '')) %}
+            {% if item.enabled %}
+            <a class="module-card" href="{{ item.href }}">
+              <span class="module-icon">{{ icon(item.icon) }}</span>
+              <span>
+                <span class="module-title">{{ copy[0] }}</span>
+                <span class="module-desc">{{ copy[1] }}</span>
+              </span>
+            </a>
+            {% else %}
+            <span class="module-card" aria-disabled="true">
+              <span class="module-icon">{{ icon(item.icon) }}</span>
+              <span>
+                <span class="module-title">{{ item.label }}</span>
+                <span class="module-desc">Yakında</span>
+              </span>
+            </span>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="dashboard-stack">
+
+      <section class="panel" aria-labelledby="recent-offers-title">
+        <div class="panel-header">
+          <div>
+            <h2 id="recent-offers-title">Son teklifler</h2>
+            <p>En son oluşturulan veya güncellenen teklifler.</p>
+          </div>
+          <a class="btn btn-sm" href="/offers">Tümü</a>
+        </div>
+        <div class="panel-body">
+          {% if recent_offers %}
+          <div class="activity-list">
+            {% for offer in recent_offers %}
+            <a class="activity-item" href="/offers/{{ offer.id }}">
+              <div class="activity-main">
+                <div class="activity-title">{{ offer.customer_name or 'Müşteri adı yok' }}</div>
+                <div class="activity-meta">
+                  Teklif #{{ offer.offer_number }} · {{ offer.created_at | tr_date }}
+                  {% if offer.products_summary %} · {{ offer.products_summary }}{% endif %}
+                </div>
+              </div>
+              <div class="activity-side">
+                <span class="badge {{ offer_badges.get(offer.status, 'badge-neutral') }}">{{ offer_status_labels.get(offer.status, offer.status) }}</span>
+                <div>{{ offer.selected_total | tr_money }} TL</div>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="table-empty">
+            {{ icon("offers") }}
+            <strong>Henüz teklif yok</strong>
+            <p>İlk teklifi oluşturduğunuzda burada görünür.</p>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="recent-reservations-title">
+        <div class="panel-header">
+          <div>
+            <h2 id="recent-reservations-title">Son rezervasyonlar</h2>
+            <p>Son açılan rezervasyonlar ve açık miktarları.</p>
+          </div>
+          <a class="btn btn-sm" href="/reservations">Tümü</a>
+        </div>
+        <div class="panel-body">
+          {% if recent_reservations %}
+          <div class="activity-list">
+            {% for reservation in recent_reservations %}
+            <a class="activity-item" href="/reservations/{{ reservation.id }}">
+              <div class="activity-main">
+                <div class="activity-title">{{ reservation.customer_name }}</div>
+                <div class="activity-meta">
+                  #{{ reservation.reservation_number }} · {{ reservation.reservation_date | tr_date }}
+                  {% if reservation.products_summary %} · {{ reservation.products_summary }}{% endif %}
+                </div>
+              </div>
+              <div class="activity-side">
+                <span class="badge {% if reservation.summary.label == 'Teslim edildi' %}badge-success{% elif reservation.summary.label == 'İptal' %}badge-danger{% elif reservation.summary.label == 'Kısmi süreçte' %}badge-warning{% else %}badge-info{% endif %}">
+                  {{ reservation.summary.label }}
+                </span>
+                <div>{{ reservation.open_quantity }} açık</div>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="table-empty">
+            {{ icon("reservations") }}
+            <strong>Henüz rezervasyon yok</strong>
+            <p>İlk rezervasyonu açtığınızda burada görünür.</p>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+
+    </div>
   </div>
-</section>
-{% endif %}
-
-<ul class="tiles">
-  {% for item in nav_items if item.key != "home" %}
-  <li class="tile">
-    {% if item.enabled %}
-    <a href="{{ item.href }}">{{ item.label }}</a>
-    {% else %}
-    <span>{{ item.label }}</span>
-    <small class="badge">Yakında</small>
-    {% endif %}
-  </li>
-  {% endfor %}
-</ul>
+</div>
 {% endblock %}

@@ -130,8 +130,12 @@ def export_offers_json_route(
 
 
 @router.get("/new", response_class=HTMLResponse)
-def new_offer_page(request: Request, uow: UnitOfWorkDep) -> HTMLResponse:
-    return _render_form(request, uow, offer_id=None)
+def new_offer_page(
+    request: Request,
+    uow: UnitOfWorkDep,
+    product_id: Annotated[uuid.UUID | None, Query()] = None,
+) -> HTMLResponse:
+    return _render_form(request, uow, offer_id=None, prefill_product_id=product_id)
 
 
 @router.get("/picker", response_class=HTMLResponse)
@@ -763,6 +767,7 @@ def _render_form(
     error: str | None = None,
     status_code: int = 200,
     form: object | None = None,
+    prefill_product_id: uuid.UUID | None = None,
 ) -> HTMLResponse:
     campaigns, _ = list_campaigns(uow, state="active", limit=200)
     banks = list_banks(uow)
@@ -783,6 +788,26 @@ def _render_form(
         "cash_total_override": "",
         "card_total_override": "",
     }
+    if form is None and detail is None and prefill_product_id is not None:
+        dealer_discount = _decimal_value(str(values["dealer_discount_percent"])) or Decimal(10)
+        dealer_discount_cash = _decimal_value(str(values["dealer_discount_cash_percent"])) or Decimal(10)
+        preview = preview_offer_line(
+            uow,
+            prefill_product_id,
+            dealer_discount_percent=dealer_discount,
+            dealer_discount_cash_percent=dealer_discount_cash,
+        )
+        if preview is not None:
+            initial_items = [
+                _item_from_payload(
+                    _line_payload(preview),
+                    campaign_id="auto",
+                    quantity=1,
+                    gift_present="",
+                    unit_price_cash="",
+                    unit_price_card="",
+                )
+            ]
     if form is not None:
         values, initial_items = _form_state_from_form(uow, form)
     elif detail is not None:

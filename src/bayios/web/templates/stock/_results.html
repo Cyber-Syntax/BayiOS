@@ -1,5 +1,6 @@
 {% from "_pagination.html" import pagination with context %}
-<div class="grid-stats">
+{% from "_icons.html" import icon %}
+<div class="grid-stats" style="margin-bottom: 16px;">
   <div class="stat-box">
     <div class="stat-label">Listelenen Ürün</div>
     <div class="stat-value">{{ total_count }}</div>
@@ -14,30 +15,34 @@
   </div>
 </div>
 
-<div class="table-container">
-  <table class="data-table">
+<div class="table-container mobile-cards-container">
+  <table class="data-table mobile-cards">
     <thead>
       <tr>
-        <th>Ürün Adı</th>
+        <th class="col-name">Ürün Adı</th>
         <th>Kategori</th>
-        <th>Fiziksel Stok</th>
-        <th>Açık Rezervasyon</th>
-        <th>İşlem</th>
+        <th class="col-stock">Fiziksel Stok</th>
+        <th class="col-stock">Açık Rezervasyon</th>
+        <th class="col-actions">İşlem</th>
       </tr>
     </thead>
     <tbody>
       {% for row in rows %}
       <tr>
-        <td><a href="/products/{{ row.product.id }}"><strong>{{ row.product.name }}</strong></a></td>
-        <td>{{ category_names.get(row.product.category_id, '—') }}</td>
-        <td>{{ row.summary.physical }}</td>
-        <td>{{ row.summary.open_reservation }}</td>
-        <td><a class="btn btn-sm" href="/products/{{ row.product.id }}">Detay</a></td>
+        <td class="col-name" data-label="Ürün"><a href="/products/{{ row.product.id }}"><strong>{{ row.product.name }}</strong></a>{% if row.product.external_id %}<div class="muted small mono">ID: {{ row.product.external_id }}</div>{% endif %}</td>
+        <td data-label="Kategori">{{ category_names.get(row.product.category_id, '—') }}</td>
+        <td class="col-stock" data-label="Fiziksel Stok"><span class="badge {% if row.summary.physical > 0 %}badge-success{% elif row.summary.physical == 0 %}badge-warning{% else %}badge-danger{% endif %}">{{ row.summary.physical }}</span></td>
+        <td class="col-stock" data-label="Açık Rezervasyon">{{ row.summary.open_reservation }}</td>
+        <td class="col-actions" data-label="İşlem"><a class="btn btn-sm" href="/products/{{ row.product.id }}">Detay {{ icon("chevron-right", "icon icon-sm") }}</a></td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="5" class="muted" style="text-align: center; padding: 2rem;">
-          Bu filtrede ürün bulunmuyor.
+        <td colspan="5" style="padding: 0;">
+          <div class="table-empty">
+            {{ icon("stock") }}
+            <strong>Bu filtrede ürün bulunmuyor.</strong>
+            <p>Arama veya kategori filtresini değiştirin.</p>
+          </div>
         </td>
       </tr>
       {% endfor %}
@@ -45,7 +50,7 @@
   </table>
 </div>
 
-<div style="display: flex; justify-content: space-between; align-items: center; margin-top: .75rem; gap: .5rem; flex-wrap: wrap;">
+<div class="table-footer">
   <small class="muted">Toplam {{ total_count }} ürün</small>
   {{ pagination(page, total_pages) }}
 </div>

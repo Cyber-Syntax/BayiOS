@@ -67,6 +67,14 @@ def test_get_products_list_renders_html(client: TestClient) -> None:
     assert "Ürünler" in response.text
     assert "07325 A" in response.text
     assert "38.099,00 TL" in response.text
+    assert "products-toolbar" in response.text
+
+
+def test_products_new_query_opens_create_modal(client: TestClient) -> None:
+    response = client.get("/products?new=1")
+
+    assert response.status_code == 200
+    assert "showNewModal: true" in response.text
 
 
 def test_get_products_list_shows_at_most_25_per_page(
@@ -527,6 +535,7 @@ def test_product_detail_shows_scraper_id_kind_and_details(
     assert "<details" in response.text
     assert "Ürün Özellikleri (1)" in response.text
     assert "Teknik Özellikler (1)" in response.text
+    assert f"/offers/new?product_id={product.id}" in response.text
 
 
 def test_post_imports_commit_accepts_large_catalog_field(

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% set version = campaign.current_version %}
 {% block title %}{{ version.name }}{% endblock %}
 {% block content %}
@@ -21,34 +22,38 @@
 <div class="alert alert-danger"><span><strong>Hata:</strong> {{ error }}</span></div>
 {% endif %}
 
-<div class="actions-bar">
-  <div>
-    <div style="margin-bottom: .25rem;">
-      <a href="/campaigns" class="muted" style="text-decoration: none;">&larr; Kampanyalar</a>
+<div class="page-header">
+  <div class="page-heading">
+    <a class="breadcrumb" href="/campaigns">{{ icon("arrow-left", "icon icon-sm") }} Kampanyalar</a>
+    <h1>{{ version.name }}</h1>
+    <div class="product-heading-meta">
+      <span class="badge {% if campaign.state == 'active' %}badge-success{% elif campaign.state == 'scheduled' %}badge-info{% elif campaign.state == 'expired' %}badge-warning{% else %}badge-neutral{% endif %}">{{ campaign.state_label }}</span>
+      {% if campaign.is_archived %}<span class="badge badge-warning">Arşivde</span>{% endif %}
+      <span class="muted small">Sürüm v{{ version.version_no }} · {{ version.campaign_type_label }}</span>
     </div>
-    <div style="display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;">
-      <h1 style="margin: 0;">{{ version.name }}</h1>
-      <span class="badge {% if campaign.state == 'active' %}badge-success{% elif campaign.state == 'scheduled' %}badge-info{% elif campaign.state == 'expired' %}badge-warning{% endif %}">{{ campaign.state_label }}</span>
-      {% if campaign.is_archived %}<span class="badge">Arşivde</span>{% endif %}
-    </div>
-    <small class="muted">Sürüm v{{ version.version_no }} · {{ version.campaign_type_label }}</small>
   </div>
-  <div class="actions-group">
-    <a class="btn" href="/imports/campaigns?campaign_id={{ campaign.id }}">İçe Aktar (Excel/JSON)</a>
-    <a class="btn" href="/campaigns/{{ campaign.id }}/export/xlsx">Excel Dışa Aktar</a>
-    <a class="btn" href="/campaigns/{{ campaign.id }}/export/json">JSON Dışa Aktar</a>
-    <a class="btn" href="/campaigns/{{ campaign.id }}/edit">Düzenle</a>
-    {% if campaign.is_archived %}
-    <form method="post" action="/campaigns/{{ campaign.id }}/restore">
-      <button type="submit" class="btn">Arşivden Çıkar</button>
-    </form>
-    {% else %}
-    <form method="post" action="/campaigns/{{ campaign.id }}/archive">
-      <button type="submit" class="btn">Arşivle</button>
-    </form>
-    {% endif %}
-    <a class="btn" href="/campaigns/{{ campaign.id }}/print">A4</a>
-    <a class="btn" href="/campaigns">Listeye Dön</a>
+  <div class="page-actions">
+    <a class="btn" href="/campaigns/{{ campaign.id }}/edit">{{ icon("edit") }} Düzenle</a>
+    <a class="btn" href="/campaigns/{{ campaign.id }}/print">{{ icon("print") }} A4</a>
+    <a class="btn" href="/imports/campaigns?campaign_id={{ campaign.id }}">{{ icon("upload") }} İçe Aktar</a>
+    <details class="menu">
+      <summary class="btn">{{ icon("download") }} Dışa Aktar {{ icon("chevron-down", "icon icon-sm") }}</summary>
+      <div class="menu-panel">
+        <a href="/campaigns/{{ campaign.id }}/export/xlsx">Excel Dışa Aktar</a>
+        <a href="/campaigns/{{ campaign.id }}/export/json">JSON Dışa Aktar</a>
+      </div>
+    </details>
+    <details class="menu">
+      <summary class="btn">{{ icon("more") }}</summary>
+      <div class="menu-panel">
+        {% if campaign.is_archived %}
+        <form method="post" action="/campaigns/{{ campaign.id }}/restore"><button type="submit">Arşivden Çıkar</button></form>
+        {% else %}
+        <form method="post" action="/campaigns/{{ campaign.id }}/archive"><button type="submit">Arşivle</button></form>
+        {% endif %}
+        <a href="/campaigns">Listeye Dön</a>
+      </div>
+    </details>
   </div>
 </div>
 
@@ -115,13 +120,15 @@
     {% endif %}
   </div>
   {% if version.conditions %}
-  <details>
-    <summary style="cursor: pointer; font-weight: 600;">Koşulları göster / gizle</summary>
-    <ol style="margin: .75rem 0 0 1.25rem; padding: 0; line-height: 1.55;">
+  <details class="accordion">
+    <summary><span class="accordion-title">Koşulları göster / gizle ({{ version.conditions | length }})</span></summary>
+    <div class="accordion-body">
+    <ol style="margin: 0 0 0 1.25rem; padding: 0; line-height: 1.55;">
       {% for condition in version.conditions %}
       <li style="margin-bottom: .5rem; white-space: pre-line;">{{ condition }}</li>
       {% endfor %}
     </ol>
+    </div>
   </details>
   {% else %}
   <p class="muted" style="margin: 0;">Bu kampanya için koşul metni yok.</p>
@@ -135,27 +142,27 @@
   <p class="muted" style="margin: 0 0 .5rem; font-size: .9rem;">Kaynakta {{ version.source_product_count }} ürün var; {{ version.products | length }} ürün Bayios kataloğuyla eşleşti.</p>
   {% endif %}
   {% if version.products %}
-  <div class="table-container">
-    <table class="data-table" style="min-width: 0;">
+  <div class="table-container mobile-cards-container" data-table-scroll>
+    <table class="data-table mobile-cards" style="min-width: 0;">
       <thead>
         <tr>
-          <th>Ürün</th>
-          <th style="width: 10rem;">İlişki</th>
-          <th style="width: 7rem;">Gerekli Adet</th>
+          <th class="col-name">Ürün</th>
+          <th>İlişki</th>
+          <th class="col-stock">Gerekli Adet</th>
         </tr>
       </thead>
       <tbody>
         {% for product in version.products %}
         <tr>
-          <td>
+          <td class="col-name" data-label="Ürün">
             {% if product.product_id %}
-            <a href="/products/{{ product.product_id }}">{{ product.product_name }}</a>
+            <a href="/products/{{ product.product_id }}"><strong>{{ product.product_name }}</strong></a>
             {% else %}
-            {{ product.product_name }}
+            <strong>{{ product.product_name }}</strong>
             {% endif %}
           </td>
-          <td>{{ product.relation_label }}</td>
-          <td>{{ product.quantity_required or '—' }}</td>
+          <td data-label="İlişki">{{ product.relation_label }}</td>
+          <td class="col-stock" data-label="Gerekli Adet">{{ product.quantity_required or '—' }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -172,7 +179,7 @@
   <h2 style="margin: 0 0 .25rem; font-size: 1.1rem;">Sürüm Geçmişi</h2>
   <p class="muted" style="margin: 0 0 .75rem; font-size: .9rem;">Her düzenleme değişmez bir sürüm olarak saklanır; eski sürümler sonradan değiştirilmez.</p>
   {% for old_version in campaign.versions %}
-  <details {% if loop.first %}open{% endif %} style="margin-bottom: .5rem;">
+  <details class="accordion" {% if loop.first %}open{% endif %}>
     <summary>
       <strong>v{{ old_version.version_no }}</strong> · {{ old_version.name }}
       · {{ old_version.starts_at | tr_date }} – {{ old_version.ends_at | tr_date }}
@@ -180,7 +187,7 @@
       {% if old_version.created_by_name %}· {{ old_version.created_by_name }}{% endif %}
       <span class="muted" style="font-size: .85rem;">{{ old_version.created_at | tr_datetime }}</span>
     </summary>
-    <div style="padding: .5rem 0 0 1rem;">
+    <div class="accordion-body">
       <p style="margin: 0 0 .25rem;"><strong>{{ old_version.campaign_type_label }}</strong> · {{ old_version.base_price_type_label }} · {{ old_version.discount_type_label }}</p>
       {% if old_version.description %}<p style="margin: 0 0 .25rem;">{{ old_version.description }}</p>{% endif %}
       {% if old_version.gift_description %}<p style="margin: 0 0 .25rem;">Hediye: {{ old_version.gift_description }}{% if old_version.gift_optional %} (isteğe bağlı){% endif %}</p>{% endif %}

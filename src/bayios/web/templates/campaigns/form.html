@@ -1,11 +1,13 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}{% if mode == 'edit' %}Kampanya Düzenle{% else %}Yeni Kampanya{% endif %}{% endblock %}
 {% block content %}
 <div x-data='{ ...campaignBuilder({{ selected_products | tojson }}), discountType: {{ values.discount_type | tojson }}, campaignType: {{ values.campaign_type | tojson }} }'>
-  <div class="actions-bar">
-    <div>
-      <a href="/campaigns" class="muted" style="text-decoration: none;">&larr; Kampanyalar</a>
-      <h1 style="margin-top: .25rem;">{% if mode == 'edit' %}Kampanya Düzenle{% else %}Yeni Kampanya{% endif %}</h1>
+  <div class="page-header">
+    <div class="page-heading">
+      <a class="breadcrumb" href="/campaigns">{{ icon("arrow-left", "icon icon-sm") }} Kampanyalar</a>
+      <h1>{% if mode == 'edit' %}Kampanya Düzenle{% else %}Yeni Kampanya{% endif %}</h1>
+      <p class="page-subtitle">Kampanya bilgileri, fiyat/indirim ve ürün ilişkilerini girin. Değişiklik yeni sürüm oluşturur.</p>
     </div>
   </div>
 
@@ -146,9 +148,13 @@
       </div>
     </div>
 
-    <div style="display: flex; justify-content: flex-end; gap: .5rem;">
-      <a href="/campaigns" class="btn">Vazgeç</a>
-      <button type="submit" class="btn btn-primary">{% if mode == 'edit' %}Kaydet{% else %}Kampanyayı Oluştur{% endif %}</button>
+    <div class="sticky-action-spacer"></div>
+    <div class="sticky-action-bar no-print">
+      <div class="sticky-note">Kampanya kaydedilmeden önce tarih, indirim ve ürün ilişkilerini kontrol edin.</div>
+      <div class="actions-group">
+        <a href="/campaigns" class="btn">Vazgeç</a>
+        <button type="submit" class="btn btn-primary">{% if mode == 'edit' %}Kaydet{% else %}Kampanyayı Oluştur{% endif %}</button>
+      </div>
     </div>
   </form>
 </div>

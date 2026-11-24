@@ -18,16 +18,18 @@
 <div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
 {% endif %}
 
-<div class="actions-bar">
-  <div>
+<div class="page-header">
+  <div class="page-heading">
     <h1>Ayarlar</h1>
-    <p class="muted" style="margin: 0;">Banka ve kategori ana verilerini tek yerden yönetin.</p>
-  </div>
-  <div class="actions-group">
-    <a class="btn" href="/settings/banks">Bankalar</a>
-    <a class="btn" href="/settings/categories">Kategoriler</a>
+    <p class="page-subtitle">{{ rows | length }} kategori</p>
   </div>
 </div>
+<div class="tabs" role="tablist" aria-label="Ayar bölümleri">
+  <a class="tab" href="/settings/banks">Bankalar</a>
+  <a class="tab active" href="/settings/categories" aria-current="page">Kategoriler</a>
+</div>
+<div class="alert alert-info mobile-note-only"><span><strong>Not:</strong> Banka ve kategori yönetimi laptopta daha rahattır; telefonda tabloyu yatay kaydırabilirsiniz.</span></div>
+
 
 <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
   <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Kategori Ekle</h2>
@@ -64,7 +66,7 @@
     </div>
   </div>
 
-  <div class="table-container">
+  <div class="table-container" data-table-scroll>
     <table class="data-table">
       <thead><tr><th>Kategori</th><th>Komisyon Grubu</th><th>Kullanım (Ürün / Limit)</th><th>İşlemler</th></tr></thead>
       <tbody>

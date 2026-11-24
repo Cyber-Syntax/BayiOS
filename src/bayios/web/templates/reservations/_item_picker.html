@@ -1,30 +1,27 @@
+{% from "_icons.html" import icon %}
 {% if products %}
-<div class="table-container" style="max-height: 20rem; overflow-y: auto;">
-  <table class="data-table" style="min-width: 0;">
-    <thead>
-      <tr>
-        <th>Ürün Adı</th>
-        <th style="width: 7rem;">Fiziksel Stok</th>
-        <th style="width: 11rem;">Miktar / Ekle</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for product in products %}
-      <tr>
-        <td class="col-name">{{ product.name }}{% if product.external_id %}<br><small class="muted">ID: {{ product.external_id }}</small>{% endif %}</td>
-        <td class="col-stock">{{ product.physical_stock }}</td>
-        <td>
-          <form method="post" action="/reservations/{{ reservation_id }}/items" style="display: flex; gap: .25rem; align-items: center;">
-            <input type="hidden" name="product_id" value="{{ product.id }}">
-            <input type="number" name="quantity" class="form-control stock-input" min="1" value="1" aria-label="Miktar">
-            <button type="submit" class="btn btn-sm">Ekle</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<div class="picker-list" style="max-height: 20rem; overflow-y: auto;">
+  {% for product in products %}
+  <div class="picker-item">
+    <div class="picker-main">
+      <div class="picker-name">{{ product.name }}</div>
+      <div class="picker-meta">
+        {% if product.external_id %}<span class="mono">ID: {{ product.external_id }}</span> · {% endif %}
+        <span>Fiziksel stok: <span class="mono">{{ product.physical_stock }}</span></span>
+      </div>
+    </div>
+    <form method="post" action="/reservations/{{ reservation_id }}/items" style="display: flex; gap: 6px; align-items: center;">
+      <input type="hidden" name="product_id" value="{{ product.id }}">
+      <input type="number" name="quantity" class="form-control stock-input" min="1" value="1" aria-label="Miktar" inputmode="numeric">
+      <button type="submit" class="btn btn-sm btn-primary">{{ icon("plus", "icon icon-sm") }} Ekle</button>
+    </form>
+  </div>
+  {% endfor %}
 </div>
 {% else %}
-<p class="muted" style="margin: 0;">Eşleşen ürün bulunamadı.</p>
+<div class="empty-state" style="padding: 20px;">
+  {{ icon("search") }}
+  <strong>Eşleşen ürün bulunamadı</strong>
+  <p>Arama terimini değiştirin.</p>
+</div>
 {% endif %}

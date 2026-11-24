@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Rezervasyonlar{% endblock %}
 {% block content %}
 {% set msg = request.query_params.get('msg') %}
@@ -29,45 +30,69 @@
 <div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
 {% endif %}
 
-<div class="actions-bar">
-  <div>
+<div class="page-header list-page-header">
+  <div class="page-heading">
     <h1>Rezervasyonlar</h1>
-    <p class="muted" style="margin: 0;">Müşteriye satılan ürünlerin teslimat ve kurulum takibi.</p>
+    <p class="page-subtitle">{{ total_count }} rezervasyon</p>
   </div>
-  <div class="actions-group">
-    <a class="btn btn-primary" href="/reservations/new">Yeni Rezervasyon</a>
-    <a class="btn" href="/imports/reservations">İçe Aktar (Excel/JSON)</a>
-    <a class="btn" href="/reservations/export/xlsx?status={{ status | urlencode }}&q={{ q | urlencode }}">Excel Dışa Aktar</a>
-    <a class="btn" href="/reservations/export/json?status={{ status | urlencode }}&q={{ q | urlencode }}">JSON Dışa Aktar</a>
-    <a class="btn" href="/reservations/print?status={{ status | urlencode }}&q={{ q | urlencode }}">A4 Liste</a>
+  <div class="page-actions">
+    <a class="btn btn-primary" href="/reservations/new">
+      {{ icon("plus") }}
+      Yeni Rezervasyon
+    </a>
+    <div class="desktop-actions">
+      <a class="btn" href="/imports/reservations">{{ icon("upload") }} İçe Aktar</a>
+      <details class="menu">
+        <summary class="btn">{{ icon("download") }} Dışa Aktar {{ icon("chevron-down", "icon icon-sm") }}</summary>
+        <div class="menu-panel">
+          <a href="/reservations/export/xlsx?status={{ status | urlencode }}&q={{ q | urlencode }}">Excel Dışa Aktar</a>
+          <a href="/reservations/export/json?status={{ status | urlencode }}&q={{ q | urlencode }}">JSON Dışa Aktar</a>
+        </div>
+      </details>
+      <a class="btn" href="/reservations/print?status={{ status | urlencode }}&q={{ q | urlencode }}">{{ icon("print") }} A4 Liste</a>
+    </div>
+    <details class="menu mobile-actions">
+      <summary class="btn" aria-label="Diğer işlemler" title="Diğer işlemler">{{ icon("more") }}</summary>
+      <div class="menu-panel">
+        <a href="/imports/reservations">İçe Aktar</a>
+        <a href="/reservations/export/xlsx?status={{ status | urlencode }}&q={{ q | urlencode }}">Excel Dışa Aktar</a>
+        <a href="/reservations/export/json?status={{ status | urlencode }}&q={{ q | urlencode }}">JSON Dışa Aktar</a>
+        <a href="/reservations/print?status={{ status | urlencode }}&q={{ q | urlencode }}">A4 Liste</a>
+      </div>
+    </details>
   </div>
 </div>
 
-<div class="card" style="padding: 1rem;">
-  <form method="get" action="/reservations"
-        hx-get="/reservations"
-        hx-trigger="keyup changed delay:300ms from:#reservation-search, search from:#reservation-search, change from:#reservation-status"
-        hx-target="#reservations-table-container"
-        hx-push-url="true">
-    <div class="search-toolbar">
-      <input type="search"
-             id="reservation-search"
-             name="q"
-             class="form-control search-input"
-             placeholder="Müşteri adı ile ara"
-             value="{{ q }}"
-             autocomplete="off">
-      <select id="reservation-status" name="status" class="form-control search-filter">
-        {% for value, label in status_filters %}
-        <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-      <button type="submit" class="btn btn-primary search-submit">Ara</button>
-      {% if q or status != 'open' %}
-      <a href="/reservations" class="btn search-clear">Temizle</a>
-      {% endif %}
+<div class="catalog-toolbar">
+  <div class="panel">
+    <div class="panel-body" style="padding: 12px;">
+      <form method="get" action="/reservations"
+            hx-get="/reservations"
+            hx-trigger="keyup changed delay:300ms from:#reservation-search, search from:#reservation-search, change from:#reservation-status"
+            hx-target="#reservations-table-container"
+            hx-push-url="true">
+        <div class="search-toolbar">
+          <div class="search-row">
+            <div class="search-field">
+              {{ icon("search") }}
+              <input type="search" id="reservation-search" name="q" class="form-control search-input" placeholder="Müşteri adı ile ara" value="{{ q }}" autocomplete="off" aria-label="Müşteri adı ile ara">
+            </div>
+            <button type="submit" class="btn btn-primary search-submit">Ara</button>
+          </div>
+          <div class="filter-row">
+            <select id="reservation-status" name="status" class="form-control search-filter" aria-label="Durum filtresi">
+              {% for value, label in status_filters %}
+              <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            {% if q or status != 'open' %}
+            <a href="/reservations" class="btn search-clear">Temizle</a>
+            {% endif %}
+          </div>
+        </div>
+      </form>
     </div>
-  </form>
+  </div>
 </div>
 
 <div id="reservations-table-container">

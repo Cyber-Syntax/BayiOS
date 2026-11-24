@@ -1,11 +1,14 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Yeni Rezervasyon{% endblock %}
 {% block content %}
 <div x-data='reservationBuilder({{ initial_lines | tojson }})'>
-  <div class="actions-bar">
-    <div>
-      <a href="/reservations" class="muted" style="text-decoration: none;">&larr; Rezervasyonlar</a>
-      <h1 style="margin-top: .25rem;">Yeni Rezervasyon</h1>
+
+  <div class="page-header">
+    <div class="page-heading">
+      <a class="breadcrumb" href="/reservations">{{ icon("arrow-left", "icon icon-sm") }} Rezervasyonlar</a>
+      <h1>Yeni Rezervasyon</h1>
+      <p class="page-subtitle">Müşteri bilgilerini girin ve ürün satırlarını ekleyin. Rezervasyon stoktan düşmez; teslimde düşer.</p>
     </div>
   </div>
 
@@ -14,63 +17,94 @@
   {% endif %}
 
   <form method="post" action="/reservations">
-    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .75rem;">
-        <div class="form-group" style="margin-bottom: 0;">
-          <label for="customer-name">Müşteri Adı Soyadı *</label>
-          <input type="text" id="customer-name" name="customer_name" class="form-control" required
-                 value="{{ customer_name }}" placeholder="örn: Ayşe Yılmaz">
-        </div>
-        <div class="form-group" style="margin-bottom: 0;">
-          <label for="reservation-date">Rezervasyon Tarihi</label>
-          <input type="date" id="reservation-date" name="reservation_date" class="form-control"
-                 value="{{ reservation_date }}" data-date-picker>
-        </div>
-        <div class="form-group" style="margin-bottom: 0;">
-          <label for="reservation-note">Not</label>
-          <input type="text" id="reservation-note" name="note" class="form-control"
-                 value="{{ note }}" placeholder="İsteğe bağlı">
+    <section class="panel" style="margin-bottom: 16px;">
+      <div class="panel-header">
+        <div>
+          <h2>Müşteri</h2>
+          <p>Müşteri adı zorunludur; tarih ve not isteğe bağlıdır.</p>
         </div>
       </div>
-    </div>
-
-    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
-        <h2 style="margin: 0; font-size: 1.1rem;">Ürünler</h2>
-        <span class="muted" style="font-size: .85rem;">Rezervasyon stoktan düşmez; teslim edildiğinde düşer.</span>
+      <div class="panel-body">
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label for="customer-name">Müşteri Adı Soyadı *</label>
+            <input type="text" id="customer-name" name="customer_name" class="form-control" required value="{{ customer_name }}" placeholder="örn: Ayşe Yılmaz" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="reservation-date">Rezervasyon Tarihi</label>
+            <input type="date" id="reservation-date" name="reservation_date" class="form-control" value="{{ reservation_date }}" data-date-picker>
+          </div>
+          <div class="form-group">
+            <label for="reservation-note">Not</label>
+            <input type="text" id="reservation-note" name="note" class="form-control" value="{{ note }}" placeholder="İsteğe bağlı" autocomplete="off">
+          </div>
+        </div>
       </div>
+    </section>
 
-      <div style="margin-top: .75rem; display: grid; gap: .5rem;">
+    <section class="panel" style="margin-bottom: 16px;">
+      <div class="panel-header">
+        <div>
+          <h2>Ürünler</h2>
+          <p><span x-text="lines.length"></span> satır · miktar satır bazında girilir.</p>
+        </div>
+      </div>
+      <div class="panel-body">
         <template x-for="(line, index) in lines" :key="line.key">
-          <div style="display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;">
+          <div class="offer-line">
             <input type="hidden" name="product_id" :value="line.id">
-            <span style="flex: 1 1 12rem; font-weight: 500;" x-text="line.name"></span>
-            <label class="muted" style="font-size: .8rem;" :for="'quantity-' + line.key">Miktar</label>
-            <input type="number" class="form-control stock-input" :id="'quantity-' + line.key"
-                   name="quantity" min="1" x-model="line.quantity">
-            <button type="button" class="btn btn-sm btn-danger" @click="remove(index)">Çıkar</button>
+            <div class="offer-line-head">
+              <div class="offer-line-title">
+                <strong x-text="line.name"></strong>
+                <div class="offer-line-meta">Rezervasyon satırı</div>
+              </div>
+              <div style="display: flex; align-items: end; gap: 8px;">
+                <div class="form-group" style="margin: 0;">
+                  <label class="muted small" :for="'quantity-' + line.key">Miktar</label>
+                  <input type="number" class="form-control stock-input" :id="'quantity-' + line.key" name="quantity" min="1" x-model="line.quantity" inputmode="numeric">
+                </div>
+                <button type="button" class="btn btn-sm btn-danger" @click="remove(index)" title="Satırı çıkar">{{ icon("trash", "icon icon-sm") }}<span class="sr-only">Satırı çıkar</span></button>
+              </div>
+            </div>
           </div>
         </template>
-        <p class="muted" x-show="lines.length === 0" style="margin: 0;">Henüz ürün eklenmedi. Aşağıdan ürün arayıp ekleyin.</p>
+        <div x-show="lines.length === 0" class="empty-state">
+          {{ icon("reservations") }}
+          <strong>Henüz ürün eklenmedi</strong>
+          <p>Aşağıdaki arama alanından ürün ekleyin.</p>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
-      <h2 style="margin: 0 0 .5rem; font-size: 1.1rem;">Ürün Ekle</h2>
-      <input type="search" name="q" class="form-control" placeholder="Ürün adı ile ara (örn: 07325 A)"
-             autocomplete="off"
-             hx-get="/reservations/new/picker"
-             hx-trigger="keyup changed delay:300ms, search"
-             hx-target="#product-picker"
-             hx-include="this">
-      <div id="product-picker" style="margin-top: .75rem;">
-        {% include "reservations/_picker.html" %}
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Ürün Ekle</h2>
+          <p>Arayın, sonuçtan “Ekle” ile satır oluşturun.</p>
+        </div>
       </div>
-    </div>
+      <div class="panel-body">
+        <div class="search-field" style="max-width: 28rem;">
+          {{ icon("search") }}
+          <input type="search" name="q" class="form-control" placeholder="Ürün adı ile ara (örn: 07325 A)" autocomplete="off"
+                 hx-get="/reservations/new/picker"
+                 hx-trigger="keyup changed delay:300ms, search"
+                 hx-target="#product-picker"
+                 hx-include="this" aria-label="Ürün adı ile ara">
+        </div>
+        <div id="product-picker" style="margin-top: 12px;">
+          {% include "reservations/_picker.html" %}
+        </div>
+      </div>
+    </section>
 
-    <div style="display: flex; justify-content: flex-end; gap: .5rem;">
-      <a href="/reservations" class="btn">Vazgeç</a>
-      <button type="submit" class="btn btn-primary">Rezervasyonu Kaydet</button>
+    <div class="sticky-action-spacer"></div>
+    <div class="sticky-action-bar no-print">
+      <div class="sticky-note">Rezervasyon kaydedildikten sonra teslimat satır bazında yapılır.</div>
+      <div class="actions-group">
+        <a href="/reservations" class="btn">Vazgeç</a>
+        <button type="submit" class="btn btn-primary">Rezervasyonu Kaydet</button>
+      </div>
     </div>
   </form>
 </div>
@@ -82,13 +116,13 @@
         id: line.id,
         name: line.name,
         quantity: 1,
-        key: `${line.id}-${index}`,
+        key: line.id + '-' + index,
       })),
       add(id, name) {
         if (this.lines.some((line) => line.id === id)) {
           return;
         }
-        this.lines.push({ id, name, quantity: 1, key: `${id}-${Date.now()}` });
+        this.lines.push({ id, name, quantity: 1, key: id + '-' + Date.now() });
       },
       remove(index) {
         this.lines.splice(index, 1);

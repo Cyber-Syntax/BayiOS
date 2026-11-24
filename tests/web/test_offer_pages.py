@@ -192,6 +192,18 @@ def test_offers_list_and_form_render(client: TestClient) -> None:
     assert "Otomatik (en yüksek indirim)" in form.text
 
 
+def test_new_offer_prefills_product_from_deep_link(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = next(iter(fake_uow.products.get_all()))
+
+    response = client.get(f"/offers/new?product_id={product.id}")
+
+    assert response.status_code == 200
+    assert product.name in response.text
+    assert str(product.id) in response.text
+
+
 def test_offers_htmx_search_returns_partial(client: TestClient) -> None:
     response = client.get(
         "/offers?q=Ayşe", headers={"HX-Request": "true"}

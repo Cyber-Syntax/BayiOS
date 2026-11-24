@@ -1,8 +1,14 @@
 htmx 2.0.4
 alpinejs 3.14.8
 flatpickr 4.6.13 (MIT; dist/flatpickr.min.js, flatpickr.min.css and l10n/tr.js from the npm package)
+inter v20 (OFL; latin + latin-ext woff2 from Google Fonts)
+jetbrains-mono v24 (OFL; latin + latin-ext woff2 from Google Fonts)
 e209dda5c8235479f3166defc7750e1dbcd5a5c1808b7792fc2e6733768fb447  htmx.min.js
 b600e363d99d95444db54acbfb2deffec9ae792aa99a09229bcda078e5b55643  alpine.min.js
 1eeab1cb779471a0b0aaa93dd91c2eb1aa537d696f01ab05ea9dabc55e8525a1  flatpickr/flatpickr.min.js
 1b34a42552c96f10e4dfaaa4a367276b03868aacff63c1ac42ffe331352bc754  flatpickr/flatpickr.min.css
 d14f62d02aa45f08d81f271f8b8d99d094a9f738096e788fc8c69a341d094c5a  flatpickr/l10n/tr.js
+83c005d49d8a6a50474c73a5a36ac0468076e9c4a29da7bdb14995d80560a5be  fonts/jetbrains-mono/jetbrains-mono-latin.woff2
+db5ff4db83e580426280e9337a58dc57d3a83784a1b03ad80914651594441d52  fonts/jetbrains-mono/jetbrains-mono-latin-ext.woff2
+3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62  fonts/inter/inter-latin.woff2
+34b9c504cab7a73e37b746343a449132e56cf7b5481af2cb81dc74dcff25c956  fonts/inter/inter-latin-ext.woff2

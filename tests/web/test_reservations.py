@@ -370,7 +370,7 @@ def test_home_lists_overdue_reminders(
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "Rezervasyon Hatırlatmaları" in response.text
+    assert "Hatırlatmalar" in response.text
     assert "Gecikmiş Müşteri" in response.text
     assert "Gecikmiş" in response.text
 

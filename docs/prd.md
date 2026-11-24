@@ -1,9 +1,10 @@
 # BayiOS — Product Requirements Document (PRD)
 
-**Belge sürümü:** 1.3
+**Belge sürümü:** 1.4
 **Durum:** MVP geliştirmeye hazır ürün gereksinimleri  
-**Tarih:** 18 Kasım 2026  
+**Tarih:** 23 Kasım 2026  
 **Ürün:** BayiOS  
+**UI/UX sözleşmesi:** [ui.md](./ui.md) — görsel dil, yerleşim, bileşen ve responsive kuralların tek kaynağı  
 **Kamuya açık depo:** Evet — gerçek komisyon, maliyet ve bayi taban fiyatı verisi bu depoda tutulmaz (bkz. §3.4).  
 **Hedef ortam:** Windows 11 üzerinde yerel sunucu, bayi LAN/Wi-Fi ağı, mobil ve masaüstü tarayıcılar  
 **Hedef eşzamanlı kullanıcı:** İlk aşamada 3–4 kişi  
@@ -360,6 +361,8 @@ Bu hesap, POS komisyonu kesintisi sonrasında maliyet + seçilen hedef kârı ka
 
 ## 5. Fonksiyonel gereksinimler
 
+> **Arayüz sözleşmesi:** Görsel dil, yerleşim, bileşen davranışı, responsive kırılımlar ve ekran düzeni [ui.md](./ui.md) içindedir. Bu bölümdeki ekran ifadeleri işlevsel gereksinimdir; arayüz ayrıntısı için ui.md esastır.
+
 Öncelik tanımları:
 
 - **P0:** MVP için zorunlu.
@@ -372,7 +375,7 @@ Bu hesap, POS komisyonu kesintisi sonrasında maliyet + seçilen hedef kârı ka
 
 **FR-HOME-02 (P0):** Yaklaşan/gecikmiş rezervasyon hatırlatmaları tüm kullanıcılara gösterilmelidir.
 
-**FR-HOME-03 (P0):** Ürün arama alanı mobil ekranda kolay erişilebilir olmalıdır.
+**FR-HOME-03 (P0):** Ürün arama alanı tüm ekranlarda erişilebilir olmalıdır. Arama yerleşimi ve davranışı [ui.md](./ui.md) içindedir.
 
 **FR-HOME-04 (P1):** Son açılan teklifler, son rezervasyonlar ve son ürün güncellemeleri ana ekranda gösterilebilir.
 
@@ -431,7 +434,7 @@ Açık rezervasyonda yer alan ürünlerin silinmesi engellenir ve kullanıcıya 
 
 **FR-PROD-22 (P0) — Ürünler Sekmesinden Doğrudan Stok Güncelleme:** Fiziksel stok miktarı ürünler sekmesinden (ürün detay kartından ve ürün listesindeki hızlı işlem üzerinden) doğrudan güncellenebilmelidir. Fiziksel stok doğrudan satılabilir stok olduğundan ayrı türetilmiş bir değer yoktur. Doğrudan stok değişikliği açıklamasıyla birlikte `stock_movements` tablosuna `manual_adjustment` olarak kaydedilir. (Bu işlev Stok Yönetimi Milestone 3 ekranı açıldıktan sonra tam merkezi stok entegrasyonuyla çalışır).
 
-**FR-PROD-23 (P0) — Ürün Arama Arayüzü Ergonomisi:** Ürünler sekmesindeki arama giriş kutusu (input box) ve yanındaki "Ara" butonu responsive düzende dikey kırılma olmadan yan yana kalmalıdır (`whitespace-nowrap`). Buton metninin `AR<br>a` şeklinde ikiye bölünmesi CSS/flex düzeni ile kesin olarak engellenmelidir.
+**FR-PROD-23 (P0) — Ürün Arama Arayüzü Ergonomisi:** Ürün arama alanı ve "Ara" eylemi dikey kırılmadan kullanılabilir olmalıdır. Yerleşim ve responsive davranış [ui.md](./ui.md) içindedir.
 
 **FR-PROD-24 (P0) — Ürünlere Kategori Atama:** Bir ürünün kategorisi ürün detayındaki düzenleme formundan seçilebilmelidir. Ayrıca ürünler sekmesinde checkbox ile birden fazla ürün seçilerek tek işlemde ortak bir kategoriye atanabilmeli veya kategorisi kaldırılabilmelidir. Toplu atama sonunda kaç ürünün güncellendiğini gösteren açık bir başarı bildirimi verilmelidir. Kategori ataması stok, fiyat veya arşiv durumunu değiştirmemelidir.
 
@@ -443,7 +446,7 @@ Açık rezervasyonda yer alan ürünlerin silinmesi engellenir ve kullanıcıya 
 
 **FR-PROD-28 (P0) — Kategori Ana Verisi:** Kategoriler Ayarlar ekranından yönetilebilmelidir: tekli/toplu ekleme, yeniden adlandırma, komisyon grubu (Klima/Diğer) değiştirme, kullanılmayan kategoriyi çift onayla silme, kullanımdaki kategoriyi başka kategoriyle birleştirme ve Excel içe/dışa aktarma. Stok sayfasında ayrı "Kategori Ekle" modalı bulunmamalıdır; hızlı ekleme ürün detayında kalabilir.
 
-**FR-PROD-29 (P0) — Sticky Ürün Çubuğu ve Satır Seçimi:** Ürünler ekranında arama/filtre alanı üstte sticky kalmalı; seçilen ürün sayısını ve toplu kategori/arşiv/silme eylemlerini taşıyan çubuk ekranın altında sticky footer olarak gösterilmelidir. Bu çubukta "Tümünü seç" checkbox'ı bulunmalıdır. Bir ürün satırının boş alanına tıklamak, ekran boyutundan bağımsız olarak satır seçimini değiştirmelidir; bağlantı, buton, checkbox ve form alanlarına tıklama seçimi değiştirmemelidir. Seçili satır tamamen mavi doldurulmamalı; masaüstünde de küçük ekrandaki gibi renkli kenarlıkla vurgulanmalıdır. Masaüstünde sol menü sticky kalmalı ve kendi içinde kaydırılmalıdır.
+**FR-PROD-29 (P0) — Toplu Ürün İşlemleri ve Satır Seçimi:** Ürün listesinde tek veya çoklu seçim yapılabilmeli; seçilenler için toplu kategori atama, arşivleme ve iki onaylı kalıcı silme sunulmalıdır. Seçim çubuğu, satır tıklaması ve sticky davranış [ui.md](./ui.md) içindedir.
 
 **FR-PROD-30 (P0) — Harici Ürün ID'si:** Ürünlerde nullable, unique `external_id` alanı bulunmalıdır. Scraper ID'si string olarak saklanmalı, baştaki sıfırlar korunmalı ve boş değer NULL'a çevrilmelidir. İç UUID kimliği değişmez; teklif/rezervasyon FK'ları bozulmaz.
 
@@ -590,7 +593,7 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 
 **FR-FIN-20 (P0):** Her kategori için taksit üst sınırı tanımlanabilmelidir (TV 4, telefon 3 gibi). Sınırlar dönem içinde düzenlenebilir veri olmalıdır; aylık değişen sınırlar için kod değişikliği veya dağıtım gerekmemelidir.
 
-**FR-FIN-21 (P0):** Komisyon ekranından yeni banka ekleme akışı, ekleme sonrası seçimi ve girilmiş oran/limit alanlarını kaybetmeden forma dönmelidir.
+**FR-FIN-21 (P0):** Komisyon ekranından yeni banka eklenebilmeli; ekleme sonrası banka seçili kalmalı ve girilmiş oran/limit alanları kaybolmamalıdır. Ekran davranışı [ui.md](./ui.md) içindedir.
 
 **FR-FIN-22 (P0):** Bankalar Ayarlar ekranından yönetilebilmelidir: tekli ve toplu ekleme, yeniden adlandırma, pasifleştirme/aktifleştirme, kullanılmayan bankayı çift onayla silme ve bankaları birleştirme. Oran/limitlerde kullanılan banka, bağlı oran/limit satırlarının da silineceği açıkça onaylanırsa silinebilmelidir; tekliflerde kullanılan banka hiçbir koşulda silinmemeli, pasifleştirilmeli veya birleştirilmelidir. Birleştirmede oran, limit ve teklif referansları hedef bankaya taşınır; geçmiş tekliflerdeki banka adı snapshot olarak korunur.
 
@@ -646,7 +649,7 @@ Kampanyalar `starts_at`–`ends_at` aralığına göre `as_of` tarihiyle sorgula
 
 **FR-OFFER-24 (P0):** Teklif ve rezervasyon listelerinde ürün adları tek **Ürünler** sütununda gösterilmelidir. CSV/Excel ana sayfalarına son sütun olarak `Ürünler` eklenmeli; bu sütun export-only olmalı, import'ta okunmamalı veya opsiyonel yok sayılmalıdır. Rezervasyonlarda teslim/iptal/kısmi durum etiketi ürün adıyla birlikte yazılmalıdır.
 
-**FR-OFFER-25 (P0):** **Vazgeç** ve **Teklif Oluştur / Kaydet** butonları ekranın altında sticky bar olarak kalmalıdır. **Taksit Seçenekleri** açılır/kapanır panel olmalı; ürün eklendiğinde/çıkarıldığında ekstra input değişikliği gerekmeden otomatik yenilenmelidir. **Senaryo Özeti** sepetin hemen üstünde ayrı kartta gösterilmelidir.
+**FR-OFFER-25 (P0):** Teklif formunda **Vazgeç** ve **Teklif Oluştur / Kaydet** eylemleri her zaman erişilebilir olmalıdır. **Taksit Seçenekleri** ürün/ödeme değiştiğinde otomatik yenilenmelidir. **Senaryo Özeti** sepetin hemen üstünde ayrı kartta gösterilmelidir. Yerleşim ve sticky davranış [ui.md](./ui.md) içindedir.
 
 **FR-OFFER-26 (P0):** Teklifler JSON (`schema_version` 1.0) olarak dışa ve içe aktarılabilmelidir. JSON müşteri, tarih, durum, ödeme/kanal/banka/taksit/kart tipi, indirimler, nakit/kart/seçili toplamlar, manuel toplamlar ve ürün satırlarını taşımalıdır. Mevcut taslaklar `offer_number` ile güncellenmeli; taslak olmayanlar atlanmalıdır. CSV/Excel içe/dışa aktarma korunmalıdır.
 
@@ -740,11 +743,11 @@ Teslim anında fiziksel stok yetersizse sistem uyarı göstermeli ancak onayla d
 
 **FR-STOCK-14 (P1):** Sayım oturumu kaydedildikten sonra farklı çalışan tarafından sonuç girilebilmesi kolaylaştırılabilir.
 
-**FR-STOCK-15 (P0) — Açık Sayım Oturumlarının Üstte Gösterilmesi:** Stok / Sayım sayfası açıldığında `open` ve `review` durumundaki sayım oturumları uzun ürün tablosunun altında aranmamalıdır. Bu oturumlar sayfanın üst kısmında, devam etme bağlantısıyla birlikte belirgin bir bölümde gösterilmelidir. Tamamlanmış oturum geçmişi sayfanın altında kalabilir.
+**FR-STOCK-15 (P0) — Açık Sayım Oturumlarının Üstte Gösterilmesi:** Stok / Sayım sayfası açıldığında `open` ve `review` durumundaki sayım oturumları belirgin biçimde erişilebilir olmalıdır. Açık oturumlar ve tamamlanmış oturum geçmişi [ui.md](./ui.md) içindeki sekme düzeniyle gösterilir.
 
-**FR-STOCK-16 (P0) — Stok Sayfası ve Sayım Satırlarında Sayfalama:** Stok özeti ürün listesi ve açık sayım oturumundaki ürün satırları, ürünler sekmesindeki gibi sayfalanmalıdır. Önceki/sonraki butonlarının yanında sayfa numarası girilerek doğrudan istenen sayfaya (örn. son sayfaya) atlanabilmelidir. Sayfalama mevcut kategori ve arama filtrelerini korumalıdır.
+**FR-STOCK-16 (P0) — Stok Sayfası ve Sayım Satırlarında Sayfalama:** Stok özeti ürün listesi ve açık sayım oturumundaki ürün satırları sayfalanabilmelidir; istenen sayfaya doğrudan geçiş desteklenmelidir. Sayfalama mevcut kategori ve arama filtrelerini korumalıdır. Görsel desen [ui.md](./ui.md) içindedir.
 
-**FR-STOCK-17 (P0) — Sabit "Miktarları Kaydet" Butonu:** Açık sayım oturumunda "Miktarları Kaydet" butonu uzun ürün listesinin en altında aranmamalıdır. Buton, ekranın altında sabit (sticky/fixed) bir eylem çubuğunda görünmeli ve sayfa kaydırılsa bile erişilebilir kalmalıdır. Yazdırma görünümünde bu eylem çubuğu basılmamalıdır.
+**FR-STOCK-17 (P0) — Sabit "Miktarları Kaydet" Butonu:** Açık sayım oturumunda "Miktarları Kaydet" eylemi sayfa kaydırılsa bile erişilebilir olmalıdır. Sticky eylem çubuğu ve yazdırma davranışı [ui.md](./ui.md) içindedir.
 
 **FR-STOCK-18 (P0) — Otomatik Filtre:** Stok sayfasında kategori seçildiğinde veya arama kutusuna yazıldığında sonuçlar "Ara" butonuna basılmadan otomatik güncellenmelidir; kullanıcı verimliliği için anında sonuç gösterilmelidir.
 
@@ -816,20 +819,11 @@ PDF ekleri MVP dışıdır; rezervasyona PDF ekleme ve tarayıcı içinde görü
 
 ## 6. Ekran haritası ve ana kullanıcı akışları
 
-### 6.1 Önerilen navigasyon
+> **Arayüz sözleşmesi:** Navigasyon, kırılımlar, ekran yerleşimi ve bileşen davranışı [ui.md](./ui.md) içindedir. Bu bölüm işlevsel akışları tanımlar.
 
-Mobil alt navigasyon veya sade yan menü:
+### 6.1 Navigasyon
 
-1. Ana Sayfa
-2. Ürünler
-3. Kampanyalar
-4. Teklifler
-5. Rezervasyonlar
-6. Stok / Sayım
-7. Komisyonlar
-8. Ayarlar (Bankalar, Kategoriler)
-
-Ekranların adları kısa ve çalışanların alışık olduğu terimlerle yazılmalıdır.
+Ekranlar: Ana Sayfa, Ürünler, Kampanyalar, Teklifler, Rezervasyonlar, Stok / Sayım, Komisyonlar, Ayarlar (Bankalar, Kategoriler). Navigasyon düzeni ve aktif durum kuralları [ui.md](./ui.md) içindedir.
 
 ### 6.2 Ürün bulma, manuel ekleme ve yönetim akışı
 
@@ -1221,6 +1215,8 @@ Filtrelenmiş ürün sonuçlarını dışa aktarma MVP dışında tutulur; tüm 
 
 ## 9. A4 ve yazdırma gereksinimleri
 
+> **Arayüz sözleşmesi:** Yazdırma yerleşimi, tipografi ve gizlenen bileşenler [ui.md](./ui.md) içindedir. Bu bölüm çıktıların işlevsel içeriğini tanımlar.
+
 ### 9.1 Rezervasyon çıktısı
 
 - Müşteri adı-soyadı.
@@ -1275,7 +1271,7 @@ Filtrelenmiş ürün sonuçlarını dışa aktarma MVP dışında tutulur; tüm 
 - Veri doğrulama: Pydantic.
 - Frontend: FastAPI + Jinja2 server-side templates.
 - Etkileşim: HTMX; küçük istemci tarafı durumlar için Alpine.js.
-- UI: Tailwind CSS ve erişilebilir bileşenler.
+- UI: Jinja2 + app.css; HTMX yalnız kısmi güncelleme, Alpine.js yalnız yerel UI durumu için. Tailwind, Node veya CSS build adımı yoktur. Arayüz sözleşmesi [ui.md](./ui.md).
 - Mobil kullanım: responsive web arayüzü; MVP'de PWA kurulumu zorunlu değildir.
 - Zamanlanmış hatırlatma: ilk aşamada uygulama içi günlük görev veya sorgu; ayrı mesajlaşma servisi gerekmez.
 
@@ -1395,6 +1391,8 @@ GET            /api/v1/products/{id}/stock-movements
 ## 11. Kullanılabilirlik ve performans
 
 ### 11.1 Kullanılabilirlik
+
+Arayüz yerleşimi, bileşen davranışı ve responsive kurallar [ui.md](./ui.md) içindedir. Aşağıdaki maddeler işlevsel kullanılabilirlik hedefleridir.
 
 - En sık işlemler 2–4 ana etkileşimde tamamlanabilmelidir.
 - Mobilde form alanları büyük ve dokunması kolay olmalıdır.

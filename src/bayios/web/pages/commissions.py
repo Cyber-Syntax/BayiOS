@@ -51,6 +51,74 @@ from bayios.web.templating import templates
 
 router = APIRouter(prefix="/commissions", tags=["commissions"])
 
+def _build_rate_matrix(detail: object, bank_names: dict[str, str]) -> tuple[list[dict[str, object]], str]:
+    """Read-only pivot of commission rates: channel -> bank/group/tier x installment."""
+    channels: list[dict[str, object]] = []
+    default_channel = ""
+    for channel in PaymentChannel:
+        rates = [rate for rate in detail.rates if rate.channel == channel.value]
+        if not rates:
+            channels.append(
+                {
+                    "value": channel.value,
+                    "label": CHANNEL_LABELS[channel],
+                    "installments": [],
+                    "rows": [],
+                }
+            )
+            continue
+        if not default_channel:
+            default_channel = channel.value
+        installments = sorted({rate.installment_count for rate in rates})
+        grouped: dict[tuple[object, object, object], dict[int, object]] = {}
+        for rate in rates:
+            key = (rate.bank_id, rate.product_group, rate.amount_tier)
+            grouped.setdefault(key, {})[rate.installment_count] = rate
+        rows = []
+        for (bank_id, group, tier), cells in sorted(
+            grouped.items(),
+            key=lambda item: (
+                str(item[0][0] or ""),
+                str(item[0][1] or ""),
+                str(item[0][2] or ""),
+            ),
+        ):
+            rows.append(
+                {
+                    "bank_name": (
+                        bank_names.get(str(bank_id), str(bank_id))
+                        if bank_id
+                        else "Genel"
+                    ),
+                    "product_group_label": (
+                        PRODUCT_GROUP_LABELS.get(
+                            ProductCommissionGroup(group), str(group)
+                        )
+                        if group
+                        else "—"
+                    ),
+                    "tier_label": (
+                        ODERO_TIER_LABELS.get(OderoTier(tier), str(tier))
+                        if tier
+                        else "—"
+                    ),
+                    "cells": {
+                        installment: rate.commission_percent
+                        for installment, rate in cells.items()
+                    },
+                }
+            )
+        channels.append(
+            {
+                "value": channel.value,
+                "label": CHANNEL_LABELS[channel],
+                "installments": installments,
+                "rows": rows,
+            }
+        )
+    return channels, default_channel
+
+
 
 @router.get("", response_class=HTMLResponse)
 def commission_periods_page(
@@ -162,16 +230,19 @@ def commission_period_detail_page(
     if detail is None:
         raise HTTPException(status_code=404, detail="Komisyon dönemi bulunamadı.")
     categories = list_categories(uow)
+    bank_names = {
+        str(bank.id): bank.name for bank in list_banks(uow, active_only=False)
+    }
+    rate_matrix, rate_matrix_default = _build_rate_matrix(detail, bank_names)
     return templates.TemplateResponse(
         request,
         "commissions/detail.html",
         {
             "active_nav": "commissions",
             "detail": detail,
-            "bank_names": {
-                str(bank.id): bank.name
-                for bank in list_banks(uow, active_only=False)
-            },
+            "rate_matrix": rate_matrix,
+            "rate_matrix_default": rate_matrix_default,
+            "bank_names": bank_names,
             "categories": categories,
             "category_names": {
                 str(category.id): category.name for category in categories

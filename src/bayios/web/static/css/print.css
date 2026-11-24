@@ -1,38 +1,47 @@
-@page { size: A4; margin: 12mm; }
+@page { size: A4; margin: 15mm; }
 
-.no-print, .topbar, .sidenav, .pagination, .sticky-action-bar,
-.actions-bar, .bulk-bar, .modal-backdrop, .sidebar-backdrop {
+.no-print, .topbar, .sidenav, .tabbar, .more-sheet, .sheet-backdrop,
+.pagination, .sticky-action-bar, .actions-bar, .bulk-bar,
+.modal-backdrop, .catalog-toolbar, .table-scroll-hint, .table-scroll-bar {
   display: none !important;
 }
 .shell { display: block; }
-.content { padding: 0; }
-body { background: #fff; color: #000; font-size: 11pt; }
+.content { padding: 0; max-width: none; }
+body {
+  background: #fff;
+  color: #000;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.45;
+}
 a { color: #000; text-decoration: none; }
+h1 { font-size: 18pt; margin: 0 0 3mm; }
+h2 { font-size: 13pt; margin: 0 0 2mm; }
+h3 { font-size: 11pt; margin: 0 0 1.5mm; }
 
 table { border-collapse: collapse; width: 100%; }
-th, td { border: 1px solid #000; padding: 2mm 3mm; text-align: left; }
+th, td { border: 0; border-bottom: 0.4pt solid #000; padding: 1.6mm 2mm; text-align: left; vertical-align: top; }
+th { font-size: 8.5pt; text-transform: uppercase; letter-spacing: .04em; }
 thead { display: table-header-group; }
 tr { break-inside: avoid; }
 
 /* Print-friendly neutral surfaces: black-on-white, no fills or shadows. */
-.card {
+.card, .panel {
   border: 0;
   box-shadow: none;
   padding: 0;
   background: #fff;
 }
-.print-copy {
-  break-inside: auto;
-}
-.print-copy h2 { font-size: 14pt; margin: 0 0 2mm; }
-.print-copy small,
-.print-copy .muted { color: #000; }
+.print-copy { break-inside: auto; }
+.print-copy h2 { font-size: 13pt; margin: 0 0 2mm; }
+.print-copy small, .print-copy .muted { color: #000; }
 .badge {
   border: 1px solid #000 !important;
   background: #fff !important;
   color: #000 !important;
   padding: 0 1.5mm;
 }
+.mono, .tabular { font-family: "JetBrains Mono", ui-monospace, monospace; }
 
 /* A4 two-copy output: one copy per page, no trailing blank page. */
 .print-page-break {
@@ -44,8 +53,10 @@ tr { break-inside: avoid; }
   page-break-after: auto;
 }
 
-/* Flatpickr is an on-screen control only. */
+/* On-screen-only controls are not printed. */
 .flatpickr-calendar,
-.flatpickr-tr-actions {
+.flatpickr-tr-actions,
+.menu,
+.mobile-note-only {
   display: none !important;
 }

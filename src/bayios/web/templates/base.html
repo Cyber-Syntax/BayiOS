@@ -3,7 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f4">
   <title>{% block title %}{% endblock %} · BayiOS</title>
+  <link rel="preload" href="/static/vendor/fonts/inter/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/vendor/fonts/inter/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/css/app.css?v={{ asset_version }}">
   <link rel="stylesheet" href="/static/vendor/flatpickr/flatpickr.min.css?v={{ asset_version }}">
   <link rel="stylesheet" href="/static/css/print.css?v={{ asset_version }}" media="print">
@@ -14,93 +17,164 @@
   <script src="/static/js/date-picker.js?v={{ asset_version }}" defer></script>
   <script src="/static/js/table-scroll.js?v={{ asset_version }}" defer></script>
 </head>
-<body>
-  {% macro nav_icon(name) %}
-  <svg class="nav-icon" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
-    {% if name == "home" %}
-    <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/>
-    {% elif name == "products" %}
-    <path d="M21 8 12 3 3 8l9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>
-    {% elif name == "campaigns" %}
-    <path d="M3 11v2a1 1 0 0 0 1 1h2l5 3V7L6 10H4a1 1 0 0 0-1 1Z"/><path d="M15 8a5 5 0 0 1 0 8"/><path d="M18 5a9 9 0 0 1 0 14"/>
-    {% elif name == "offers" %}
-    <path d="M6 3h9l3 3v15l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h3"/>
-    {% elif name == "reservations" %}
-    <path d="M4 5h16v16H4z"/><path d="M8 3v4M16 3v4M4 10h16"/><path d="m9 15 2 2 4-4"/>
-    {% elif name == "stock" %}
-    <path d="M9 4h6v3H9z"/><path d="M8 5H6v16h12V5h-2"/><path d="M9 11h6M9 15h6M9 19h3"/>
-    {% elif name == "settings" %}
-    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.12.37.4.68.77.87.27.13.56.2.85.2H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51.93Z"/>
-    {% else %}
-    <circle cx="12" cy="12" r="9"/>
-    {% endif %}
+<body class="{% block body_class %}has-tabbar{% endblock %}" x-data="{ moreOpen: false }" @keydown.escape.window="moreOpen = false">
+  {% from "_icons.html" import icon %}
+  <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+    <defs>
+      <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/></symbol>
+      <symbol id="i-products" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8l9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></symbol>
+      <symbol id="i-campaigns" viewBox="0 0 24 24"><path d="M20.6 13.4 12 22 2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8Z"/><path d="M7 7h.01"/></symbol>
+      <symbol id="i-offers" viewBox="0 0 24 24"><path d="M6 3h9l3 3v15l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h3"/></symbol>
+      <symbol id="i-reservations" viewBox="0 0 24 24"><path d="M4 5h16v16H4z"/><path d="M8 3v4M16 3v4M4 10h16"/><path d="m9 15 2 2 4-4"/></symbol>
+      <symbol id="i-stock" viewBox="0 0 24 24"><path d="M9 4h6v3H9z"/><path d="M8 5H6v16h12V5h-2"/><path d="M9 11h6M9 15h6M9 19h3"/></symbol>
+      <symbol id="i-commissions" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 16v-5M12 16V8M16 16v-8"/></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.12.37.4.68.77.87.27.13.56.2.85.2H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51.93Z"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+      <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+      <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+      <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M11 18l-6-6 6-6"/></symbol>
+      <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></symbol>
+      <symbol id="i-archive" viewBox="0 0 24 24"><path d="M3 7h18v3H3z"/><path d="M5 10v10h14V10"/><path d="M10 14h4"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 9v5"/><path d="M12 17h.01"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M4 5h16v16H4z"/><path d="M8 3v4M16 3v4M4 10h16"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 21h16"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M4 3h16"/></symbol>
+      <symbol id="i-print" viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><path d="M6 18H4v-7h16v7h-2"/><path d="M6 14h12v7H6z"/></symbol>
+      <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3"/><path d="M8 21v-7h8v7"/></symbol>
+      <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></symbol>
+      <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24"><path d="M6 3h4l2 5-3 2a15 15 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A18 18 0 0 1 4 5a2 2 0 0 1 2-2Z"/></symbol>
+      <symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 10h18"/><path d="M5 10v10M9 10v10M15 10v10M19 10v10"/><path d="M2 21h20"/><path d="M12 3 3 8h18L12 3Z"/></symbol>
+      <symbol id="i-card" viewBox="0 0 24 24"><path d="M3 6h18v12H3z"/><path d="M3 10h18"/><path d="M7 15h3"/></symbol>
+      <symbol id="i-cash" viewBox="0 0 24 24"><path d="M3 6h18v12H3z"/><circle cx="12" cy="12" r="2.5"/><path d="M7 9h.01M17 15h.01"/></symbol>
+      <symbol id="i-package" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="M4 7.5 12 12l8-4.5"/><path d="M12 12v9"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+      <symbol id="i-grid" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></symbol>
+      <symbol id="i-building" viewBox="0 0 24 24"><path d="M4 21V4h10v17"/><path d="M14 9h6v12"/><path d="M8 8h2M8 12h2M8 16h2M17 13h.01M17 17h.01"/></symbol>
+      <symbol id="i-tag" viewBox="0 0 24 24"><path d="M20.6 13.4 12 22 2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8Z"/><path d="M7 7h.01"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/></symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 16v-5M12 16V8M16 16v-8"/></symbol>
+      <symbol id="i-clipboard" viewBox="0 0 24 24"><path d="M9 4h6v3H9z"/><path d="M8 5H6v16h12V5h-2"/><path d="M9 11h6M9 15h6"/></symbol>
+      <symbol id="i-percent" viewBox="0 0 24 24"><path d="M19 5 5 19"/><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h6M14 6h6M4 12h10M18 12h2M4 18h3M11 18h9"/><circle cx="12" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="9" cy="18" r="2"/></symbol>
+    </defs>
   </svg>
-  {% endmacro %}
-  <div class="shell"
-       x-data="{
-         sidebarOpen: window.matchMedia('(min-width: 1280px)').matches,
-         init() {
-           const media = window.matchMedia('(min-width: 1280px)');
-           media.addEventListener('change', (event) => {
-             this.sidebarOpen = event.matches;
-           });
-         },
-         toggleSidebar() {
-           this.sidebarOpen = !this.sidebarOpen;
-         },
-         closeSidebarOnMobile() {
-           if (window.innerWidth < 1280) {
-             this.sidebarOpen = false;
-           }
-         }
-       }"
-       :class="sidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'">
+
+  <a class="skip-link" href="#main-content">İçeriğe geç</a>
+
+  <div class="shell">
     <header class="topbar no-print">
-      <button type="button" class="icon-btn sidebar-toggle" @click="toggleSidebar()" :aria-expanded="sidebarOpen ? 'true' : 'false'" aria-controls="main-navigation" aria-label="Menüyü aç veya kapat" title="Menü">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 6h16M4 12h16M4 18h16"/>
-        </svg>
-      </button>
-      <a class="brand" href="/">BayiOS</a>
+      <a class="brand" href="/" aria-label="BayiOS ana sayfa">
+        <span class="brand-mark" aria-hidden="true">B</span>
+        <span class="brand-word">BayiOS</span>
+      </a>
       <form class="search" role="search" action="/products" method="get">
-        <input type="search" name="q" placeholder="Ürün adı veya ID" aria-label="Ürün ara" value="{{ q or '' }}">
+        {{ icon("search") }}
+        <input type="search" name="q" placeholder="Ürün adı veya ID ara" aria-label="Ürün ara" value="{{ q or '' }}" autocomplete="off">
       </form>
     </header>
 
-    <div class="sidebar-backdrop no-print" x-show="sidebarOpen" x-cloak @click="sidebarOpen = false" aria-hidden="true"></div>
-
     <nav id="main-navigation" class="sidenav no-print" aria-label="Ana gezinme">
-      <div class="sidenav-header">
-        <span class="brand">BayiOS</span>
-        <button type="button" class="icon-btn" @click="sidebarOpen = false" aria-label="Menüyü kapat" title="Menüyü kapat">
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="m6 6 12 12M18 6 6 18"/>
-          </svg>
-        </button>
+      <div class="nav-section">
+        <div class="nav-section-label">Operasyon</div>
+        <ul class="nav-list">
+          {% for item in nav_items if item.key in ['home', 'products', 'campaigns', 'offers', 'reservations'] %}
+          <li>
+            {% if item.enabled %}
+            <a class="nav-link" href="{{ item.href }}"{% if item.key == active_nav %} aria-current="page"{% endif %} title="{{ item.label }}" aria-label="{{ item.label }}">
+              {{ icon(item.icon) }}
+              <span class="nav-label">{{ item.label }}</span>
+            </a>
+            {% else %}
+            <span class="nav-link" aria-disabled="true" title="{{ item.label }} (yakında)">
+              {{ icon(item.icon) }}
+              <span class="nav-label">{{ item.label }}</span>
+              <span class="nav-badge">Yakında</span>
+            </span>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
       </div>
-      <ul>
-        {% for item in nav_items %}
-        <li>
-          {% if item.enabled %}
-          <a href="{{ item.href }}"{% if item.key == active_nav %} aria-current="page"{% endif %} title="{{ item.label }}" @click="closeSidebarOnMobile()">
-            {{ nav_icon(item.icon) }}
-            <span class="nav-label">{{ item.label }}</span>
-          </a>
-          {% else %}
-          <span class="nav-disabled" aria-disabled="true" title="{{ item.label }} (yakında)">
-            {{ nav_icon(item.icon) }}
-            <span class="nav-label">{{ item.label }} <small>(yakında)</small></span>
-          </span>
-          {% endif %}
-        </li>
-        {% endfor %}
-      </ul>
+      <div class="nav-section">
+        <div class="nav-section-label">Yönetim</div>
+        <ul class="nav-list">
+          {% for item in nav_items if item.key in ['stock', 'commissions', 'settings'] %}
+          <li>
+            {% if item.enabled %}
+            <a class="nav-link" href="{{ item.href }}"{% if item.key == active_nav %} aria-current="page"{% endif %} title="{{ item.label }}" aria-label="{{ item.label }}">
+              {{ icon(item.icon) }}
+              <span class="nav-label">{{ item.label }}</span>
+            </a>
+            {% else %}
+            <span class="nav-link" aria-disabled="true" title="{{ item.label }} (yakında)">
+              {{ icon(item.icon) }}
+              <span class="nav-label">{{ item.label }}</span>
+              <span class="nav-badge">Yakında</span>
+            </span>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="sidenav-footer">
+        BayiOS · Yerel ağ<br>
+        Tüm modüller tek çalışma alanında.
+      </div>
     </nav>
 
-    <main class="content">
+    <main class="content" id="main-content">
       <div id="feedback" role="status" aria-live="polite"></div>
       {% block content %}{% endblock %}
     </main>
   </div>
+
+  {% block mobile_nav %}
+  {% set more_keys = ['campaigns', 'stock', 'commissions', 'settings'] %}
+  <nav class="tabbar no-print" aria-label="Mobil ana gezinme">
+    {% for item in nav_items if item.key in ['home', 'products', 'offers', 'reservations'] %}
+    <a class="tabbar-item" href="{{ item.href }}"{% if item.key == active_nav %} aria-current="page"{% endif %}>
+      {{ icon(item.icon) }}
+      <span>{% if item.key == 'reservations' %}Rezervasyon{% else %}{{ item.label }}{% endif %}</span>
+    </a>
+    {% endfor %}
+    <button type="button" class="tabbar-item" @click="moreOpen = true" :aria-expanded="moreOpen ? 'true' : 'false'" aria-controls="more-navigation"{% if active_nav in more_keys %} aria-current="page"{% endif %}>
+      {{ icon("more") }}
+      <span>Daha fazla</span>
+    </button>
+  </nav>
+
+  <div class="sheet-backdrop no-print" x-show="moreOpen" x-cloak @click="moreOpen = false" aria-hidden="true"></div>
+  <div id="more-navigation" class="more-sheet no-print" x-show="moreOpen" x-cloak role="dialog" aria-modal="true" aria-label="Diğer sayfalar">
+    <div class="more-sheet-handle" aria-hidden="true"></div>
+    <div class="card-header" style="margin-bottom: 12px;">
+      <h2 style="margin: 0;">Diğer sayfalar</h2>
+      <button type="button" class="modal-close" @click="moreOpen = false" aria-label="Menüyü kapat">
+        {{ icon("close") }}
+      </button>
+    </div>
+    <div class="more-grid">
+      {% for item in nav_items if item.key in more_keys %}
+      <a class="more-item" href="{{ item.href }}" @click="moreOpen = false"{% if item.key == active_nav %} aria-current="page"{% endif %}>
+        {{ icon(item.icon) }}
+        <span>{{ item.label }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endblock %}
 </body>
 </html>
