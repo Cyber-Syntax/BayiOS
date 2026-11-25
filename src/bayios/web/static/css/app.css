@@ -2507,3 +2507,9 @@ table.products-table input[type="checkbox"],
 }
 .product-campaigns-section .scenario-box { flex: 1 1 190px; }
 .product-campaigns-section .campaign-open { align-self: center; margin-left: auto; flex: 0 0 auto; }
+.dashboard-date { margin: 0 0 12px; }
+.quick-panel { margin-bottom: 0; }
+.dashboard-kpis .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 1280px) {
+  .dashboard-kpis .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

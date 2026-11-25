@@ -2,15 +2,6 @@
 {% from "_icons.html" import icon %}
 {% block title %}Ana Sayfa{% endblock %}
 {% block content %}
-{% set module_copy = {
-  'products': ('Katalog ve fiyat', 'Ürün, stok ve kategori yönetimi'),
-  'campaigns': ('Kampanya rehberi', 'Aktif fırsatlar ve hediye senaryoları'),
-  'offers': ('Teklifler', 'Müşteri teklifi ve fiyat çalışması'),
-  'reservations': ('Rezervasyonlar', 'Teslim takibi ve hatırlatmalar'),
-  'stock': ('Stok / Sayım', 'Fiziksel stok ve sayım oturumları'),
-  'commissions': ('Komisyonlar', 'Banka oranları ve taksit limitleri'),
-  'settings': ('Ayarlar', 'Banka ve kategori ana verisi')
-} %}
 {% set offer_badges = {
   'draft': 'badge-neutral',
   'presented': 'badge-info',
@@ -20,58 +11,14 @@
 } %}
 <div class="dashboard">
 
-  <section class="dashboard-hero" aria-label="Günlük özet">
-    <div>
-      <div class="eyebrow">{{ today | tr_date_long }}</div>
-      <h1>Merhaba, bugünün özeti</h1>
-      <p>Açık teklifler, rezervasyon hatırlatmaları ve güncel kampanyalar tek ekranda.</p>
-    </div>
-    <a class="btn btn-primary" href="/offers/new">
-      {{ icon("plus") }}
-      Yeni Teklif
-    </a>
-  </section>
+  <div class="dashboard-date" aria-label="Günün tarihi">
+    <span class="eyebrow">{{ today | tr_date_long }}</span>
+  </div>
 
-  <section class="kpi-grid" aria-label="Özet sayılar">
-    <a class="kpi-card" href="/offers">
-      <div class="kpi-top">
-        <span class="kpi-label">Açık Teklif</span>
-        <span class="kpi-icon">{{ icon("offers") }}</span>
-      </div>
-      <div class="kpi-value">{{ open_offers }}</div>
-      <div class="kpi-hint">Taslak ve müşteriye sunulmuş teklifler</div>
-    </a>
-    <a class="kpi-card is-info" href="/reservations?status=open">
-      <div class="kpi-top">
-        <span class="kpi-label">Açık Rezervasyon</span>
-        <span class="kpi-icon">{{ icon("reservations") }}</span>
-      </div>
-      <div class="kpi-value">{{ open_reservations }}</div>
-      <div class="kpi-hint">Teslim bekleyen açık rezervasyonlar</div>
-    </a>
-    <a class="kpi-card{% if overdue_reminders %} is-danger{% endif %}" href="/reservations?status=overdue">
-      <div class="kpi-top">
-        <span class="kpi-label">Gecikmiş Hatırlatma</span>
-        <span class="kpi-icon">{{ icon("clock") }}</span>
-      </div>
-      <div class="kpi-value">{{ overdue_reminders }}</div>
-      <div class="kpi-hint">Takip tarihi geçmiş rezervasyonlar</div>
-    </a>
-    <a class="kpi-card is-success" href="/campaigns?state=active">
-      <div class="kpi-top">
-        <span class="kpi-label">Aktif Kampanya</span>
-        <span class="kpi-icon">{{ icon("campaigns") }}</span>
-      </div>
-      <div class="kpi-value">{{ active_campaigns }}</div>
-      <div class="kpi-hint">Tarihi geçerli kampanyalar</div>
-    </a>
-  </section>
-
-  <section class="panel" aria-labelledby="quick-actions-title">
+  <section class="panel quick-panel" aria-labelledby="quick-actions-title">
     <div class="panel-header">
       <div>
         <h2 id="quick-actions-title">Hızlı işlemler</h2>
-        <p>En sık kullanılan akışlara tek dokunuşla geçin.</p>
       </div>
     </div>
     <div class="panel-body">
@@ -138,36 +85,40 @@
         </div>
       </section>
 
-      <section class="panel" aria-labelledby="modules-title">
-        <div class="panel-header">
-          <div>
-            <h2 id="modules-title">Modüller</h2>
-            <p>Tüm çalışma alanlarına doğrudan geçin.</p>
-          </div>
-        </div>
-        <div class="panel-body">
-          <div class="module-grid">
-            {% for item in nav_items if item.key != "home" %}
-            {% set copy = module_copy.get(item.key, (item.label, '')) %}
-            {% if item.enabled %}
-            <a class="module-card" href="{{ item.href }}">
-              <span class="module-icon">{{ icon(item.icon) }}</span>
-              <span>
-                <span class="module-title">{{ copy[0] }}</span>
-                <span class="module-desc">{{ copy[1] }}</span>
-              </span>
-            </a>
-            {% else %}
-            <span class="module-card" aria-disabled="true">
-              <span class="module-icon">{{ icon(item.icon) }}</span>
-              <span>
-                <span class="module-title">{{ item.label }}</span>
-                <span class="module-desc">Yakında</span>
-              </span>
-            </span>
-            {% endif %}
-            {% endfor %}
-          </div>
+      <section class="dashboard-kpis" aria-label="Özet sayılar">
+        <div class="kpi-grid">
+          <a class="kpi-card" href="/offers">
+            <div class="kpi-top">
+              <span class="kpi-label">Açık Teklif</span>
+              <span class="kpi-icon">{{ icon("offers") }}</span>
+            </div>
+            <div class="kpi-value">{{ open_offers }}</div>
+            <div class="kpi-hint">Taslak ve müşteriye sunulmuş teklifler</div>
+          </a>
+          <a class="kpi-card is-info" href="/reservations?status=open">
+            <div class="kpi-top">
+              <span class="kpi-label">Açık Rezervasyon</span>
+              <span class="kpi-icon">{{ icon("reservations") }}</span>
+            </div>
+            <div class="kpi-value">{{ open_reservations }}</div>
+            <div class="kpi-hint">Teslim bekleyen açık rezervasyonlar</div>
+          </a>
+          <a class="kpi-card{% if overdue_reminders %} is-danger{% endif %}" href="/reservations?status=overdue">
+            <div class="kpi-top">
+              <span class="kpi-label">Gecikmiş Hatırlatma</span>
+              <span class="kpi-icon">{{ icon("clock") }}</span>
+            </div>
+            <div class="kpi-value">{{ overdue_reminders }}</div>
+            <div class="kpi-hint">Takip tarihi geçmiş rezervasyonlar</div>
+          </a>
+          <a class="kpi-card is-success" href="/campaigns?state=active">
+            <div class="kpi-top">
+              <span class="kpi-label">Aktif Kampanya</span>
+              <span class="kpi-icon">{{ icon("campaigns") }}</span>
+            </div>
+            <div class="kpi-value">{{ active_campaigns }}</div>
+            <div class="kpi-hint">Tarihi geçerli kampanyalar</div>
+          </a>
         </div>
       </section>
 

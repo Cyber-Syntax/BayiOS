@@ -264,12 +264,14 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 ### 6.1 Ana Sayfa
 
 - Amaç: “Bugün ne yapmam gerekiyor?” ve “Nereye gitmem lazım?” sorularına tek bakışta cevap.
-- Karşılama kartı: tarih, kısa özet, birincil “Yeni Teklif” eylemi.
-- 4 KPI: Açık Teklif, Açık Rezervasyon, Gecikmiş Hatırlatma, Aktif Kampanya.
-- Hızlı işlemler: Yeni Teklif, Yeni Rezervasyon, Stok Sayımı, Ürün Ekle.
-- Hatırlatmalar: gecikmiş kırmızı, yaklaşan amber; satıra dokunma rezervasyonu açar.
-- Laptopta hatırlatmalar solda; son teklifler ve son rezervasyonlar sağda. Telefonda sırayla alt alta.
-- Modül kartları tek sırada (laptop) veya 2 sütun (telefon).
+- Üstte yalnız günün tarihi; “Merhaba/günün özeti” başlığı ve açıklama yoktur.
+- Hemen altında hızlı işlemler: Yeni Teklif, Yeni Rezervasyon, Stok Sayımı, Ürün Ekle. Başlık dışında açıklama/ghost text yoktur.
+- Sonra hatırlatmalar; gecikmiş kırmızı, yaklaşan amber; satıra dokunma rezervasyonu açar.
+- Hatırlatmaların altında 4 KPI: Açık Teklif, Açık Rezervasyon, Gecikmiş Hatırlatma, Aktif Kampanya.
+- En sonda son teklifler ve son rezervasyonlar.
+- Modül kartları yoktur; navigasyon zaten yan/alt sekmelerdedir.
+- Telefon sırası: tarih → hızlı işlemler → hatırlatmalar → KPI → son teklifler → son rezervasyonlar.
+- Laptop: tarih + hızlı işlemler üstte; altta solda hatırlatmalar + KPI, sağda son teklifler + son rezervasyonlar.
 - Veri yoksa boş durum metni; sahte sayı gösterilmez.
 
 ### 6.2 Ürünler (liste)
