@@ -179,6 +179,9 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 - Renkler: success, warning, danger, info, neutral.
 - Stok: “Stok: 3”, “Stokta yok”, negatifse “Stok düzeltmesi gerekli”.
 - Durum: “Taslak”, “Müşteriye sunuldu”, “Kabul edildi”, “Süresi geçti”, “Arşivde”.
+- **Sert kural:** Serbest metin taşıyan rozetler satır kırar. Global `white-space: nowrap` kullanılmaz; tüm rozetlerde `max-width: 100%` ve `overflow-wrap: anywhere` vardır. Uzun kampanya/hediye/ürün adı yatay kaydırma üretmez.
+- Teklif satırında kampanya adı rozet değildir; tek satır, ellipsis metin olarak gösterilir. Rozet yalnız kısa durum/etiket bilgisinde kullanılır.
+- Flex/grid çocuklarında `min-width: 0`; uzun metin, select veya badge kartı ekran dışına taşıramaz.
 
 ### 5.5 Kartlar ve KPI
 

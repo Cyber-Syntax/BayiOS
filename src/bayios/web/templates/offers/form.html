@@ -70,8 +70,8 @@
                     <span x-show="item.oliz_price"> · Oliz: <span class="mono" x-text="formatMoney(item.oliz_price)"></span> TL</span>
                     <span x-show="item.cost_price"> · Maliyet: <span class="mono" x-text="formatMoney(item.cost_price)"></span> TL</span>
                   </div>
-                  <div x-show="item.campaign_name" style="margin-top: 5px;" class="cluster">
-                    <span class="badge badge-info" x-text="item.campaign_name"></span>
+                  <div x-show="item.campaign_name" class="offer-line-campaign">
+                    <span class="offer-line-campaign-name" x-text="item.campaign_name" :title="item.campaign_name"></span>
                     <span class="muted small" x-text="campaignEffect(item)"></span>
                     <strong class="mono small" x-text="formatMoney(item.campaign_price) + ' TL'"></strong>
                   </div>

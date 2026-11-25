@@ -2513,3 +2513,47 @@ table.products-table input[type="checkbox"],
 @media (min-width: 1280px) {
   .dashboard-kpis .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* HARD RULE: free-text badges must wrap; never reintroduce global white-space: nowrap. */
+.badge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.offer-form-shell,
+.basket-add-block,
+.basket-lines,
+.offer-line,
+.offer-line-head,
+.offer-line-title,
+.offer-line-meta,
+.offer-line-controls,
+.offer-line-controls .form-group {
+  min-width: 0;
+  max-width: 100%;
+}
+.offer-line-head { flex-wrap: wrap; }
+.offer-line-title { flex: 1 1 16rem; }
+.offer-line-total { margin-left: auto; }
+.offer-line-meta { overflow-wrap: anywhere; line-height: 1.45; }
+.offer-line-title strong { overflow-wrap: anywhere; }
+.offer-line-controls .form-control { min-width: 0; width: 100%; }
+.picker-item { min-width: 0; }
+.picker-name, .picker-meta { overflow-wrap: anywhere; }
+.offer-line-campaign {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  margin-top: 5px;
+  min-width: 0;
+}
+.offer-line-campaign-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 11px;
+}

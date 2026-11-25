@@ -429,6 +429,54 @@ def test_offer_list_products_column_and_json_export(
     assert payload["offers"][0]["cash_total_override"] == "15000.00"
 
 
+def test_offer_line_long_campaign_name_uses_wrapping_text_not_badge(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from bayios.application.campaigns import (
+        CampaignInput,
+        CampaignProductInput,
+        create_campaign,
+    )
+    from bayios.domain.campaigns import (
+        BasePriceType,
+        CampaignType,
+        DiscountType,
+        ProductRelationType,
+    )
+
+    product = next(iter(fake_uow.products.get_all()))
+    long_name = (
+        "Seçili Beyaz Eşya, Ankastre Set alımına Kurutma Makineleri "
+        "veya Klimalarda %50'ye Varan İndirim Fırsatı!"
+    )
+    now = datetime.now(UTC)
+    create_campaign(
+        fake_uow,
+        CampaignInput(
+            name=long_name,
+            campaign_type=CampaignType.PRODUCT_DISCOUNT,
+            starts_at=now - timedelta(days=1),
+            ends_at=now + timedelta(days=30),
+            base_price_type=BasePriceType.REGULAR,
+            discount_type=DiscountType.PERCENT,
+            discount_value=Decimal(50),
+            products=(CampaignProductInput(product.id, ProductRelationType.BENEFIT),),
+        ),
+    )
+
+    form = client.get(f"/offers/new?product_id={product.id}")
+
+    assert form.status_code == 200
+    assert "Kurutma Makineleri" in form.text
+    assert "offer-line-campaign-name" in form.text
+    assert (
+        '<span class="badge badge-info" x-text="item.campaign_name"></span>'
+        not in form.text
+    )
+
+
 def test_offer_form_has_manual_totals_sticky_bar_and_collapsible_options(
     client: TestClient,
 ) -> None:
