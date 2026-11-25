@@ -7,7 +7,7 @@
 
 {% macro count_table(editable, items) %}
 <div class="table-container mobile-cards-container">
-  <table class="data-table mobile-cards">
+  <table class="data-table mobile-cards stock-session-table">
     <thead>
       <tr>
         <th class="col-name">Ürün Adı</th>
@@ -19,10 +19,10 @@
     </thead>
     <tbody>
       {% for item in items %}
-      <tr>
-        <td class="col-name" data-label="Ürün"><strong>{{ item.product_name }}</strong></td>
-        <td class="col-stock" data-label="Sistem Stoğu">{{ item.system_quantity }}</td>
-        <td class="col-stock" data-label="Sayılan Miktar">
+      <tr class="count-row">
+        <td class="col-name count-product" data-label="Ürün"><strong>{{ item.product_name }}</strong></td>
+        <td class="col-stock count-system" data-label="Sistem Stoğu">{{ item.system_quantity }}</td>
+        <td class="col-stock count-counted" data-label="Sayılan Miktar">
           {% if editable %}
           <input type="number" min="0" step="1" name="counted_{{ item.product_id }}"
                  value="{{ item.counted_quantity if item.counted_quantity is not none else '' }}"
@@ -31,14 +31,14 @@
           {{ item.counted_quantity if item.counted_quantity is not none else '—' }}
           {% endif %}
         </td>
-        <td class="col-stock" data-label="Fark">
+        <td class="col-stock count-difference" data-label="Fark">
           {% if item.difference is not none %}
             {% if item.difference > 0 %}<strong style="color: var(--success);">+{{ item.difference }}</strong>
             {% elif item.difference < 0 %}<strong style="color: var(--danger);">{{ item.difference }}</strong>
             {% else %}<span class="muted">0</span>{% endif %}
           {% else %}<span class="muted">—</span>{% endif %}
         </td>
-        <td class="col-date" data-label="Uygulandı">{{ item.applied_at | tr_datetime if item.applied_at else '—' }}</td>
+        <td class="col-date count-applied" data-label="Uygulandı">{{ item.applied_at | tr_datetime if item.applied_at else '—' }}</td>
       </tr>
       {% endfor %}
     </tbody>

@@ -70,12 +70,12 @@
     <thead><tr><th>Dönem</th><th>Geçerlilik</th><th>Durum</th><th>Kopyalandığı Dönem</th><th class="col-actions">İşlem</th></tr></thead>
     <tbody>
       {% for period in periods %}
-      <tr>
-        <td data-label="Dönem"><a href="/commissions/{{ period.id }}"><strong>{{ period.period_key }}</strong></a></td>
-        <td data-label="Geçerlilik">{{ period.valid_from | tr_date }} – {{ period.valid_until | tr_date }}</td>
-        <td data-label="Durum"><span class="badge {% if period.status == 'active' %}badge-success{% elif period.status == 'draft' %}badge-info{% else %}badge-neutral{% endif %}">{{ status_labels.get(period.status, period.status) }}</span></td>
-        <td data-label="Kopyalandığı Dönem">{% if period.copied_from_id %}{{ period.copied_from_id }}{% else %}—{% endif %}</td>
-        <td class="col-actions" data-label="İşlem">
+      <tr class="period-row">
+        <td class="period-key" data-label="Dönem"><a href="/commissions/{{ period.id }}"><strong>{{ period.period_key }}</strong></a></td>
+        <td class="period-validity" data-label="Geçerlilik">{{ period.valid_from | tr_date }} – {{ period.valid_until | tr_date }}</td>
+        <td class="period-status" data-label="Durum"><span class="badge {% if period.status == 'active' %}badge-success{% elif period.status == 'draft' %}badge-info{% else %}badge-neutral{% endif %}">{{ status_labels.get(period.status, period.status) }}</span></td>
+        <td class="period-copied" data-label="Kopyalandığı Dönem">{% if period.copied_from_id %}{{ period.copied_from_id }}{% else %}—{% endif %}</td>
+        <td class="col-actions period-actions" data-label="İşlem">
           <div class="actions-inline">
             <a class="btn btn-sm" href="/commissions/{{ period.id }}">Detay {{ icon("chevron-right", "icon icon-sm") }}</a>
             {% if period.status in ('draft', 'inactive') %}

@@ -2670,3 +2670,153 @@ table.products-table input[type="checkbox"],
     justify-content: flex-end;
   }
 }
+/* Commission tables: flush sections, compact mobile cards */
+.table-flush { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.rate-matrix-table th:first-child,
+.rate-matrix-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+  box-shadow: 1px 0 0 var(--border);
+}
+.rate-matrix-table th:first-child { background: var(--surface-2); z-index: 2; }
+.rate-inline-form, .limit-inline-form { display: flex; align-items: center; gap: 4px; }
+.rate-value-input, .limit-value-input { width: 5.5rem; min-width: 0; }
+
+@media (max-width: 1023px) {
+  table.data-table.mobile-cards tr.period-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "period status"
+      "validity validity"
+      "actions actions";
+  }
+  table.data-table.mobile-cards tr.period-row td { padding: 0; border: 0; }
+  table.data-table.mobile-cards tr.period-row td::before { content: none; }
+  table.data-table.mobile-cards tr.period-row td.period-key { grid-area: period; font-family: var(--font-mono); font-size: 13px; }
+  table.data-table.mobile-cards tr.period-row td.period-status { grid-area: status; justify-self: end; align-self: center; }
+  table.data-table.mobile-cards tr.period-row td.period-validity { grid-area: validity; color: var(--muted); font-size: 11px; }
+  table.data-table.mobile-cards tr.period-row td.period-copied { display: none; }
+  table.data-table.mobile-cards tr.period-row td.period-actions { grid-area: actions; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 2px; }
+  table.data-table.mobile-cards tr.period-row td.period-actions .actions-inline { justify-content: flex-start; width: 100%; }
+
+  /* Rates */
+  table.data-table.mobile-cards tr.rate-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "channel bank"
+      "group tier"
+      "installment actions"
+      "percent percent";
+  }
+  table.data-table.mobile-cards tr.rate-row td { padding: 0; border: 0; }
+  table.data-table.mobile-cards tr.rate-row td::before { content: none; }
+  table.data-table.mobile-cards tr.rate-row td.rate-channel { grid-area: channel; font-weight: 600; }
+  table.data-table.mobile-cards tr.rate-row td.rate-bank { grid-area: bank; justify-self: end; text-align: right; }
+  table.data-table.mobile-cards tr.rate-row td.rate-group { grid-area: group; color: var(--muted); font-size: 11px; }
+  table.data-table.mobile-cards tr.rate-row td.rate-tier { grid-area: tier; justify-self: end; color: var(--muted); font-size: 11px; text-align: right; }
+  table.data-table.mobile-cards tr.rate-row td.rate-installment { grid-area: installment; font-family: var(--font-mono); font-size: 11.5px; }
+  table.data-table.mobile-cards tr.rate-row td.rate-percent { grid-area: percent; }
+  table.data-table.mobile-cards tr.rate-row td.rate-actions { grid-area: actions; justify-self: end; }
+  table.data-table.mobile-cards tr.rate-row td.rate-actions,
+  table.data-table.mobile-cards tr.rate-row td.rate-actions:hover { border: 0; padding: 0; background: transparent; }
+  table.data-table.mobile-cards tr.rate-row .rate-inline-form { width: 100%; }
+  table.data-table.mobile-cards tr.rate-row .rate-value-input { flex: 1 1 auto; width: auto; }
+
+  /* Limits */
+  table.data-table.mobile-cards tr.limit-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "channel primary"
+      "group card"
+      "max actions";
+  }
+  table.data-table.mobile-cards tr.limit-row td { padding: 0; border: 0; }
+  table.data-table.mobile-cards tr.limit-row td::before { content: none; }
+  table.data-table.mobile-cards tr.limit-row td.limit-channel { grid-area: channel; font-weight: 600; }
+  table.data-table.mobile-cards tr.limit-row td.limit-primary { grid-area: primary; justify-self: end; text-align: right; font-weight: 600; }
+  table.data-table.mobile-cards tr.limit-row td.limit-group { grid-area: group; color: var(--muted); font-size: 11px; }
+  table.data-table.mobile-cards tr.limit-row td.limit-card { grid-area: card; justify-self: end; color: var(--muted); font-size: 11px; text-align: right; }
+  table.data-table.mobile-cards tr.limit-row td.limit-max { grid-area: max; }
+  table.data-table.mobile-cards tr.limit-row td.limit-actions { grid-area: actions; justify-self: end; }
+  table.data-table.mobile-cards tr.limit-row td.limit-actions,
+  table.data-table.mobile-cards tr.limit-row td.limit-actions:hover { border: 0; padding: 0; background: transparent; }
+  table.data-table.mobile-cards tr.limit-row .limit-inline-form { width: 100%; }
+  table.data-table.mobile-cards tr.limit-row .limit-value-input { flex: 0 1 6rem; width: 6rem; }
+}
+.commission-limits-stack { display: grid; gap: 16px; }
+/* Stock / count: compact mobile cards, no horizontal scroll */
+@media (max-width: 1023px) {
+  table.data-table.mobile-cards tr.stock-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "product physical"
+      "category reservation"
+      "actions actions";
+  }
+  table.data-table.mobile-cards tr.stock-row td { padding: 0; border: 0; }
+  table.data-table.mobile-cards tr.stock-row td::before { content: none; }
+  table.data-table.mobile-cards tr.stock-row td.stock-product { grid-area: product; min-width: 0; }
+  table.data-table.mobile-cards tr.stock-row td.stock-product strong { overflow-wrap: anywhere; }
+  table.data-table.mobile-cards tr.stock-row td.stock-physical { grid-area: physical; justify-self: end; align-self: start; }
+  table.data-table.mobile-cards tr.stock-row td.stock-category { grid-area: category; color: var(--muted); font-size: 11px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  table.data-table.mobile-cards tr.stock-row td.stock-reservation { grid-area: reservation; justify-self: end; color: var(--muted); font-size: 11px; white-space: nowrap; }
+  table.data-table.mobile-cards tr.stock-row td.stock-actions { grid-area: actions; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 2px; }
+
+  table.data-table.mobile-cards tr.open-session-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "number category status"
+      "started started actions";
+  }
+  table.data-table.mobile-cards tr.history-session-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "number category status"
+      "completed completed actions";
+  }
+  table.data-table.mobile-cards tr.stock-session-row td { padding: 0; border: 0; }
+  table.data-table.mobile-cards tr.stock-session-row td::before { content: none; }
+  table.data-table.mobile-cards tr.stock-session-row td.session-number { grid-area: number; color: var(--muted); font-size: 11px; white-space: nowrap; }
+  table.data-table.mobile-cards tr.stock-session-row td.session-category { grid-area: category; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+  table.data-table.mobile-cards tr.stock-session-row td.session-status { grid-area: status; justify-self: end; align-self: center; }
+  table.data-table.mobile-cards tr.open-session-row td.session-started { grid-area: started; color: var(--muted); font-size: 10.5px; }
+  table.data-table.mobile-cards tr.history-session-row td.session-completed { grid-area: completed; color: var(--muted); font-size: 10.5px; }
+  table.data-table.mobile-cards tr.history-session-row td.session-started,
+  table.data-table.mobile-cards tr.history-session-row td.session-by { display: none; }
+  table.data-table.mobile-cards tr.stock-session-row td.session-actions { grid-area: actions; justify-self: end; }
+  table.data-table.mobile-cards tr.stock-session-row td.session-actions .btn { white-space: nowrap; }
+
+  table.data-table.mobile-cards.stock-session-table tr.count-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "product product product"
+      "system counted difference";
+    gap: 8px 10px;
+  }
+  table.data-table.mobile-cards.stock-session-table tr.count-row td { padding: 0; border: 0; }
+  table.data-table.mobile-cards.stock-session-table tr.count-row td::before { content: none; }
+  table.data-table.mobile-cards.stock-session-table tr.count-row td.count-product { grid-area: product; min-width: 0; }
+  table.data-table.mobile-cards.stock-session-table tr.count-row td.count-product strong { overflow-wrap: anywhere; }
+  table.data-table.mobile-cards.stock-session-table tr.count-row td.count-system { grid-area: system; }
+  table.data-table.mobile-cards.stock-session-table tr.count-row td.count-counted { grid-area: counted; }
+  table.data-table.mobile-cards.stock-session-table tr.count-row td.count-difference { grid-area: difference; }
+  table.data-table.mobile-cards.stock-session-table tr.count-row td.count-system,
+  table.data-table.mobile-cards.stock-session-table tr.count-row td.count-counted,
+  table.data-table.mobile-cards.stock-session-table tr.count-row td.count-difference { text-align: center; }
+  table.data-table.mobile-cards.stock-session-table tr.count-row td.count-counted .stock-input { width: 100%; min-height: 42px; text-align: center; }
+  table.data-table.mobile-cards.stock-session-table tr.count-row td.count-system::before,
+  table.data-table.mobile-cards.stock-session-table tr.count-row td.count-counted::before,
+  table.data-table.mobile-cards.stock-session-table tr.count-row td.count-difference::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 3px;
+    color: var(--muted);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  table.data-table.mobile-cards.stock-session-table tr.count-row td.count-applied { display: none; }
+}

@@ -85,12 +85,12 @@
           <thead><tr><th>No</th><th class="col-name">Kategori</th><th>Durum</th><th class="col-date">Başlangıç</th><th class="col-actions">İşlem</th></tr></thead>
           <tbody>
             {% for session in open_sessions %}
-            <tr>
-              <td data-label="No"><span class="mono">#{{ session.count_number }}</span></td>
-              <td class="col-name" data-label="Kategori">{{ category_names.get(session.category_id, 'Tüm Ürünler') }}</td>
-              <td data-label="Durum">{% if session.status == 'review' %}<span class="badge badge-warning">Fark İncelemesi</span>{% else %}<span class="badge badge-info">Açık</span>{% endif %}</td>
-              <td class="col-date" data-label="Başlangıç">{{ session.started_at | tr_datetime if session.started_at else '—' }}</td>
-              <td class="col-actions" data-label="İşlem"><a class="btn btn-sm btn-primary" href="/stock/sessions/{{ session.id }}">Devam Et {{ icon("arrow-right", "icon icon-sm") }}</a></td>
+            <tr class="stock-session-row open-session-row">
+              <td class="session-number" data-label="No"><span class="mono">#{{ session.count_number }}</span></td>
+              <td class="col-name session-category" data-label="Kategori">{{ category_names.get(session.category_id, 'Tüm Ürünler') }}</td>
+              <td class="session-status" data-label="Durum">{% if session.status == 'review' %}<span class="badge badge-warning">Fark İncelemesi</span>{% else %}<span class="badge badge-info">Açık</span>{% endif %}</td>
+              <td class="col-date session-started" data-label="Başlangıç">{{ session.started_at | tr_datetime if session.started_at else '—' }}</td>
+              <td class="col-actions session-actions" data-label="İşlem"><a class="btn btn-sm btn-primary" href="/stock/sessions/{{ session.id }}">Devam Et {{ icon("arrow-right", "icon icon-sm") }}</a></td>
             </tr>
             {% endfor %}
           </tbody>
@@ -120,14 +120,14 @@
           <thead><tr><th>No</th><th class="col-name">Kategori</th><th>Durum</th><th class="col-date">Başlangıç</th><th class="col-date">Tamamlanma</th><th>Tamamlayan</th><th class="col-actions">İşlem</th></tr></thead>
           <tbody>
             {% for session in completed_sessions %}
-            <tr>
-              <td data-label="No"><span class="mono">#{{ session.count_number }}</span></td>
-              <td class="col-name" data-label="Kategori">{{ category_names.get(session.category_id, 'Tüm Ürünler') }}</td>
-              <td data-label="Durum"><span class="badge badge-success">Tamamlandı</span></td>
-              <td class="col-date" data-label="Başlangıç">{{ session.started_at | tr_datetime if session.started_at else '—' }}</td>
-              <td class="col-date" data-label="Tamamlanma">{{ session.completed_at | tr_datetime if session.completed_at else '—' }}</td>
-              <td data-label="Tamamlayan">{{ session.completed_by_name or '—' }}</td>
-              <td class="col-actions" data-label="İşlem"><a class="btn btn-sm" href="/stock/sessions/{{ session.id }}">Aç {{ icon("chevron-right", "icon icon-sm") }}</a></td>
+            <tr class="stock-session-row history-session-row">
+              <td class="session-number" data-label="No"><span class="mono">#{{ session.count_number }}</span></td>
+              <td class="col-name session-category" data-label="Kategori">{{ category_names.get(session.category_id, 'Tüm Ürünler') }}</td>
+              <td class="session-status" data-label="Durum"><span class="badge badge-success">Tamamlandı</span></td>
+              <td class="col-date session-started" data-label="Başlangıç">{{ session.started_at | tr_datetime if session.started_at else '—' }}</td>
+              <td class="col-date session-completed" data-label="Tamamlanma">{{ session.completed_at | tr_datetime if session.completed_at else '—' }}</td>
+              <td class="session-by" data-label="Tamamlayan">{{ session.completed_by_name or '—' }}</td>
+              <td class="col-actions session-actions" data-label="İşlem"><a class="btn btn-sm" href="/stock/sessions/{{ session.id }}">Aç {{ icon("chevron-right", "icon icon-sm") }}</a></td>
             </tr>
             {% endfor %}
           </tbody>

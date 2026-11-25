@@ -83,8 +83,8 @@
     {% for ch in rate_matrix %}
     <div x-show="channel === '{{ ch.value }}'" x-cloak>
       {% if ch.rows %}
-      <div class="table-container" data-table-scroll style="margin-top: 0;">
-        <table class="data-table" style="min-width: 0;">
+      <div class="table-container table-flush" data-table-scroll style="margin-top: 0;">
+        <table class="data-table rate-matrix-table" style="min-width: 0;">
           <thead>
             <tr>
               <th>Banka</th>
@@ -137,24 +137,24 @@
       <span id="bank-quick-status" class="muted small"></span>
     </form>
     {% endif %}
-    <div class="table-container" data-table-scroll style="margin-top: 0;">
-      <table class="data-table" style="min-width: 0;">
+    <div class="table-container mobile-cards-container">
+      <table class="data-table mobile-cards commission-rates-table">
         <thead><tr><th>Kanal</th><th>Banka</th><th>Ürün Grubu</th><th>Ödero Bandı</th><th>Taksit</th><th>Oran</th><th class="col-actions">İşlem</th></tr></thead>
         <tbody>
           {% for rate in detail.rates %}
-          <tr>
-            <td>{{ channel_labels.get(rate.channel, rate.channel) }}</td>
-            <td>{% if rate.bank_id %}{{ bank_names.get(rate.bank_id | string, rate.bank_id) }}{% else %}<span class="badge badge-neutral">Genel</span>{% endif %}</td>
-            <td>{{ group_labels.get(rate.product_group, rate.product_group or '—') }}</td>
-            <td>{{ tier_labels.get(rate.amount_tier, rate.amount_tier or '—') }}</td>
-            <td class="mono">{{ rate.installment_count }}</td>
-            <td>
-              <form method="post" action="/commissions/{{ detail.period.id }}/rates/{{ rate.id }}/edit" style="display: flex; gap: 4px; align-items: center;">
-                <input type="text" name="commission_percent" value="{{ rate.commission_percent }}" class="form-control" style="width: 6rem;" inputmode="decimal">
+          <tr class="rate-row">
+            <td class="rate-channel" data-label="Kanal">{{ channel_labels.get(rate.channel, rate.channel) }}</td>
+            <td class="rate-bank" data-label="Banka">{% if rate.bank_id %}{{ bank_names.get(rate.bank_id | string, rate.bank_id) }}{% else %}<span class="badge badge-neutral">Genel</span>{% endif %}</td>
+            <td class="rate-group" data-label="Ürün Grubu">{{ group_labels.get(rate.product_group, rate.product_group or '—') }}</td>
+            <td class="rate-tier" data-label="Ödero Bandı">{{ tier_labels.get(rate.amount_tier, rate.amount_tier or '—') }}</td>
+            <td class="rate-installment" data-label="Taksit">{{ rate.installment_count }} taksit</td>
+            <td class="rate-percent" data-label="Oran">
+              <form method="post" action="/commissions/{{ detail.period.id }}/rates/{{ rate.id }}/edit" class="rate-inline-form">
+                <input type="text" name="commission_percent" value="{{ rate.commission_percent }}" class="form-control rate-value-input" inputmode="decimal" aria-label="Komisyon oranı">
                 <button type="submit" class="btn btn-sm">Kaydet</button>
               </form>
             </td>
-            <td class="col-actions">
+            <td class="col-actions rate-actions" data-label="İşlem">
               <form method="post" action="/commissions/{{ detail.period.id }}/rates/{{ rate.id }}/delete" onsubmit="return confirm('Bu komisyon oranı silinecek. Emin misiniz?');">
                 <button type="submit" class="btn btn-sm btn-danger" title="Sil">{{ icon("trash", "icon icon-sm") }}</button>
               </form>
@@ -185,7 +185,7 @@
   </div>
 </section>
 
-<div class="dashboard-grid" style="margin-bottom: 16px;">
+<div class="commission-limits-stack" style="margin-bottom: 16px;">
   <section class="panel">
     <div class="panel-header">
       <div>
@@ -194,23 +194,23 @@
       </div>
     </div>
     <div class="panel-body">
-      <div class="table-container" data-table-scroll style="margin-top: 0;">
-        <table class="data-table" style="min-width: 0;">
+      <div class="table-container mobile-cards-container">
+        <table class="data-table mobile-cards commission-limits-table">
           <thead><tr><th>Kanal</th><th>Ürün Grubu</th><th>Kategori</th><th>Kart Tipi</th><th>Max Taksit</th><th class="col-actions">İşlem</th></tr></thead>
           <tbody>
             {% for limit in detail.limits if limit.category_id %}
-            <tr>
-              <td>{{ channel_labels.get(limit.channel, limit.channel or '—') }}</td>
-              <td>{{ group_labels.get(limit.product_group, limit.product_group or '—') }}</td>
-              <td>{{ category_names.get(limit.category_id | string, '—') }}</td>
-              <td>{{ card_labels.get(limit.card_type, limit.card_type or '—') }}</td>
-              <td>
-                <form method="post" action="/commissions/{{ detail.period.id }}/limits/{{ limit.id }}/edit" style="display: flex; gap: 4px; align-items: center;">
-                  <input type="number" name="max_installments" value="{{ limit.max_installments }}" min="1" class="form-control" style="width: 6rem;" inputmode="numeric">
+            <tr class="limit-row category-limit-row">
+              <td class="limit-channel" data-label="Kanal">{{ channel_labels.get(limit.channel, limit.channel or '—') }}</td>
+              <td class="limit-primary limit-category" data-label="Kategori">{{ category_names.get(limit.category_id | string, '—') }}</td>
+              <td class="limit-group" data-label="Ürün Grubu">{{ group_labels.get(limit.product_group, limit.product_group or '—') }}</td>
+              <td class="limit-card" data-label="Kart Tipi">{{ card_labels.get(limit.card_type, limit.card_type or '—') }}</td>
+              <td class="limit-max" data-label="Max Taksit">
+                <form method="post" action="/commissions/{{ detail.period.id }}/limits/{{ limit.id }}/edit" class="limit-inline-form">
+                  <input type="number" name="max_installments" value="{{ limit.max_installments }}" min="1" class="form-control limit-value-input" inputmode="numeric" aria-label="Max taksit">
                   <button type="submit" class="btn btn-sm">Kaydet</button>
                 </form>
               </td>
-              <td class="col-actions">
+              <td class="col-actions limit-actions" data-label="İşlem">
                 <form method="post" action="/commissions/{{ detail.period.id }}/limits/{{ limit.id }}/delete" onsubmit="return confirm('Bu taksit limiti silinecek. Emin misiniz?');">
                   <button type="submit" class="btn btn-sm btn-danger" title="Sil">{{ icon("trash", "icon icon-sm") }}</button>
                 </form>
@@ -244,23 +244,23 @@
       </div>
     </div>
     <div class="panel-body">
-      <div class="table-container" data-table-scroll style="margin-top: 0;">
-        <table class="data-table" style="min-width: 0;">
+      <div class="table-container mobile-cards-container">
+        <table class="data-table mobile-cards commission-limits-table">
           <thead><tr><th>Kanal</th><th>Banka</th><th>Ürün Grubu</th><th>Kart Tipi</th><th>Max Taksit</th><th class="col-actions">İşlem</th></tr></thead>
           <tbody>
             {% for limit in detail.limits if not limit.category_id %}
-            <tr>
-              <td>{{ channel_labels.get(limit.channel, limit.channel or '—') }}</td>
-              <td>{% if limit.bank_id %}{{ bank_names.get(limit.bank_id | string, limit.bank_id) }}{% else %}<span class="badge badge-neutral">Genel</span>{% endif %}</td>
-              <td>{{ group_labels.get(limit.product_group, limit.product_group or '—') }}</td>
-              <td>{{ card_labels.get(limit.card_type, limit.card_type or '—') }}</td>
-              <td>
-                <form method="post" action="/commissions/{{ detail.period.id }}/limits/{{ limit.id }}/edit" style="display: flex; gap: 4px; align-items: center;">
-                  <input type="number" name="max_installments" value="{{ limit.max_installments }}" min="1" class="form-control" style="width: 6rem;" inputmode="numeric">
+            <tr class="limit-row bank-limit-row">
+              <td class="limit-channel" data-label="Kanal">{{ channel_labels.get(limit.channel, limit.channel or '—') }}</td>
+              <td class="limit-primary limit-bank" data-label="Banka">{% if limit.bank_id %}{{ bank_names.get(limit.bank_id | string, limit.bank_id) }}{% else %}<span class="badge badge-neutral">Genel</span>{% endif %}</td>
+              <td class="limit-group" data-label="Ürün Grubu">{{ group_labels.get(limit.product_group, limit.product_group or '—') }}</td>
+              <td class="limit-card" data-label="Kart Tipi">{{ card_labels.get(limit.card_type, limit.card_type or '—') }}</td>
+              <td class="limit-max" data-label="Max Taksit">
+                <form method="post" action="/commissions/{{ detail.period.id }}/limits/{{ limit.id }}/edit" class="limit-inline-form">
+                  <input type="number" name="max_installments" value="{{ limit.max_installments }}" min="1" class="form-control limit-value-input" inputmode="numeric" aria-label="Max taksit">
                   <button type="submit" class="btn btn-sm">Kaydet</button>
                 </form>
               </td>
-              <td class="col-actions">
+              <td class="col-actions limit-actions" data-label="İşlem">
                 <form method="post" action="/commissions/{{ detail.period.id }}/limits/{{ limit.id }}/delete" onsubmit="return confirm('Bu taksit limiti silinecek. Emin misiniz?');">
                   <button type="submit" class="btn btn-sm btn-danger" title="Sil">{{ icon("trash", "icon icon-sm") }}</button>
                 </form>

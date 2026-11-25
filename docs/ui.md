@@ -351,8 +351,10 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 
 - Liste: dönemler, durum, tarih aralığı; yeni dönem kopyalama; içe/dışa aktarma.
 - Detay: kanal sekmeleri (POS, Ödero, Chippin), oran matrisi, kategori limitleri, banka bazlı limit tablosu, kategori-grup eşlemesi, geçmiş, A4.
-- Oran matrisi: satır banka/kanal, sütun taksit; hücrede oran. Laptopta tablo, telefonda yatay kaydırılabilir veya gruplu kart.
-- Limitler: kategori limitleri (bankadan bağımsız) ve banka/kanal/kart tipi limitleri ayrı bölümlerde; etkin üst sınır canlı önizlenir.
+- Oran matrisi: satır banka/kanal, sütun taksit; hücrede oran. Tablo bölümün kendisidir; ekstra kart/çerçeve yoktur. Banka kolonu sabittir; telefonda iki boyutlu matris yatay kaydırılabilir.
+- Komisyon oranları ve limit tabloları mobilde kart listesidir; yatay kaydırma yoktur. Kart içinde kanal + banka, ürün grubu + bant, taksit + işlem ve oran formu satırları kullanılır.
+- Limitler: kategori limitleri (bankadan bağımsız) ve banka/kanal/kart tipi limitleri ayrı ve tam genişlikte bölümlerdir; yan yana sıkıştırılmaz. Etkin üst sınır canlı önizlenir.
+- Dönem listesi mobilde dönem + durum, geçerlilik, aksiyonlar olarak kompakt karttır; “kopyalandığı dönem” mobilde gizlenir.
 - Telefonda okuma öncelikli; düzenleme mümkün ama laptop önerilir.
 
 ### 6.8 Stok / Sayım
@@ -360,7 +362,10 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 - Üstte açık oturumlar ve sayım geçmişi iki iç sekme; açık oturumlar en üstte.
 - Kategori filtresi ve arama otomatik; “Ara” gerekmez.
 - Stok özeti: ürün, kategori, fiziksel stok, açık rezervasyon, fark.
+- Mobil stok kartı: ürün adı + stok rozeti; kategori + açık rezervasyon; altta tek “Detay” eylemi. Etiketler gizlenir.
+- Açık/geçmiş sayım oturumu kartı: no + kategori + durum; başlangıç/tamamlanma + eylem. Geçmişte başlangıç ve tamamlayan mobilde gizlenir.
 - Sayım oturumu: satır bazında sistem stoku, sayılan miktar (büyük input), fark; sticky “Miktarları Kaydet”.
+- Mobil sayım satırı: üstte ürün adı; altta üç eşit sütunda “Sistem / Sayılan / Fark”. “Uygulandı” mobilde gizlenir; sayılan input tam genişlik ve en az 42px yüksekliğindedir.
 - Telefonda sayım girişi büyük dokunma hedefleriyle; laptopta tablo.
 - A4 sayım listesi kategori bazlı.
 
