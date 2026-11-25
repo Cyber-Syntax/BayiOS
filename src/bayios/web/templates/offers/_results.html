@@ -16,22 +16,22 @@
     </thead>
     <tbody>
       {% for row in rows %}
-      <tr>
-        <td data-label="Teklif"><span class="mono">#{{ row.offer_number }}</span></td>
-        <td class="col-name" data-label="Müşteri">
+      <tr class="offer-row">
+        <td class="offer-number" data-label="Teklif"><span class="mono">#{{ row.offer_number }}</span></td>
+        <td class="col-name offer-customer" data-label="Müşteri">
           <a href="/offers/{{ row.id }}"><strong>{{ row.customer_name or '—' }}</strong></a>
           {% if row.customer_phone %}<div class="muted small">{{ row.customer_phone }}</div>{% endif %}
         </td>
-        <td class="col-name" data-label="Ürünler" title="{{ row.products_summary }}">{{ row.products_summary or '—' }}</td>
-        <td class="col-date" data-label="Tarih">{{ row.created_at | tr_date }}</td>
-        <td data-label="Durum">
+        <td class="col-name offer-products" data-label="Ürünler" title="{{ row.products_summary }}">{{ row.products_summary or '—' }}</td>
+        <td class="col-date offer-date" data-label="Tarih">{{ row.created_at | tr_date }}</td>
+        <td class="offer-status" data-label="Durum">
           <span class="badge {% if row.status == 'accepted' %}badge-success{% elif row.status == 'lost' or row.status == 'expired' %}badge-danger{% elif row.status == 'presented' %}badge-info{% else %}badge-neutral{% endif %}">
             {{ status_labels.get(row.status, row.status) }}
           </span>
         </td>
-        <td data-label="Ödeme">{{ payment_labels.get(row.payment_type, row.payment_type) }}</td>
-        <td class="col-stock" data-label="Toplam"><span class="product-price"><strong>{{ row.selected_total | tr_money }} TL</strong></span></td>
-        <td class="col-actions" data-label="İşlem">
+        <td class="offer-payment" data-label="Ödeme">{{ payment_labels.get(row.payment_type, row.payment_type) }}</td>
+        <td class="col-stock offer-total" data-label="Toplam"><span class="product-price"><strong>{{ row.selected_total | tr_money }} TL</strong></span></td>
+        <td class="col-actions offer-actions" data-label="İşlem">
           <div class="actions-inline">
             <a class="btn btn-sm" href="/offers/{{ row.id }}">Detay {{ icon("chevron-right", "icon icon-sm") }}</a>
             <form method="post" action="/offers/{{ row.id }}/delete"

@@ -313,6 +313,7 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 
 - Liste: arama, tip, durum ve tarih filtresi; kart/tablo; sayfalama.
 - Satır/kart: ad, tip, geçerlilik, durum, indirim/hediye özeti, ürün sayısı.
+- Mobil kampanya kartı: 1. satır ad + durum; 2. satır tip + geçerlilik; 3. satır indirim/hediye + ürün sayısı; altta tek eylem. Açıklama mobil listede gizlenir, ad en fazla 2 satır.
 - Detay: sürüm geçmişi, ürün ilişkileri, hediye senaryosu, kaynak bilgisi, Koşullar (kapalı), içe/dışa aktarma.
 - Form: ad, tip, tarihler, açıklama, fiyat tabanı, indirim türü/değeri, hediye, çalışan notu, ürün ilişkileri.
 - Telefonda düzenleme uyarı notu; laptop öncelikli.
@@ -320,7 +321,7 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 ### 6.5 Teklifler
 
 - Liste: arama, durum/tarih filtresi, tablo (laptop) / kart (telefon); Ürünler tek sütun.
-- Mobil teklif kartı: teklif no ve müşteri aynı satırda; altında tarih · ödeme · toplam; ürün özeti tek satır; aksiyonlar altta. Gereksiz sütun etiketleri gösterilmez.
+- Mobil teklif kartı: 1. satır teklif no + müşteri + durum; 2. satır ürün özeti (tek satır, ellipsis); 3. satır tarih · ödeme · toplam; altta aksiyonlar. Gereksiz sütun etiketleri gösterilmez.
 - Form tek akış: **Müşteri → Sepet (ürün ekleme en üstte) → Ödeme ve İndirimler → Toplamlar → Senaryo Özeti → Taksit Seçenekleri**. Masaüstünde de tek sütun, azami 1080px.
 - Müşteri bölümünde yalnız ad ve not; telefon alanı gösterilmez, düzenlemede mevcut değer gizli alanla korunur. Müşteri açıklama metni yoktur.
 - Ürün ekleme sepetin içindedir; arama en fazla 3 sonuç gösterir. Sonuçta kampanya rozeti yoktur; “Ekle” her zaman görünür.
@@ -340,6 +341,7 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 
 - Liste: müşteri araması, durum filtresi, sayfalama; masaüstü tablo, telefon kart.
 - Kart/satır: no, müşteri, tarih, hatırlatma, özet durum, açık/toplam miktar, ürünler.
+- Mobil rezervasyon kartı: 1. satır no + müşteri + durum; 2. satır ürün özeti; 3. satır tarih + hatırlatma + açık/toplam; altta eylem.
 - Yeni: müşteri adı (zorunlu), tarih, not; ardından **“Rezerve Ürünler”** bölümü. Ürün arama bu bölümün içindedir, en fazla 3 sonuç gösterir; sepet/ödeme/indirim alanı yoktur.
 - Detay: 5 metrik özet (durum, toplam, teslim, iptal, açık), dikey ürün satırı kartları, teslim/iptal/miktar/satır ekleme, hareket ve erteleme geçmişi (kapalı).
 - Telefonda teslim/iptal büyük butonlar; laptopta tablo + satır işlem paneli.

@@ -16,22 +16,22 @@
     </thead>
     <tbody>
       {% for row in rows %}
-      <tr>
-        <td data-label="Rezervasyon"><span class="mono">#{{ row.reservation_number }}</span></td>
-        <td class="col-name" data-label="Müşteri">
+      <tr class="reservation-row">
+        <td class="reservation-number" data-label="Rezervasyon"><span class="mono">#{{ row.reservation_number }}</span></td>
+        <td class="col-name reservation-customer" data-label="Müşteri">
           <a href="/reservations/{{ row.id }}"><strong>{{ row.customer_name }}</strong></a>
         </td>
-        <td class="col-name" data-label="Ürünler" title="{{ row.products_summary }}">{{ row.products_summary or '—' }}</td>
-        <td class="col-date" data-label="Tarih">{{ row.reservation_date | tr_date }}</td>
-        <td class="col-date" data-label="Hatırlatma">
+        <td class="col-name reservation-products" data-label="Ürünler" title="{{ row.products_summary }}">{{ row.products_summary or '—' }}</td>
+        <td class="col-date reservation-date" data-label="Tarih">{{ row.reservation_date | tr_date }}</td>
+        <td class="col-date reservation-reminder" data-label="Hatırlatma">
           {{ row.reminder_due_at | tr_date }}
           <div><span class="badge {% if row.is_overdue %}badge-warning{% elif row.reminder_status == 'resolved' %}badge-success{% else %}badge-info{% endif %}">{{ row.reminder_label }}</span></div>
         </td>
-        <td data-label="Durum">
+        <td class="reservation-status" data-label="Durum">
           <span class="badge {% if row.summary.label == 'Teslim edildi' %}badge-success{% elif row.summary.label == 'İptal' %}badge-danger{% elif row.summary.label == 'Kısmi süreçte' %}badge-warning{% else %}badge-info{% endif %}">{{ row.summary.label }}</span>
         </td>
-        <td class="col-stock" data-label="Açık / Toplam">{{ row.summary.open_quantity }} / {{ row.summary.total_quantity }}</td>
-        <td class="col-actions" data-label="İşlem">
+        <td class="col-stock reservation-quantity" data-label="Açık / Toplam">{{ row.summary.open_quantity }} / {{ row.summary.total_quantity }}</td>
+        <td class="col-actions reservation-actions" data-label="İşlem">
           <a class="btn btn-sm" href="/reservations/{{ row.id }}">Detay {{ icon("chevron-right", "icon icon-sm") }}</a>
         </td>
       </tr>
