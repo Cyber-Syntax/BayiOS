@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -28,6 +29,11 @@ def health(probe: Annotated[HealthProbe, Depends(get_health_probe)]) -> JSONResp
             "status": migrations_status,
             "current": list(report.current_revisions),
             "expected": list(report.expected_revisions),
+        },
+        # Injected at image build time; "unknown" for local/dev runs.
+        "build": {
+            "sha": os.environ.get("BAYIOS_BUILD_SHA", "unknown"),
+            "built_at": os.environ.get("BAYIOS_BUILD_TIME", "unknown"),
         },
     }
     return JSONResponse(body, status_code=200 if report.healthy else 503)

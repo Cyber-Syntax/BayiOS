@@ -100,18 +100,29 @@ MVP'de kullanıcı girişi/rol yoktur (bkz. PRD §2.2). Bu yüzden uygulama **in
 
 ## 5. Backup
 
-Backup, uygulama request'inin içinde çalışmaz; ayrı komuttur (`scripts/backup.sh`):
+Backup, uygulama request'inin içinde çalışmaz; ayrı komuttur. Windows'ta önerilen yol
+`scripts/backup-bayios.ps1` betiğidir (WSL/Git Bash gerekmez):
 
-- `pg_dump -Fc` ile günlük veritabanı yedeği alır.
-- Haftalık (Pazar) ve aylık (ayın 1'i) uzun saklama kopyaları ayrı dizinlerde tutulur.
-- `BACKUP_EXTERNAL_DIR` tanımlıysa host'tan bağımsız harici diske kopya alır.
-- Başarısızlık exit code ve log ile görünürdür; hedef dizinde yeterli alan kontrol eder.
-- Backup job'ı production DB volume'unu silmez ve migration çalıştırmaz.
+```powershell
+cd C:\BayiOS
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\backup-bayios.ps1
+```
 
-Windows'ta günlük tetikleme (Görev Zamanlayıcı → Yeni Görev):
-- Eylem: `wsl bash -lc "/path/to/BayiOS/scripts/backup.sh"` (WSL varsa) veya Git Bash tam yolu.
-- Tetikleyici: günlük, mesai bitişine yakın bir saat.
-- Görevi kullanıcı günlükte çalıştır; `BACKUP_DIR` / `BACKUP_EXTERNAL_DIR`'ı görev ortamında veya script öncesi export ederek ayarla.
+Varsayılan çıktı: `C:\BayiOS\backups\daily\bayios_YYYYMMDD_HHMMSS.dump`.
+
+- `pg_dump -Fc` dump'ı container içinde `/tmp` altında üretir, `podman cp` ile host'a kopyalar, geçici dosyayı siler.
+- Dump'ın geçerliliğini `pg_restore -l` ile kontrol eder; production DB'ye restore etmez.
+- Günlük 14, haftalık 8, aylık 12 yedek saklar. Haftalık/aylık kopya, o hafta/ay için ilk yedekte otomatik oluşur; laptop kapalı olduğu günler sorun olmaz.
+- `-ExternalBackupDir D:\BayiOS-Backups` verilirse harici/ikinci disk kopyası alır.
+- Retention yalnızca eski **dump dosyalarını** siler; container, volume, veritabanı silmez.
+- Başarısızlık exit code + `logs\bayios-backup-*.log` ile görünürdür; hedefte ~1 GiB boş alan kontrol eder.
+
+Görev Zamanlayıcı (günlük, mesai bitişine yakın bir saat):
+- Eylem: `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "C:\BayiOS\scripts\backup-bayios.ps1"`
+- Çalışma dizini: `C:\BayiOS`
+- Tetikleyici: günlük 19:30 gibi. Kurulum için `scripts\install-bayios-tasks.ps1` kullanılabilir.
+
+> `scripts/backup.sh` (bash) yalnızca WSL/Git Bash varsa kullanılmalıdır. Windows'ta dosya CRLF ile gelirse `set: pipefail` hatası alınır; `sed -i 's/\r$//' scripts/backup.sh` veya PowerShell betiği tercih edilir.
 
 ## 6. Restore tatbikatı
 
@@ -130,15 +141,59 @@ Production restore gerektiğinde önce yeni DB instance/volume'a restore edilir;
 
 ## 7. Güncelleme
 
-1. Yeni image ve migration öncesi backup al.
-2. `podman-compose build` ile image'ı yeniden build et.
-3. `podman-compose run --rm app alembic upgrade head` ile migration'ları ileri yönlü çalıştır.
-4. `/health` ve kritik smoke akışlarını doğrula.
-5. Hata varsa eski DB volume'unu silmeden restore prosedürünü (bölüm 6) uygula.
+Windows'ta önerilen ve test edilmiş yol `scripts/update-bayios.ps1` betiğidir:
 
-## 7.1 Mevcut production kurulumunu Git ile güncelleme
+```powershell
+cd C:\BayiOS
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\update-bayios.ps1
+```
 
-Bu bölüm, Windows 11 + Podman Desktop ile kurulmuş mevcut BayiOS kurulumunu
+Betik sırayla şunları yapar:
+
+1. Git çalışma ağacının temiz olduğunu kontrol eder; değilse hiçbir şey yapmadan durur.
+2. `git fetch` + `git pull --ff-only` ile güncel kodu alır (sadece `-SkipPull` verilirse atlar).
+3. Mevcut image'ı `localhost/bayios:previous` olarak etiketler.
+4. `localhost/bayios:latest` image'ını build eder; build'e `GIT_SHA` ve `BUILD_TIME` gömülür.
+5. Migration öncesi zorunlu PostgreSQL yedeğini alır (sadece `-SkipBackup` verilirse atlar).
+6. `alembic upgrade head` ile ileri yönlü migration'ları uygular.
+7. Sadece `app` container'ını `up -d --force-recreate --no-deps app` ile yeniler; PostgreSQL'e dokunmaz.
+8. Çalışan container'ın image ID'sini yeni build ile karşılaştırır; `/health` içindeki `build.sha` farklıysa uyarır (image ID doğrulaması esastır).
+9. Sağlık kontrolü başarısız olursa `localhost/bayios:previous` image'ına geri döner.
+
+### 7.0 Neden `build` tek başına yetmez?
+
+`podman-compose up`, mevcut container'ı yalnızca compose servis tanımının config hash'i değişince yeniden oluşturur. Image içeriği değişse bile bu hash değişmediği için eski container çalışmaya devam eder ve eski kod görünür. Bu yüzden build'den sonra mutlaka:
+
+```powershell
+podman-compose up -d --force-recreate --no-deps app
+```
+
+kullanılmalıdır. `podman-compose down` + `up` da çalışır ama gereksiz kesinti yaratır. `down -v` **asla** kullanılmaz; PostgreSQL volume'ünü siler.
+
+### 7.0.1 Güncelleme sonrası doğrulama
+
+```powershell
+curl.exe http://localhost:8000/health
+git rev-parse --short HEAD
+podman inspect bayios_app_1 --format "{{.Image}}"
+podman image inspect localhost/bayios:latest --format "{{.Id}}"
+```
+
+- `/health` içinde `status=ok`, `migrations.status=ok` ve `build.sha` güncel commit ile aynı olmalıdır.
+- Container image ID'si yeni build image ID'siyle aynı olmalıdır.
+- `build.sha` eski commit'i gösteriyorsa genellikle container yeniden oluşturulmamıştır; `--force-recreate` olmadan yapılan güncelleme budur. Yalnızca docs/scripts değiştiyse Podman katman önbelleği eski metadata'yı koruyabilir; bu durumda image ID karşılaştırması esastır.
+
+### 7.0.2 İki farklı compose aracı kullanma
+
+Aynı `bayios` projesi altında `podman-compose` (`bayios_app_1`) ve Docker/Podman Desktop Compose (`bayios-app-1`) farklı container isimleri üretir. İkisi aynı anda ayakta kalabilir; eski container 8000 portunu tutarsa yeni kod görünmez. Kural: **sadece `podman-compose` CLI kullan**. Şüphelenirsen `scripts/doctor-bayios.ps1` raporunda "foreign/duplicate naming" uyarısına bak.
+
+## 7.1 Manuel güncelleme (script kullanılamıyorsa)
+
+> Tercih edilen yol §7'deki `update-bayios.ps1` betiğidir. Bu bölüm yalnızca
+> script çalıştırılamıyorsa manuel adımları gösterir. Hangi yolu seçersen seç,
+> build sonrası `--force-recreate` olmadan container değişmez.
+
+Bu bölüm, Windows 11 + Podman ile kurulmuş mevcut BayiOS kurulumunu
 son sürüme çıkarmak içindir. **Mevcut kurulumda `git clone` yapılmaz;** repo
 zaten varsa `git pull` kullanılır. Yeni clone yalnızca repo klasörü hiç yoksa
 veya bozulduysa tercih edilir.
@@ -170,22 +225,16 @@ podman-compose ps
 Migration'dan önce mutlaka yedek al:
 
 ```powershell
-wsl bash -lc "cd /mnt/c/BayiOS && bash scripts/backup.sh"
-```
-
-WSL yoksa Git Bash ile:
-
-```powershell
-& "C:\Program Files\Git\bin\bash.exe" -lc "cd /c/BayiOS && bash scripts/backup.sh"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\backup-bayios.ps1
 ```
 
 Yedek dosyasının oluştuğunu ve boyutunun sıfırdan büyük olduğunu doğrula:
 
 ```powershell
-wsl bash -lc "ls -lh /var/lib/bayios-backups/daily | tail -5"
+Get-ChildItem .\backups\daily | Sort-Object LastWriteTime -Descending | Select-Object -First 5
 ```
 
-`BACKUP_EXTERNAL_DIR` tanımlıysa harici disk kopyasının da oluştuğunu kontrol et.
+`-ExternalBackupDir` verildiyse harici disk kopyasının da oluştuğunu kontrol et.
 
 ### 3. Kodu güncelle
 
@@ -227,7 +276,7 @@ en güvenilir yoldur.
 
 ### 5. Şemayı ileri yönlü migrate et
 
-Bu sürümde Alembic head **0015**'tir. `0013` bankasız komisyon/kategori limiti ve kanonik ad alanlarını, `0014` Klima Ödero bant muafiyeti ile Chippin banka bazlı satırları, `0015` tekliflerde kart/nakit bayi indirimi alanlarını ekler. Migration'lar additive'dir; mevcut ürün, kampanya, teklif ve rezervasyon verileri silinmez.
+Bu sürümde Alembic head **0020**'dir. `0016` sıfır Oliz fiyatlarını normalize eder, `0017` teklif fiyat motoru v2'yi, `0018` scraper ürün detaylarını, `0019` kampanya scraper metadata'sını, `0020` teklif manuel toplamlarını ekler. Migration'lar additive'dir; mevcut ürün, kampanya, teklif ve rezervasyon verileri silinmez.
 
 ```powershell
 podman-compose run --rm app alembic upgrade head
@@ -239,7 +288,7 @@ Migration'ın gerçekten uygulandığını kontrol et:
 podman-compose run --rm app alembic current
 ```
 
-Beklenen çıktı: `0015 (head)`
+Beklenen çıktı: `0020 (head)`
 
 ### 6. Uygulamayı yeni image ile yeniden başlat
 
@@ -264,7 +313,7 @@ curl.exe http://localhost:8000/health
 ```
 
 Beklenen: `status=ok`, `database=ok`, `migrations.status=ok` ve current
-migration `0015`. Migration `0015` görünmüyorsa 5. adımı tekrar çalıştır.
+migration `0020`. Migration `0020` görünmüyorsa 5. adımı tekrar çalıştır.
 
 Yeni tablonun varlığını doğrula:
 
@@ -296,7 +345,7 @@ podman-compose build app
 podman-compose up -d --force-recreate app
 ```
 
-- `0013`/`0014`/`0015` additive migration'lardır; eski kod bu şemayla çalışmaya devam eder, migration'ı geri almak genelde gerekmez.
+- `0016`–`0020` additive migration'lardır; eski kod bu şemayla çalışmaya devam eder, migration'ı geri almak genelde gerekmez.
 - Migration başarısız olduysa canlı DB üzerine doğrudan restore yapma. Önce [Restore tatbikatı](#6-restore-tatbikatı) bölümündeki scratch DB prosedürünü uygula, doğrula, sonra gerekirse kontrollü restore kararı ver.
 - `podman-compose down -v` kullanma; PostgreSQL volume'u silinir.
 
@@ -313,31 +362,43 @@ git checkout feat
 copy C:\BayiOS\.env .env
 ```
 
-Ardından eski stack'i durdur, yeni klasörde build/migrate/up yap:
+Ardından eski stack'i **volume'ü silmeden** kaldır, yeni klasörde build/migrate/up yap:
 
 ```powershell
 cd C:\BayiOS
-podman-compose stop
+podman-compose down          # -v KULLANMA; PostgreSQL volume'ü silinir
 cd C:\BayiOS-new
 podman-compose build app
 podman-compose up -d postgres
 podman-compose run --rm app alembic upgrade head
-podman-compose up -d
+podman-compose up -d --force-recreate --no-deps app
 ```
 
 > Compose proje adı `bayios` olduğu için iki klasör aynı anda çalıştırılmamalıdır.
 > Fresh clone'da aynı volume kullanılacaksa eski stack'i tamamen durdur; volume'u
 > silme. `.env` dosyasını asla Git'e ekleme.
 
-## 7.3 Bu sürümde değişenler
+## 7.3 Windows operasyon betikleri
 
-- Ürün, kampanya, teklif, komisyon ve rezervasyon Excel içe/dışa aktarma.
-- Ürün Excel'inde alış fiyatı, nakit/kart taban fiyatı ve aktif kampanya kolonları.
-- Kampanya detayında ürün ilişkileri odaklı Excel dışa/içe aktarma.
-- Teklif detayında hızlı rezervasyon ve hızlı satış/teslim.
-- Yatay kaydırmalı tablolar için yapışkan scrollbar.
-- Alembic `0012_data_import_batches`, `0013_bank_optional_commissions`, `0014_klima_tier_and_chippin_banks` ve `0015_offer_card_cash_discounts` migration'ları.
-- Yeni environment değişkeni veya yeni Python bağımlılığı yok.
+| Betik | Amaç | Veritabanına dokunur mu? |
+| --- | --- | --- |
+| `scripts/start-bayios.ps1` | Açılışta mevcut image ile stack'i başlatır; yabancı/çift container'ları temizler. | Hayır (sadece container başlatır). |
+| `scripts/update-bayios.ps1` | Git pull + build + yedek + migration + force-recreate + sağlık/rollback. | Migration ve yedek; asla volume silmez. |
+| `scripts/backup-bayios.ps1` | `pg_dump` ile yedek alır, doğrular, retention uygular. | Sadece okur; DB'yi silmez/restore etmez. |
+| `scripts/doctor-bayios.ps1` | **Salt okunur** teşhis raporu üretir. | Hayır; container/volume/DB değiştirmez. |
+| `scripts/install-bayios-tasks.ps1` | "BayiOS Autostart" ve günlük "BayiOS Backup" görevlerini kurar. | Hayır. |
+| `scripts/create-bayios-shortcuts.ps1` | Masaüstü kısayolları oluşturur. | Hayır. |
+
+Görev Zamanlayıcı'ya elle eklemek istersen:
+
+- **Autostart:** Tetikleyici "Oturum açılışında", 2 dakika gecikme; Eylem:
+  `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "C:\BayiOS\scripts\start-bayios.ps1"`; çalışma dizini `C:\BayiOS`.
+- **Backup:** Günlük 19:30; aynı biçimde `backup-bayios.ps1`.
+- Güncelleme görevini **otomatikleştirme**; laptop her gün kapanıyor ve güncelleme manuel yapılmalı. `update-bayios.ps1` masaüstü kısayolundan çalıştırılır.
+- Görevleri aynı Windows kullanıcısı altında çalıştır (rootless Podman kullanıcıya bağlıdır).
+- `scripts/install-bayios-tasks.ps1` ve `scripts/create-bayios-shortcuts.ps1` bu kurulumu tek komuta indirir.
+
+> Yeni environment değişkeni gerekmez. Build argümanları (`GIT_SHA`, `BUILD_TIME`) sadece image metadata'sı ve `/health` içindir; `.env` dosyasına eklenmez.
 
 ## 8. Sorun giderme
 
@@ -345,6 +406,10 @@ podman-compose up -d
 - `podman-compose build` Docker Desktop'ın `docker-compose.exe`'sini çağırıp `npipe:////./pipe/podman-machine-default` veya `Can't add file ... .dockerignore` hatası veriyorsa: `podman compose` kullanmayı bırak, bölüm 1.1'deki `uv tool install --python 3.12 podman-compose` kurulumunu yap ve tüm komutları `podman-compose` ile çalıştır. Ayrıca `podman machine start` ve `podman info` ile machine'in çalıştığını doğrula.
 - App başlamıyor → `podman-compose logs app`; `DATABASE_URL`'ın `postgresql+psycopg://` şemasında olduğunu doğrula.
 - Sayfalar assets'siz görünüyor → `static/vendor/` dosyalarının image içinde olduğunu doğrula (bölüm 3 build'ten sonra `podman-compose exec app ls /app/src/bayios/web/static/vendor`).
+- **Build alındı ama eski kod görünüyor** → container yeniden oluşturulmamıştır. `podman-compose up -d --force-recreate --no-deps app` çalıştır; `/health` içindeki `build.sha` güncel commit mi kontrol et. `podman-compose down` + `up` da düzeltir ama gereksiz kesinti yaratır.
+- **İki uygulama / iki container** → aynı projede `podman-compose` ve Docker/Podman Desktop Compose karışmış olabilir (`bayios_app_1` + `bayios-app-1`). `scripts/doctor-bayios.ps1` raporunu çalıştır; "foreign/duplicate naming" uyarısı varsa `update-bayios.ps1` veya `start-bayios.ps1` yabancı container'ı durdurup kaldırır. Sadece `podman-compose` kullan.
+- **Rapor/teşhis isteği** → `scripts/doctor-bayios.ps1` salt okunurdur; container durdurmaz, volume/DB silmez. Çıktı `reports/bayios-doctor-*.txt` altındadır.
+- **Görev zamanlayıcı çalışmıyor** → görevi rootless Podman'i kullanan Windows kullanıcısıyla ve "oturum açılışında" çalıştır; SYSTEM hesabı Podman machine'e erişemez.
 
 ## 9. Saklama notu
 

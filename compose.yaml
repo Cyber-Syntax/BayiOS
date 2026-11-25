@@ -2,8 +2,14 @@ name: bayios
 
 services:
   app:
-    build: .
-    image: bayios:latest
+    build:
+      context: .
+      args:
+        # Injected by scripts/update-bayios.ps1 so /health can prove which
+        # commit is actually running inside the container.
+        GIT_SHA: ${GIT_SHA:-unknown}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+    image: localhost/bayios:latest
     restart: unless-stopped
     environment:
       # App binds 0.0.0.0 inside the container; only its HTTP port is published below.

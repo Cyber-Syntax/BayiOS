@@ -18,23 +18,24 @@ Kapsam: Milestone 0–5 (katalog+import, rezervasyon+A4, sayım, kampanya, tekli
 
 1. **Podman kurulum/doğrulama:** `podman --version` ve `podman info` çalışıyor olmalı (Podman Desktop veya Podman Machine). Windows'ta `podman compose` Docker Desktop'ın `docker-compose.exe`'sini çağırırsa [OPERATIONS §1.1](OPERATIONS.md#11-windowsta-podman-compose-kurulumu-zorunlu) uygulanır: `uv tool install --python 3.12 podman-compose` ve tüm komutlarda `podman-compose`.
 2. **Secret:** `.env.production.example` → `.env` kopyala; `POSTGRES_PASSWORD`'ü uzun rastgele bir değerle değiştir.
-3. **Build + deploy:**
+3. **Build + deploy:** Windows'ta `scripts/update-bayios.ps1` kullan (git pull + backup + migration + force-recreate + rollback). İlk kurulumda elle:
    ```
    podman-compose build
    podman-compose up -d postgres
    podman-compose run --rm app alembic upgrade head
-   podman-compose up -d
+   podman-compose up -d --force-recreate --no-deps app
    ```
-4. **Sağlık:** `podman-compose ps` ve `/health` → `status=ok, database=ok, migrations=ok` (current=0015).
+   `--force-recreate` olmadan build sonrası eski container çalışmaya devam eder.
+4. **Sağlık:** `podman-compose ps` ve `/health` → `status=ok, database=ok, migrations=ok` (current=0020) ve `build.sha` güncel commit ile aynı.
 5. **Güvenlik (zorunlu):**
    - Host firewall yalnızca bayi LAN subnet'inden `BAYIOS_PORT`'a izin.
    - Modemde port forwarding YOK; public URL bind YOK.
    - Guest Wi-Fi ağından izole; guest cihazlar erişemez.
    - `podman-compose config` çıktısında `postgres`'te `ports` olmadığını doğrula (DB LAN'a kapalı).
 6. **İlk backup + restore tatbikatı (gerçek veri YÜKLENMEDEN önce):**
-   - `bash scripts/backup.sh` → dump oluştuğunu doğrula.
+   - `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\backup-bayios.ps1` → dump oluştuğunu doğrula.
    - `bash scripts/restore.sh <dump>` → scratch DB'ye yükle ve sayımı doğrula.
-   - Görev Zamanlayıcı ile günlük backup tetiklemesini kur (OPERATIONS.md §5).
+   - Görev Zamanlayıcı ile günlük backup tetiklemesini kur (OPERATIONS.md §5); `scripts/install-bayios-tasks.ps1` kullanılabilir.
 7. **Gerçek veri import:**
    - `/imports/products` → `arcelik-06-09-2026.csv` yükle; önizlemede sorunlu satırlar en üstte, sayaçlar doğru.
    - Kanonik `.xlsx` dosyasını teyit et (`bayios-urunler*.xlsx` / `Bayi_Stok_Fiyat_Ornek.xlsx`); gerekirse onu da import et.

@@ -9,8 +9,11 @@
 # syncthing conflict files
 *.sync-conflict-*
 
-# logs
+# logs and operational output
 *.log*
+/logs/
+/backups/
+/reports/
 
 # ruff
 .ruff_cache
