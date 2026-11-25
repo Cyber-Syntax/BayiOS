@@ -146,7 +146,7 @@ def offer_picker(
     dealer_discount_percent: Annotated[Decimal, Query()] = Decimal(10),
     dealer_discount_cash_percent: Annotated[Decimal, Query()] = Decimal(10),
 ) -> HTMLResponse:
-    products, _ = search_products(uow, query=q, limit=5, offset=0)
+    products, _ = search_products(uow, query=q, limit=3, offset=0)
     previews = {}
     for product in products:
         preview = preview_offer_line(
@@ -771,7 +771,7 @@ def _render_form(
 ) -> HTMLResponse:
     campaigns, _ = list_campaigns(uow, state="active", limit=200)
     banks = list_banks(uow)
-    products, _ = search_products(uow, query=None, limit=5, offset=0)
+    products, _ = search_products(uow, query=None, limit=3, offset=0)
     initial_items: list[dict[str, object]] = []
     default_discount = get_default_dealer_discount(uow).default_percent
     values: dict[str, object] = {

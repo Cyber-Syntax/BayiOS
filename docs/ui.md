@@ -211,6 +211,7 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 
 - Laptopta ortada, en fazla 560px; telefonda alttan açılan panel, üst köşe 20px.
 - Başlık + kapatma, gövde, sticky footer (Vazgeç / birincil eylem).
+- Mobilde alt eylemler yan yana ve eşit genişliktedir; Vazgeç solda, birincil sağda. Alt alta yığılmaz.
 - Uzun içerik dikey kaydırılır; modal ekran dışına taşmaz.
 - Escape kapatır; backdrop'a tıklama kapatır; odak modal içinde kalır.
 - İki aşamalı silmede 1. adım uyarı, 2. adım açık teyit butonu; ikinci onay olmadan silme yok.
@@ -291,13 +292,17 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 - Birincil eylemler: “Teklife Ekle”, “Rezervasyon Aç”. İkincil: Düzenle, Stok Güncelle, Arşivle, Sil (Diğer işlemler altında).
 - Aktif kampanyalar: ad, geçerlilik, durum, indirim/hediye, hediye var/yok bayi senaryosu; mobilde tek sütun. Bölüm başlığından açılıp kapanır; kampanya yoksa kapalı başlar. Bölümde tek “Kampanyalar” bağlantısı bulunur; başlık veya buton tekrar edilmez.
 - “Fiyat ve stok” bölümü varsayılan açık; aktif kampanyalar varsa açık, yoksa kapalı başlar. Tüm detay bölümleri başlıktan açılıp kapanabilir.
+- “Fiyat ve stok” tek dış karttır; içinde ayrı fiyat ve stok kartları yoktur. Aktif kampanyalar açıklama/buton olmadan satır listesidir; kampanya kartları dış kart içinde ayrı kutu değildir.
 - Kapalı bölümler: Ürün özellikleri (N), Teknik özellikler (N), Bayi fiyat geçmişi, Fiyat geçmişi, Stok hareketleri, İç bilgiler.
 - Teknik özellikler: masaüstünde tablo; mobilde grup başlıkları altında özellik/değer çiftleri. Uzun adlar satır kırar; tüm satırlar korunur.
 - Fiyat/stok geçmişi: masaüstünde tablo; mobilde (<768px) dikey kart satırları. Tüm alanlar korunur; kayıt yoksa sade boş durum.
 - İç bilgiler: alış maliyeti, kâr marjı, scraper ID/tür/kaynak/tarih. İlk ekranda görünmez; uzun ID ve bağlantılar taşmaz.
 - **Mobil (<768px):** “Teklife Ekle” ve “Rezervasyon Aç” alt sabit aksiyon alanındadır; diğer eylemler “Diğer işlemler” menüsünde kalır. İçerik için alt boşluk ve safe-area ayrılır.
 - **Masaüstü (≥768px):** mevcut aksiyon düzeni ve iki sütunlu hero korunur.
-- Modallar: düzenleme mobilde tam ekrana yakın; stok/bayi fiyatı alt sayfa. Formlar tek sütun; gövde kayar; alt eylemler görünür kalır. İki aşamalı silme korunur.
+- Modallar: düzenleme mobilde tam ekrana yakın; stok/bayi fiyatı alt sayfa. Formlar tek sütun; gövde kayar; alt eylemler yan yana ve görünür kalır. İki aşamalı silme korunur.
+- Ürün düzenleme modalında kategori atama alanı yoktur; kategori yönetimi Ayarlar’dadır.
+- Aktif kampanya satırında “Kampanyayı aç” eylemi indirim/hediye bilgi satırının sağındadır; mobilde “Aç” olarak kısalır.
+- “Fiyat ve stok” ile kampanya satırlarının üst/alt boşlukları aynı ritimdedir; iç içe kart yoktur.
 
 ### 6.4 Kampanyalar
 
@@ -310,19 +315,27 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 ### 6.5 Teklifler
 
 - Liste: arama, durum/tarih filtresi, tablo (laptop) / kart (telefon); Ürünler tek sütun.
-- Form: laptopta iki sütun (müşteri/ödeme solda, sepet/toplamlar sağda); telefonda tek sütun.
-- Üstte senaryo özeti; altında taksit paneli (kapalı), sepet, ürün ekleme.
+- Mobil teklif kartı: teklif no ve müşteri aynı satırda; altında tarih · ödeme · toplam; ürün özeti tek satır; aksiyonlar altta. Gereksiz sütun etiketleri gösterilmez.
+- Form tek akış: **Müşteri → Sepet (ürün ekleme en üstte) → Ödeme ve İndirimler → Toplamlar → Senaryo Özeti → Taksit Seçenekleri**. Masaüstünde de tek sütun, azami 1080px.
+- Müşteri bölümünde yalnız ad ve not; telefon alanı gösterilmez, düzenlemede mevcut değer gizli alanla korunur. Müşteri açıklama metni yoktur.
+- Ürün ekleme sepetin içindedir; arama en fazla 3 sonuç gösterir. Sonuçta kampanya rozeti yoktur; “Ekle” her zaman görünür.
+- Ödeme ve indirimler ayrı kart değil, sepet içinde açılır bölümdür.
+- Sepet toplamları kart değil, ince bir özet satırıdır; manuel nakit/kart toplamı alanları hemen üstündedir.
+- Senaryo Özeti toplamların hemen altında, açılır-kapanır ve varsayılan açık; ürün/ödeme değişince otomatik güncellenir.
+- Taksit Seçenekleri sepetin altında, kapalı başlayan açılır bölümdür. Seçim kolonu masaüstünde sağa sabittir; mobilde her seçenek kart olur, ikincil kolonlar gizlenir ve “Seç” butonu tam genişliktedir. Seçim yapıldığında bölüm otomatik kapanır.
+- Sepet toplamlarında etiket ve değer “Normal Toplam: 82.998,00 TL” biçimindedir; bitişik/etiketsiz metin üretilmez.
+- Uzun kampanya adları badge içinde satır kırar; mobilde sağa taşmaz.
+- Tablolar kart içine gömülü değil, bölümün kendisidir; ekstra çerçeve/gölge yoktur.
 - Satır: ürün, miktar, kampanya, hediye, normal/Oliz/kampanya fiyatı, maliyet, nakit/kart birim fiyatı.
-- Sepet altında toplamlar; manuel nakit/kart toplamı alanları.
 - Sticky eylem çubuğu: Vazgeç / Kaydet.
-- Detay: toplamlar, kâr/komisyon kartı, durum geçmişi, A4, rezervasyon/teslim eylemleri, silme (iki onay).
+- Detay: toplamlar, kâr/komisyon kartı, durum geçmişi, A4, rezervasyon/teslim eylemleri, silme (iki onay). Mobilde kâr/komisyon ve teklif satırları tablo değil karttır; yatay kaydırma yoktur.
 - Telefonda “fiyat verme” odaklı akış; iç kâr/komisyon ilk ekranda değil, kapalı “İç bilgiler” bölümünde.
 
 ### 6.6 Rezervasyonlar
 
 - Liste: müşteri araması, durum filtresi, sayfalama; masaüstü tablo, telefon kart.
 - Kart/satır: no, müşteri, tarih, hatırlatma, özet durum, açık/toplam miktar, ürünler.
-- Yeni: müşteri adı (zorunlu), tarih, not, ürün arama + satır ekleme.
+- Yeni: müşteri adı (zorunlu), tarih, not; ardından **“Rezerve Ürünler”** bölümü. Ürün arama bu bölümün içindedir, en fazla 3 sonuç gösterir; sepet/ödeme/indirim alanı yoktur.
 - Detay: 5 metrik özet (durum, toplam, teslim, iptal, açık), dikey ürün satırı kartları, teslim/iptal/miktar/satır ekleme, hareket ve erteleme geçmişi (kapalı).
 - Telefonda teslim/iptal büyük butonlar; laptopta tablo + satır işlem paneli.
 - A4 depo/bayi kopyası.

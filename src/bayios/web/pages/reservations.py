@@ -237,7 +237,7 @@ def new_reservation_picker(
     uow: UnitOfWorkDep,
     q: Annotated[str | None, Query()] = None,
 ) -> HTMLResponse:
-    products, _ = search_products(uow, query=q, limit=25, offset=0)
+    products, _ = search_products(uow, query=q, limit=3, offset=0)
     return templates.TemplateResponse(
         request,
         "reservations/_picker.html",
@@ -482,7 +482,7 @@ def item_picker(
     uow: UnitOfWorkDep,
     q: Annotated[str | None, Query()] = None,
 ) -> HTMLResponse:
-    products, _ = search_products(uow, query=q, limit=10, offset=0)
+    products, _ = search_products(uow, query=q, limit=3, offset=0)
     return templates.TemplateResponse(
         request,
         "reservations/_item_picker.html",
@@ -530,7 +530,7 @@ def _render_new(
     note: str = "",
     reservation_date: str | None = None,
 ) -> HTMLResponse:
-    products, _ = search_products(uow, query=q, limit=25, offset=0)
+    products, _ = search_products(uow, query=q, limit=3, offset=0)
     initial_lines: list[dict[str, str]] = []
     if preselected is not None:
         selected = get_product(uow, preselected)

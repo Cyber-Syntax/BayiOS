@@ -139,12 +139,8 @@
 <details class="accordion product-campaigns-section" {% if active_campaigns %}open{% endif %}>
   <summary><span class="accordion-title">{{ icon("campaigns") }} Aktif Kampanyalar ({{ active_campaigns | length }})</span></summary>
   <div class="accordion-body">
-    <div class="section-heading" style="margin-bottom: 12px;">
-      <p style="margin: 0; color: var(--muted); font-size: 12px;">Bu ürünle ilişkili, tarihi geçerli ve arşivlenmemiş kampanyalar.</p>
-      <a class="btn btn-sm" href="/campaigns">Kampanyalar</a>
-    </div>
     {% if active_campaigns %}
-    <div class="campaign-list is-grid">
+    <div class="campaign-list">
       {% for campaign in active_campaigns %}
       <article class="campaign-card is-active">
         <div class="campaign-head">
@@ -160,7 +156,7 @@
           <span class="badge badge-success">{{ campaign.state_label }}</span>
         </div>
         <div class="campaign-body">
-          <div class="cluster">
+          <div class="cluster campaign-info-row">
             {% if campaign.discount_type == 'percent' %}
             <span class="badge badge-info">{{ campaign.discount_value | tr_percent }} indirim</span>
             {% elif campaign.discount_type in ('fixed_amount', 'special_price') %}
@@ -182,8 +178,8 @@
             {% else %}
             <div class="scenario-box"><div class="scenario-value">Senaryo yok</div></div>
             {% endfor %}
+            <a class="btn btn-sm campaign-open" href="/campaigns/{{ campaign.campaign_id }}"><span class="campaign-open-full">Kampanyayı aç</span><span class="campaign-open-short">Aç</span> {{ icon("chevron-right", "icon icon-sm") }}</a>
           </div>
-          <a class="btn btn-sm" href="/campaigns/{{ campaign.campaign_id }}">Kampanyayı aç {{ icon("chevron-right", "icon icon-sm") }}</a>
         </div>
       </article>
       {% endfor %}
@@ -441,11 +437,6 @@
             {% endfor %}
           </select>
         </div>
-      </div>
-      <div class="form-group">
-        <label for="edit-product-new-category">Yeni Kategori</label>
-        <input type="text" id="edit-product-new-category" name="new_category_name" class="form-control" placeholder="örn: Klima">
-        <span class="form-hint">Boş bırakılırsa mevcut kategori kullanılır; komisyon grubu kategori adından atanır.</span>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn" @click="showEditModal = false">Vazgeç</button>

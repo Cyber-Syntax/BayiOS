@@ -11,52 +11,117 @@
     <div class="page-heading">
       <a class="breadcrumb" href="/offers">{{ icon("arrow-left", "icon icon-sm") }} Teklifler</a>
       <h1>{% if offer_id %}Teklif Düzenle{% else %}Yeni Teklif{% endif %}</h1>
-      <p class="page-subtitle">Müşteri, ödeme ve sepet bilgilerini girin; toplamlar ve komisyon referansı canlı güncellenir.</p>
-    </div>
-    <div class="page-actions">
-      <span class="badge badge-neutral">{% if offer_id %}Düzenleme{% else %}Yeni kayıt{% endif %}</span>
     </div>
   </div>
 
   {% if error %}<div class="alert alert-danger"><span><strong>Kaydedilemedi:</strong> {{ error }}</span></div>{% endif %}
 
-  <form id="offer-form" method="post" action="{% if offer_id %}/offers/{{ offer_id }}/edit{% else %}/offers{% endif %}">
-    <div class="offer-layout-grid">
-      <div class="offer-form-main">
+  <form id="offer-form" class="offer-form-shell" method="post" action="{% if offer_id %}/offers/{{ offer_id }}/edit{% else %}/offers{% endif %}">
+    <input type="hidden" name="customer_phone" value="{{ values.customer_phone }}">
 
-        <section class="panel" aria-labelledby="offer-customer-title">
-          <div class="panel-header">
-            <div>
-              <h2 id="offer-customer-title">Müşteri</h2>
-              <p>Teklifin kime hazırlandığını belirtin.</p>
-            </div>
+    <section class="panel" aria-labelledby="offer-customer-title">
+      <div class="panel-header">
+        <div>
+          <h2 id="offer-customer-title">Müşteri</h2>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="offer-customer">Müşteri Adı</label>
+            <input type="text" id="offer-customer" name="customer_name" class="form-control" value="{{ values.customer_name }}" autocomplete="off">
           </div>
-          <div class="panel-body">
-            <div class="form-grid-3">
-              <div class="form-group">
-                <label for="offer-customer">Müşteri Adı</label>
-                <input type="text" id="offer-customer" name="customer_name" class="form-control" value="{{ values.customer_name }}" autocomplete="off">
-              </div>
-              <div class="form-group">
-                <label for="offer-phone">Telefon</label>
-                <input type="text" id="offer-phone" name="customer_phone" class="form-control" value="{{ values.customer_phone }}" inputmode="tel" autocomplete="off">
-              </div>
-              <div class="form-group">
-                <label for="offer-note">Not</label>
-                <input type="text" id="offer-note" name="note" class="form-control" value="{{ values.note }}" autocomplete="off">
-              </div>
-            </div>
+          <div class="form-group">
+            <label for="offer-note">Not</label>
+            <input type="text" id="offer-note" name="note" class="form-control" value="{{ values.note }}" autocomplete="off">
           </div>
-        </section>
+        </div>
+      </div>
+    </section>
 
-        <section class="panel" aria-labelledby="offer-payment-title">
-          <div class="panel-header">
-            <div>
-              <h2 id="offer-payment-title">Ödeme ve İndirimler</h2>
-              <p>Nakit/kart indirimleri teklif başına geçerlidir.</p>
-            </div>
+    <section class="panel offer-basket-panel" aria-labelledby="offer-basket-title">
+      <div class="panel-header">
+        <div>
+          <h2 id="offer-basket-title">Sepet</h2>
+          <p><span x-text="items.length"></span> ürün satırı</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="basket-add-block">
+          <label for="offer-product-search" class="form-label">Ürün Ekle</label>
+          <div class="search-field">
+            {{ icon("search") }}
+            <input type="search" id="offer-product-search" name="q" class="form-control" placeholder="Ürün adı ile ara" autocomplete="off"
+                   hx-get="/offers/picker" hx-trigger="keyup changed delay:300ms, search" hx-target="#offer-picker"
+                   hx-include="this, #offer-discount, #offer-cash-discount" aria-label="Ürün adı ile ara">
           </div>
-          <div class="panel-body">
+          <div id="offer-picker" style="margin-top: 10px;">{% include "offers/_picker.html" %}</div>
+        </div>
+
+        <div class="basket-lines">
+          <template x-for="(item, index) in items" :key="item.key">
+            <div class="offer-line">
+              <input type="hidden" name="product_id" :value="item.product_id">
+              <div class="offer-line-head">
+                <div class="offer-line-title">
+                  <strong x-text="item.product_name"></strong>
+                  <div class="offer-line-meta">
+                    <span>Normal: <span class="mono" x-text="formatMoney(item.regular_price)"></span> TL</span>
+                    <span x-show="item.oliz_price"> · Oliz: <span class="mono" x-text="formatMoney(item.oliz_price)"></span> TL</span>
+                    <span x-show="item.cost_price"> · Maliyet: <span class="mono" x-text="formatMoney(item.cost_price)"></span> TL</span>
+                  </div>
+                  <div x-show="item.campaign_name" style="margin-top: 5px;" class="cluster">
+                    <span class="badge badge-info" x-text="item.campaign_name"></span>
+                    <span class="muted small" x-text="campaignEffect(item)"></span>
+                    <strong class="mono small" x-text="formatMoney(item.campaign_price) + ' TL'"></strong>
+                  </div>
+                </div>
+                <div class="offer-line-total">
+                  <div x-text="formatMoney((Number(item.unit_price_cash || item.campaign_price || item.regular_price || 0)) * (item.quantity || 1)) + ' TL'"></div>
+                  <div class="muted micro" x-text="'Nakit ×' + (item.quantity || 1)"></div>
+                </div>
+              </div>
+              <div class="offer-line-controls">
+                <div class="form-group">
+                  <label>Adet</label>
+                  <input type="number" name="quantity" class="form-control" min="1" x-model="item.quantity" @change="notifyChange()" inputmode="numeric">
+                </div>
+                <div class="form-group">
+                  <label>Kampanya</label>
+                  <select name="campaign_id" class="form-control" x-model="item.campaign_id" @change="campaignChanged(item); notifyChange()">
+                    <option value="auto">Otomatik (en yüksek indirim)</option>
+                    <option value="">Kampanya yok</option>
+                    {% for campaign in campaigns %}<option value="{{ campaign.id }}">{{ campaign.name }}</option>{% endfor %}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Hediye</label>
+                  <select name="gift_present" class="form-control" x-model="item.gift_present" @change="notifyChange()">
+                    <option value="">—</option><option value="1">Hediye var</option><option value="0">Hediye yok</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Nakit Birim (TL)</label>
+                  <input type="text" name="unit_price_cash" class="form-control" placeholder="Nakit" x-model="item.unit_price_cash" @change="notifyChange()" inputmode="decimal">
+                </div>
+                <div class="form-group">
+                  <label>Kart Birim (TL)</label>
+                  <input type="text" name="unit_price_card" class="form-control" placeholder="Kart" x-model="item.unit_price_card" @change="notifyChange()" inputmode="decimal">
+                </div>
+                <button type="button" class="btn btn-sm btn-danger" @click="remove(index)" title="Satırı çıkar">{{ icon("trash", "icon icon-sm") }}<span class="sr-only">Satırı çıkar</span></button>
+              </div>
+            </div>
+          </template>
+          <div x-show="items.length === 0" class="empty-state">
+            {{ icon("products") }}
+            <strong>Sepet boş</strong>
+            <p>Yukarıdaki ürün arama alanından ürün ekleyin.</p>
+          </div>
+        </div>
+
+        <details class="accordion offer-payment-accordion" open>
+          <summary><span class="accordion-title">{{ icon("cash") }} Ödeme ve İndirimler</span></summary>
+          <div class="accordion-body">
             <div class="form-grid-3">
               <div class="form-group">
                 <label for="offer-payment">Ödeme Tipi</label>
@@ -115,141 +180,52 @@
               </div>
             </div>
           </div>
-        </section>
+        </details>
 
-        <section class="panel">
-          <details class="accordion" style="border: 0;">
-            <summary>
-              <span class="accordion-title">{{ icon("chart") }} Taksit Seçenekleri</span>
-              <span class="muted small" style="font-weight: 400;">Ürün veya ödeme değiştiğinde otomatik yenilenir</span>
-            </summary>
-            <div class="accordion-body">
-              <div id="offer-comparison"
-                   hx-post="/offers/compare"
-                   hx-trigger="load delay:800ms, change from:#offer-form, input delay:600ms from:#offer-form, offer-changed from:body"
-                   hx-include="#offer-form"
-                   hx-target="#offer-comparison"
-                   hx-swap="innerHTML">
-                <p class="muted" style="margin: 0;">Taksit seçenekleri hesaplanıyor…</p>
-              </div>
-            </div>
-          </details>
-        </section>
-
-      </div>
-
-      <aside class="offer-form-side">
-
-        <div id="offer-scenario-summary" class="panel" style="padding: 16px;">
-          <div class="section-heading">
-            <h2>Senaryo Özeti</h2>
-            <span class="badge badge-info">Canlı</span>
+        <div class="form-grid-2" style="margin-top: 14px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="offer-cash-total-override">Nakit Toplam (manuel)</label>
+            <input type="text" id="offer-cash-total-override" name="cash_total_override" class="form-control" inputmode="decimal" placeholder="Boş = otomatik" x-model="cashTotalOverride" @input="applyManualTotals()">
           </div>
-          <p class="muted" style="margin: 0; font-size: 12px;">Ürün ve ödeme bilgileri değiştiğinde otomatik güncellenir.</p>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="offer-card-total-override">Kart Toplam (manuel)</label>
+            <input type="text" id="offer-card-total-override" name="card_total_override" class="form-control" inputmode="decimal" placeholder="Boş = otomatik" x-model="cardTotalOverride" @input="applyManualTotals()">
+          </div>
         </div>
+        <p class="form-hint" style="margin: 6px 0 12px;">Manuel toplam satır fiyatlarına orantılı dağıtılır; yuvarlama artığı kâr özetinde gösterilir.</p>
 
-        <section class="panel" aria-labelledby="offer-basket-title">
-          <div class="panel-header">
-            <div>
-              <h2 id="offer-basket-title">Sepet</h2>
-              <p><span x-text="items.length"></span> ürün satırı</p>
+        {{ basket_totals(none, false) }}
+
+        <details class="accordion offer-scenario-accordion" open>
+          <summary>
+            <span class="accordion-title">{{ icon("chart") }} Senaryo Özeti</span>
+            <span class="badge badge-info">Canlı</span>
+          </summary>
+          <div class="accordion-body">
+            <div id="offer-scenario-summary">
+              <p class="muted" style="margin: 0; font-size: 12px;">Ürün ve ödeme bilgileri değiştiğinde otomatik güncellenir.</p>
             </div>
           </div>
-          <div class="panel-body">
-            <div class="form-grid-2" style="margin-bottom: 14px;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label for="offer-cash-total-override">Nakit Toplam (manuel)</label>
-                <input type="text" id="offer-cash-total-override" name="cash_total_override" class="form-control" inputmode="decimal" placeholder="Boş = otomatik" x-model="cashTotalOverride" @input="applyManualTotals()">
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label for="offer-card-total-override">Kart Toplam (manuel)</label>
-                <input type="text" id="offer-card-total-override" name="card_total_override" class="form-control" inputmode="decimal" placeholder="Boş = otomatik" x-model="cardTotalOverride" @input="applyManualTotals()">
-              </div>
-            </div>
-            <p class="form-hint" style="margin: -6px 0 12px;">Manuel toplam satır fiyatlarına orantılı dağıtılır; yuvarlama artığı kâr özetinde gösterilir.</p>
+        </details>
 
-            <template x-for="(item, index) in items" :key="item.key">
-              <div class="offer-line">
-                <input type="hidden" name="product_id" :value="item.product_id">
-                <div class="offer-line-head">
-                  <div class="offer-line-title">
-                    <strong x-text="item.product_name"></strong>
-                    <div class="offer-line-meta">
-                      <span>Normal: <span class="mono" x-text="formatMoney(item.regular_price)"></span> TL</span>
-                      <span x-show="item.oliz_price"> · Oliz: <span class="mono" x-text="formatMoney(item.oliz_price)"></span> TL</span>
-                      <span x-show="item.cost_price"> · Maliyet: <span class="mono" x-text="formatMoney(item.cost_price)"></span> TL</span>
-                    </div>
-                    <div x-show="item.campaign_name" style="margin-top: 5px;" class="cluster">
-                      <span class="badge badge-info" x-text="item.campaign_name"></span>
-                      <span class="muted small" x-text="campaignEffect(item)"></span>
-                      <strong class="mono small" x-text="formatMoney(item.campaign_price) + ' TL'"></strong>
-                    </div>
-                  </div>
-                  <div class="offer-line-total">
-                    <div x-text="formatMoney((Number(item.unit_price_cash || item.campaign_price || item.regular_price || 0)) * (item.quantity || 1)) + ' TL'"></div>
-                    <div class="muted micro" x-text="'Nakit ×' + (item.quantity || 1)"></div>
-                  </div>
-                </div>
-                <div class="offer-line-controls">
-                  <div class="form-group">
-                    <label>Adet</label>
-                    <input type="number" name="quantity" class="form-control" min="1" x-model="item.quantity" @change="notifyChange()" inputmode="numeric">
-                  </div>
-                  <div class="form-group">
-                    <label>Kampanya</label>
-                    <select name="campaign_id" class="form-control" x-model="item.campaign_id" @change="campaignChanged(item); notifyChange()">
-                      <option value="auto">Otomatik (en yüksek indirim)</option>
-                      <option value="">Kampanya yok</option>
-                      {% for campaign in campaigns %}<option value="{{ campaign.id }}">{{ campaign.name }}</option>{% endfor %}
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label>Hediye</label>
-                    <select name="gift_present" class="form-control" x-model="item.gift_present" @change="notifyChange()">
-                      <option value="">—</option><option value="1">Hediye var</option><option value="0">Hediye yok</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label>Nakit Birim (TL)</label>
-                    <input type="text" name="unit_price_cash" class="form-control" placeholder="Nakit" x-model="item.unit_price_cash" @change="notifyChange()" inputmode="decimal">
-                  </div>
-                  <div class="form-group">
-                    <label>Kart Birim (TL)</label>
-                    <input type="text" name="unit_price_card" class="form-control" placeholder="Kart" x-model="item.unit_price_card" @change="notifyChange()" inputmode="decimal">
-                  </div>
-                  <button type="button" class="btn btn-sm btn-danger" @click="remove(index)" title="Satırı çıkar">{{ icon("trash", "icon icon-sm") }}<span class="sr-only">Satırı çıkar</span></button>
-                </div>
-              </div>
-            </template>
-            <div x-show="items.length === 0" class="empty-state">
-              {{ icon("products") }}
-              <strong>Sepet boş</strong>
-              <p>Sağdaki ürün arama alanından ürün ekleyin.</p>
-            </div>
-            {{ basket_totals(none, false) }}
-          </div>
-        </section>
-
-        <section class="panel" aria-labelledby="offer-add-title">
-          <div class="panel-header">
-            <div>
-              <h2 id="offer-add-title">Ürün Ekle</h2>
-              <p>Arayın, sonuçtan “Ekle” ile satır oluşturun.</p>
+        <details class="accordion offer-installment-accordion">
+          <summary>
+            <span class="accordion-title">{{ icon("card") }} Taksit Seçenekleri</span>
+          </summary>
+          <div class="accordion-body">
+            <p class="form-hint" style="margin: 0 0 10px;">Ürün veya ödeme değiştiğinde seçenekler otomatik yenilenir.</p>
+            <div id="offer-comparison"
+                 hx-post="/offers/compare"
+                 hx-trigger="load delay:800ms, change from:#offer-form, input delay:600ms from:#offer-form, offer-changed from:body"
+                 hx-include="#offer-form"
+                 hx-target="#offer-comparison"
+                 hx-swap="innerHTML">
+              <p class="muted" style="margin: 0;">Taksit seçenekleri hesaplanıyor…</p>
             </div>
           </div>
-          <div class="panel-body">
-            <div class="search-field">
-              {{ icon("search") }}
-              <input type="search" name="q" class="form-control" placeholder="Ürün adı ile ara" autocomplete="off"
-                     hx-get="/offers/picker" hx-trigger="keyup changed delay:300ms, search" hx-target="#offer-picker"
-                     hx-include="this, #offer-discount, #offer-cash-discount" aria-label="Ürün adı ile ara">
-            </div>
-            <div id="offer-picker" style="margin-top: 12px;">{% include "offers/_picker.html" %}</div>
-          </div>
-        </section>
-
-      </aside>
-    </div>
+        </details>
+      </div>
+    </section>
 
     <div class="sticky-action-spacer"></div>
     <div class="sticky-action-bar no-print">
@@ -273,6 +249,11 @@
   function applyOfferOption(button) {
     const form = document.getElementById('offer-form');
     if (!form) return;
+    const selectedRow = button.closest('tr');
+    if (selectedRow) {
+      document.querySelectorAll('#offer-comparison tr.option-row').forEach((row) => row.classList.remove('row-selected'));
+      selectedRow.classList.add('row-selected');
+    }
     const payment = form.querySelector('[name="payment_type"]');
     payment.value = button.dataset.payment;
     payment.dispatchEvent(new Event('change', { bubbles: true }));
@@ -290,6 +271,10 @@
           input.dispatchEvent(new Event('change', { bubbles: true }));
         }
       });
+    }
+    const taksitDetails = button.closest('details');
+    if (taksitDetails) {
+      taksitDetails.open = false;
     }
     document.body.dispatchEvent(new CustomEvent('offer-changed'));
   }

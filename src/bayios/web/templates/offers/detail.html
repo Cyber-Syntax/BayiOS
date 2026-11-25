@@ -154,48 +154,45 @@
     {% if profit_summary.has_missing_cost %}
     <div class="alert alert-warning" style="margin-bottom: 12px;"><span>Bazı satırlarda maliyet tanımlı değil; toplam kâr yalnızca maliyeti bilinen satırları kapsar.</span></div>
     {% endif %}
-    <div class="table-container" data-table-scroll style="margin-top: 0;">
-      <table class="data-table" style="min-width: 0;">
+    <div class="table-container mobile-cards-container profit-table-container">
+      <table class="data-table mobile-cards profit-table">
         <thead>
           <tr>
-            <th>Ürün</th><th>Adet</th><th>Satış Fiyatı</th><th>Taksit</th><th>Komisyon</th><th>Komisyon Sonrası</th><th>Kampanya Hakedişi</th>
-            {% if ns.has_oliz %}<th>Oliz Hakedişi</th>{% endif %}
-            <th>Toplam Gelir</th><th>Maliyet</th><th>Kâr / Zarar</th><th>Marj</th>
+            <th>Ürün</th><th>Adet</th><th>Satış Fiyatı</th><th>Taksit</th><th class="hide-mobile">Komisyon</th><th class="hide-mobile">Komisyon Sonrası</th><th class="hide-mobile">Kampanya Hakedişi</th>
+            {% if ns.has_oliz %}<th class="hide-mobile">Oliz Hakedişi</th>{% endif %}
+            <th>Toplam Gelir</th><th class="hide-mobile">Maliyet</th><th>Kâr / Zarar</th><th>Marj</th>
           </tr>
         </thead>
         <tbody>
           {% for line in profit_summary.lines %}
           <tr>
-            <td>{{ line.item.product_name_snapshot }}</td>
-            <td class="mono">{{ line.quantity }}</td>
-            <td class="mono">{{ line.sale_price | tr_money }} TL</td>
-            <td>{% if line.installment_count == 0 %}Nakit{% else %}{{ line.installment_count }}{% endif %}</td>
-            <td>{{ line.commission_percent | tr_percent }}</td>
-            <td class="mono">{{ line.net_after_commission | tr_money }} TL</td>
-            <td class="mono">{{ line.campaign_share | tr_money }} TL</td>
-            {% if ns.has_oliz %}<td class="mono">{{ line.oliz_share | tr_money }} TL</td>{% endif %}
-            <td class="mono"><strong>{{ line.total_revenue | tr_money }} TL</strong></td>
-            <td class="mono">{% if line.cost is not none %}{{ line.cost | tr_money }} TL{% else %}<span class="muted">Eksik</span>{% endif %}</td>
-            <td class="mono">{% if line.profit is none %}—{% else %}<strong style="color: {% if line.profit < 0 %}var(--danger){% else %}var(--success){% endif %};">{{ line.profit | tr_money }} TL</strong>{% endif %}</td>
-            <td>{% if line.margin_percent is not none %}{{ line.margin_percent | tr_percent }}{% else %}—{% endif %}</td>
+            <td data-label="Ürün">{{ line.item.product_name_snapshot }}</td>
+            <td class="mono" data-label="Adet">{{ line.quantity }}</td>
+            <td class="mono" data-label="Satış Fiyatı">{{ line.sale_price | tr_money }} TL</td>
+            <td data-label="Taksit">{% if line.installment_count == 0 %}Nakit{% else %}{{ line.installment_count }}{% endif %}</td>
+            <td class="hide-mobile" data-label="Komisyon">{{ line.commission_percent | tr_percent }}</td>
+            <td class="hide-mobile mono" data-label="Komisyon Sonrası">{{ line.net_after_commission | tr_money }} TL</td>
+            <td class="hide-mobile mono" data-label="Kampanya Hakedişi">{{ line.campaign_share | tr_money }} TL</td>
+            {% if ns.has_oliz %}<td class="hide-mobile mono" data-label="Oliz Hakedişi">{{ line.oliz_share | tr_money }} TL</td>{% endif %}
+            <td class="mono" data-label="Toplam Gelir"><strong>{{ line.total_revenue | tr_money }} TL</strong></td>
+            <td class="hide-mobile mono" data-label="Maliyet">{% if line.cost is not none %}{{ line.cost | tr_money }} TL{% else %}<span class="muted">Eksik</span>{% endif %}</td>
+            <td class="mono" data-label="Kâr / Zarar">{% if line.profit is none %}—{% else %}<strong style="color: {% if line.profit < 0 %}var(--danger){% else %}var(--success){% endif %};">{{ line.profit | tr_money }} TL</strong>{% endif %}</td>
+            <td data-label="Marj">{% if line.margin_percent is not none %}{{ line.margin_percent | tr_percent }}{% else %}—{% endif %}</td>
           </tr>
           {% else %}
           <tr><td colspan="{{ 12 if ns.has_oliz else 11 }}"><div class="table-empty"><strong>Kâr detayı yok</strong><p>Fiyat ve maliyet bilgisi olan satırlar burada görünür.</p></div></td></tr>
           {% endfor %}
         </tbody>
-        {% if profit_summary.lines %}
-        <tfoot>
-          <tr>
-            <th colspan="{{ 8 if ns.has_oliz else 7 }}" style="text-align: right;">Toplam</th>
-            <th class="mono">{{ profit_summary.total_revenue | tr_money }} TL</th>
-            <th class="mono">{{ profit_summary.total_cost | tr_money }} TL</th>
-            <th class="mono"><strong>{{ profit_summary.total_profit | tr_money }} TL</strong></th>
-            <th>{% if profit_summary.margin_percent is not none %}{{ profit_summary.margin_percent | tr_percent }}{% else %}—{% endif %}</th>
-          </tr>
-        </tfoot>
-        {% endif %}
       </table>
     </div>
+    {% if profit_summary.lines %}
+    <div class="profit-total">
+      <span>Toplam Gelir: <strong>{{ profit_summary.total_revenue | tr_money }} TL</strong></span>
+      <span>Toplam Maliyet: <strong>{{ profit_summary.total_cost | tr_money }} TL</strong></span>
+      <span>Toplam Kâr: <strong>{{ profit_summary.total_profit | tr_money }} TL</strong></span>
+      <span>Marj: <strong>{% if profit_summary.margin_percent is not none %}{{ profit_summary.margin_percent | tr_percent }}{% else %}—{% endif %}</strong></span>
+    </div>
+    {% endif %}
   </div>
 </section>
 
@@ -207,25 +204,29 @@
     </div>
   </div>
   <div class="panel-body panel-body-flush">
-    <div class="table-container" data-table-scroll style="margin-top: 0; border: 0; border-radius: 0;">
-      <table class="data-table" style="min-width: 0;">
-        <thead><tr><th>Ürün</th><th>Adet</th><th>Normal</th>{% if ns.has_oliz %}<th>Oliz</th>{% endif %}<th>Kampanya</th><th>Taban</th><th>Nakit</th><th>Kart</th><th>Satır Toplamı</th></tr></thead>
+    <div class="table-container mobile-cards-container" style="margin-top: 0; border: 0; border-radius: 0;">
+      <table class="data-table mobile-cards offer-lines-table">
+        <thead>
+          <tr>
+            <th>Ürün</th><th>Adet</th><th class="hide-mobile">Normal</th>{% if ns.has_oliz %}<th class="hide-mobile">Oliz</th>{% endif %}<th class="hide-mobile">Kampanya</th><th class="hide-mobile">Taban</th><th>Nakit</th><th>Kart</th><th>Satır Toplamı</th>
+          </tr>
+        </thead>
         <tbody>
           {% for item in detail.items %}
           <tr>
-            <td>
+            <td data-label="Ürün">
               <strong>{{ item.product_name_snapshot }}</strong>
               {% if external_ids.get(item.product_id) %}<div class="muted small mono">ID: {{ external_ids.get(item.product_id) }}</div>{% endif %}
               {% if item.warning_text %}<div class="form-error">{{ item.warning_text }}</div>{% endif %}
             </td>
-            <td class="mono">{{ item.quantity }}</td>
-            <td class="mono">{{ item.regular_price_snapshot | tr_money }}</td>
-            {% if ns.has_oliz %}<td class="mono">{{ item.website_price_snapshot | tr_money }}</td>{% endif %}
-            <td>{{ item.campaign_name_snapshot or '—' }}{% if item.campaign_gift_present is not none %}<div class="muted small">{% if item.campaign_gift_present %}Hediye var{% else %}Hediye yok{% endif %}</div>{% endif %}</td>
-            <td class="mono">{{ item.base_price_used | tr_money }}</td>
-            <td class="mono"><strong>{{ item.unit_price_cash | tr_money }}</strong></td>
-            <td class="mono"><strong>{{ item.unit_price_card | tr_money }}</strong></td>
-            <td class="mono">{{ item.line_total_cash | tr_money }} / {{ item.line_total_card | tr_money }}</td>
+            <td class="mono" data-label="Adet">{{ item.quantity }}</td>
+            <td class="hide-mobile mono" data-label="Normal">{{ item.regular_price_snapshot | tr_money }}</td>
+            {% if ns.has_oliz %}<td class="hide-mobile mono" data-label="Oliz">{{ item.website_price_snapshot | tr_money }}</td>{% endif %}
+            <td class="hide-mobile" data-label="Kampanya">{{ item.campaign_name_snapshot or '—' }}{% if item.campaign_gift_present is not none %}<div class="muted small">{% if item.campaign_gift_present %}Hediye var{% else %}Hediye yok{% endif %}</div>{% endif %}</td>
+            <td class="hide-mobile mono" data-label="Taban">{{ item.base_price_used | tr_money }}</td>
+            <td class="mono" data-label="Nakit"><strong>{{ item.unit_price_cash | tr_money }}</strong></td>
+            <td class="mono" data-label="Kart"><strong>{{ item.unit_price_card | tr_money }}</strong></td>
+            <td class="mono" data-label="Satır Toplamı">{{ item.line_total_cash | tr_money }} / {{ item.line_total_card | tr_money }}</td>
           </tr>
           {% else %}
           <tr><td colspan="{{ 9 if ns.has_oliz else 8 }}"><div class="table-empty"><strong>Teklif satırı yok</strong><p>Sepete ürün ekleyin.</p></div></td></tr>

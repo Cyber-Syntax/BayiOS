@@ -8,7 +8,7 @@
     <div class="page-heading">
       <a class="breadcrumb" href="/reservations">{{ icon("arrow-left", "icon icon-sm") }} Rezervasyonlar</a>
       <h1>Yeni Rezervasyon</h1>
-      <p class="page-subtitle">Müşteri bilgilerini girin ve ürün satırlarını ekleyin. Rezervasyon stoktan düşmez; teslimde düşer.</p>
+      <p class="page-subtitle">Müşteri bilgilerini girin ve rezerve ürünleri ekleyin. Rezervasyon stoktan düşmez; teslimde düşer.</p>
     </div>
   </div>
 
@@ -16,7 +16,7 @@
   <div class="alert alert-danger"><span><strong>Kaydedilemedi:</strong> {{ error }}</span></div>
   {% endif %}
 
-  <form method="post" action="/reservations">
+  <form method="post" action="/reservations" class="offer-form-shell">
     <section class="panel" style="margin-bottom: 16px;">
       <div class="panel-header">
         <div>
@@ -45,55 +45,50 @@
     <section class="panel" style="margin-bottom: 16px;">
       <div class="panel-header">
         <div>
-          <h2>Ürünler</h2>
+          <h2>Rezerve Ürünler</h2>
           <p><span x-text="lines.length"></span> satır · miktar satır bazında girilir.</p>
         </div>
       </div>
       <div class="panel-body">
-        <template x-for="(line, index) in lines" :key="line.key">
-          <div class="offer-line">
-            <input type="hidden" name="product_id" :value="line.id">
-            <div class="offer-line-head">
-              <div class="offer-line-title">
-                <strong x-text="line.name"></strong>
-                <div class="offer-line-meta">Rezervasyon satırı</div>
-              </div>
-              <div style="display: flex; align-items: end; gap: 8px;">
-                <div class="form-group" style="margin: 0;">
-                  <label class="muted small" :for="'quantity-' + line.key">Miktar</label>
-                  <input type="number" class="form-control stock-input" :id="'quantity-' + line.key" name="quantity" min="1" x-model="line.quantity" inputmode="numeric">
+        <div class="basket-add-block">
+          <label for="reservation-product-search" class="form-label">Ürün Ekle</label>
+          <div class="search-field">
+            {{ icon("search") }}
+            <input type="search" id="reservation-product-search" name="q" class="form-control" placeholder="Ürün adı ile ara (örn: 07325 A)" autocomplete="off"
+                   hx-get="/reservations/new/picker"
+                   hx-trigger="keyup changed delay:300ms, search"
+                   hx-target="#product-picker"
+                   hx-include="this" aria-label="Ürün adı ile ara">
+          </div>
+          <div id="product-picker" style="margin-top: 10px;">
+            {% include "reservations/_picker.html" %}
+          </div>
+        </div>
+
+        <div class="basket-lines" style="margin-top: 14px;">
+          <template x-for="(line, index) in lines" :key="line.key">
+            <div class="offer-line">
+              <input type="hidden" name="product_id" :value="line.id">
+              <div class="offer-line-head">
+                <div class="offer-line-title">
+                  <strong x-text="line.name"></strong>
+                  <div class="offer-line-meta">Rezervasyon satırı</div>
                 </div>
-                <button type="button" class="btn btn-sm btn-danger" @click="remove(index)" title="Satırı çıkar">{{ icon("trash", "icon icon-sm") }}<span class="sr-only">Satırı çıkar</span></button>
+                <div style="display: flex; align-items: end; gap: 8px;">
+                  <div class="form-group" style="margin: 0;">
+                    <label class="muted small" :for="'quantity-' + line.key">Miktar</label>
+                    <input type="number" class="form-control stock-input" :id="'quantity-' + line.key" name="quantity" min="1" x-model="line.quantity" inputmode="numeric">
+                  </div>
+                  <button type="button" class="btn btn-sm btn-danger" @click="remove(index)" title="Satırı çıkar">{{ icon("trash", "icon icon-sm") }}<span class="sr-only">Satırı çıkar</span></button>
+                </div>
               </div>
             </div>
+          </template>
+          <div x-show="lines.length === 0" class="empty-state">
+            {{ icon("reservations") }}
+            <strong>Henüz ürün eklenmedi</strong>
+            <p>Yukarıdaki arama alanından ürün ekleyin.</p>
           </div>
-        </template>
-        <div x-show="lines.length === 0" class="empty-state">
-          {{ icon("reservations") }}
-          <strong>Henüz ürün eklenmedi</strong>
-          <p>Aşağıdaki arama alanından ürün ekleyin.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-header">
-        <div>
-          <h2>Ürün Ekle</h2>
-          <p>Arayın, sonuçtan “Ekle” ile satır oluşturun.</p>
-        </div>
-      </div>
-      <div class="panel-body">
-        <div class="search-field" style="max-width: 28rem;">
-          {{ icon("search") }}
-          <input type="search" name="q" class="form-control" placeholder="Ürün adı ile ara (örn: 07325 A)" autocomplete="off"
-                 hx-get="/reservations/new/picker"
-                 hx-trigger="keyup changed delay:300ms, search"
-                 hx-target="#product-picker"
-                 hx-include="this" aria-label="Ürün adı ile ara">
-        </div>
-        <div id="product-picker" style="margin-top: 12px;">
-          {% include "reservations/_picker.html" %}
         </div>
       </div>
     </section>

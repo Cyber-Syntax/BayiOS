@@ -1,14 +1,14 @@
 {% macro basket_totals(comparison, oob=false) %}
-<div id="basket-totals" class="card"{% if oob %} hx-swap-oob="true"{% endif %} style="padding: .75rem 1rem; margin-bottom: 1rem;">
-  <div style="display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: baseline;">
-    <span><small class="muted">Normal Toplam</small><br><strong>{{ (comparison.regular_total if comparison else 0) | tr_money }} TL</strong></span>
+<div id="basket-totals" class="basket-totals"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <div class="basket-totals-grid">
+    <span><small class="muted">Normal Toplam:</small><strong>{{ (comparison.regular_total if comparison else 0) | tr_money }} TL</strong></span>
     {% if comparison and comparison.has_oliz %}
-    <span><small class="muted">Oliz Toplam</small><br><strong>{{ comparison.oliz_total | tr_money }} TL</strong></span>
+    <span><small class="muted">Oliz Toplam:</small><strong>{{ comparison.oliz_total | tr_money }} TL</strong></span>
     {% endif %}
-    <span><small class="muted">Şirket İndirimi</small><br><strong>{{ (comparison.company_discount_total if comparison else 0) | tr_money }} TL</strong></span>
-    <span><small class="muted">Maliyet</small><br><strong>{{ (comparison.cost_total if comparison else 0) | tr_money }} TL</strong></span>
-    <span><small class="muted">Nakit Toplam</small><br><strong>{{ (comparison.cash_total if comparison else 0) | tr_money }} TL</strong></span>
-    <span><small class="muted">Kart Toplam</small><br><strong>{{ (comparison.card_total if comparison else 0) | tr_money }} TL</strong></span>
+    <span><small class="muted">Şirket İndirimi:</small><strong>{{ (comparison.company_discount_total if comparison else 0) | tr_money }} TL</strong></span>
+    <span><small class="muted">Maliyet:</small><strong>{{ (comparison.cost_total if comparison else 0) | tr_money }} TL</strong></span>
+    <span><small class="muted">Nakit Toplam:</small><strong>{{ (comparison.cash_total if comparison else 0) | tr_money }} TL</strong></span>
+    <span><small class="muted">Kart Toplam:</small><strong>{{ (comparison.card_total if comparison else 0) | tr_money }} TL</strong></span>
   </div>
 </div>
 {% endmacro %}
