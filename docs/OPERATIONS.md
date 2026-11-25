@@ -388,6 +388,9 @@ podman-compose up -d --force-recreate --no-deps app
 | `scripts/doctor-bayios.ps1` | **Salt okunur** teşhis raporu üretir. | Hayır; container/volume/DB değiştirmez. |
 | `scripts/install-bayios-tasks.ps1` | "BayiOS Autostart" ve günlük "BayiOS Backup" görevlerini kurar. | Hayır. |
 | `scripts/create-bayios-shortcuts.ps1` | Masaüstü kısayolları oluşturur. | Hayır. |
+| `scripts/stop-bayios.ps1` | Container'ları graceful durdurur; volume/DB silmez. | Hayır (sadece container stop). |
+| `scripts/shutdown-bayios.ps1` | Önce BayiOS'u durdurur, sonra Windows'u kapatır/yeniden başlatır. | Hayır. |
+| `scripts/install-shutdown-task.ps1` | Kullanıcı logoff script'ini kurar (yönetici gerekir). | Hayır. |
 
 Görev Zamanlayıcı'ya elle eklemek istersen:
 
@@ -399,6 +402,44 @@ Görev Zamanlayıcı'ya elle eklemek istersen:
 - `scripts/install-bayios-tasks.ps1` ve `scripts/create-bayios-shortcuts.ps1` bu kurulumu tek komuta indirir.
 
 > Yeni environment değişkeni gerekmez. Build argümanları (`GIT_SHA`, `BUILD_TIME`) sadece image metadata'sı ve `/health` içindir; `.env` dosyasına eklenmez.
+
+## 7.4 PC kapanırken BayiOS'u otomatik durdurma
+
+Windows kapanırken container'ları graceful durdurmak için **kullanıcı logoff script'i** kullanıyoruz. Bu, Task Scheduler'ın "event 1074" görevinden daha güvenilirdir: Windows logoff script'ini kullanıcı profili açıkken çalıştırır ve bitmesini bekler. Podman rootless olduğu için script'in kullanıcı olarak çalışması şarttır; bilgisayar (SYSTEM) shutdown script'i Podman machine'i göremez.
+
+Kurulum (yönetici PowerShell):
+
+```powershell
+cd C:\BayiOS
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-shutdown-task.ps1
+```
+
+Bu komut:
+
+- `%SystemRoot%\System32\GroupPolicy\User\Scripts\scripts.ini` içindeki `[Logoff]` bölümüne BayiOS stop komutunu ekler.
+- Önce zaman damgalı bir `.bak` yedeği alır.
+- `gpupdate /force` çalıştırır.
+
+Kaldırmak için:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-shutdown-task.ps1 -Remove
+```
+
+Test:
+
+1. Bilgisayarı kapat veya oturumu kapat.
+2. `logs\bayios-stop-YYYYMMDD_HHMMSS.log` dosyasının oluştuğunu kontrol et.
+3. Log yoksa **Windows Fast Startup** açık olabilir; kapatıp tekrar dene:
+   `powercfg /h off` (yönetici) veya Denetim Masası → Güç Seçenekleri → "Hızlı başlatmayı aç" seçeneğini kaldır.
+
+Garantili alternatif: masaüstündeki **BayiOS Kapat ve PC Kapat** kısayolu. Bu kısayol önce `stop-bayios.ps1`, sonra `shutdown.exe /s /t 10` çalıştırır; sıra garanti edilir. Yeniden başlatmak için:
+
+```powershell
+.\scripts\shutdown-bayios.ps1 -Restart
+```
+
+`stop-bayios.ps1` yalnızca container'ları durdurur; `down -v`, volume silme, `dropdb` veya restore **yoktur**.
 
 ## 8. Sorun giderme
 

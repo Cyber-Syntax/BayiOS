@@ -29,10 +29,12 @@ $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powersh
 $shell = New-Object -ComObject WScript.Shell
 
 $items = @(
-    @{ Name = 'BayiOS Baslat'; Script = 'start-bayios.ps1'; Description = 'Starts BayiOS (existing image).' },
-    @{ Name = 'BayiOS Guncelle'; Script = 'update-bayios.ps1'; Description = 'Builds and deploys the current BayiOS code.' },
-    @{ Name = 'BayiOS Yedek'; Script = 'backup-bayios.ps1'; Description = 'Takes a PostgreSQL backup.' },
-    @{ Name = 'BayiOS Rapor'; Script = 'doctor-bayios.ps1'; Description = 'Produces a read-only diagnostic report.' }
+    @{ Name = 'BayiOS Baslat'; Script = 'start-bayios.ps1'; Description = 'Starts BayiOS (existing image).'; Arguments = '' },
+    @{ Name = 'BayiOS Guncelle'; Script = 'update-bayios.ps1'; Description = 'Builds and deploys the current BayiOS code.'; Arguments = '' },
+    @{ Name = 'BayiOS Yedek'; Script = 'backup-bayios.ps1'; Description = 'Takes a PostgreSQL backup.'; Arguments = '' },
+    @{ Name = 'BayiOS Rapor'; Script = 'doctor-bayios.ps1'; Description = 'Produces a read-only diagnostic report.'; Arguments = '' },
+    @{ Name = 'BayiOS Kapat'; Script = 'stop-bayios.ps1'; Description = 'Stops BayiOS gracefully.'; Arguments = ' -StopMachine' },
+    @{ Name = 'BayiOS Kapat ve PC Kapat'; Script = 'shutdown-bayios.ps1'; Description = 'Stops BayiOS, then shuts down Windows.'; Arguments = ' -StopMachine' }
 )
 
 foreach ($item in $items) {
@@ -45,7 +47,7 @@ foreach ($item in $items) {
     $shortcutPath = Join-Path $DesktopPath ('{0}.lnk' -f $item.Name)
     $shortcut = $shell.CreateShortcut($shortcutPath)
     $shortcut.TargetPath = $powershell
-    $shortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}"' -f $scriptPath
+    $shortcut.Arguments = ('-NoProfile -ExecutionPolicy Bypass -File "{0}"{1}' -f $scriptPath, $item.Arguments)
     $shortcut.WorkingDirectory = $root
     $shortcut.IconLocation = '{0},0' -f $powershell
     $shortcut.Description = $item.Description

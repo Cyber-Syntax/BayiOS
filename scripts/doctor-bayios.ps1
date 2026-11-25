@@ -312,7 +312,7 @@ if ($IncludeLogs) {
 }
 
 Add-Section 'Script files'
-foreach ($name in @('start-bayios.ps1', 'update-bayios.ps1', 'backup-bayios.ps1', 'doctor-bayios.ps1', 'install-bayios-tasks.ps1')) {
+foreach ($name in @('start-bayios.ps1', 'update-bayios.ps1', 'backup-bayios.ps1', 'doctor-bayios.ps1', 'stop-bayios.ps1', 'shutdown-bayios.ps1', 'install-bayios-tasks.ps1', 'install-shutdown-task.ps1')) {
     $path = Join-Path $PSScriptRoot $name
     Add-ReportLine ('{0}: {1}' -f $name, $(if (Test-Path -LiteralPath $path) { 'present' } else { 'missing' }))
 }

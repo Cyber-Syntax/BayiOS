@@ -608,6 +608,76 @@ function Protect-BayiosSecrets {
     return ($Text -replace 'postgresql\+psycopg://[^\s]+', 'postgresql+psycopg://***')
 }
 
+function Invoke-BayiosStop {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][string]$ProjectName,
+        [int]$TimeoutSeconds = 30,
+        [switch]$StopMachine
+    )
+
+    $stopped = New-Object 'System.Collections.Generic.List[string]'
+    $failed = New-Object 'System.Collections.Generic.List[string]'
+    $machineRunning = $false
+    $machineStopped = $false
+
+    if (-not (Test-BayiosCommand -Name 'podman')) {
+        return [pscustomobject]@{
+            MachineRunning = $false
+            Stopped        = $stopped.ToArray()
+            Failed         = $failed.ToArray()
+            MachineStopped = $false
+        }
+    }
+
+    $info = Invoke-BayiosCapture -FilePath 'podman' -Arguments @('info', '--format', '{{.Host.OS}}')
+    if ($info.ExitCode -ne 0) {
+        # Podman machine is already down. Shutdown must not start it just to stop it.
+        return [pscustomobject]@{
+            MachineRunning = $false
+            Stopped        = $stopped.ToArray()
+            Failed         = $failed.ToArray()
+            MachineStopped = $false
+        }
+    }
+    $machineRunning = $true
+
+    $containers = @(Get-BayiosProjectContainers -ProjectName $ProjectName)
+    $running = @($containers | Where-Object { $_.Status -match '^Up' } |
+        Sort-Object -Property @{ Expression = { if ($_.Service -eq 'app') { 0 } else { 1 } } })
+
+    foreach ($container in $running) {
+        $stop = Invoke-BayiosCapture -FilePath 'podman' -Arguments @(
+            'stop', '-t', [string]$TimeoutSeconds, $container.Name
+        )
+        if ($stop.ExitCode -eq 0) {
+            $stopped.Add($container.Name) | Out-Null
+            Write-BayiosLog ('Stopped container: {0}' -f $container.Name) 'OK'
+        } else {
+            $failed.Add(('{0}: {1}' -f $container.Name, $stop.Output)) | Out-Null
+            Write-BayiosLog ('Could not stop {0}: {1}' -f $container.Name, $stop.Output) 'ERROR'
+        }
+    }
+
+    if ($StopMachine -and $env:OS -eq 'Windows_NT') {
+        $machine = Invoke-BayiosCapture -FilePath 'podman' -Arguments @('machine', 'stop')
+        if ($machine.ExitCode -eq 0) {
+            $machineStopped = $true
+            Write-BayiosLog 'Podman machine stopped.' 'OK'
+        } else {
+            $failed.Add(('machine stop: {0}' -f $machine.Output)) | Out-Null
+            Write-BayiosLog ('Podman machine stop failed: {0}' -f $machine.Output) 'ERROR'
+        }
+    }
+
+    return [pscustomobject]@{
+        MachineRunning = $machineRunning
+        Stopped        = $stopped.ToArray()
+        Failed         = $failed.ToArray()
+        MachineStopped = $machineStopped
+    }
+}
+
 function Invoke-BayiosBackup {
     [CmdletBinding()]
     param(
@@ -758,4 +828,4 @@ Export-ModuleMember -Function Write-BayiosLog, Set-BayiosLogFile, Start-BayiosLo
     Stop-BayiosForeignContainers, Get-BayiosImageId, Get-BayiosContainerImageId,
     Get-BayiosHealth, Wait-BayiosHealth, Get-BayiosPort, Wait-BayiosPostgres,
     New-BayiosLock, Remove-BayiosLock, Get-BayiosGitInfo, Invoke-BayiosGitPull,
-    Get-BayiosDiskFreeGB, Protect-BayiosSecrets, Invoke-BayiosBackup
+    Get-BayiosDiskFreeGB, Protect-BayiosSecrets, Invoke-BayiosStop, Invoke-BayiosBackup
