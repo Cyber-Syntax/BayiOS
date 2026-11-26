@@ -175,6 +175,11 @@ def _export(
                         "applies_per_unit": getattr(
                             link, "applies_per_unit", None
                         ),
+                        "gift_price": (
+                            str(link.gift_price)
+                            if getattr(link, "gift_price", None) is not None
+                            else None
+                        ),
                     }
                     for link in links
                 ],

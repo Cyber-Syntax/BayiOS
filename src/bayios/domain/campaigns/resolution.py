@@ -101,6 +101,7 @@ class GiftProduct:
     quantity: int
     optional: bool
     description: str | None
+    gift_price: Decimal | None = None
 
 
 @dataclass(frozen=True)
@@ -303,6 +304,7 @@ def eligible_gift_campaigns(
                         campaign.contract.gift_description
                         or link.product_name
                     ),
+                    gift_price=link.gift_price,
                 )
             )
     return tuple(gifts)

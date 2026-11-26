@@ -293,8 +293,10 @@ Bu bölüm, planın koda nasıl geçtiğini özetler; ayrıntı için kod ve tes
 - **Kart ağı:** `banks.card_networks` ile bankaya World/Bonus/Maximum gibi ağlar atanır; teklifte
   kart ağı seçilebilir ve kampanya ödeme koşulu kart ağına göre filtrelenir.
 - **Hediye:** `gift` ilişkili ürünler, kampanyanın tetikleyicisi ve ödeme koşulu sağlandığında teklife
-  **0 TL hediye satırı** olarak eklenir. İsteğe bağlı hediyede çalışan "Hediye yok" seçerse satır eklenmez.
-  Hediye satırı rezervasyon/teslim akışına dahildir; stok çıkışı normal teslimatla yapılır.
+  ayrı satır olarak eklenir. Hediye satırının fiyatı, ilişkideki `gift_price` alanıdır; boşsa ürünün
+  Oliz indirimi (normal - Oliz) kullanılır. Satır **Oliz** kaynağıyla işlenir; normal/Oliz fiyatları ve
+  Oliz hakedişi (%85) teklif toplamlarına yansır. İsteğe bağlı hediyede çalışan "Hediye yok" seçerse
+  satır eklenmez. Hediye satırı rezervasyon/teslim akışına dahildir; stok çıkışı normal teslimatla yapılır.
 - **Bedava ürün indirimi:** %100 indirimli ürün (fiyatı sıfırlayan kural) henüz ayrı bir benefit türü
   olarak modellenmedi; hediye satırı bunun pratik karşılığıdır.
 - **Dışlama grubu:** Aynı `exclusion_group` değerine sahip kampanyalardan sepet genelinde en yüksek

@@ -41,6 +41,7 @@ def _uow() -> tuple[FakeUnitOfWork, uuid.UUID, uuid.UUID]:
         name="CM 3626 IC",
         name_normalized="cm 3626 ic",
         regular_price=Decimal("4699.00"),
+        website_discounted_price=Decimal("3899.00"),
         cost_price=Decimal("3000.00"),
         physical_stock=1,
     )
@@ -55,6 +56,7 @@ def _gift_campaign(
     *,
     min_total: Decimal = Decimal(100000),
     optional: bool = False,
+    gift_price: Decimal | None = None,
 ) -> None:
     create_campaign(
         uow,
@@ -68,7 +70,11 @@ def _gift_campaign(
             gift_optional=optional,
             min_basket_total=min_total,
             products=(
-                CampaignProductInput(gift_id, ProductRelationType.GIFT),
+                CampaignProductInput(
+                    gift_id,
+                    ProductRelationType.GIFT,
+                    gift_price=gift_price,
+                ),
             ),
         ),
     )
@@ -106,12 +112,32 @@ def test_gift_line_is_added_when_basket_minimum_is_met() -> None:
     item = gift_items[0]
     assert item.product_id == gift_id
     assert item.quantity == 1
-    assert item.unit_price_cash == Decimal("0.00")
-    assert item.unit_price_card == Decimal("0.00")
-    assert item.line_total_cash == Decimal("0.00")
+    assert item.unit_price_cash == Decimal("800.00")
+    assert item.unit_price_card == Decimal("800.00")
+    assert item.line_total_cash == Decimal("800.00")
+    assert item.website_price_snapshot == Decimal("3899.00")
+    assert item.company_discount_source == "oliz"
+    assert item.company_discount_amount == Decimal("800.00")
+    assert item.company_share_amount == Decimal("800.00")
     assert item.warning_text == "Hediye ürün"
-    assert detail.offer.company_discount_total == Decimal("0.00")
-    assert detail.offer.cash_total == Decimal("150000.00")
+    assert detail.offer.company_discount_total == Decimal("800.00")
+    assert detail.offer.cash_total == Decimal("150800.00")
+
+
+def test_explicit_gift_price_overrides_oliz_discount() -> None:
+    uow, buyer_id, gift_id = _uow()
+    _gift_campaign(uow, gift_id, gift_price=Decimal("1000.00"))
+    offer_id = create_offer(uow, _offer_input(buyer_id))
+    detail = get_offer_detail(uow, offer_id)
+    assert detail is not None
+    gift = next(
+        item
+        for item in detail.items
+        if (item.campaign_snapshot or {}).get("is_gift")
+    )
+    assert gift.unit_price_cash == Decimal("1000.00")
+    assert gift.line_total_cash == Decimal("1000.00")
+    assert gift.company_discount_amount == Decimal("1000.00")
 
 
 def test_gift_is_not_added_below_basket_minimum() -> None:

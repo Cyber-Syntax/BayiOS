@@ -294,7 +294,7 @@ Kampanya kaydı aşağıdaki alanları destekler:
 - Fiyat tabanı: normal fiyat veya şirket/Oliz indirimli fiyatı.
 - Ödeme koşulu (opsiyonel): kanal, banka(lar), kart tipi, kart ağı ve taksit sayısı; boşsa tüm ödemelerde geçerlidir.
 - Hediye seçeneği ve hediye istemeyen müşteri için alternatif fiyat davranışı.
-- Hediye ürün ilişkisi tanımlıysa ve kampanya koşulu sağlanıyorsa teklife 0 TL hediye satırı eklenir; isteğe bağlı hediyede çalışan hediyeyi reddedebilir.
+- Hediye ürün ilişkisi tanımlıysa ve kampanya koşulu sağlanıyorsa teklife ayrı hediye satırı eklenir. Satır fiyatı ilişkideki hediye fiyatı, boşsa ürünün Oliz indirimi kadardır; satır Oliz sayılır ve Oliz hakedişi kazandırır. İsteğe bağlı hediyede çalışan hediyeyi reddedebilir.
 - Çalışanın göreceği kısa açıklama/not.
 
 **Hediye örneği — zorunlu davranış:**

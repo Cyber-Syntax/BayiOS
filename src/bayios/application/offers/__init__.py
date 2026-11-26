@@ -1187,10 +1187,10 @@ def preview_offer_basket(
             )
         if item.is_gift:
             line_warnings = []
-            unit_price_cash = Decimal(0)
-            unit_price_card = Decimal(0)
-            line_total_cash = Decimal(0)
-            line_total_card = Decimal(0)
+            unit_price_cash = quote.unit_price_cash
+            unit_price_card = quote.unit_price_card
+            line_total_cash = quote.line_total_cash
+            line_total_card = quote.line_total_card
             campaign_name = (
                 str((item.campaign_snapshot or {}).get("name") or "")
                 or "Hediye"
@@ -2009,6 +2009,27 @@ def _prepared_gifts(
             product_group = ProductCommissionGroup(group_value)
         except ValueError:
             product_group = ProductCommissionGroup.OTHER
+        regular = getattr(product, "regular_price", None)
+        website = normalize_website_price(
+            getattr(product, "website_discounted_price", None)
+        )
+        if gift.gift_price is not None:
+            gift_price = quantize_money(gift.gift_price)
+        elif (
+            regular is not None
+            and website is not None
+            and regular > website
+        ):
+            gift_price = quantize_money(regular - website)
+        else:
+            gift_price = Decimal(0)
+        if regular is not None and gift_price > regular:
+            gift_price = quantize_money(regular)
+        company_price = (
+            website
+            if website is not None
+            else (regular if regular is not None else Decimal(0))
+        )
         snapshot = {
             "campaign_id": gift.campaign_id,
             "version_id": gift.version_id,
@@ -2017,8 +2038,8 @@ def _prepared_gifts(
             "campaign_type": "gift",
             "is_gift": True,
             "gift_description": gift.description,
-            "campaign_discount_amount": "0.00",
-            "final_price": "0.00",
+            "campaign_discount_amount": str(gift_price),
+            "final_price": str(gift_price),
             "warning": None,
         }
         prepared.append(
@@ -2028,14 +2049,13 @@ def _prepared_gifts(
                     product_id=product.id,
                     quantity=gift.quantity,
                     is_gift=True,
-                    unit_price_cash=Decimal(0),
-                    unit_price_card=Decimal(0),
+                    unit_price_cash=gift_price,
+                    unit_price_card=gift_price,
                 ),
                 layers=OfferPriceLayers(
                     cost_price=getattr(product, "cost_price", None),
-                    regular_price=Decimal(0),
-                    website_price=None,
-                    campaign_price=Decimal(0),
+                    regular_price=regular,
+                    website_price=website,
                     campaign_name=gift.campaign_name,
                     campaign_gift_present=True,
                 ),
@@ -2046,10 +2066,15 @@ def _prepared_gifts(
                 category_id=getattr(product, "category_id", None),
                 campaign_version_id=uuid.UUID(gift.version_id),
                 campaign_snapshot=snapshot,
-                company=None,
+                company=CompanyPriceCandidate(
+                    source=CompanyDiscountSource.OLIZ,
+                    price=quantize_money(company_price),
+                    discount_amount=gift_price,
+                    share_amount=gift_price,
+                ),
                 best_campaign=None,
-                regular_price=Decimal(0),
-                oliz_price=None,
+                regular_price=regular,
+                oliz_price=website,
                 cost_price=getattr(product, "cost_price", None),
                 is_gift=True,
             )
@@ -2394,48 +2419,6 @@ def _build_items(
     target_value = target.target_value if target is not None else None
     rows: list[OfferItem] = []
     for position, prepared_item in enumerate(prepared):
-        if prepared_item.is_gift:
-            product = prepared_item.product
-            gift_snapshot = prepared_item.campaign_snapshot or {}
-            rows.append(
-                OfferItem(
-                    id=uuid.uuid4(),
-                    offer_id=offer.id,
-                    product_id=getattr(product, "id", None),
-                    product_name_snapshot=getattr(product, "name", ""),
-                    quantity=prepared_item.input.quantity,
-                    regular_price_snapshot=getattr(
-                        product, "regular_price", None
-                    ),
-                    website_price_snapshot=None,
-                    cost_price_snapshot=getattr(product, "cost_price", None),
-                    campaign_version_id=prepared_item.campaign_version_id,
-                    campaign_name_snapshot=(
-                        str(gift_snapshot.get("name") or "")
-                        or prepared_item.layers.campaign_name
-                    ),
-                    campaign_snapshot=gift_snapshot,
-                    campaign_gift_present=True,
-                    base_price_used=Decimal(0),
-                    company_discount_source="none",
-                    company_discount_amount=Decimal(0),
-                    company_share_amount=Decimal(0),
-                    campaign_discount_amount=Decimal(0),
-                    campaign_base_price=None,
-                    campaign_price=Decimal(0),
-                    dealer_discount_percent=Decimal(0),
-                    dealer_discount_cash_percent=Decimal(0),
-                    suggested_cash_price=Decimal(0),
-                    suggested_card_price=Decimal(0),
-                    unit_price_cash=Decimal(0),
-                    unit_price_card=Decimal(0),
-                    line_total_cash=Decimal(0),
-                    line_total_card=Decimal(0),
-                    warning_text="Hediye ürün",
-                    position=position,
-                )
-            )
-            continue
         quote = quote_offer_item(
             prepared_item.layers,
             quantity=prepared_item.input.quantity,
@@ -2495,20 +2478,24 @@ def _build_items(
                 line_total_cash=quote.line_total_cash,
                 line_total_card=quote.line_total_card,
                 warning_text=(
-                    "; ".join(
-                        dict.fromkeys(
-                            [
-                                *quote.warnings,
-                                *(
-                                    [company.warning]
-                                    if company is not None
-                                    and company.warning
-                                    else []
-                                ),
-                            ]
+                    "Hediye ürün"
+                    if prepared_item.is_gift
+                    else (
+                        "; ".join(
+                            dict.fromkeys(
+                                [
+                                    *quote.warnings,
+                                    *(
+                                        [company.warning]
+                                        if company is not None
+                                        and company.warning
+                                        else []
+                                    ),
+                                ]
+                            )
                         )
+                        or None
                     )
-                    or None
                 ),
                 position=position,
             )

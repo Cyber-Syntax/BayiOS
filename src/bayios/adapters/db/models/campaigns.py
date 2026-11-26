@@ -228,6 +228,7 @@ class CampaignVersionProduct(Base):
     discount_value: Mapped[Decimal | None] = mapped_column(MONEY)
     base_price_type: Mapped[str | None] = mapped_column(sa.Text)
     applies_per_unit: Mapped[bool | None] = mapped_column(sa.Boolean)
+    gift_price: Mapped[Decimal | None] = mapped_column(MONEY)
 
 
 class DealerPricing(Base):

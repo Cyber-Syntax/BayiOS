@@ -219,6 +219,8 @@
               <option value="1">Adet başına</option>
               <option value="0">Sepette bir kez</option>
             </select>
+            <input type="text" name="product_gift_price" class="form-control" style="max-width: 8rem;"
+                   placeholder="Hediye fiyatı" x-model="product.gift_price">
             <button type="button" class="btn btn-sm btn-danger" @click="removeProduct(index)">Çıkar</button>
           </div>
         </template>
@@ -271,6 +273,8 @@
               <option value="1">Adet başına</option>
               <option value="0">Sepette bir kez</option>
             </select>
+            <input type="text" name="category_gift_price" class="form-control" style="max-width: 8rem;"
+                   placeholder="Hediye fiyatı" x-model="target.gift_price">
             <button type="button" class="btn btn-sm btn-danger" @click="removeCategory(index)">Çıkar</button>
           </div>
         </template>
@@ -314,6 +318,7 @@
       discount_value: product.discount_value || '',
       base_price_type: product.base_price_type || '',
       applies_per_unit: product.applies_per_unit === '0' || product.applies_per_unit === 0 ? '0' : '1',
+      gift_price: product.gift_price || '',
       key: `${product.product_id || product.category_id || product.product_name}-${index}`,
     });
     return {
@@ -335,6 +340,7 @@
           discount_value: '',
           base_price_type: '',
           applies_per_unit: '1',
+          gift_price: '',
           key: `${id}-${Date.now()}`,
         });
       },
@@ -360,6 +366,7 @@
           discount_value: '',
           base_price_type: '',
           applies_per_unit: '1',
+          gift_price: '',
           key: `${category.id}-${Date.now()}`,
         });
         this.categoryToAdd = '';

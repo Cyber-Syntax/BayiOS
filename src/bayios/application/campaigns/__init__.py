@@ -59,6 +59,7 @@ class CampaignProductInput:
     discount_value: Decimal | None = None
     base_price_type: BasePriceType | None = None
     applies_per_unit: bool | None = None
+    gift_price: Decimal | None = None
 
 
 @dataclass(frozen=True)
@@ -103,6 +104,7 @@ class CampaignProductView:
     discount_value: Decimal | None = None
     base_price_type: str | None = None
     applies_per_unit: bool | None = None
+    gift_price: Decimal | None = None
 
 
 @dataclass(frozen=True)
@@ -591,6 +593,7 @@ def _build_contract(uow: UnitOfWork, data: CampaignInput) -> CampaignContract:
             discount_value=item.discount_value,
             base_price_type=item.base_price_type,
             applies_per_unit=item.applies_per_unit,
+            gift_price=item.gift_price,
         )
         for item in data.products
         if item.product_id is not None or item.category_id is not None
@@ -709,6 +712,7 @@ def _link_rows(
                 link.base_price_type.value if link.base_price_type else None
             ),
             applies_per_unit=link.applies_per_unit,
+            gift_price=link.gift_price,
         )
         for link in contract.products
     )
@@ -793,6 +797,7 @@ def _contract_from_row(
                     else None
                 ),
                 applies_per_unit=getattr(link, "applies_per_unit", None),
+                gift_price=getattr(link, "gift_price", None),
             )
             for link in links
         ),
@@ -918,6 +923,7 @@ def _product_view(link: CampaignVersionProduct) -> CampaignProductView:
         discount_value=getattr(link, "discount_value", None),
         base_price_type=getattr(link, "base_price_type", None),
         applies_per_unit=getattr(link, "applies_per_unit", None),
+        gift_price=getattr(link, "gift_price", None),
     )
 
 

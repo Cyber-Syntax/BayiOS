@@ -652,6 +652,9 @@ def _parse_product_inputs(form: object) -> tuple[CampaignProductInput, ...]:
     applies = [
         str(value) for value in form.getlist("product_applies_per_unit")  # type: ignore[attr-defined]
     ]
+    gift_prices = [
+        str(value) for value in form.getlist("product_gift_price")  # type: ignore[attr-defined]
+    ]
     items: list[CampaignProductInput] = []
     for index, raw_id in enumerate(product_ids):
         if not raw_id.strip():
@@ -686,6 +689,9 @@ def _parse_product_inputs(form: object) -> tuple[CampaignProductInput, ...]:
                 discount_value=discount_value,
                 base_price_type=base_type,
                 applies_per_unit=applies_per_unit,
+                gift_price=_parse_decimal(
+                    gift_prices[index] if index < len(gift_prices) else None
+                ),
             )
         )
     return tuple(items)
@@ -714,6 +720,10 @@ def _parse_category_inputs(form: object) -> tuple[CampaignProductInput, ...]:
     applies = [
         str(value)
         for value in form.getlist("category_applies_per_unit")  # type: ignore[attr-defined]
+    ]
+    gift_prices = [
+        str(value)
+        for value in form.getlist("category_gift_price")  # type: ignore[attr-defined]
     ]
     items: list[CampaignProductInput] = []
     for index, raw_id in enumerate(category_ids):
@@ -745,6 +755,9 @@ def _parse_category_inputs(form: object) -> tuple[CampaignProductInput, ...]:
                 discount_value=discount_value,
                 base_price_type=base_type,
                 applies_per_unit=applies_per_unit,
+                gift_price=_parse_decimal(
+                    gift_prices[index] if index < len(gift_prices) else None
+                ),
             )
         )
     return tuple(items)
@@ -859,6 +872,10 @@ def _selected_products_from_form(
     applies = [
         str(value) for value in form.getlist("product_applies_per_unit")  # type: ignore[attr-defined]
     ]
+    gift_prices = [
+        str(value)
+        for value in form.getlist("product_gift_price")  # type: ignore[attr-defined]
+    ]
     selected: list[dict[str, object]] = []
     for index, raw_id in enumerate(product_ids):
         product_id = _optional_uuid(raw_id)
@@ -891,6 +908,9 @@ def _selected_products_from_form(
                 "applies_per_unit": (
                     applies[index] if index < len(applies) else "1"
                 ),
+                "gift_price": (
+                    gift_prices[index] if index < len(gift_prices) else ""
+                ),
             }
         )
     return selected
@@ -921,6 +941,10 @@ def _selected_categories_from_form(
     applies = [
         str(value)
         for value in form.getlist("category_applies_per_unit")  # type: ignore[attr-defined]
+    ]
+    gift_prices = [
+        str(value)
+        for value in form.getlist("category_gift_price")  # type: ignore[attr-defined]
     ]
     with uow:
         categories = {
@@ -957,6 +981,9 @@ def _selected_categories_from_form(
                 ),
                 "applies_per_unit": (
                     applies[index] if index < len(applies) else "1"
+                ),
+                "gift_price": (
+                    gift_prices[index] if index < len(gift_prices) else ""
                 ),
             }
         )
@@ -1067,6 +1094,11 @@ def _form_link_state(product: object) -> dict[str, object]:
         "base_price_type": getattr(product, "base_price_type", None) or "",
         "applies_per_unit": (
             "1" if getattr(product, "applies_per_unit", None) is not False else "0"
+        ),
+        "gift_price": (
+            str(getattr(product, "gift_price", None))
+            if getattr(product, "gift_price", None) is not None
+            else ""
         ),
     }
 

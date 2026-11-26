@@ -119,6 +119,7 @@ class CampaignProductLink:
     discount_value: Decimal | None = None
     base_price_type: BasePriceType | None = None
     applies_per_unit: bool | None = None
+    gift_price: Decimal | None = None
 
     def __post_init__(self) -> None:
         if not self.product_name.strip():
@@ -133,6 +134,8 @@ class CampaignProductLink:
             _validate_discount(self.discount_type, self.discount_value)
         elif self.discount_value is not None:
             raise ValueError("İndirim değeri için indirim türü girilmelidir.")
+        if self.gift_price is not None and self.gift_price < ZERO:
+            raise ValueError("Hediye fiyatı negatif olamaz.")
 
     @property
     def target_type(self) -> TargetType:
@@ -323,6 +326,7 @@ class CampaignContract:
                     link.discount_value,
                     link.base_price_type.value if link.base_price_type else "",
                     link.applies_per_unit if link.applies_per_unit is not None else "",
+                    link.gift_price,
                 )
                 for link in self.products
             )

@@ -32,8 +32,8 @@ def test_health_reports_build_metadata(monkeypatch) -> None:
     report = HealthReport(
         database_ok=True,
         migrations_ok=True,
-        current_revisions=("0023",),
-        expected_revisions=("0023",),
+        current_revisions=("0024",),
+        expected_revisions=("0024",),
     )
     response = _client(report).get("/health")
 
@@ -54,7 +54,7 @@ def test_health_mismatch_is_unavailable_and_keeps_build_metadata(monkeypatch) ->
         database_ok=True,
         migrations_ok=False,
         current_revisions=("0019",),
-        expected_revisions=("0023",),
+        expected_revisions=("0024",),
     )
     response = _client(report).get("/health")
 

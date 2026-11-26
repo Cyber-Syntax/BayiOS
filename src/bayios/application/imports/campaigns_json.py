@@ -400,6 +400,9 @@ def _parse_one(
         applies_per_unit = raw_product.get("applies_per_unit")
         if not isinstance(applies_per_unit, bool):
             applies_per_unit = None
+        gift_price = _decimal_or_none(
+            raw_product.get("gift_price"), warnings, "Hediye fiyatı"
+        )
         target_type = _text(raw_product.get("target_type")) or (
             "category"
             if raw_product.get("category_id")
@@ -429,6 +432,7 @@ def _parse_one(
                     discount_value=discount_value,
                     base_price_type=base_price_type,
                     applies_per_unit=applies_per_unit,
+                    gift_price=gift_price,
                 )
             )
             continue
@@ -458,6 +462,7 @@ def _parse_one(
                 discount_value=discount_value,
                 base_price_type=base_price_type,
                 applies_per_unit=applies_per_unit,
+                gift_price=gift_price,
             )
         )
     if missing_products:
