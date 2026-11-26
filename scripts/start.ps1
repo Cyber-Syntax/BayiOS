@@ -53,7 +53,10 @@ try {
         }
     }
 
-    Write-Host "`nUygulama başlatılıyor..." -ForegroundColor Green
+    Write-Host "`nÖnce mevcut Compose servisleri kapatılıyor..." -ForegroundColor Yellow
+    Invoke-PodmanCompose -ComposeArgs @('down')
+
+    Write-Host "`nUygulama yeniden build edilip başlatılıyor..." -ForegroundColor Green
 
     Invoke-PodmanCompose -ComposeArgs @('build', 'app')
     Invoke-PodmanCompose -ComposeArgs @('up', '-d', 'postgres')
@@ -67,3 +70,4 @@ catch {
     Write-Host "`nHATA: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }
+
