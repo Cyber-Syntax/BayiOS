@@ -16,6 +16,12 @@
 
 - [ ] feat: bankalara kart ağı (World/Bonus/Maximum/Axess/Paraf/Flexi …) etiketi; Ayarlar ekranında yönetim; kampanya ödeme koşulunda "tüm World kartlar" gibi kart ağı hedefleme. (Kısa vadede kampanya koşulunda doğrudan banka adları kullanılır.)
 
+## teklif sorunları
+
+- [ ] **Nakit/kart geçişinde satır fiyatları güncellenmiyor.** Teklif formunda ödeme tipi nakit ↔ kart yapıldığında satır bazlı `unit_price_cash` / `unit_price_card` değerleri eski değerde kalıyor; çünkü iki alan da dolu ve JS yalnız kampanya etiketini/fiyatını güncelliyor. Ödeme tipi, bayi indirimi, kampanya veya miktar değişince seçili ödeme tipine göre satır fiyatı yeniden hesaplanmalı; kullanıcı elle fiyat girmedikçe diğer ödeme tipinin eski değeri kullanılmamalı. Ayrıca kayıt sırasında seçili ödeme tipi dışındaki alanlar temizlenmeli veya yok sayılmalı.
+- [ ] Teklifte karma ürün grubu (Klima + Diğer) komisyonu yalnız ilk satırın grubuna göre çözülüyor; sepet genelinde en kısıtlayıcı/doğru grup çözülmeli.
+- [ ] Teklif kaydından sonra toplam satış, komisyon sonrası net, toplam kampanya hakedişi ve toplam Oliz hakedişi tek özet tablosunda gösterilmeli.
+
 ## in-progress
 
 - [x] stok sayım sekmesinde kategori seçince otomatik filtre

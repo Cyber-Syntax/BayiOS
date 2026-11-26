@@ -279,6 +279,52 @@ def test_campaign_form_accepts_category_benefit_rule(
     assert category_links[0].applies_per_unit is False
 
 
+def test_campaign_form_accepts_payment_condition(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    product = _product(fake_uow)
+    bank_id = uuid.uuid4()
+    response = client.post(
+        "/campaigns",
+        data={
+            "name": "Banka Koşullu",
+            "campaign_type": "product_discount",
+            "starts_at": "2026-01-01",
+            "ends_at": "2027-12-31",
+            "discount_type": "percent",
+            "discount_value": "10",
+            "payment_channel": "pos",
+            "payment_bank_id": str(bank_id),
+            "payment_card_type": "consumer",
+            "payment_installment_count": "8",
+            "product_id": str(product.id),
+            "relation_type": "benefit",
+            "quantity_required": "",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    campaign_id = uuid.UUID(
+        response.headers["location"].rsplit("/", 1)[-1].split("?", 1)[0]
+    )
+    version = fake_uow.campaigns.get_current_version(campaign_id)
+    assert version is not None
+    assert version.payment_conditions == [
+        {
+            "channel": "pos",
+            "bank_ids": [str(bank_id)],
+            "card_type": "consumer",
+            "card_network": None,
+            "installment_count": 8,
+        }
+    ]
+    detail = client.get(f"/campaigns/{campaign_id}")
+    assert detail.status_code == 200
+    assert "8 taksit" in detail.text
+    assert "Bireysel" in detail.text
+
+
 def test_campaign_filters_by_type(
     client: TestClient, fake_uow: FakeUnitOfWork
 ) -> None:

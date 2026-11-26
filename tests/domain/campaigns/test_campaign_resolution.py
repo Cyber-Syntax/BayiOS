@@ -6,9 +6,11 @@ from decimal import Decimal
 from bayios.domain.campaigns import (
     BasePriceType,
     CampaignContract,
+    CampaignPaymentCondition,
     CampaignProductLink,
     CampaignType,
     DiscountType,
+    PaymentContext,
     ProductRelationType,
 )
 from bayios.domain.campaigns.resolution import (
@@ -192,3 +194,99 @@ def test_min_basket_total_blocks_and_allows_campaign() -> None:
     high = [BasketLine("l1", "p1", None, 1, Decimal(60000), None)]
     assert resolve_basket(low, _campaigns(contract)).lines["l1"].unit_discount == Decimal(0)
     assert resolve_basket(high, _campaigns(contract)).lines["l1"].unit_discount == Decimal("6000.00")
+
+
+def _conditional_campaign() -> CampaignContract:
+    return CampaignContract(
+        name="Banka Koşullu",
+        campaign_type=CampaignType.PRODUCT_DISCOUNT,
+        starts_at=NOW,
+        ends_at=NOW,
+        discount_type=DiscountType.PERCENT,
+        discount_value=Decimal(10),
+        payment_conditions=(
+            CampaignPaymentCondition(
+                channel="pos",
+                bank_ids=("b1",),
+                card_type="consumer",
+                installment_count=8,
+            ),
+        ),
+        products=(
+            CampaignProductLink("p1", "Ürün", ProductRelationType.RELATED),
+        ),
+    )
+
+
+def test_payment_condition_filters_cash_and_card() -> None:
+    lines = [BasketLine("l1", "p1", None, 1, Decimal(10000), None)]
+    campaign = _campaigns(_conditional_campaign())
+    cash = resolve_basket(
+        lines,
+        campaign,
+        payment=PaymentContext(payment_type="cash"),
+    )
+    assert cash.lines["l1"].unit_discount == Decimal(0)
+
+    matching = resolve_basket(
+        lines,
+        campaign,
+        payment=PaymentContext(
+            payment_type="card",
+            channel="pos",
+            bank_id="b1",
+            card_type="consumer",
+            installment_count=8,
+        ),
+    )
+    assert matching.lines["l1"].unit_discount == Decimal("1000.00")
+
+    other_bank = resolve_basket(
+        lines,
+        campaign,
+        payment=PaymentContext(
+            payment_type="card",
+            channel="pos",
+            bank_id="b2",
+            card_type="consumer",
+            installment_count=8,
+        ),
+    )
+    assert other_bank.lines["l1"].unit_discount == Decimal(0)
+
+    other_installment = resolve_basket(
+        lines,
+        campaign,
+        payment=PaymentContext(
+            payment_type="card",
+            channel="pos",
+            bank_id="b1",
+            card_type="consumer",
+            installment_count=9,
+        ),
+    )
+    assert other_installment.lines["l1"].unit_discount == Decimal(0)
+
+
+def test_qualifying_quantity_required_is_enforced() -> None:
+    contract = CampaignContract(
+        name="Adet Şartlı",
+        campaign_type=CampaignType.PRODUCT_DISCOUNT,
+        starts_at=NOW,
+        ends_at=NOW,
+        discount_type=DiscountType.PERCENT,
+        discount_value=Decimal(10),
+        products=(
+            CampaignProductLink(
+                "p1",
+                "Ürün",
+                ProductRelationType.QUALIFYING,
+                quantity_required=2,
+            ),
+            CampaignProductLink("p1", "Ürün", ProductRelationType.RELATED),
+        ),
+    )
+    one = [BasketLine("l1", "p1", None, 1, Decimal(10000), None)]
+    two = [BasketLine("l1", "p1", None, 2, Decimal(10000), None)]
+    assert resolve_basket(one, _campaigns(contract)).lines["l1"].unit_discount == Decimal(0)
+    assert resolve_basket(two, _campaigns(contract)).lines["l1"].unit_discount == Decimal("1000.00")

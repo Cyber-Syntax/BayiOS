@@ -23,6 +23,7 @@ from bayios.domain.campaigns import (
     PRODUCT_RELATION_TYPE_LABELS,
     BasePriceType,
     CampaignContract,
+    CampaignPaymentCondition,
     CampaignPriceInput,
     CampaignProductLink,
     CampaignScenario,
@@ -34,6 +35,12 @@ from bayios.domain.campaigns import (
     classify_campaign,
     is_same_contract,
     next_version_no,
+)
+from bayios.domain.commissions import (
+    CARD_TYPE_LABELS,
+    CHANNEL_LABELS,
+    CardType,
+    PaymentChannel,
 )
 from bayios.domain.dealer_pricing import (
     DEFAULT_DEALER_DISCOUNT_PERCENT,
@@ -72,6 +79,7 @@ class CampaignInput:
     combines_with_others: bool = True
     exclusion_group: str | None = None
     min_basket_total: Decimal | None = None
+    payment_conditions: tuple[CampaignPaymentCondition, ...] = ()
     external_id: str | None = None
     source_url: str | None = None
     conditions: tuple[str, ...] = ()
@@ -122,6 +130,7 @@ class CampaignVersionView:
     combines_with_others: bool
     exclusion_group: str | None
     min_basket_total: Decimal | None
+    payment_conditions: tuple[dict[str, object], ...]
     conditions: tuple[str, ...]
     source_category: str | None
     source_product_count: int | None
@@ -284,6 +293,10 @@ def update_campaign_in_uow(
     if data.scraped_at is None:
         effective_data = replace(
             effective_data, scraped_at=current.scraped_at
+        )
+    if data.exclusion_group is None:
+        effective_data = replace(
+            effective_data, exclusion_group=current.exclusion_group
         )
 
     contract = _build_contract(uow, effective_data)
@@ -604,6 +617,7 @@ def _build_contract(uow: UnitOfWork, data: CampaignInput) -> CampaignContract:
             combines_with_others=data.combines_with_others,
             exclusion_group=_clean_text(data.exclusion_group),
             min_basket_total=data.min_basket_total,
+            payment_conditions=data.payment_conditions,
             conditions=tuple(
                 condition.strip()
                 for condition in data.conditions
@@ -654,6 +668,19 @@ def _version_row(
         combines_with_others=contract.combines_with_others,
         exclusion_group=contract.exclusion_group,
         min_basket_total=contract.min_basket_total,
+        payment_conditions=(
+            [
+                {
+                    "channel": condition.channel,
+                    "bank_ids": list(condition.bank_ids),
+                    "card_type": condition.card_type,
+                    "card_network": condition.card_network,
+                    "installment_count": condition.installment_count,
+                }
+                for condition in contract.payment_conditions
+            ]
+            or None
+        ),
         conditions=list(contract.conditions) if contract.conditions else None,
         source_category=contract.source_category,
         source_product_count=contract.source_product_count,
@@ -724,6 +751,26 @@ def _contract_from_row(
         ),
         exclusion_group=getattr(version, "exclusion_group", None),
         min_basket_total=getattr(version, "min_basket_total", None),
+        payment_conditions=tuple(
+            CampaignPaymentCondition(
+                channel=_clean_text(condition.get("channel")),
+                bank_ids=tuple(
+                    str(bank_id)
+                    for bank_id in (condition.get("bank_ids") or ())
+                ),
+                card_type=_clean_text(condition.get("card_type")),
+                card_network=_clean_text(condition.get("card_network")),
+                installment_count=(
+                    int(condition["installment_count"])
+                    if condition.get("installment_count") is not None
+                    else None
+                ),
+            )
+            for condition in (
+                getattr(version, "payment_conditions", None) or ()
+            )
+            if isinstance(condition, dict)
+        ),
         conditions=tuple(version.conditions or ()),
         source_category=version.source_category,
         source_product_count=version.source_product_count,
@@ -794,6 +841,24 @@ def _version_view(
         ),
         exclusion_group=getattr(version, "exclusion_group", None),
         min_basket_total=getattr(version, "min_basket_total", None),
+        payment_conditions=tuple(
+            {
+                "channel": condition.get("channel"),
+                "channel_label": _channel_label(condition.get("channel")),
+                "bank_ids": tuple(condition.get("bank_ids") or ()),
+                "bank_count": len(condition.get("bank_ids") or ()),
+                "card_type": condition.get("card_type"),
+                "card_type_label": _card_type_label(
+                    condition.get("card_type")
+                ),
+                "card_network": condition.get("card_network"),
+                "installment_count": condition.get("installment_count"),
+            }
+            for condition in (
+                getattr(version, "payment_conditions", None) or ()
+            )
+            if isinstance(condition, dict)
+        ),
         conditions=tuple(version.conditions or ()),
         source_category=version.source_category,
         source_product_count=version.source_product_count,
@@ -912,6 +977,24 @@ def _effective_dealer_percent(
     if setting is None:
         return DEFAULT_DEALER_DISCOUNT_PERCENT
     return setting.default_percent
+
+
+def _channel_label(value: object) -> str | None:
+    if not value:
+        return None
+    try:
+        return CHANNEL_LABELS[PaymentChannel(str(value))]
+    except ValueError:
+        return str(value)
+
+
+def _card_type_label(value: object) -> str | None:
+    if not value:
+        return None
+    try:
+        return CARD_TYPE_LABELS[CardType(str(value))]
+    except ValueError:
+        return str(value)
 
 
 def _clean_text(value: str | None) -> str | None:

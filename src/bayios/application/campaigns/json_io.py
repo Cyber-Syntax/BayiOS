@@ -124,6 +124,9 @@ def _export(
                     if getattr(version, "min_basket_total", None) is not None
                     else None
                 ),
+                "payment_conditions": list(
+                    getattr(version, "payment_conditions", None) or ()
+                ),
                 "products": [
                     {
                         "name": link.product_name_snapshot,

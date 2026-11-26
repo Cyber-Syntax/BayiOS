@@ -126,10 +126,44 @@
           <input type="text" id="campaign-min-basket" name="min_basket_total" class="form-control"
                  value="{{ values.min_basket_total }}" placeholder="örn: 125000" inputmode="decimal">
         </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+      <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Ödeme Koşulu</h2>
+      <p class="muted" style="margin: 0 0 .75rem; font-size: .85rem;">Boş bırakılırsa kampanya tüm ödemelerde geçerlidir. Kart koşulu seçilirse nakit teklifte kampanya uygulanmaz.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .75rem;">
         <div class="form-group" style="margin-bottom: 0;">
-          <label for="campaign-exclusion">Dışlama Grubu</label>
-          <input type="text" id="campaign-exclusion" name="exclusion_group" class="form-control"
-                 value="{{ values.exclusion_group }}" placeholder="opsiyonel">
+          <label for="campaign-payment-channel">Kanal</label>
+          <select id="campaign-payment-channel" name="payment_channel" class="form-control">
+            <option value="">Tümü</option>
+            {% for value, label in channel_options %}
+            <option value="{{ value }}" {% if values.payment_channel == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-payment-card-type">Kart Tipi</label>
+          <select id="campaign-payment-card-type" name="payment_card_type" class="form-control">
+            <option value="">Tümü</option>
+            {% for value, label in card_type_options %}
+            <option value="{{ value }}" {% if values.payment_card_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-payment-installment">Taksit</label>
+          <input type="number" id="campaign-payment-installment" name="payment_installment_count" class="form-control"
+                 min="1" value="{{ values.payment_installment_count }}" placeholder="Tümü" inputmode="numeric">
+        </div>
+        <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+          <label for="campaign-payment-bank">Bankalar</label>
+          <select id="campaign-payment-bank" name="payment_bank_id" class="form-control" multiple size="4">
+            {% for bank in bank_options %}
+            <option value="{{ bank.id }}" {% if bank.id in values.payment_bank_ids %}selected{% endif %}>{{ bank.name }}</option>
+            {% endfor %}
+          </select>
+          <small class="muted">Birden fazla banka seçmek için Ctrl/Cmd tuşunu kullanın.</small>
         </div>
       </div>
     </div>

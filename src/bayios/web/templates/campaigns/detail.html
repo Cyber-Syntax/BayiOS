@@ -93,6 +93,18 @@
     </div>
   </div>
   <div class="stat-box">
+    <div class="stat-label">Ödeme</div>
+    <div class="stat-value" style="font-size: .95rem;">
+      {% if version.payment_conditions %}
+        {% for condition in version.payment_conditions %}
+        <div>{{ condition.channel_label or 'Tüm kanallar' }}{% if condition.bank_count %} · {{ condition.bank_count }} banka{% endif %}{% if condition.card_type_label %} · {{ condition.card_type_label }}{% endif %}{% if condition.installment_count %} · {{ condition.installment_count }} taksit{% endif %}</div>
+        {% endfor %}
+      {% else %}
+      Tüm ödemeler
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat-box">
     <div class="stat-label">Hediye</div>
     <div class="stat-value" style="font-size: 1rem;">
       {{ version.gift_description or '—' }}

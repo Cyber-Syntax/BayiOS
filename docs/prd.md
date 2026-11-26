@@ -292,6 +292,7 @@ Kampanya kaydı aşağıdaki alanları destekler:
 - İndirimin veya hediyenin uygulandığı ürün.
 - İndirim türü: yüzde, sabit tutar, özel fiyat, hediye veya açıklama.
 - Fiyat tabanı: normal fiyat veya şirket/Oliz indirimli fiyatı.
+- Ödeme koşulu (opsiyonel): kanal, banka(lar), kart tipi ve taksit sayısı; boşsa tüm ödemelerde geçerlidir.
 - Hediye seçeneği ve hediye istemeyen müşteri için alternatif fiyat davranışı.
 - Çalışanın göreceği kısa açıklama/not.
 

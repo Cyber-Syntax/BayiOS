@@ -21,6 +21,7 @@ from bayios.application.reservations import (
     create_reservation,
     deliver_item,
 )
+from bayios.domain.campaigns import PaymentContext
 from bayios.domain.campaigns.resolution import (
     BasketCampaign,
     BasketLine,
@@ -1833,6 +1834,17 @@ def _prepare_items(
         lines,
         campaign_definitions,
         preferences=preferences,
+        payment=PaymentContext(
+            payment_type=data.payment_type.value,
+            channel=(
+                data.channel.value if data.channel is not None else None
+            ),
+            bank_id=str(data.bank_id) if data.bank_id is not None else None,
+            card_type=(
+                data.card_type.value if data.card_type is not None else None
+            ),
+            installment_count=data.installment_count,
+        ),
     )
     campaign_by_id = {
         campaign.campaign_id: campaign for campaign in campaign_definitions

@@ -41,6 +41,7 @@ from bayios.domain.campaigns import (
     DISCOUNT_TYPE_LABELS,
     PRODUCT_RELATION_TYPE_LABELS,
     BasePriceType,
+    CampaignPaymentCondition,
     CampaignType,
     DiscountType,
     ProductRelationType,
@@ -598,6 +599,9 @@ def _parse_campaigns(
         preserved_combines = True
         preserved_exclusion = None
         preserved_min_basket = None
+        preserved_payment_conditions: tuple[
+            CampaignPaymentCondition, ...
+        ] = ()
         if existing_campaign_id is not None:
             existing_campaign = uow.campaigns.get(existing_campaign_id)  # type: ignore[arg-type]
             if existing_campaign is not None:
@@ -618,6 +622,46 @@ def _parse_campaigns(
                     )
                     preserved_min_basket = getattr(
                         existing_version, "min_basket_total", None
+                    )
+                    preserved_payment_conditions = tuple(
+                        CampaignPaymentCondition(
+                            channel=(
+                                str(condition.get("channel"))
+                                if condition.get("channel")
+                                else None
+                            ),
+                            bank_ids=tuple(
+                                str(bank_id)
+                                for bank_id in (
+                                    condition.get("bank_ids") or ()
+                                )
+                            ),
+                            card_type=(
+                                str(condition.get("card_type"))
+                                if condition.get("card_type")
+                                else None
+                            ),
+                            card_network=(
+                                str(condition.get("card_network"))
+                                if condition.get("card_network")
+                                else None
+                            ),
+                            installment_count=(
+                                int(condition["installment_count"])
+                                if condition.get("installment_count")
+                                is not None
+                                else None
+                            ),
+                        )
+                        for condition in (
+                            getattr(
+                                existing_version,
+                                "payment_conditions",
+                                None,
+                            )
+                            or ()
+                        )
+                        if isinstance(condition, dict)
                     )
 
         data = CampaignInput(
@@ -650,6 +694,7 @@ def _parse_campaigns(
             combines_with_others=preserved_combines,
             exclusion_group=preserved_exclusion,
             min_basket_total=preserved_min_basket,
+            payment_conditions=preserved_payment_conditions,
             products=tuple(inputs),
         )
         try:

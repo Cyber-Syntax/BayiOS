@@ -41,9 +41,16 @@ from bayios.domain.campaigns import (
     DISCOUNT_TYPE_LABELS,
     PRODUCT_RELATION_TYPE_LABELS,
     BasePriceType,
+    CampaignPaymentCondition,
     CampaignType,
     DiscountType,
     ProductRelationType,
+)
+from bayios.domain.commissions import (
+    CARD_TYPE_LABELS,
+    CHANNEL_LABELS,
+    CardType,
+    PaymentChannel,
 )
 from bayios.web.deps import ActorDep, UnitOfWorkDep
 from bayios.web.templating import templates
@@ -90,6 +97,9 @@ TEXT_FIELDS = (
     "employee_note",
     "exclusion_group",
     "min_basket_total",
+    "payment_channel",
+    "payment_card_type",
+    "payment_installment_count",
 )
 _DATE_FORMATS = ("%Y-%m-%d", "%d.%m.%Y", "%d-%m-%Y", "%d.%m.%y", "%d-%m-%y")
 
@@ -617,6 +627,7 @@ def _campaign_input_from_form(form: object) -> CampaignInput:
         combines_with_others=_parse_bool(get("combines_with_others")),
         exclusion_group=str(get("exclusion_group") or "") or None,
         min_basket_total=_parse_decimal(get("min_basket_total")),
+        payment_conditions=_parse_payment_conditions(form),
         products=(
             _parse_product_inputs(form) + _parse_category_inputs(form)
         ),
@@ -737,6 +748,38 @@ def _parse_category_inputs(form: object) -> tuple[CampaignProductInput, ...]:
     return tuple(items)
 
 
+def _parse_payment_conditions(
+    form: object,
+) -> tuple[CampaignPaymentCondition, ...]:
+    get = form.get  # type: ignore[attr-defined]
+    channel = _parse_optional_enum(
+        PaymentChannel, get("payment_channel")
+    )
+    card_type = _parse_optional_enum(CardType, get("payment_card_type"))
+    installment_count = _parse_optional_int(
+        str(get("payment_installment_count") or "")
+    )
+    bank_ids: list[str] = []
+    for raw_id in form.getlist("payment_bank_id"):  # type: ignore[attr-defined]
+        value = str(raw_id).strip()
+        if not value:
+            continue
+        try:
+            bank_ids.append(str(uuid.UUID(value)))
+        except ValueError as exc:
+            raise ValidationError("Ödeme koşulundaki banka geçersiz.") from exc
+    if not bank_ids and channel is None and card_type is None and installment_count is None:
+        return ()
+    return (
+        CampaignPaymentCondition(
+            channel=channel.value if channel is not None else None,
+            bank_ids=tuple(dict.fromkeys(bank_ids)),
+            card_type=card_type.value if card_type is not None else None,
+            installment_count=installment_count,
+        ),
+    )
+
+
 def _parse_rule_fields(
     index: int,
     discount_types: list[str],
@@ -776,6 +819,11 @@ def _form_state_from_form(
     values["combines_with_others"] = _parse_bool(
         form.get("combines_with_others")  # type: ignore[attr-defined]
     )
+    values["payment_bank_ids"] = [
+        str(value)
+        for value in form.getlist("payment_bank_id")  # type: ignore[attr-defined]
+        if str(value).strip()
+    ]
     return (
         values,
         _selected_products_from_form(uow, form),
@@ -938,6 +986,29 @@ def _edit_form_state(
             if version.min_basket_total is not None
             else ""
         ),
+        "payment_channel": (
+            str(version.payment_conditions[0].get("channel") or "")
+            if version.payment_conditions
+            else ""
+        ),
+        "payment_bank_ids": (
+            list(version.payment_conditions[0].get("bank_ids") or ())
+            if version.payment_conditions
+            else []
+        ),
+        "payment_card_type": (
+            str(version.payment_conditions[0].get("card_type") or "")
+            if version.payment_conditions
+            else ""
+        ),
+        "payment_installment_count": (
+            str(
+                version.payment_conditions[0].get("installment_count")
+                or ""
+            )
+            if version.payment_conditions
+            else ""
+        ),
     }
     selected = [
         _form_link_state(product)
@@ -1003,6 +1074,10 @@ def _empty_form_values() -> dict[str, object]:
         "combines_with_others": True,
         "exclusion_group": "",
         "min_basket_total": "",
+        "payment_channel": "",
+        "payment_bank_ids": [],
+        "payment_card_type": "",
+        "payment_installment_count": "",
     }
 
 
@@ -1024,6 +1099,10 @@ def _render_form(
             {"id": str(category.id), "name": category.name}
             for category in uow.products.get_categories()
         ]
+        bank_options = [
+            {"id": str(bank.id), "name": bank.name}
+            for bank in uow.commissions.get_banks(active_only=True)
+        ]
     return templates.TemplateResponse(
         request,
         "campaigns/form.html",
@@ -1036,6 +1115,15 @@ def _render_form(
             "selected_categories": selected_categories or [],
             "products": products,
             "category_options": category_options,
+            "bank_options": bank_options,
+            "channel_options": [
+                (channel.value, CHANNEL_LABELS[channel])
+                for channel in PaymentChannel
+            ],
+            "card_type_options": [
+                (card_type.value, CARD_TYPE_LABELS[card_type])
+                for card_type in CardType
+            ],
             "q": q or "",
             "type_options": TYPE_OPTIONS,
             "base_price_options": BASE_PRICE_OPTIONS,

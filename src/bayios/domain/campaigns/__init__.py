@@ -148,6 +148,73 @@ class CampaignProductLink:
 
 
 @dataclass(frozen=True)
+class CampaignPaymentCondition:
+    """One payment eligibility rule for a campaign.
+
+    Empty fields mean "any". A campaign with no conditions is valid for every
+    payment. Cash payments only use campaigns without conditions; card
+    payments match channel, bank, card type and installment count.
+    """
+
+    channel: str | None = None
+    bank_ids: tuple[str, ...] = ()
+    card_type: str | None = None
+    card_network: str | None = None
+    installment_count: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.channel is not None and self.channel not in (
+            "pos",
+            "odero",
+            "chippin",
+        ):
+            raise ValueError("Geçersiz ödeme kanalı.")
+        if self.card_type is not None and self.card_type not in (
+            "consumer",
+            "business",
+        ):
+            raise ValueError("Geçersiz kart tipi.")
+        if self.installment_count is not None and self.installment_count <= 0:
+            raise ValueError("Taksit sayısı sıfırdan büyük olmalıdır.")
+        if len(set(self.bank_ids)) != len(self.bank_ids):
+            raise ValueError("Ödeme koşulunda aynı banka tekrar edemez.")
+        if self.card_network is not None and not self.card_network.strip():
+            raise ValueError("Kart ağı boş olamaz.")
+
+    def matches(self, payment: PaymentContext) -> bool:
+        if payment.payment_type != "card":
+            return False
+        if self.channel is not None and self.channel != payment.channel:
+            return False
+        if self.bank_ids and payment.bank_id not in self.bank_ids:
+            return False
+        if self.card_type is not None and self.card_type != payment.card_type:
+            return False
+        if (
+            self.card_network is not None
+            and self.card_network.strip().casefold()
+            != (payment.card_network or "").strip().casefold()
+        ):
+            return False
+        return not (
+            self.installment_count is not None
+            and self.installment_count != payment.installment_count
+        )
+
+
+@dataclass(frozen=True)
+class PaymentContext:
+    """The payment selected on an offer, used for campaign eligibility."""
+
+    payment_type: str
+    channel: str | None = None
+    bank_id: str | None = None
+    card_type: str | None = None
+    card_network: str | None = None
+    installment_count: int | None = None
+
+
+@dataclass(frozen=True)
 class CampaignContract:
     """The business fields that make up one immutable campaign version."""
 
@@ -170,6 +237,7 @@ class CampaignContract:
     combines_with_others: bool = True
     exclusion_group: str | None = None
     min_basket_total: Decimal | None = None
+    payment_conditions: tuple[CampaignPaymentCondition, ...] = ()
     products: tuple[CampaignProductLink, ...] = ()
 
     def __post_init__(self) -> None:
@@ -189,6 +257,10 @@ class CampaignContract:
             raise ValueError("Sepet alt sınırı negatif olamaz.")
         if self.exclusion_group is not None and not self.exclusion_group.strip():
             raise ValueError("Dışlama grubu boş olamaz.")
+        if self.payment_conditions:
+            for condition in self.payment_conditions:
+                if not isinstance(condition, CampaignPaymentCondition):
+                    raise TypeError("Ödeme koşulu geçersiz.")
         _validate_product_links(self.products)
 
     @property
@@ -270,6 +342,16 @@ class CampaignContract:
             self.combines_with_others,
             self.exclusion_group or "",
             self.min_basket_total,
+            tuple(
+                (
+                    condition.channel or "",
+                    condition.bank_ids,
+                    condition.card_type or "",
+                    condition.card_network or "",
+                    condition.installment_count or 0,
+                )
+                for condition in self.payment_conditions
+            ),
             products,
         )
 

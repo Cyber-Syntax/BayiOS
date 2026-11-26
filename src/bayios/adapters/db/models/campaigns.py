@@ -136,6 +136,9 @@ class CampaignVersion(Base):
     )
     exclusion_group: Mapped[str | None] = mapped_column(sa.Text)
     min_basket_total: Mapped[Decimal | None] = mapped_column(MONEY)
+    payment_conditions: Mapped[list[dict[str, object]] | None] = mapped_column(
+        JSONB
+    )
     conditions: Mapped[list[str] | None] = mapped_column(JSONB)
     source_category: Mapped[str | None] = mapped_column(sa.Text)
     source_product_count: Mapped[int | None] = mapped_column(sa.Integer)

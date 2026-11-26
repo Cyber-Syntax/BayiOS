@@ -26,6 +26,7 @@ from bayios.application.ports.unit_of_work import UnitOfWork
 from bayios.application.tabular import normalize_header, parse_decimal
 from bayios.domain.campaigns import (
     BasePriceType,
+    CampaignPaymentCondition,
     CampaignType,
     DiscountType,
     ProductRelationType,
@@ -317,6 +318,10 @@ def _parse_one(
     min_basket_total = _decimal_or_none(
         raw.get("min_basket_total"), warnings, "Sepet alt sınırı"
     )
+    payment_conditions = _parse_payment_conditions(
+        raw.get("payment_conditions"), warnings
+    )
+    has_payment_conditions_key = "payment_conditions" in raw
 
     raw_products = raw.get("products")
     if raw_products is None:
@@ -580,8 +585,21 @@ def _parse_one(
             min_basket_total = getattr(
                 current_version, "min_basket_total", None
             )
+            if not has_payment_conditions_key:
+                payment_conditions = _parse_payment_conditions(
+                    getattr(current_version, "payment_conditions", None),
+                    warnings,
+                )
             warnings.append(
                 "Mevcut kampanya kuralları (şart/fayda ve kategori hedefleri) korundu."
+            )
+
+    if existing_id is not None and not has_payment_conditions_key:
+        current_version = uow.campaigns.get_current_version(existing_id)
+        if current_version is not None:
+            payment_conditions = _parse_payment_conditions(
+                getattr(current_version, "payment_conditions", None),
+                warnings,
             )
 
     data: CampaignInput | None = None
@@ -605,6 +623,7 @@ def _parse_one(
             combines_with_others=combines_with_others,
             exclusion_group=exclusion_group,
             min_basket_total=min_basket_total,
+            payment_conditions=payment_conditions,
             scraped_at=scraped_at,
             products=tuple(products),
         )
@@ -780,6 +799,40 @@ def _int_or_none(value: object) -> int | None:
 def _positive_int_or_none(value: object) -> int | None:
     parsed = _int_or_none(value)
     return parsed if parsed and parsed > 0 else None
+
+
+def _parse_payment_conditions(
+    value: object, warnings: list[str]
+) -> tuple[CampaignPaymentCondition, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list):
+        warnings.append("Ödeme koşulları listesi geçersiz; atlandı.")
+        return ()
+    conditions: list[CampaignPaymentCondition] = []
+    for raw in value:
+        if not isinstance(raw, dict):
+            warnings.append("Ödeme koşulu satırı geçersiz; atlandı.")
+            continue
+        try:
+            conditions.append(
+                CampaignPaymentCondition(
+                    channel=_text(raw.get("channel")) or None,
+                    bank_ids=tuple(
+                        str(bank_id)
+                        for bank_id in (raw.get("bank_ids") or ())
+                        if str(bank_id).strip()
+                    ),
+                    card_type=_text(raw.get("card_type")) or None,
+                    card_network=_text(raw.get("card_network")) or None,
+                    installment_count=_int_or_none(
+                        raw.get("installment_count")
+                    ),
+                )
+            )
+        except ValueError as exc:
+            warnings.append(f"Ödeme koşulu geçersiz: {exc}")
+    return tuple(conditions)
 
 
 def _parse_optional_enum(

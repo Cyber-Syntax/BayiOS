@@ -1,6 +1,6 @@
 # Kampanya Sistemi ve Teklif Fiyatlama Refactor Planı
 
-Durum: **Çekirdek uygulandı** (26 Kasım 2026); ödeme koşulu, kart ağı ve bedava ürün alanları sonraki adım · Hazırlayan: lead · Tarih: 23 Kasım 2026
+Durum: **Çekirdek uygulandı** (26 Kasım 2026); kart ağı ve bedava ürün alanları sonraki adım · Hazırlayan: lead · Tarih: 23 Kasım 2026
 Kapsam: kampanya veri modeli + sepet çözümleme motoru + teklif toplamları + ödeme tipi UX + yeni kampanya türleri.
 
 Bu belge, bayios'taki kampanyaların tekliflerle birlikte kullanıldığında "tam anlaşılmama" sorununu
@@ -284,6 +284,14 @@ Bu bölüm, planın koda nasıl geçtiğini özetler; ayrıntı için kod ve tes
   ayrıca "Sepet Kampanya Önizlemesi" kayıt öncesi gerçek satır paylarını ve toplamı gösterir.
 - **Kampanya formu:** Ürün ve kategori hedefleri, hedef başına indirim türü/değeri/tabanı,
   "adet başına / sepette bir kez", birleşme ve sepet alt sınırı düzenlenebilir. Form sade tutuldu.
+- **Ödeme koşulu:** Kampanya kanal (POS/Ödero/Chippin), banka(lar), kart tipi ve taksit sayısıyla
+  sınırlanabilir. Koşullu kampanya nakit teklifte uygulanmaz; kart teklifinde yalnız eşleşen
+  kanal/banka/kart/taksit için geçerlidir. Şart ürününde `quantity_required` artık asgari adet
+  olarak doğrulanır. Ödeme koşulları JSON ile taşınır; Excel güncellemesinde korunur.
+- **Dışlama grubu:** `exclusion_group` alanı DB/JSON'da korunur; aynı grup için sepet geneli
+  "yalnızca bir kampanya" zorlaması henüz UI'da yok. Satır bazlı tek kampanya kuralı geçerlidir.
+- **Kart ağı / bedava ürün:** Banka kart ağı etiketi ve otomatik bedava/hediye ürün satırı henüz
+  yok; hediye kampanyaları bilgi olarak gösterilir.
 - **İçe/dışa aktarma:** JSON kategori hedeflerini ve kural alanlarını taşır; aynı şema ile geri
   içe aktarılabilir. Excel ürün sayfası yalnız ürün ilişkilerini taşır; mevcut kampanya Excel'den
   güncellenirse kategori kuralları ve kampanya seviyesindeki birleşme/eşik alanları korunur.

@@ -10,6 +10,7 @@ from bayios.domain.campaigns import (
     CampaignContract,
     CampaignProductLink,
     DiscountType,
+    PaymentContext,
     link_discount_price,
 )
 from bayios.domain.dealer_pricing import HUNDRED, ZERO, quantize_money
@@ -114,6 +115,7 @@ def resolve_basket(
     campaigns: Sequence[BasketCampaign],
     *,
     preferences: Mapping[str, str] | None = None,
+    payment: PaymentContext | None = None,
 ) -> BasketResolution:
     """Resolve the POS-consistent campaign discount for every line.
 
@@ -151,7 +153,11 @@ def resolve_basket(
         campaign
         for campaign in campaigns
         if _campaign_reaches_basket(
-            campaign, lines, basket_total, allowed_by_line
+            campaign,
+            lines,
+            basket_total,
+            allowed_by_line,
+            payment,
         )
     ]
 
@@ -228,6 +234,7 @@ def _campaign_reaches_basket(
     lines: Sequence[BasketLine],
     basket_total: Decimal,
     allowed_by_line: Mapping[str, frozenset[str]],
+    payment: PaymentContext | None = None,
 ) -> bool:
     contract = campaign.contract
     if (
@@ -235,10 +242,12 @@ def _campaign_reaches_basket(
         and basket_total < contract.min_basket_total
     ):
         return False
+    if payment is not None and not _payment_matches(contract, payment):
+        return False
     if not _has_allowed_line(campaign, allowed_by_line):
         return False
     qualifying = contract.qualifying_links
-    if qualifying and not _matching_lines(
+    if qualifying and not _qualifying_satisfied(
         campaign.campaign_id, qualifying, lines, allowed_by_line
     ):
         return False
@@ -260,6 +269,38 @@ def _campaign_reaches_basket(
                 allowed_by_line,
             )
         )
+    return False
+
+
+def _payment_matches(
+    contract: CampaignContract, payment: PaymentContext
+) -> bool:
+    if not contract.payment_conditions:
+        return True
+    if payment.payment_type != "card":
+        return False
+    return any(
+        condition.matches(payment) for condition in contract.payment_conditions
+    )
+
+
+def _qualifying_satisfied(
+    campaign_id: str,
+    qualifying: Sequence[CampaignProductLink],
+    lines: Sequence[BasketLine],
+    allowed_by_line: Mapping[str, frozenset[str]],
+) -> bool:
+    for link in qualifying:
+        matching = _matching_lines(
+            campaign_id, (link,), lines, allowed_by_line
+        )
+        if not matching:
+            continue
+        if link.quantity_required is not None:
+            total = sum(line.quantity for line in matching)
+            if total < link.quantity_required:
+                continue
+        return True
     return False
 
 
