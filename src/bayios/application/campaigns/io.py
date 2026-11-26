@@ -112,6 +112,10 @@ def export_campaigns_xlsx(
             }
         )
         for link in links_by_version.get(version.id, ()):
+            if getattr(link, "category_id", None) is not None:
+                # Category targets are managed in the app/JSON; Excel product
+                # sheets only carry product relations.
+                continue
             product_rows.append(
                 {
                     "campaign_id": str(campaign.id),
@@ -245,7 +249,11 @@ def export_campaign_products_xlsx(
         version = uow.campaigns.get_current_version(campaign_id)
         if campaign is None or version is None:
             raise NotFoundError("Kampanya bulunamadı.")
-        links = uow.campaigns.get_version_products(version.id)
+        links = [
+            link
+            for link in uow.campaigns.get_version_products(version.id)
+            if getattr(link, "category_id", None) is None
+        ]
         products = {
             product.id: product
             for product in uow.products.get_by_ids(

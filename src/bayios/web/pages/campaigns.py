@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import uuid
 from datetime import UTC, datetime
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated
 from urllib.parse import urlencode
@@ -34,6 +34,7 @@ from bayios.application.dealer_pricing import (
 )
 from bayios.application.errors import NotFoundError, ValidationError
 from bayios.application.products import get_product, search_products
+from bayios.application.tabular import parse_decimal
 from bayios.domain.campaigns import (
     BASE_PRICE_TYPE_LABELS,
     CAMPAIGN_TYPE_LABELS,
@@ -87,6 +88,8 @@ TEXT_FIELDS = (
     "gift_yes_base_price_type",
     "gift_no_base_price_type",
     "employee_note",
+    "exclusion_group",
+    "min_basket_total",
 )
 _DATE_FORMATS = ("%Y-%m-%d", "%d.%m.%Y", "%d-%m-%Y", "%d.%m.%y", "%d-%m-%y")
 
@@ -407,13 +410,14 @@ async def create_campaign_route(
         data = _campaign_input_from_form(form)
         campaign_id = create_campaign(uow, data, actor)
     except (ValidationError, ValueError) as exc:
-        values, selected = _form_state_from_form(uow, form)
+        values, selected, selected_categories = _form_state_from_form(uow, form)
         return _render_form(
             request,
             uow,
             campaign_id=None,
             values=values,
             selected_products=selected,
+            selected_categories=selected_categories,
             error=str(exc),
             status_code=400,
         )
@@ -506,13 +510,14 @@ def edit_campaign_page(
     detail = get_campaign_detail(uow, campaign_id)
     if detail is None:
         raise HTTPException(status_code=404, detail="Kampanya bulunamadı.")
-    values, selected = _edit_form_state(detail)
+    values, selected, selected_categories = _edit_form_state(detail)
     return _render_form(
         request,
         uow,
         campaign_id=campaign_id,
         values=values,
         selected_products=selected,
+        selected_categories=selected_categories,
     )
 
 
@@ -530,13 +535,14 @@ async def update_campaign_route(
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except (ValidationError, ValueError) as exc:
-        values, selected = _form_state_from_form(uow, form)
+        values, selected, selected_categories = _form_state_from_form(uow, form)
         return _render_form(
             request,
             uow,
             campaign_id=campaign_id,
             values=values,
             selected_products=selected,
+            selected_categories=selected_categories,
             error=str(exc),
             status_code=400,
         )
@@ -608,7 +614,12 @@ def _campaign_input_from_form(form: object) -> CampaignInput:
             BasePriceType, get("gift_no_base_price_type")
         ),
         employee_note=str(get("employee_note") or "") or None,
-        products=_parse_product_inputs(form),
+        combines_with_others=_parse_bool(get("combines_with_others")),
+        exclusion_group=str(get("exclusion_group") or "") or None,
+        min_basket_total=_parse_decimal(get("min_basket_total")),
+        products=(
+            _parse_product_inputs(form) + _parse_category_inputs(form)
+        ),
     )
 
 
@@ -616,6 +627,18 @@ def _parse_product_inputs(form: object) -> tuple[CampaignProductInput, ...]:
     product_ids = [str(value) for value in form.getlist("product_id")]  # type: ignore[attr-defined]
     relations = [str(value) for value in form.getlist("relation_type")]  # type: ignore[attr-defined]
     quantities = [str(value) for value in form.getlist("quantity_required")]  # type: ignore[attr-defined]
+    discount_types = [
+        str(value) for value in form.getlist("product_discount_type")  # type: ignore[attr-defined]
+    ]
+    discount_values = [
+        str(value) for value in form.getlist("product_discount_value")  # type: ignore[attr-defined]
+    ]
+    base_types = [
+        str(value) for value in form.getlist("product_base_price_type")  # type: ignore[attr-defined]
+    ]
+    applies = [
+        str(value) for value in form.getlist("product_applies_per_unit")  # type: ignore[attr-defined]
+    ]
     items: list[CampaignProductInput] = []
     for index, raw_id in enumerate(product_ids):
         if not raw_id.strip():
@@ -632,26 +655,132 @@ def _parse_product_inputs(form: object) -> tuple[CampaignProductInput, ...]:
         quantity = _parse_optional_int(
             quantities[index] if index < len(quantities) else None
         )
+        discount_type, discount_value, base_type, applies_per_unit = (
+            _parse_rule_fields(
+                index,
+                discount_types,
+                discount_values,
+                base_types,
+                applies,
+            )
+        )
         items.append(
             CampaignProductInput(
                 product_id=product_id,
                 relation_type=relation,
                 quantity_required=quantity,
+                discount_type=discount_type,
+                discount_value=discount_value,
+                base_price_type=base_type,
+                applies_per_unit=applies_per_unit,
             )
         )
     return tuple(items)
 
 
+def _parse_category_inputs(form: object) -> tuple[CampaignProductInput, ...]:
+    category_ids = [
+        str(value) for value in form.getlist("category_id")  # type: ignore[attr-defined]
+    ]
+    relations = [
+        str(value)
+        for value in form.getlist("category_relation_type")  # type: ignore[attr-defined]
+    ]
+    discount_types = [
+        str(value)
+        for value in form.getlist("category_discount_type")  # type: ignore[attr-defined]
+    ]
+    discount_values = [
+        str(value)
+        for value in form.getlist("category_discount_value")  # type: ignore[attr-defined]
+    ]
+    base_types = [
+        str(value)
+        for value in form.getlist("category_base_price_type")  # type: ignore[attr-defined]
+    ]
+    applies = [
+        str(value)
+        for value in form.getlist("category_applies_per_unit")  # type: ignore[attr-defined]
+    ]
+    items: list[CampaignProductInput] = []
+    for index, raw_id in enumerate(category_ids):
+        if not raw_id.strip():
+            continue
+        category_id = _optional_uuid(raw_id)
+        if category_id is None:
+            raise ValidationError("Geçersiz kategori seçimi.")
+        relation = _parse_enum(
+            ProductRelationType,
+            relations[index] if index < len(relations) else "",
+            ProductRelationType.BENEFIT,
+            "kategori ilişkisi",
+        )
+        discount_type, discount_value, base_type, applies_per_unit = (
+            _parse_rule_fields(
+                index,
+                discount_types,
+                discount_values,
+                base_types,
+                applies,
+            )
+        )
+        items.append(
+            CampaignProductInput(
+                category_id=category_id,
+                relation_type=relation,
+                discount_type=discount_type,
+                discount_value=discount_value,
+                base_price_type=base_type,
+                applies_per_unit=applies_per_unit,
+            )
+        )
+    return tuple(items)
+
+
+def _parse_rule_fields(
+    index: int,
+    discount_types: list[str],
+    discount_values: list[str],
+    base_types: list[str],
+    applies: list[str],
+) -> tuple[DiscountType | None, Decimal | None, BasePriceType | None, bool | None]:
+    raw_type = discount_types[index] if index < len(discount_types) else ""
+    discount_type = _parse_optional_enum(DiscountType, raw_type)
+    discount_value = _parse_decimal(
+        discount_values[index] if index < len(discount_values) else None
+    )
+    base_type = _parse_optional_enum(
+        BasePriceType,
+        base_types[index] if index < len(base_types) else None,
+    )
+    raw_applies = applies[index] if index < len(applies) else ""
+    applies_per_unit = raw_applies in ("", "1", "true", "on")
+    if discount_type is None:
+        return None, None, None, None
+    return discount_type, discount_value, base_type, applies_per_unit
+
+
 def _form_state_from_form(
     uow: UnitOfWorkDep, form: object
-) -> tuple[dict[str, object], list[dict[str, object]]]:
+) -> tuple[
+    dict[str, object],
+    list[dict[str, object]],
+    list[dict[str, object]],
+]:
     values = _empty_form_values()
     for field in TEXT_FIELDS:
         values[field] = str(form.get(field) or "")  # type: ignore[attr-defined]
     values["gift_optional"] = _parse_bool(
         form.get("gift_optional")  # type: ignore[attr-defined]
     )
-    return values, _selected_products_from_form(uow, form)
+    values["combines_with_others"] = _parse_bool(
+        form.get("combines_with_others")  # type: ignore[attr-defined]
+    )
+    return (
+        values,
+        _selected_products_from_form(uow, form),
+        _selected_categories_from_form(uow, form),
+    )
 
 
 def _selected_products_from_form(
@@ -660,6 +789,18 @@ def _selected_products_from_form(
     product_ids = [str(value) for value in form.getlist("product_id")]  # type: ignore[attr-defined]
     relations = [str(value) for value in form.getlist("relation_type")]  # type: ignore[attr-defined]
     quantities = [str(value) for value in form.getlist("quantity_required")]  # type: ignore[attr-defined]
+    discount_types = [
+        str(value) for value in form.getlist("product_discount_type")  # type: ignore[attr-defined]
+    ]
+    discount_values = [
+        str(value) for value in form.getlist("product_discount_value")  # type: ignore[attr-defined]
+    ]
+    base_types = [
+        str(value) for value in form.getlist("product_base_price_type")  # type: ignore[attr-defined]
+    ]
+    applies = [
+        str(value) for value in form.getlist("product_applies_per_unit")  # type: ignore[attr-defined]
+    ]
     selected: list[dict[str, object]] = []
     for index, raw_id in enumerate(product_ids):
         product_id = _optional_uuid(raw_id)
@@ -669,6 +810,8 @@ def _selected_products_from_form(
         selected.append(
             {
                 "product_id": str(product_id),
+                "category_id": "",
+                "target_type": "product",
                 "product_name": product.name if product is not None else raw_id,
                 "relation_type": (
                     relations[index]
@@ -678,6 +821,85 @@ def _selected_products_from_form(
                 "quantity_required": (
                     quantities[index] if index < len(quantities) else ""
                 ),
+                "discount_type": (
+                    discount_types[index] if index < len(discount_types) else ""
+                ),
+                "discount_value": (
+                    discount_values[index] if index < len(discount_values) else ""
+                ),
+                "base_price_type": (
+                    base_types[index] if index < len(base_types) else ""
+                ),
+                "applies_per_unit": (
+                    applies[index] if index < len(applies) else "1"
+                ),
+            }
+        )
+    return selected
+
+
+def _selected_categories_from_form(
+    uow: UnitOfWorkDep, form: object
+) -> list[dict[str, object]]:
+    category_ids = [
+        str(value) for value in form.getlist("category_id")  # type: ignore[attr-defined]
+    ]
+    relations = [
+        str(value)
+        for value in form.getlist("category_relation_type")  # type: ignore[attr-defined]
+    ]
+    discount_types = [
+        str(value)
+        for value in form.getlist("category_discount_type")  # type: ignore[attr-defined]
+    ]
+    discount_values = [
+        str(value)
+        for value in form.getlist("category_discount_value")  # type: ignore[attr-defined]
+    ]
+    base_types = [
+        str(value)
+        for value in form.getlist("category_base_price_type")  # type: ignore[attr-defined]
+    ]
+    applies = [
+        str(value)
+        for value in form.getlist("category_applies_per_unit")  # type: ignore[attr-defined]
+    ]
+    with uow:
+        categories = {
+            category.id: category for category in uow.products.get_categories()
+        }
+    selected: list[dict[str, object]] = []
+    for index, raw_id in enumerate(category_ids):
+        category_id = _optional_uuid(raw_id)
+        if category_id is None:
+            continue
+        category = categories.get(category_id)
+        selected.append(
+            {
+                "product_id": "",
+                "category_id": str(category_id),
+                "target_type": "category",
+                "product_name": (
+                    category.name if category is not None else raw_id
+                ),
+                "relation_type": (
+                    relations[index]
+                    if index < len(relations)
+                    else ProductRelationType.BENEFIT.value
+                ),
+                "quantity_required": "",
+                "discount_type": (
+                    discount_types[index] if index < len(discount_types) else ""
+                ),
+                "discount_value": (
+                    discount_values[index] if index < len(discount_values) else ""
+                ),
+                "base_price_type": (
+                    base_types[index] if index < len(base_types) else ""
+                ),
+                "applies_per_unit": (
+                    applies[index] if index < len(applies) else "1"
+                ),
             }
         )
     return selected
@@ -685,7 +907,11 @@ def _selected_products_from_form(
 
 def _edit_form_state(
     detail: object,
-) -> tuple[dict[str, object], list[dict[str, object]]]:
+) -> tuple[
+    dict[str, object],
+    list[dict[str, object]],
+    list[dict[str, object]],
+]:
     version = detail.current_version  # type: ignore[attr-defined]
     values: dict[str, object] = {
         "name": version.name,
@@ -705,21 +931,58 @@ def _edit_form_state(
         "gift_yes_base_price_type": version.gift_yes_base_price_type or "",
         "gift_no_base_price_type": version.gift_no_base_price_type or "",
         "employee_note": version.employee_note or "",
+        "combines_with_others": version.combines_with_others,
+        "exclusion_group": version.exclusion_group or "",
+        "min_basket_total": (
+            str(version.min_basket_total)
+            if version.min_basket_total is not None
+            else ""
+        ),
     }
     selected = [
-        {
-            "product_id": str(product.product_id) if product.product_id else "",
-            "product_name": product.product_name,
-            "relation_type": product.relation_type,
-            "quantity_required": (
-                product.quantity_required
-                if product.quantity_required is not None
-                else ""
-            ),
-        }
+        _form_link_state(product)
         for product in version.products
+        if product.target_type == "product"
     ]
-    return values, selected
+    selected_categories = [
+        _form_link_state(product)
+        for product in version.products
+        if product.target_type == "category"
+    ]
+    return values, selected, selected_categories
+
+
+def _form_link_state(product: object) -> dict[str, object]:
+    return {
+        "product_id": (
+            str(product.product_id)  # type: ignore[attr-defined]
+            if product.product_id  # type: ignore[attr-defined]
+            else ""
+        ),
+        "category_id": (
+            str(product.category_id)  # type: ignore[attr-defined]
+            if getattr(product, "category_id", None)
+            else ""
+        ),
+        "target_type": getattr(product, "target_type", "product"),
+        "product_name": product.product_name,  # type: ignore[attr-defined]
+        "relation_type": product.relation_type,  # type: ignore[attr-defined]
+        "quantity_required": (
+            product.quantity_required  # type: ignore[attr-defined]
+            if product.quantity_required is not None  # type: ignore[attr-defined]
+            else ""
+        ),
+        "discount_type": getattr(product, "discount_type", None) or "",
+        "discount_value": (
+            str(product.discount_value)  # type: ignore[attr-defined]
+            if getattr(product, "discount_value", None) is not None
+            else ""
+        ),
+        "base_price_type": getattr(product, "base_price_type", None) or "",
+        "applies_per_unit": (
+            "1" if getattr(product, "applies_per_unit", None) is not False else "0"
+        ),
+    }
 
 
 def _empty_form_values() -> dict[str, object]:
@@ -737,6 +1000,9 @@ def _empty_form_values() -> dict[str, object]:
         "gift_yes_base_price_type": "",
         "gift_no_base_price_type": "",
         "employee_note": "",
+        "combines_with_others": True,
+        "exclusion_group": "",
+        "min_basket_total": "",
     }
 
 
@@ -747,11 +1013,17 @@ def _render_form(
     campaign_id: uuid.UUID | None,
     values: dict[str, object] | None = None,
     selected_products: list[dict[str, object]] | None = None,
+    selected_categories: list[dict[str, object]] | None = None,
     q: str | None = None,
     error: str | None = None,
     status_code: int = 200,
 ) -> HTMLResponse:
     products, _ = search_products(uow, query=q, limit=20, offset=0)
+    with uow:
+        category_options = [
+            {"id": str(category.id), "name": category.name}
+            for category in uow.products.get_categories()
+        ]
     return templates.TemplateResponse(
         request,
         "campaigns/form.html",
@@ -761,7 +1033,9 @@ def _render_form(
             "campaign_id": campaign_id,
             "values": values or _empty_form_values(),
             "selected_products": selected_products or [],
+            "selected_categories": selected_categories or [],
             "products": products,
+            "category_options": category_options,
             "q": q or "",
             "type_options": TYPE_OPTIONS,
             "base_price_options": BASE_PRICE_OPTIONS,
@@ -840,18 +1114,11 @@ def _require_date(value: str | None, label: str) -> datetime:
 
 
 def _parse_decimal(value: object) -> Decimal | None:
-    if value is None:
+    if value is None or str(value).strip() == "":
         return None
-    text = str(value).strip().replace(" ", "")
-    if not text:
-        return None
-    if "," in text and "." in text:
-        text = text.replace(".", "").replace(",", ".")
-    elif "," in text:
-        text = text.replace(",", ".")
     try:
-        return Decimal(text)
-    except InvalidOperation as exc:
+        return parse_decimal(value, "Sayısal değer")
+    except (TypeError, ValueError) as exc:
         raise ValidationError("Sayısal değer geçersiz.") from exc
 
 

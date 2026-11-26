@@ -9,7 +9,7 @@ from decimal import Decimal
 import pytest
 from fastapi.testclient import TestClient
 
-from bayios.adapters.db.models.products import Product
+from bayios.adapters.db.models.products import Product, ProductCategory
 from bayios.application.campaigns import (
     CampaignInput,
     CampaignProductInput,
@@ -218,6 +218,65 @@ def test_archive_hides_campaign_from_active_list(
     assert "Arşivde" in detail.text
     listing = client.get("/campaigns")
     assert "Bu filtreye uyan kampanya bulunmuyor." in listing.text
+
+
+def test_campaign_form_accepts_category_benefit_rule(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    category = ProductCategory(
+        id=uuid.uuid4(),
+        name="Kurutma Makinesi",
+        name_normalized="kurutma makinesi",
+        commission_group="other",
+    )
+    fake_uow.products.add_category(category)
+    product = _product(fake_uow)
+
+    response = client.post(
+        "/campaigns",
+        data={
+            "name": "Kategori Hedefli",
+            "campaign_type": "bundle",
+            "starts_at": "2026-01-01",
+            "ends_at": "2027-12-31",
+            "base_price_type": "regular",
+            "discount_type": "fixed_amount",
+            "discount_value": "17850",
+            "combines_with_others": "0",
+            "min_basket_total": "100000",
+            "product_id": str(product.id),
+            "relation_type": "qualifying",
+            "quantity_required": "",
+            "product_discount_type": "",
+            "product_discount_value": "",
+            "product_base_price_type": "",
+            "product_applies_per_unit": "1",
+            "category_id": str(category.id),
+            "category_relation_type": "benefit",
+            "category_discount_type": "fixed_amount",
+            "category_discount_value": "17850",
+            "category_base_price_type": "regular",
+            "category_applies_per_unit": "0",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    campaign_id = uuid.UUID(
+        response.headers["location"].rsplit("/", 1)[-1].split("?", 1)[0]
+    )
+    campaign = fake_uow.campaigns.get(campaign_id)
+    version = fake_uow.campaigns.get_current_version(campaign_id)
+    assert campaign is not None
+    assert version is not None
+    assert version.combines_with_others is False
+    assert version.min_basket_total == Decimal("100000.00")
+    links = fake_uow.campaigns.get_version_products(version.id)
+    category_links = [link for link in links if link.category_id == category.id]
+    assert len(category_links) == 1
+    assert category_links[0].discount_type == "fixed_amount"
+    assert category_links[0].discount_value == Decimal("17850.00")
+    assert category_links[0].applies_per_unit is False
 
 
 def test_campaign_filters_by_type(

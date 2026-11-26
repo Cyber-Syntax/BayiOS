@@ -608,7 +608,7 @@ Nakit ve tüm kanal/banka/taksit kombinasyonları kâr-zararla görülebilir; ka
 6. **Senaryolar:** normal fiyat, bayi indirimi, Oliz (varsa), kampanya, kampanya + bayi indirimi ve elle girilen fiyat ayrı senaryolar olarak gösterilir. Üstte senaryo özeti, altta seçili teklifin tüm nakit/kart/kanal/banka/taksit detayı yer alır.
 7. **Canlı güncelleme:** taksit tablosu formun en üstünde, “Gör” butonu olmadan; bayi indirimi, ürün, miktar, kampanya veya ödeme alanı değiştiğinde otomatik yenilenir. Seçim tablodan yapılır ve form alanlarını doldurur.
 8. **Sepet:** her satırda normal fiyat, Oliz (varsa), seçilen kampanya adı ve etkisi (“Düğün: normal fiyattan %10 indirim -> 36.000 TL”), maliyet, önerilen/nihai nakit-kart fiyatı görünür. Sepet altında toplam normal, toplam Oliz, toplam şirket indirimi, toplam maliyet, nakit/kart toplamı ve kâr/zarar özeti bulunur.
-9. **Toplu alım/bedava ürün** kampanyaları bu adımda yalnız bilgi/rozet olarak gösterilir; adet bazında otomatik fiyatlama kapsam dışıdır.
+9. **Toplu alım / sepet indirimi** kampanyaları (26 Kasım 2026 itibarıyla) tetikleyici + fayda kuralı olarak modellenir; bir kez uygulanan tutar katılan satırlara orantılı dağıtılır. "Bedava ürün" ve bilgi amaçlı kampanyalar rozet olarak gösterilir. Ayrıntı: [campaign-refactor-plan.md](./campaign-refactor-plan.md) §5.
 
 **Fiyat modeli (v2)**
 

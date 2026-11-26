@@ -1,6 +1,6 @@
 # Kampanya Sistemi ve Teklif Fiyatlama Refactor Planı
 
-Durum: **Plan (uygulanmadı)** · Hazırlayan: lead · Tarih: 23 Kasım 2026
+Durum: **Çekirdek uygulandı** (26 Kasım 2026); ödeme koşulu, kart ağı ve bedava ürün alanları sonraki adım · Hazırlayan: lead · Tarih: 23 Kasım 2026
 Kapsam: kampanya veri modeli + sepet çözümleme motoru + teklif toplamları + ödeme tipi UX + yeni kampanya türleri.
 
 Bu belge, bayios'taki kampanyaların tekliflerle birlikte kullanıldığında "tam anlaşılmama" sorununu
@@ -260,3 +260,36 @@ modellenmez (prd.md §4.7'ye not eklendi).
 - 125B eşik + hediye + banka özel kampanya kurulabilir ve test edilir.
 - Kategori bazlı şart/fayda ve "BYM bedava" kurulabilir.
 - "Otomatik" seçim kaldırılmış; sepette ürüne özgü kampanya çipleri görünür ve çalışan seçer.
+
+---
+
+## 5. Uygulama durumu (26 Kasım 2026)
+
+Bu bölüm, planın koda nasıl geçtiğini özetler; ayrıntı için kod ve testler esastır.
+
+- **Veri modeli:** `campaign_versions` alanlarına `combines_with_others`, `exclusion_group` ve
+  `min_basket_total` eklendi. `campaign_version_products` artık ürün veya kategori hedefi
+  taşıyabilir (`category_id`) ve hedef başına `discount_type`, `discount_value`,
+  `base_price_type`, `applies_per_unit` alanlarını içerir. Kategori hedefleri `product_name_snapshot`
+  içinde kategori adını saklar; kategori silinse de sürüm okunabilir kalır. Migration: `0021`.
+- **Saf motor:** `domain/campaigns/resolution.py` sepeti çözer. Şart ürünleri/kategorileri tetikleyici,
+  `qualifying` ilişkisi; fayda ürünleri/kategorileri indirim hedefidir. `applies_per_unit=False`
+  olan kural sepette bir kez uygulanır ve tutar katılan satırlara normal fiyat ağırlığıyla orantılı
+  dağıtılır. Aynı satırda yalnızca tek şirket indirimi (kampanya veya Oliz) geçerlidir. Birden fazla
+  olası birleşimde toplam indirimi en büyük yapan çözüm seçilir (POS davranışı).
+- **Teklif:** `_prepare_items` satır bazlı seçim yerine sepet çözümlemesini kullanır. Düz (sepet)
+  indiriminin satır payı `offer_items.campaign_snapshot` içinde `is_flat_allocation` ve
+  `campaign_discount_amount` olarak saklanır; kâr/komisyon satır payı üzerinden hesaplanır.
+  Teklif formunda "POS ile aynı (otomatik)" ve yalnız o satıra uygun kampanya seçenekleri gösterilir;
+  ayrıca "Sepet Kampanya Önizlemesi" kayıt öncesi gerçek satır paylarını ve toplamı gösterir.
+- **Kampanya formu:** Ürün ve kategori hedefleri, hedef başına indirim türü/değeri/tabanı,
+  "adet başına / sepette bir kez", birleşme ve sepet alt sınırı düzenlenebilir. Form sade tutuldu.
+- **İçe/dışa aktarma:** JSON kategori hedeflerini ve kural alanlarını taşır; aynı şema ile geri
+  içe aktarılabilir. Excel ürün sayfası yalnız ürün ilişkilerini taşır; mevcut kampanya Excel'den
+  güncellenirse kategori kuralları ve kampanya seviyesindeki birleşme/eşik alanları korunur.
+- **Gerçek veri:** "Seçili Beyaz Eşya, Ankastre Set..." kampanyasının mevcut 75/77 ürün ilişkisi
+  `qualifying` yapıldı; Kurutma Makinesi kategorisi için 17.850 TL ve Klima kategorisi için
+  19.200 TL `applies_per_unit=False` fayda kuralı eklendi. Yeni sürüm: v7.
+- **Doğrulama:** Düğün + Oliz ve 17.850 TL sepet indirimi senaryoları domain, application ve
+  web testlerinde doğrulanır; sepette bir kez uygulanan tutarın katılan satırlara orantılı dağıtımı
+  test edilir. Tam test paketi ve `ruff check` temizdir.

@@ -85,6 +85,14 @@
     </div>
   </div>
   <div class="stat-box">
+    <div class="stat-label">Birleşme</div>
+    <div class="stat-value" style="font-size: 1rem;">
+      {% if version.combines_with_others %}Birleşebilir{% else %}Aynı satırda birleşemez{% endif %}
+      {% if version.min_basket_total %}<br><small class="muted">Min. {{ version.min_basket_total | tr_money }} TL</small>{% endif %}
+      {% if version.exclusion_group %}<br><small class="muted">Grup: {{ version.exclusion_group }}</small>{% endif %}
+    </div>
+  </div>
+  <div class="stat-box">
     <div class="stat-label">Hediye</div>
     <div class="stat-value" style="font-size: 1rem;">
       {{ version.gift_description or '—' }}
@@ -138,30 +146,49 @@
 
 <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
   <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Ürün İlişkileri</h2>
-  {% if version.source_product_count is not none and version.source_product_count != version.products | length %}
-  <p class="muted" style="margin: 0 0 .5rem; font-size: .9rem;">Kaynakta {{ version.source_product_count }} ürün var; {{ version.products | length }} ürün Bayios kataloğuyla eşleşti.</p>
+  {% set product_link_count = version.products | selectattr('product_id') | list | length %}
+  {% if version.source_product_count is not none and version.source_product_count != product_link_count %}
+  <p class="muted" style="margin: 0 0 .5rem; font-size: .9rem;">Kaynakta {{ version.source_product_count }} ürün var; {{ product_link_count }} ürün Bayios kataloğuyla eşleşti.</p>
   {% endif %}
   {% if version.products %}
   <div class="table-container mobile-cards-container" data-table-scroll>
     <table class="data-table mobile-cards" style="min-width: 0;">
       <thead>
         <tr>
-          <th class="col-name">Ürün</th>
+          <th class="col-name">Hedef</th>
+          <th>Tür</th>
           <th>İlişki</th>
+          <th>İndirim</th>
+          <th>Uygulama</th>
           <th class="col-stock">Gerekli Adet</th>
         </tr>
       </thead>
       <tbody>
         {% for product in version.products %}
         <tr>
-          <td class="col-name" data-label="Ürün">
+          <td class="col-name" data-label="Hedef">
             {% if product.product_id %}
             <a href="/products/{{ product.product_id }}"><strong>{{ product.product_name }}</strong></a>
             {% else %}
             <strong>{{ product.product_name }}</strong>
             {% endif %}
           </td>
+          <td data-label="Tür">{% if product.target_type == 'category' %}<span class="badge">Kategori</span>{% else %}Ürün{% endif %}</td>
           <td data-label="İlişki">{{ product.relation_label }}</td>
+          <td data-label="İndirim">
+            {% if product.discount_type == 'percent' %}
+            {{ product.discount_value | tr_percent }}
+            {% elif product.discount_type in ('fixed_amount', 'special_price') %}
+            {{ product.discount_value | tr_money }} TL
+            {% elif product.discount_type %}
+            {{ product.discount_type_label }}
+            {% else %}
+            <span class="muted">Varsayılan</span>
+            {% endif %}
+          </td>
+          <td data-label="Uygulama">
+            {% if product.applies_per_unit is sameas false %}Sepette bir kez{% elif product.applies_per_unit %}Adet başına{% else %}<span class="muted">—</span>{% endif %}
+          </td>
           <td class="col-stock" data-label="Gerekli Adet">{{ product.quantity_required or '—' }}</td>
         </tr>
         {% endfor %}

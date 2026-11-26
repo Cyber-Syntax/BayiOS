@@ -545,6 +545,81 @@ def _parse_campaigns(
                 )
             )
 
+        # Excel product sheets do not carry category targets. Preserve the
+        # current category rules when an existing campaign is updated from
+        # Excel so a product-only round-trip cannot silently drop them.
+        existing_campaign_id = item.get("campaign_id")
+        if existing_campaign_id is not None:
+            campaign = uow.campaigns.get(existing_campaign_id)  # type: ignore[arg-type]
+            if campaign is not None:
+                current_version = uow.campaigns.get_current_version(campaign.id)
+                if current_version is not None:
+                    existing_categories = {
+                        (input.category_id, input.relation_type.value)
+                        for input in inputs
+                        if input.category_id is not None
+                    }
+                    for link in uow.campaigns.get_version_products(
+                        current_version.id
+                    ):
+                        if getattr(link, "category_id", None) is None:
+                            continue
+                        key_category = (
+                            link.category_id,
+                            link.relation_type,
+                        )
+                        if key_category in existing_categories:
+                            continue
+                        inputs.append(
+                            CampaignProductInput(
+                                category_id=link.category_id,
+                                relation_type=ProductRelationType(
+                                    link.relation_type
+                                ),
+                                discount_type=(
+                                    DiscountType(link.discount_type)
+                                    if getattr(link, "discount_type", None)
+                                    else None
+                                ),
+                                discount_value=getattr(
+                                    link, "discount_value", None
+                                ),
+                                base_price_type=(
+                                    BasePriceType(link.base_price_type)
+                                    if getattr(link, "base_price_type", None)
+                                    else None
+                                ),
+                                applies_per_unit=getattr(
+                                    link, "applies_per_unit", None
+                                ),
+                            )
+                        )
+
+        preserved_combines = True
+        preserved_exclusion = None
+        preserved_min_basket = None
+        if existing_campaign_id is not None:
+            existing_campaign = uow.campaigns.get(existing_campaign_id)  # type: ignore[arg-type]
+            if existing_campaign is not None:
+                existing_version = uow.campaigns.get_current_version(
+                    existing_campaign.id
+                )
+                if existing_version is not None:
+                    preserved_combines = (
+                        True
+                        if getattr(
+                            existing_version, "combines_with_others", True
+                        )
+                        is None
+                        else bool(existing_version.combines_with_others)
+                    )
+                    preserved_exclusion = getattr(
+                        existing_version, "exclusion_group", None
+                    )
+                    preserved_min_basket = getattr(
+                        existing_version, "min_basket_total", None
+                    )
+
         data = CampaignInput(
             name=str(item["name"]),
             campaign_type=CampaignType(str(campaign_type)),
@@ -572,6 +647,9 @@ def _parse_campaigns(
                 row_value(raw, campaign_layout, "employee_note") or ""
             ).strip()
             or None,
+            combines_with_others=preserved_combines,
+            exclusion_group=preserved_exclusion,
+            min_basket_total=preserved_min_basket,
             products=tuple(inputs),
         )
         try:

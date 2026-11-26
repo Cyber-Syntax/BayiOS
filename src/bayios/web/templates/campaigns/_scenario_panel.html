@@ -79,6 +79,10 @@
   </div>
   {% else %}
   <p class="muted" style="margin: .75rem 0 0;">Seçilen ürün için senaryo üretilemedi; ürün fiyatı tanımlı olmayabilir.</p>
+  {% set category_targets = campaign.current_version.products | selectattr('category_id') | list %}
+  {% if category_targets %}
+  <p class="muted" style="margin: .25rem 0 0;">Bu kampanya kategori/sepet hedefli; satır payları teklif sepeti önizlemesinde hesaplanır.</p>
+  {% endif %}
   {% endif %}
   {% else %}
   <p class="muted" style="margin: 0;">Senaryo için kampanyaya ürün eklenmeli.</p>

@@ -1,0 +1,59 @@
+{% from "_icons.html" import icon %}
+<div class="card" style="padding: .85rem; margin: 10px 0;">
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap;">
+    <div>
+      <h3 style="margin: 0; font-size: 1rem;">Sepet Kampanya Önizlemesi</h3>
+      <p class="muted" style="margin: .15rem 0 0; font-size: .8rem;">POS ile aynı çözümleme; kayıt bu değerlerle yapılır.</p>
+    </div>
+    {% if preview %}<span class="badge badge-info">{{ preview.lines | length }} satır</span>{% endif %}
+  </div>
+  {% if error %}
+  <div class="alert alert-danger" style="margin-top: .5rem;"><span><strong>Hesaplanamadı:</strong> {{ error }}</span></div>
+  {% elif preview and preview.lines %}
+  <div class="table-container" style="margin-top: .5rem;">
+    <table class="data-table" style="min-width: 0;">
+      <thead>
+        <tr>
+          <th>Ürün</th>
+          <th>Adet</th>
+          <th>Normal</th>
+          <th>Kampanya / Kaynak</th>
+          <th>İndirim</th>
+          <th>Birim Nakit</th>
+          <th>Birim Kart</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in preview.lines %}
+        <tr>
+          <td>{{ line.product_name }}{% if line.is_flat %}<br><small class="muted">sepet payı</small>{% endif %}</td>
+          <td>{{ line.quantity }}</td>
+          <td class="mono">{{ line.regular_price | tr_money }} TL</td>
+          <td>
+            {% if line.source == 'campaign' %}{{ line.campaign_name or 'Kampanya' }}
+            {% elif line.source == 'oliz' %}Oliz
+            {% else %}Normal{% endif %}
+          </td>
+          <td class="mono">{{ line.discount_amount | tr_money }} TL</td>
+          <td class="mono">{{ line.unit_price_cash | tr_money }} TL</td>
+          <td class="mono">{{ line.unit_price_card | tr_money }} TL</td>
+        </tr>
+        {% if line.warning %}
+        <tr><td colspan="7" class="muted" style="font-size: .8rem;">{{ line.warning }}</td></tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th colspan="4">Toplam</th>
+          <th class="mono">{{ preview.total_discount | tr_money }} TL</th>
+          <th class="mono">{{ preview.cash_total | tr_money }} TL</th>
+          <th class="mono">{{ preview.card_total | tr_money }} TL</th>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted" style="margin: .5rem 0 0;">Ürün ekleyince sepet kampanyaları burada hesaplanır.</p>
+  {% endif %}
+</div>

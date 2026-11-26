@@ -25,6 +25,7 @@ from bayios.application.offers import (
     delete_offer,
     get_offer_detail,
     list_offers,
+    preview_offer_basket,
     preview_offer_comparison,
     preview_offer_line,
     reserve_offer,
@@ -221,6 +222,33 @@ async def compare_offer_route(
             "empty": False,
             "channel_labels": CHANNEL_LABELS,
         },
+    )
+
+
+@router.post("/basket-preview", response_class=HTMLResponse)
+async def basket_preview_route(
+    request: Request, uow: UnitOfWorkDep
+) -> HTMLResponse:
+    form = await request.form(max_fields=MAX_FORM_FIELDS)
+    if not any(str(value).strip() for value in form.getlist("product_id")):
+        return templates.TemplateResponse(
+            request,
+            "offers/_basket_preview.html",
+            {"preview": None, "error": None, "empty": True},
+        )
+    try:
+        data = _offer_input_from_form(form)
+        preview = preview_offer_basket(uow, data)
+    except (ValidationError, ValueError, NotFoundError) as exc:
+        return templates.TemplateResponse(
+            request,
+            "offers/_basket_preview.html",
+            {"preview": None, "error": str(exc), "empty": False},
+        )
+    return templates.TemplateResponse(
+        request,
+        "offers/_basket_preview.html",
+        {"preview": preview, "error": None, "empty": False},
     )
 
 
@@ -424,6 +452,7 @@ def _preview_payload(preview: LineCampaignPreview) -> dict[str, object]:
             else None
         ),
         "gift_description": preview.gift_description,
+        "is_basket": preview.is_basket,
     }
 
 
@@ -494,6 +523,7 @@ def _item_from_payload(
         "company_price": selected.get("price"),
         "company_discount": selected.get("discount_amount"),
         "company_share": selected.get("share_amount"),
+        "is_basket": bool(selected.get("is_basket")),
     }
 
 

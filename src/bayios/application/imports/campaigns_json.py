@@ -23,7 +23,7 @@ from bayios.application.imports.common import (
     replay_result,
 )
 from bayios.application.ports.unit_of_work import UnitOfWork
-from bayios.application.tabular import normalize_header
+from bayios.application.tabular import normalize_header, parse_decimal
 from bayios.domain.campaigns import (
     BasePriceType,
     CampaignType,
@@ -32,6 +32,7 @@ from bayios.domain.campaigns import (
 )
 from bayios.domain.products import (
     ActorContext,
+    normalize_category_name,
     normalize_product_name,
 )
 
@@ -309,6 +310,13 @@ def _parse_one(
     scraped_at = _parse_datetime(raw.get("scraped_at"), warnings)
     conditions = _text_list(raw.get("conditions"), warnings, "Koşullar")
     product_count = _int_or_none(raw.get("product_count"))
+    combines_with_others = raw.get("combines_with_others", True)
+    if not isinstance(combines_with_others, bool):
+        combines_with_others = True
+    exclusion_group = _text(raw.get("exclusion_group")) or None
+    min_basket_total = _decimal_or_none(
+        raw.get("min_basket_total"), warnings, "Sepet alt sınırı"
+    )
 
     raw_products = raw.get("products")
     if raw_products is None:
@@ -316,6 +324,15 @@ def _parse_one(
     if not isinstance(raw_products, list):
         warnings.append("Ürünler listesi geçersiz; ürünler atlandı.")
         raw_products = []
+    has_explicit_rules = any(
+        isinstance(item, dict)
+        and (
+            "target_type" in item
+            or "discount_type" in item
+            or item.get("category_id")
+        )
+        for item in raw_products
+    )
 
     products: list[CampaignProductInput] = []
     seen_product_relations: set[tuple[uuid.UUID, str]] = set()
@@ -334,6 +351,56 @@ def _parse_one(
             continue
         product_name = _text(raw_product.get("name"))
         product_id = _text(raw_product.get("product_id")) or None
+        relation = _parse_relation(raw_product.get("relationship"), warnings)
+        quantity = _positive_int_or_none(raw_product.get("required_quantity"))
+        discount_type = _parse_optional_enum(
+            raw_product.get("discount_type"),
+            DiscountType,
+            warnings,
+        )
+        discount_value = _decimal_or_none(
+            raw_product.get("discount_value"), warnings, "İndirim değeri"
+        )
+        base_price_type = _parse_optional_enum(
+            raw_product.get("base_price_type"),
+            BasePriceType,
+            warnings,
+        )
+        applies_per_unit = raw_product.get("applies_per_unit")
+        if not isinstance(applies_per_unit, bool):
+            applies_per_unit = None
+        target_type = _text(raw_product.get("target_type")) or (
+            "category"
+            if raw_product.get("category_id")
+            or raw_product.get("category_name")
+            else "product"
+        )
+        if target_type == "category":
+            category = _resolve_category(
+                uow,
+                raw_product.get("category_id"),
+                _text(raw_product.get("category_name")) or product_name,
+            )
+            if category is None:
+                warnings.append(
+                    f"Kategori bulunamadı: {product_name or raw_product.get('category_id')}"
+                )
+                continue
+            key = (category.id, relation.value)
+            if key in seen_product_relations:
+                continue
+            seen_product_relations.add(key)
+            products.append(
+                CampaignProductInput(
+                    category_id=category.id,
+                    relation_type=relation,
+                    discount_type=discount_type,
+                    discount_value=discount_value,
+                    base_price_type=base_price_type,
+                    applies_per_unit=applies_per_unit,
+                )
+            )
+            continue
         product = _resolve_product(lookup, product_id, product_name)
         if product is None:
             if can_create and auto_create_products:
@@ -347,8 +414,6 @@ def _parse_one(
                 if product_name or product_id:
                     missing_names.append(product_name or product_id or "—")
                 continue
-        relation = _parse_relation(raw_product.get("relationship"), warnings)
-        quantity = _positive_int_or_none(raw_product.get("required_quantity"))
         key = (product.id, relation.value)
         if key in seen_product_relations:
             continue
@@ -358,6 +423,10 @@ def _parse_one(
                 product_id=product.id,
                 relation_type=relation,
                 quantity_required=quantity,
+                discount_type=discount_type,
+                discount_value=discount_value,
+                base_price_type=base_price_type,
+                applies_per_unit=applies_per_unit,
             )
         )
     if missing_products:
@@ -432,6 +501,89 @@ def _parse_one(
         errors.append("Tekrarlanan kampanya satırı atlandı.")
     seen_keys.add(key)
 
+    if existing_id is not None and not has_explicit_rules:
+        current_version = uow.campaigns.get_current_version(existing_id)
+        if current_version is not None:
+            existing_links = uow.campaigns.get_version_products(
+                current_version.id
+            )
+            by_product = {
+                link.product_id: link
+                for link in existing_links
+                if link.product_id is not None
+                and getattr(link, "category_id", None) is None
+            }
+            preserved: list[CampaignProductInput] = []
+            for input_item in products:
+                link = (
+                    by_product.get(input_item.product_id)
+                    if input_item.product_id is not None
+                    else None
+                )
+                if link is None:
+                    preserved.append(input_item)
+                    continue
+                preserved.append(
+                    CampaignProductInput(
+                        product_id=input_item.product_id,
+                        relation_type=ProductRelationType(link.relation_type),
+                        quantity_required=input_item.quantity_required,
+                        discount_type=(
+                            DiscountType(link.discount_type)
+                            if getattr(link, "discount_type", None)
+                            else None
+                        ),
+                        discount_value=getattr(link, "discount_value", None),
+                        base_price_type=(
+                            BasePriceType(link.base_price_type)
+                            if getattr(link, "base_price_type", None)
+                            else None
+                        ),
+                        applies_per_unit=getattr(
+                            link, "applies_per_unit", None
+                        ),
+                    )
+                )
+            for link in existing_links:
+                if getattr(link, "category_id", None) is None:
+                    continue
+                preserved.append(
+                    CampaignProductInput(
+                        category_id=link.category_id,
+                        relation_type=ProductRelationType(link.relation_type),
+                        discount_type=(
+                            DiscountType(link.discount_type)
+                            if getattr(link, "discount_type", None)
+                            else None
+                        ),
+                        discount_value=getattr(link, "discount_value", None),
+                        base_price_type=(
+                            BasePriceType(link.base_price_type)
+                            if getattr(link, "base_price_type", None)
+                            else None
+                        ),
+                        applies_per_unit=getattr(
+                            link, "applies_per_unit", None
+                        ),
+                    )
+                )
+            products = preserved
+            combines_with_others = (
+                True
+                if getattr(current_version, "combines_with_others", True)
+                is None
+                else bool(current_version.combines_with_others)
+            )
+            exclusion_group = getattr(
+                current_version, "exclusion_group", None
+            )
+            min_basket_total = getattr(
+                current_version, "min_basket_total", None
+            )
+            warnings.append(
+                "Mevcut kampanya kuralları (şart/fayda ve kategori hedefleri) korundu."
+            )
+
     data: CampaignInput | None = None
     if not errors:
         data = CampaignInput(
@@ -450,6 +602,9 @@ def _parse_one(
             source_product_count=(
                 product_count if product_count is not None else len(raw_products)
             ),
+            combines_with_others=combines_with_others,
+            exclusion_group=exclusion_group,
+            min_basket_total=min_basket_total,
             scraped_at=scraped_at,
             products=tuple(products),
         )
@@ -625,6 +780,61 @@ def _int_or_none(value: object) -> int | None:
 def _positive_int_or_none(value: object) -> int | None:
     parsed = _int_or_none(value)
     return parsed if parsed and parsed > 0 else None
+
+
+def _parse_optional_enum(
+    value: object,
+    enum_type: type,
+    warnings: list[str],
+) -> object | None:
+    raw = _text(value)
+    if not raw:
+        return None
+    try:
+        return enum_type(raw)
+    except ValueError:
+        labels = getattr(enum_type, "__members__", {})
+        lowered = raw.strip().lower()
+        for member in labels.values():
+            if member.value.lower() == lowered or member.name.lower() == lowered:
+                return member
+        warnings.append(f"Geçersiz değer: {raw}")
+        return None
+
+
+def _decimal_or_none(
+    value: object, warnings: list[str], label: str
+) -> object | None:
+    if value is None or str(value).strip() == "":
+        return None
+    try:
+        return parse_decimal(value, label)
+    except (TypeError, ValueError) as exc:
+        warnings.append(str(exc))
+        return None
+
+
+def _resolve_category(
+    uow: UnitOfWork,
+    raw_category_id: object,
+    category_name: str,
+) -> object | None:
+    raw_id = _text(raw_category_id)
+    if raw_id:
+        try:
+            category = uow.products.get_category(uuid.UUID(raw_id))
+        except ValueError:
+            category = None
+        if category is not None:
+            return category
+    if category_name:
+        normalized = normalize_category_name(category_name)
+        for category in uow.products.get_categories():
+            if getattr(category, "name_normalized", None) == normalized:
+                return category
+            if normalize_category_name(category.name) == normalized:
+                return category
+    return None
 
 
 def _text(value: object) -> str:

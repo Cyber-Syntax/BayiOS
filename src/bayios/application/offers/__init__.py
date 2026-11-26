@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -20,10 +21,10 @@ from bayios.application.reservations import (
     create_reservation,
     deliver_item,
 )
-from bayios.domain.campaigns import (
-    CampaignPriceInput,
-    campaign_discount_price,
-    campaign_scenarios,
+from bayios.domain.campaigns.resolution import (
+    BasketCampaign,
+    BasketLine,
+    resolve_basket,
 )
 from bayios.domain.commissions import (
     CHANNEL_LABELS,
@@ -50,9 +51,7 @@ from bayios.domain.offers.pricing import (
     CompanyDiscountSource,
     CompanyPriceCandidate,
     PricingScenario,
-    oliz_candidate,
     regular_candidate,
-    select_company_price,
 )
 from bayios.domain.products import ActorContext, normalize_website_price
 
@@ -132,6 +131,33 @@ class OfferProfitLine:
     cost: Decimal | None
     profit: Decimal | None
     margin_percent: Decimal | None
+
+
+@dataclass(frozen=True)
+class OfferBasketLinePreview:
+    product_name: str
+    quantity: int
+    regular_price: Decimal | None
+    oliz_price: Decimal | None
+    source: str
+    campaign_name: str | None
+    discount_amount: Decimal
+    unit_price_cash: Decimal | None
+    unit_price_card: Decimal | None
+    line_total_cash: Decimal | None
+    line_total_card: Decimal | None
+    is_flat: bool
+    warning: str | None
+
+
+@dataclass(frozen=True)
+class OfferBasketPreview:
+    lines: tuple[OfferBasketLinePreview, ...]
+    total_discount: Decimal
+    total_regular: Decimal
+    cash_total: Decimal
+    card_total: Decimal
+    warnings: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -1116,6 +1142,88 @@ def _scenario_summary(
     )
 
 
+def preview_offer_basket(
+    uow: UnitOfWork, data: OfferInput
+) -> OfferBasketPreview:
+    """Resolve the basket exactly as it will be saved, for the form preview."""
+    with uow:
+        prepared = _prepare_items(uow, data)
+        prepared = _apply_manual_totals(prepared, data)
+    quotes = [
+        quote_offer_item(
+            item.layers,
+            quantity=item.input.quantity,
+            dealer_discount_percent=item.dealer_discount,
+            dealer_discount_cash_percent=item.dealer_discount_cash,
+            commission_percent=Decimal(0),
+            target_type=None,
+            target_value=None,
+            cash_floor=getattr(item.pricing, "cash_floor_price", None),
+            card_floor=getattr(item.pricing, "card_floor_price", None),
+            unit_price_cash=item.input.unit_price_cash,
+            unit_price_card=item.input.unit_price_card,
+        )
+        for item in prepared
+    ]
+    lines: list[OfferBasketLinePreview] = []
+    total_discount = Decimal(0)
+    total_regular = Decimal(0)
+    warnings: list[str] = []
+    for item, quote in zip(prepared, quotes, strict=True):
+        company = item.company
+        discount = (
+            company.discount_amount if company is not None else Decimal(0)
+        )
+        total_discount += quantize_money(discount * item.input.quantity)
+        if item.regular_price is not None:
+            total_regular += quantize_money(
+                item.regular_price * item.input.quantity
+            )
+        line_warnings = list(quote.warnings)
+        if company is not None and company.warning:
+            line_warnings.append(company.warning)
+        warnings.extend(line_warnings)
+        lines.append(
+            OfferBasketLinePreview(
+                product_name=getattr(item.product, "name", ""),
+                quantity=item.input.quantity,
+                regular_price=item.regular_price,
+                oliz_price=item.oliz_price,
+                source=(
+                    company.source.value if company is not None else "none"
+                ),
+                campaign_name=(
+                    company.campaign_name if company is not None else None
+                ),
+                discount_amount=quantize_money(discount),
+                unit_price_cash=quote.unit_price_cash,
+                unit_price_card=quote.unit_price_card,
+                line_total_cash=quote.line_total_cash,
+                line_total_card=quote.line_total_card,
+                is_flat=bool(
+                    company is not None
+                    and company.snapshot
+                    and company.snapshot.get("is_flat_allocation")
+                ),
+                warning="; ".join(dict.fromkeys(line_warnings)) or None,
+            )
+        )
+    cash_total = sum(
+        (line.line_total_cash or Decimal(0) for line in lines), Decimal(0)
+    )
+    card_total = sum(
+        (line.line_total_card or Decimal(0) for line in lines), Decimal(0)
+    )
+    return OfferBasketPreview(
+        lines=tuple(lines),
+        total_discount=quantize_money(total_discount),
+        total_regular=quantize_money(total_regular),
+        cash_total=quantize_money(cash_total),
+        card_total=quantize_money(card_total),
+        warnings=tuple(dict.fromkeys(warnings)),
+    )
+
+
 def create_offer(
     uow: UnitOfWork,
     data: OfferInput,
@@ -1654,103 +1762,125 @@ def _prepare_items(
             [item.product_id for item in data.items]
         )
     }
-    prepared: list[_PreparedItem] = []
-    for item in data.items:
+    categories: dict[uuid.UUID, object] = {}
+    for product in products.values():
+        category_id = getattr(product, "category_id", None)
+        if category_id is not None and category_id not in categories:
+            category = uow.products.get_category(category_id)
+            if category is not None:
+                categories[category_id] = category
+
+    lines: list[BasketLine] = []
+    product_by_key: dict[str, object] = {}
+    category_by_key: dict[str, object] = {}
+    pricing_by_key: dict[str, object] = {}
+    group_by_key: dict[str, ProductCommissionGroup] = {}
+    for index, item in enumerate(data.items):
         product = products.get(item.product_id)
         if product is None:
             raise ValidationError("Seçilen ürünlerden bazıları bulunamadı.")
-        pricing = uow.dealer_pricing.get(product.id)
-        category = (
-            uow.products.get_category(product.category_id)
-            if getattr(product, "category_id", None)
-            else None
+        category = categories.get(getattr(product, "category_id", None))
+        group_value = (
+            getattr(category, "commission_group", "other")
+            if category is not None
+            else "other"
         )
-        group_value = getattr(category, "commission_group", "other") if category else "other"
         try:
             product_group = ProductCommissionGroup(group_value)
         except ValueError:
             product_group = ProductCommissionGroup.OTHER
-        layers = OfferPriceLayers(
-            cost_price=product.cost_price,
-            regular_price=product.regular_price,
-            website_price=normalize_website_price(
-                product.website_discounted_price
-            ),
-        )
-        campaign_candidates: list[CompanyPriceCandidate] = []
-        mode = "none"
-        if item.campaign_id is not None:
-            mode = str(item.campaign_id)
-            campaign_candidates.append(
-                _campaign_candidate(
-                    uow,
-                    item.campaign_id,
-                    product,
-                    item.gift_present,
-                    data.dealer_discount_percent,
-                    layers,
-                )
+        key = f"{index}:{product.id}"
+        lines.append(
+            BasketLine(
+                key=key,
+                product_id=str(product.id),
+                category_id=(
+                    str(product.category_id)
+                    if getattr(product, "category_id", None)
+                    else None
+                ),
+                quantity=item.quantity,
+                regular_price=product.regular_price,
+                website_price=normalize_website_price(
+                    product.website_discounted_price
+                ),
             )
-        elif item.auto_campaign:
-            mode = "auto"
-            seen_campaigns: set[uuid.UUID] = set()
-            for link in uow.campaigns.active_for_product(
-                product.id, as_of=datetime.now(UTC)
-            ):
-                if link.campaign.id in seen_campaigns:
-                    continue
-                seen_campaigns.add(link.campaign.id)
-                try:
-                    campaign_candidates.append(
-                        _campaign_candidate(
-                            uow,
-                            link.campaign.id,
-                            product,
-                            item.gift_present,
-                            data.dealer_discount_percent,
-                            layers,
-                        )
-                    )
-                except (ValidationError, ValueError):
-                    # A broken campaign must not hide the other valid offers.
-                    continue
-        selected = select_company_price(
-            regular_price=layers.regular_price,
-            oliz_price=layers.website_price,
-            campaigns=tuple(campaign_candidates),
-            mode=mode,
         )
-        best_campaign = max(
-            campaign_candidates,
-            key=lambda candidate: candidate.discount_amount,
-            default=None,
+        product_by_key[key] = product
+        category_by_key[key] = category
+        pricing_by_key[key] = uow.dealer_pricing.get(product.id)
+        group_by_key[key] = product_group
+
+    preferences: dict[str, str] = {}
+    for line, item in zip(lines, data.items, strict=True):
+        if item.auto_campaign:
+            preferences[line.key] = "auto"
+        elif item.campaign_id is not None:
+            preferences[line.key] = str(item.campaign_id)
+        else:
+            preferences[line.key] = "none"
+
+    campaign_definitions = _active_basket_campaigns(
+        uow,
+        [str(item.product_id) for item in data.items],
+        [
+            str(product.category_id)
+            for product in products.values()
+            if getattr(product, "category_id", None) is not None
+        ],
+    )
+    resolution = resolve_basket(
+        lines,
+        campaign_definitions,
+        preferences=preferences,
+    )
+    campaign_by_id = {
+        campaign.campaign_id: campaign for campaign in campaign_definitions
+    }
+
+    prepared: list[_PreparedItem] = []
+    for line, item in zip(lines, data.items, strict=True):
+        product = product_by_key[line.key]
+        category = category_by_key[line.key]
+        pricing = pricing_by_key[line.key]
+        product_group = group_by_key[line.key]
+        benefit = resolution.lines[line.key]
+        regular_price = getattr(product, "regular_price", None)
+        oliz_price = normalize_website_price(
+            getattr(product, "website_discounted_price", None)
+        )
+        company = _company_from_benefit(
+            benefit,
+            campaign_by_id,
+            product,
+            item,
         )
         campaign_version_id = None
         campaign_snapshot = None
-        if selected is not None and selected.source is CompanyDiscountSource.CAMPAIGN:
-            campaign_snapshot = selected.snapshot
-            if campaign_snapshot is not None:
+        if company is not None and company.source is CompanyDiscountSource.CAMPAIGN:
+            campaign_snapshot = company.snapshot
+            if campaign_snapshot is not None and campaign_snapshot.get("version_id"):
                 campaign_version_id = uuid.UUID(
                     str(campaign_snapshot["version_id"])
                 )
             layers = OfferPriceLayers(
-                cost_price=layers.cost_price,
-                regular_price=layers.regular_price,
+                cost_price=getattr(product, "cost_price", None),
+                regular_price=regular_price,
                 website_price=None,
-                campaign_price=selected.price,
-                campaign_name=selected.campaign_name,
+                campaign_price=company.price,
+                campaign_name=company.campaign_name,
                 campaign_gift_present=item.gift_present,
             )
-        elif selected is not None and selected.source is CompanyDiscountSource.OLIZ:
+        elif company is not None and company.source is CompanyDiscountSource.OLIZ:
             layers = OfferPriceLayers(
-                cost_price=layers.cost_price,
-                regular_price=layers.regular_price,
-                website_price=selected.price,
+                cost_price=getattr(product, "cost_price", None),
+                regular_price=regular_price,
+                website_price=company.price,
             )
-        elif selected is not None:
+        else:
             layers = OfferPriceLayers(
-                cost_price=layers.cost_price,
-                regular_price=layers.regular_price,
+                cost_price=getattr(product, "cost_price", None),
+                regular_price=regular_price,
                 website_price=None,
             )
         prepared.append(
@@ -1765,61 +1895,160 @@ def _prepare_items(
                 category_id=getattr(product, "category_id", None),
                 campaign_version_id=campaign_version_id,
                 campaign_snapshot=campaign_snapshot,
-                company=selected,
-                best_campaign=best_campaign,
-                regular_price=layers.regular_price,
-                oliz_price=normalize_website_price(
-                    product.website_discounted_price
+                company=company,
+                best_campaign=(
+                    company
+                    if company is not None
+                    and company.source is CompanyDiscountSource.CAMPAIGN
+                    else None
                 ),
-                cost_price=layers.cost_price,
+                regular_price=regular_price,
+                oliz_price=oliz_price,
+                cost_price=getattr(product, "cost_price", None),
             )
         )
     return prepared
 
 
-def _campaign_candidate(
+def _active_basket_campaigns(
     uow: UnitOfWork,
-    campaign_id: uuid.UUID,
-    product: object,
-    gift_present: bool | None,
-    dealer_discount: Decimal,
-    layers: OfferPriceLayers,
-) -> CompanyPriceCandidate:
-    campaign_price, campaign_name, snapshot = _campaign_price(
-        uow,
-        campaign_id,
-        product,
-        gift_present,
-        dealer_discount,
-        layers,
+    product_ids: Sequence[str],
+    category_ids: Sequence[str],
+) -> list[BasketCampaign]:
+    parsed_products = [
+        uuid.UUID(value) for value in dict.fromkeys(product_ids) if value
+    ]
+    parsed_categories = [
+        uuid.UUID(value) for value in dict.fromkeys(category_ids) if value
+    ]
+    rows = uow.campaigns.active_for_basket(
+        parsed_products,
+        parsed_categories,
+        as_of=datetime.now(UTC),
     )
-    regular = layers.regular_price
-    if regular is not None and campaign_price is not None:
-        discount = max(quantize_money(regular - campaign_price), Decimal(0))
-    else:
-        discount = Decimal(0)
-    raw_share = snapshot.get("campaign_discount_amount")
-    share = Decimal(str(raw_share)) if raw_share is not None else Decimal(0)
-    raw_base = snapshot.get("campaign_base_price")
-    raw_price = snapshot.get("campaign_price")
-    return CompanyPriceCandidate(
-        source=CompanyDiscountSource.CAMPAIGN,
-        price=campaign_price,
-        discount_amount=discount,
-        share_amount=share,
-        campaign_id=str(campaign_id),
-        campaign_name=campaign_name,
-        campaign_discount_amount=share,
-        campaign_base_price=(
-            Decimal(str(raw_base)) if raw_base is not None else None
-        ),
-        campaign_price=(
-            Decimal(str(raw_price)) if raw_price is not None else campaign_price
-        ),
-        warning=snapshot.get("warning"),
-        snapshot=snapshot,
+    if not rows:
+        return []
+    links_by_version = uow.campaigns.get_version_products_for_versions(
+        [version.id for _campaign, version in rows]
     )
+    definitions: list[BasketCampaign] = []
+    for campaign, version in rows:
+        try:
+            contract = _contract_from_row(
+                version, links_by_version.get(version.id, ())
+            )
+        except (TypeError, ValueError):
+            continue
+        definitions.append(
+            BasketCampaign(
+                campaign_id=str(campaign.id),
+                version_id=str(version.id),
+                name=version.name,
+                version_no=version.version_no,
+                contract=contract,
+            )
+        )
+    return definitions
 
+
+def _company_from_benefit(
+    benefit: object,
+    campaign_by_id: dict[str, BasketCampaign],
+    product: object,
+    item: OfferItemInput,
+) -> CompanyPriceCandidate | None:
+    source = getattr(benefit, "source", "none")
+    if source == "campaign":
+        campaign_id = getattr(benefit, "campaign_id", None)
+        campaign = campaign_by_id.get(str(campaign_id)) if campaign_id else None
+        if campaign is None:
+            return regular_candidate(getattr(product, "regular_price", None))
+        price = getattr(benefit, "final_price", None) or getattr(
+            benefit, "base_price", None
+        )
+        if price is None:
+            return regular_candidate(getattr(product, "regular_price", None))
+        return CompanyPriceCandidate(
+            source=CompanyDiscountSource.CAMPAIGN,
+            price=quantize_money(price),
+            discount_amount=quantize_money(
+                getattr(benefit, "unit_discount", Decimal(0))
+            ),
+            share_amount=quantize_money(
+                getattr(benefit, "unit_share", Decimal(0))
+            ),
+            campaign_id=str(campaign_id),
+            campaign_name=getattr(benefit, "campaign_name", None),
+            campaign_discount_amount=quantize_money(
+                getattr(benefit, "unit_discount", Decimal(0))
+            ),
+            campaign_base_price=getattr(benefit, "campaign_base_price", None),
+            campaign_price=getattr(benefit, "campaign_price", None),
+            warning=getattr(benefit, "warning", None),
+            snapshot=_snapshot_for_benefit(campaign, benefit, item),
+        )
+    if source == "oliz":
+        price = getattr(benefit, "final_price", None) or getattr(
+            benefit, "base_price", None
+        )
+        if price is None:
+            return regular_candidate(getattr(product, "regular_price", None))
+        return CompanyPriceCandidate(
+            source=CompanyDiscountSource.OLIZ,
+            price=quantize_money(price),
+            discount_amount=quantize_money(
+                getattr(benefit, "unit_discount", Decimal(0))
+            ),
+            share_amount=quantize_money(
+                getattr(benefit, "unit_share", Decimal(0))
+            ),
+        )
+    return regular_candidate(getattr(product, "regular_price", None))
+
+
+def _snapshot_for_benefit(
+    campaign: BasketCampaign,
+    benefit: object,
+    item: OfferItemInput,
+) -> dict[str, object]:
+    contract = campaign.contract
+    discount_value = getattr(benefit, "discount_value", None)
+    campaign_base_price = getattr(benefit, "campaign_base_price", None)
+    campaign_price = getattr(benefit, "campaign_price", None)
+    warning = getattr(benefit, "warning", None)
+    return {
+        "campaign_id": campaign.campaign_id,
+        "version_id": campaign.version_id,
+        "version_no": campaign.version_no,
+        "name": campaign.name,
+        "description": contract.description,
+        "gift_description": contract.gift_description,
+        "campaign_type": contract.campaign_type.value,
+        "base_price_type": contract.base_price_type.value,
+        "discount_type": getattr(benefit, "discount_type", None),
+        "discount_value": (
+            str(discount_value) if discount_value is not None else None
+        ),
+        "gift_present": bool(item.gift_present),
+        "campaign_base_price": (
+            str(campaign_base_price)
+            if campaign_base_price is not None
+            else None
+        ),
+        "campaign_price": (
+            str(campaign_price) if campaign_price is not None else None
+        ),
+        "campaign_discount_amount": str(
+            quantize_money(getattr(benefit, "unit_discount", Decimal(0)))
+        ),
+        "final_price": (
+            str(campaign_price) if campaign_price is not None else None
+        ),
+        "is_flat_allocation": bool(
+            getattr(benefit, "is_flat_allocation", False)
+        ),
+        "warning": warning,
+    }
 
 
 @dataclass(frozen=True)
@@ -1834,6 +2063,7 @@ class LineCampaignPreview:
     discount_type: str | None = None
     discount_value: Decimal | None = None
     gift_description: str | None = None
+    is_basket: bool = False
 
 
 @dataclass(frozen=True)
@@ -1855,156 +2085,148 @@ def preview_offer_line(
     gift_present: bool | None = None,
 ) -> OfferLinePreview | None:
     """Return campaign/Oliz previews for one product in the offer basket."""
+    del dealer_discount_percent, dealer_discount_cash_percent, gift_present
     with uow:
         product = uow.products.get_by_id(product_id)
         if product is None:
             return None
-        layers = OfferPriceLayers(
-            cost_price=product.cost_price,
-            regular_price=product.regular_price,
-            website_price=normalize_website_price(
-                product.website_discounted_price
-            ),
+        product_category_id = getattr(product, "category_id", None)
+        regular_price = getattr(product, "regular_price", None)
+        oliz_price = normalize_website_price(
+            getattr(product, "website_discounted_price", None)
         )
-        candidates: list[CompanyPriceCandidate] = []
-        seen: set[uuid.UUID] = set()
-        for link in uow.campaigns.active_for_product(
-            product.id, as_of=datetime.now(UTC)
-        ):
-            if link.campaign.id in seen:
-                continue
-            seen.add(link.campaign.id)
-            try:
-                candidates.append(
-                    _campaign_candidate(
-                        uow,
-                        link.campaign.id,
-                        product,
-                        gift_present,
-                        dealer_discount_percent,
-                        layers,
-                    )
-                )
-            except (ValidationError, ValueError):
-                continue
-        oliz = oliz_candidate(layers.regular_price, layers.website_price)
-        regular = regular_candidate(layers.regular_price)
-        auto = select_company_price(
-            regular_price=layers.regular_price,
-            oliz_price=layers.website_price,
-            campaigns=tuple(candidates),
-            mode="auto",
+        cost_price = getattr(product, "cost_price", None)
+        campaign_definitions = _active_basket_campaigns(
+            uow,
+            [str(product.id)],
+            [str(product_category_id)] if product_category_id else [],
         )
-
+    line = BasketLine(
+        key="preview",
+        product_id=str(product_id),
+        category_id=str(product_category_id) if product_category_id else None,
+        quantity=1,
+        regular_price=regular_price,
+        website_price=oliz_price,
+    )
+    campaign_by_id = {
+        campaign.campaign_id: campaign for campaign in campaign_definitions
+    }
     previews: dict[str, LineCampaignPreview] = {}
-    none_candidate = oliz or regular
-    if none_candidate is not None:
-        previews["none"] = _line_preview(none_candidate, "none")
-    for candidate in candidates:
-        if candidate.campaign_id is not None:
-            previews[candidate.campaign_id] = _line_preview(
-                candidate, candidate.campaign_id
+    none_resolution = resolve_basket(
+        [line], campaign_definitions, preferences={"preview": "none"}
+    )
+    previews["none"] = _line_preview_from_benefit(
+        none_resolution.lines["preview"],
+        "none",
+        campaign_by_id,
+    )
+    auto_resolution = resolve_basket(
+        [line], campaign_definitions, preferences={"preview": "auto"}
+    )
+    previews["auto"] = _line_preview_from_benefit(
+        auto_resolution.lines["preview"],
+        "auto",
+        campaign_by_id,
+    )
+    for campaign in campaign_definitions:
+        forced_resolution = resolve_basket(
+            [line],
+            campaign_definitions,
+            preferences={"preview": campaign.campaign_id},
+        )
+        benefit = forced_resolution.lines["preview"]
+        if (
+            benefit.source == "campaign"
+            and benefit.campaign_id == campaign.campaign_id
+        ):
+            previews[campaign.campaign_id] = _line_preview_from_benefit(
+                benefit,
+                campaign.campaign_id,
+                campaign_by_id,
             )
-    if auto is not None:
-        previews["auto"] = _line_preview(auto, "auto")
+        elif campaign.contract.one_time_links and _campaign_reaches_line(
+            campaign, line
+        ):
+            base_price, _warning = _line_base_price(line, campaign.contract)
+            previews[campaign.campaign_id] = LineCampaignPreview(
+                key=campaign.campaign_id,
+                source="campaign",
+                campaign_id=campaign.campaign_id,
+                campaign_name=campaign.name,
+                price=base_price or Decimal(0),
+                discount_amount=Decimal(0),
+                share_amount=Decimal(0),
+                discount_type=(
+                    campaign.contract.discount_type.value
+                    if campaign.contract.discount_type
+                    else None
+                ),
+                discount_value=campaign.contract.discount_value,
+                gift_description=campaign.contract.gift_description,
+                is_basket=True,
+            )
     return OfferLinePreview(
         product_id=str(product.id),
         product_name=product.name,
-        regular_price=layers.regular_price,
-        oliz_price=layers.website_price,
-        cost_price=layers.cost_price,
+        regular_price=regular_price,
+        oliz_price=oliz_price,
+        cost_price=cost_price,
         previews=previews,
     )
 
 
-def _line_preview(
-    candidate: CompanyPriceCandidate, key: str
+def _line_preview_from_benefit(
+    benefit: object,
+    key: str,
+    campaign_by_id: dict[str, BasketCampaign],
 ) -> LineCampaignPreview:
-    snapshot = candidate.snapshot or {}
-    raw_value = snapshot.get("discount_value")
+    campaign_id = getattr(benefit, "campaign_id", None)
+    campaign = campaign_by_id.get(str(campaign_id)) if campaign_id else None
     return LineCampaignPreview(
         key=key,
-        source=candidate.source.value,
-        campaign_id=candidate.campaign_id,
-        campaign_name=candidate.campaign_name,
-        price=candidate.price,
-        discount_amount=candidate.discount_amount,
-        share_amount=candidate.share_amount,
-        discount_type=(
-            str(snapshot["discount_type"])
-            if snapshot.get("discount_type") is not None
-            else None
-        ),
-        discount_value=(
-            Decimal(str(raw_value)) if raw_value is not None else None
-        ),
+        source=getattr(benefit, "source", "none"),
+        campaign_id=campaign_id,
+        campaign_name=getattr(benefit, "campaign_name", None),
+        price=getattr(benefit, "final_price", None)
+        or getattr(benefit, "base_price", None)
+        or Decimal(0),
+        discount_amount=getattr(benefit, "unit_discount", Decimal(0)),
+        share_amount=getattr(benefit, "unit_share", Decimal(0)),
+        discount_type=getattr(benefit, "discount_type", None),
+        discount_value=getattr(benefit, "discount_value", None),
         gift_description=(
-            str(snapshot["gift_description"])
-            if snapshot.get("gift_description") is not None
-            else None
+            campaign.contract.gift_description if campaign is not None else None
         ),
+        is_basket=bool(getattr(benefit, "is_flat_allocation", False)),
     )
 
 
-def _campaign_price(
-    uow: UnitOfWork,
-    campaign_id: uuid.UUID,
-    product: object,
-    gift_present: bool | None,
-    dealer_discount: Decimal,
-    layers: OfferPriceLayers,
-) -> tuple[Decimal | None, str | None, dict[str, object]]:
-    version = uow.campaigns.get_current_version(campaign_id)
-    if version is None:
-        raise ValidationError("Seçilen kampanya bulunamadı.")
-    links = uow.campaigns.get_version_products(version.id)
-    contract = _contract_from_row(version, links)
-    prices = CampaignPriceInput(
-        regular_price=layers.regular_price,
-        website_discounted_price=layers.website_price,
+def _campaign_reaches_line(
+    campaign: BasketCampaign, line: BasketLine
+) -> bool:
+    links = (
+        campaign.contract.qualifying_links
+        + campaign.contract.explicit_benefit_links
+        + campaign.contract.legacy_benefit_links
     )
-    scenarios = campaign_scenarios(contract, prices, dealer_discount)
-    chosen = next(
-        (
-            scenario
-            for scenario in scenarios
-            if scenario.gift_present is bool(gift_present)
-        ),
-        scenarios[0] if scenarios else None,
-    )
-    if chosen is None:
-        raise ValidationError("Seçilen kampanya için fiyat senaryosu üretilemedi.")
-    quote = campaign_discount_price(contract, chosen.base_price)
-    if quote.final_price is None:
-        raise ValidationError("Seçilen kampanya için fiyat senaryosu üretilemedi.")
-    warning = "; ".join(
-        item for item in (chosen.warning, quote.warning) if item
-    ) or None
-    snapshot = {
-        "campaign_id": str(campaign_id),
-        "version_id": str(version.id),
-        "version_no": version.version_no,
-        "name": version.name,
-        "description": contract.description,
-        "gift_description": contract.gift_description,
-        "campaign_type": contract.campaign_type.value,
-        "base_price_type": contract.base_price_type.value,
-        "discount_type": contract.discount_type.value,
-        "discount_value": (
-            str(contract.discount_value)
-            if contract.discount_value is not None
-            else None
-        ),
-        "gift_present": chosen.gift_present,
-        "campaign_base_price": (
-            str(quote.base_price) if quote.base_price is not None else None
-        ),
-        "campaign_price": str(quote.final_price),
-        "campaign_discount_amount": str(quote.discount_amount or Decimal(0)),
-        "final_price": str(quote.final_price),
-        "warning": warning,
-    }
-    return quote.final_price, version.name, snapshot
+    for link in links:
+        if link.product_id is not None and link.product_id == line.product_id:
+            return True
+        if link.category_id is not None and link.category_id == line.category_id:
+            return True
+    return False
+
+
+def _line_base_price(
+    line: BasketLine, contract: object
+) -> tuple[Decimal | None, str | None]:
+    base_type = getattr(contract, "base_price_type", None)
+    if base_type is not None and getattr(base_type, "value", None) == "website_discounted":
+        if line.website_price is not None:
+            return line.website_price, None
+        return line.regular_price, "Oliz fiyatı tanımlı değil; normal fiyat kullanıldı."
+    return line.regular_price, None
 
 
 def _build_items(
@@ -2083,7 +2305,22 @@ def _build_items(
                 unit_price_card=quote.unit_price_card,
                 line_total_cash=quote.line_total_cash,
                 line_total_card=quote.line_total_card,
-                warning_text="; ".join(quote.warnings) or None,
+                warning_text=(
+                    "; ".join(
+                        dict.fromkeys(
+                            [
+                                *quote.warnings,
+                                *(
+                                    [company.warning]
+                                    if company is not None
+                                    and company.warning
+                                    else []
+                                ),
+                            ]
+                        )
+                    )
+                    or None
+                ),
                 position=position,
             )
         )

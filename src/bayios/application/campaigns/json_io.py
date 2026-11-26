@@ -115,19 +115,50 @@ def _export(
                     if version.source_product_count is not None
                     else len(links)
                 ),
+                "combines_with_others": bool(
+                    getattr(version, "combines_with_others", True)
+                ),
+                "exclusion_group": getattr(version, "exclusion_group", None),
+                "min_basket_total": (
+                    str(version.min_basket_total)
+                    if getattr(version, "min_basket_total", None) is not None
+                    else None
+                ),
                 "products": [
                     {
                         "name": link.product_name_snapshot,
+                        "target_type": (
+                            "category"
+                            if getattr(link, "category_id", None)
+                            else "product"
+                        ),
                         "product_id": (
                             products[link.product_id].external_id
                             if link.product_id in products
                             and products[link.product_id].external_id
                             else ""
                         ),
+                        "category_id": (
+                            str(link.category_id)
+                            if getattr(link, "category_id", None)
+                            else ""
+                        ),
                         "relationship": PRODUCT_RELATION_TYPE_LABELS[
                             ProductRelationType(link.relation_type)
                         ],
                         "required_quantity": link.quantity_required,
+                        "discount_type": getattr(link, "discount_type", None),
+                        "discount_value": (
+                            str(link.discount_value)
+                            if getattr(link, "discount_value", None) is not None
+                            else None
+                        ),
+                        "base_price_type": getattr(
+                            link, "base_price_type", None
+                        ),
+                        "applies_per_unit": getattr(
+                            link, "applies_per_unit", None
+                        ),
                     }
                     for link in links
                 ],

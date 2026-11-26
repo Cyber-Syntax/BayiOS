@@ -2,7 +2,7 @@
 {% from "_icons.html" import icon %}
 {% block title %}{% if mode == 'edit' %}Kampanya Düzenle{% else %}Yeni Kampanya{% endif %}{% endblock %}
 {% block content %}
-<div x-data='{ ...campaignBuilder({{ selected_products | tojson }}), discountType: {{ values.discount_type | tojson }}, campaignType: {{ values.campaign_type | tojson }} }'>
+<div x-data='{ ...campaignBuilder({{ selected_products | tojson }}, {{ selected_categories | tojson }}, {{ category_options | tojson }}), discountType: {{ values.discount_type | tojson }}, campaignType: {{ values.campaign_type | tojson }} }'>
   <div class="page-header">
     <div class="page-heading">
       <a class="breadcrumb" href="/campaigns">{{ icon("arrow-left", "icon icon-sm") }} Kampanyalar</a>
@@ -111,6 +111,30 @@
     </div>
 
     <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+      <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Birleşme ve Sepet</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .75rem;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-combines">Birleşme</label>
+          <select id="campaign-combines" name="combines_with_others" class="form-control">
+            <option value="1" {% if values.combines_with_others %}selected{% endif %}>Diğer kampanyalarla birleşebilir</option>
+            <option value="0" {% if not values.combines_with_others %}selected{% endif %}>Aynı satırda birleşemez</option>
+          </select>
+          <small class="muted">Farklı satırlar yine farklı kampanya kullanabilir.</small>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-min-basket">Sepet Alt Sınırı (TL)</label>
+          <input type="text" id="campaign-min-basket" name="min_basket_total" class="form-control"
+                 value="{{ values.min_basket_total }}" placeholder="örn: 125000" inputmode="decimal">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-exclusion">Dışlama Grubu</label>
+          <input type="text" id="campaign-exclusion" name="exclusion_group" class="form-control"
+                 value="{{ values.exclusion_group }}" placeholder="opsiyonel">
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
         <h2 style="margin: 0; font-size: 1.1rem;">Ürünler</h2>
         <span class="muted" style="font-size: .85rem;">Şart, fayda, hediye ve ilgili ürünleri buradan ilişkilendirin.</span>
@@ -126,12 +150,82 @@
               <option value="{{ value }}">{{ label }}</option>
               {% endfor %}
             </select>
-            <input type="number" name="quantity_required" class="form-control" style="max-width: 8rem;"
+            <input type="number" name="quantity_required" class="form-control" style="max-width: 7rem;"
                    min="1" placeholder="Adet (ops.)" x-model="product.quantity_required">
+            <select name="product_discount_type" class="form-control" style="max-width: 10rem;" x-model="product.discount_type">
+              <option value="">Varsayılan indirim</option>
+              {% for value, label in discount_type_options %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <input type="text" name="product_discount_value" class="form-control" style="max-width: 7rem;"
+                   placeholder="Değer" x-model="product.discount_value" x-show="product.discount_type">
+            <select name="product_base_price_type" class="form-control" style="max-width: 10rem;" x-model="product.base_price_type">
+              <option value="">Varsayılan taban</option>
+              {% for value, label in base_price_options %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <select name="product_applies_per_unit" class="form-control" style="max-width: 10rem;" x-model="product.applies_per_unit">
+              <option value="1">Adet başına</option>
+              <option value="0">Sepette bir kez</option>
+            </select>
             <button type="button" class="btn btn-sm btn-danger" @click="removeProduct(index)">Çıkar</button>
           </div>
         </template>
         <p class="muted" x-show="products.length === 0" style="margin: 0;">Henüz ürün eklenmedi. Aşağıdan ürün arayıp ekleyin.</p>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <div>
+          <h2 style="margin: 0; font-size: 1.1rem;">Kategori Hedefleri</h2>
+          <p class="muted" style="margin: .25rem 0 0; font-size: .85rem;">Kurutma, klima gibi tüm kategoriyi şart veya fayda ürünü olarak ekleyin.</p>
+        </div>
+        <div style="display: flex; gap: .5rem; align-items: center;">
+          <select class="form-control" style="max-width: 16rem;" x-model="categoryToAdd">
+            <option value="">Kategori seçin</option>
+            <template x-for="category in allCategories" :key="category.id">
+              <option :value="category.id" x-text="category.name"></option>
+            </template>
+          </select>
+          <button type="button" class="btn btn-sm" @click="addCategory()">Kategori Ekle</button>
+        </div>
+      </div>
+
+      <div style="margin-top: .75rem; display: grid; gap: .5rem;">
+        <template x-for="(target, index) in selectedCategories" :key="target.key">
+          <div style="display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; padding: .5rem; border: 1px solid var(--border, #e5e7eb); border-radius: .5rem;">
+            <input type="hidden" name="category_id" :value="target.category_id">
+            <span style="flex: 1 1 12rem; font-weight: 500;" x-text="target.product_name"></span>
+            <select name="category_relation_type" class="form-control" style="max-width: 11rem;" x-model="target.relation_type">
+              {% for value, label in relation_type_options %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <select name="category_discount_type" class="form-control" style="max-width: 10rem;" x-model="target.discount_type">
+              <option value="">Varsayılan indirim</option>
+              {% for value, label in discount_type_options %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <input type="text" name="category_discount_value" class="form-control" style="max-width: 7rem;"
+                   placeholder="Değer" x-model="target.discount_value" x-show="target.discount_type">
+            <select name="category_base_price_type" class="form-control" style="max-width: 10rem;" x-model="target.base_price_type">
+              <option value="">Varsayılan taban</option>
+              {% for value, label in base_price_options %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <select name="category_applies_per_unit" class="form-control" style="max-width: 10rem;" x-model="target.applies_per_unit">
+              <option value="1">Adet başına</option>
+              <option value="0">Sepette bir kez</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-danger" @click="removeCategory(index)">Çıkar</button>
+          </div>
+        </template>
+        <p class="muted" x-show="selectedCategories.length === 0" style="margin: 0;">Henüz kategori eklenmedi.</p>
       </div>
     </div>
 
@@ -160,29 +254,69 @@
 </div>
 
 <script>
-  function campaignBuilder(initialProducts) {
+  function campaignBuilder(initialProducts, initialCategories, allCategories) {
+    const normalizeProduct = (product, index) => ({
+      product_id: product.product_id || '',
+      category_id: product.category_id || '',
+      product_name: product.product_name,
+      relation_type: product.relation_type || 'related',
+      quantity_required: product.quantity_required || '',
+      discount_type: product.discount_type || '',
+      discount_value: product.discount_value || '',
+      base_price_type: product.base_price_type || '',
+      applies_per_unit: product.applies_per_unit === '0' || product.applies_per_unit === 0 ? '0' : '1',
+      key: `${product.product_id || product.category_id || product.product_name}-${index}`,
+    });
     return {
-      products: initialProducts.map((product, index) => ({
-        product_id: product.product_id,
-        product_name: product.product_name,
-        relation_type: product.relation_type || 'related',
-        quantity_required: product.quantity_required || '',
-        key: `${product.product_id || product.product_name}-${index}`,
-      })),
+      products: initialProducts.map(normalizeProduct),
+      selectedCategories: initialCategories.map(normalizeProduct),
+      allCategories: allCategories,
+      categoryToAdd: '',
       addProduct(id, name) {
         if (this.products.some((product) => product.product_id === id)) {
           return;
         }
         this.products.push({
           product_id: id,
+          category_id: '',
           product_name: name,
           relation_type: 'related',
           quantity_required: '',
+          discount_type: '',
+          discount_value: '',
+          base_price_type: '',
+          applies_per_unit: '1',
           key: `${id}-${Date.now()}`,
         });
       },
       removeProduct(index) {
         this.products.splice(index, 1);
+      },
+      addCategory() {
+        const id = this.categoryToAdd;
+        if (!id || this.selectedCategories.some((target) => target.category_id === id)) {
+          return;
+        }
+        const category = this.allCategories.find((item) => String(item.id) === String(id));
+        if (!category) {
+          return;
+        }
+        this.selectedCategories.push({
+          product_id: '',
+          category_id: String(category.id),
+          product_name: category.name,
+          relation_type: 'benefit',
+          quantity_required: '',
+          discount_type: '',
+          discount_value: '',
+          base_price_type: '',
+          applies_per_unit: '1',
+          key: `${category.id}-${Date.now()}`,
+        });
+        this.categoryToAdd = '';
+      },
+      removeCategory(index) {
+        this.selectedCategories.splice(index, 1);
       },
     };
   }

@@ -44,6 +44,11 @@ class ProductRelationType(StrEnum):
     RELATED = "related"
 
 
+class TargetType(StrEnum):
+    PRODUCT = "product"
+    CATEGORY = "category"
+
+
 class CampaignState(StrEnum):
     ACTIVE = "active"
     SCHEDULED = "scheduled"
@@ -91,18 +96,55 @@ CAMPAIGN_STATE_LABELS: dict[CampaignState, str] = {
 
 @dataclass(frozen=True)
 class CampaignProductLink:
-    """One product relation inside an immutable campaign version."""
+    """One product or category relation inside an immutable campaign version.
+
+    A challenge product (relation_type qualifying) triggers the campaign. A
+    benefit relation (benefit/related) is where the campaign discount is
+    applied. Category relations use category_id and keep the category name in
+    product_name so the snapshot survives category deletion.
+
+    discount_type/discount_value/base_price_type/applies_per_unit are optional
+    per-relation benefit rules. When they are empty the campaign own discount
+    fields are used for backward compatibility (legacy campaigns such as
+    Düğün). applies_per_unit=False means the rule is a one-time basket discount
+    and its amount is allocated across the participating lines.
+    """
 
     product_id: str | None
     product_name: str
     relation_type: ProductRelationType = ProductRelationType.RELATED
     quantity_required: int | None = None
+    category_id: str | None = None
+    discount_type: DiscountType | None = None
+    discount_value: Decimal | None = None
+    base_price_type: BasePriceType | None = None
+    applies_per_unit: bool | None = None
 
     def __post_init__(self) -> None:
         if not self.product_name.strip():
             raise ValueError("Ürün adı anlık görüntüsü boş olamaz.")
         if self.quantity_required is not None and self.quantity_required <= 0:
             raise ValueError("Gerekli adet sıfırdan büyük olmalıdır.")
+        if self.product_id is not None and self.category_id is not None:
+            raise ValueError(
+                "Kampanya ilişkisi ürün veya kategori olabilir; ikisi birlikte olamaz."
+            )
+        if self.discount_type is not None:
+            _validate_discount(self.discount_type, self.discount_value)
+        elif self.discount_value is not None:
+            raise ValueError("İndirim değeri için indirim türü girilmelidir.")
+
+    @property
+    def target_type(self) -> TargetType:
+        return (
+            TargetType.CATEGORY
+            if self.category_id is not None
+            else TargetType.PRODUCT
+        )
+
+    @property
+    def target_id(self) -> str | None:
+        return self.category_id if self.category_id is not None else self.product_id
 
 
 @dataclass(frozen=True)
@@ -125,6 +167,9 @@ class CampaignContract:
     conditions: tuple[str, ...] = ()
     source_category: str | None = None
     source_product_count: int | None = None
+    combines_with_others: bool = True
+    exclusion_group: str | None = None
+    min_basket_total: Decimal | None = None
     products: tuple[CampaignProductLink, ...] = ()
 
     def __post_init__(self) -> None:
@@ -140,7 +185,48 @@ class CampaignContract:
             raise ValueError("İsteğe bağlı hediyelerde hediye açıklaması zorunludur.")
         if self.source_product_count is not None and self.source_product_count < 0:
             raise ValueError("Kaynak ürün sayısı negatif olamaz.")
+        if self.min_basket_total is not None and self.min_basket_total < ZERO:
+            raise ValueError("Sepet alt sınırı negatif olamaz.")
+        if self.exclusion_group is not None and not self.exclusion_group.strip():
+            raise ValueError("Dışlama grubu boş olamaz.")
         _validate_product_links(self.products)
+
+    @property
+    def qualifying_links(self) -> tuple[CampaignProductLink, ...]:
+        return tuple(
+            link
+            for link in self.products
+            if link.relation_type is ProductRelationType.QUALIFYING
+        )
+
+    @property
+    def explicit_benefit_links(self) -> tuple[CampaignProductLink, ...]:
+        return tuple(
+            link
+            for link in self.products
+            if link.relation_type
+            in (ProductRelationType.BENEFIT, ProductRelationType.RELATED)
+            and link.discount_type is not None
+        )
+
+    @property
+    def legacy_benefit_links(self) -> tuple[CampaignProductLink, ...]:
+        if self.explicit_benefit_links:
+            return ()
+        return tuple(
+            link
+            for link in self.products
+            if link.relation_type
+            in (ProductRelationType.BENEFIT, ProductRelationType.RELATED)
+        )
+
+    @property
+    def one_time_links(self) -> tuple[CampaignProductLink, ...]:
+        return tuple(
+            link
+            for link in self.explicit_benefit_links
+            if link.applies_per_unit is False
+        )
 
     def signature(self) -> tuple[object, ...]:
         """Stable representation used to decide whether an edit is effective."""
@@ -149,8 +235,13 @@ class CampaignContract:
                 (
                     link.relation_type.value,
                     link.product_id or "",
+                    link.category_id or "",
                     link.product_name,
                     link.quantity_required or 0,
+                    link.discount_type.value if link.discount_type else "",
+                    link.discount_value,
+                    link.base_price_type.value if link.base_price_type else "",
+                    link.applies_per_unit if link.applies_per_unit is not None else "",
                 )
                 for link in self.products
             )
@@ -176,6 +267,9 @@ class CampaignContract:
             tuple(condition.strip() for condition in self.conditions if condition.strip()),
             self.source_category or "",
             self.source_product_count or 0,
+            self.combines_with_others,
+            self.exclusion_group or "",
+            self.min_basket_total,
             products,
         )
 
@@ -298,6 +392,37 @@ def campaign_discount_price(
     contract: CampaignContract, base_price: Decimal | None
 ) -> CampaignOfferPrice:
     """Apply the campaign's own discount to a base price, without dealer discount."""
+    return _discount_price(
+        contract.discount_type,
+        contract.discount_value,
+        base_price,
+        campaign_type=contract.campaign_type,
+    )
+
+
+def link_discount_price(
+    contract: CampaignContract,
+    link: CampaignProductLink,
+    base_price: Decimal | None,
+) -> CampaignOfferPrice:
+    """Apply one relation's benefit rule, falling back to the campaign fields."""
+    if link.discount_type is None:
+        return campaign_discount_price(contract, base_price)
+    return _discount_price(
+        link.discount_type,
+        link.discount_value,
+        base_price,
+        campaign_type=contract.campaign_type,
+    )
+
+
+def _discount_price(
+    discount_type: DiscountType,
+    discount_value: Decimal | None,
+    base_price: Decimal | None,
+    *,
+    campaign_type: CampaignType,
+) -> CampaignOfferPrice:
     if base_price is None:
         return CampaignOfferPrice(
             base_price=None,
@@ -309,9 +434,9 @@ def campaign_discount_price(
     base = quantize_money(base_price)
     warning: str | None = None
     if (
-        contract.discount_type is DiscountType.INFO_ONLY
-        or contract.campaign_type is CampaignType.COUPON
-        or contract.discount_type is DiscountType.GIFT
+        discount_type is DiscountType.INFO_ONLY
+        or campaign_type is CampaignType.COUPON
+        or discount_type is DiscountType.GIFT
     ):
         # Information-only, coupon and gift campaigns do not change the price.
         return CampaignOfferPrice(
@@ -319,12 +444,12 @@ def campaign_discount_price(
             discount_amount=ZERO,
             final_price=base,
         )
-    if contract.discount_type is DiscountType.PERCENT:
-        value = contract.discount_value or ZERO
+    if discount_type is DiscountType.PERCENT:
+        value = discount_value or ZERO
         discount = quantize_money(base * value / HUNDRED)
         final = quantize_money(base - discount)
-    elif contract.discount_type is DiscountType.FIXED_AMOUNT:
-        value = contract.discount_value
+    elif discount_type is DiscountType.FIXED_AMOUNT:
+        value = discount_value
         if value is None:
             raise ValueError("Sabit tutar indirimi için değer girilmelidir.")
         if value > base:
@@ -334,8 +459,8 @@ def campaign_discount_price(
         else:
             discount = quantize_money(value)
             final = quantize_money(base - discount)
-    elif contract.discount_type is DiscountType.SPECIAL_PRICE:
-        value = contract.discount_value
+    elif discount_type is DiscountType.SPECIAL_PRICE:
+        value = discount_value
         if value is None:
             raise ValueError("Özel fiyat için değer girilmelidir.")
         final = quantize_money(value)

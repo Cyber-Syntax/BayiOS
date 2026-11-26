@@ -186,6 +186,58 @@ class SqlAlchemyCampaignRepository:
         ).all()
         return [(row[0], row[1]) for row in rows], total
 
+    def active_versions(
+        self, *, as_of: datetime
+    ) -> Sequence[tuple[Campaign, CampaignVersion]]:
+        current = aliased(CampaignVersion)
+        rows = self._session.execute(
+            sa.select(Campaign, current)
+            .select_from(Campaign)
+            .join(current, Campaign.current_version_id == current.id)
+            .where(
+                Campaign.is_archived.is_(False),
+                current.starts_at <= as_of,
+                current.ends_at >= as_of,
+            )
+            .order_by(current.ends_at, current.name, Campaign.id)
+        ).all()
+        return [(row[0], row[1]) for row in rows]
+
+    def active_for_basket(
+        self,
+        product_ids: Sequence[uuid.UUID],
+        category_ids: Sequence[uuid.UUID],
+        *,
+        as_of: datetime,
+    ) -> Sequence[tuple[Campaign, CampaignVersion]]:
+        if not product_ids and not category_ids:
+            return []
+        current = aliased(CampaignVersion)
+        link = aliased(CampaignVersionProduct)
+        match_conditions = []
+        if product_ids:
+            match_conditions.append(link.product_id.in_(product_ids))
+        if category_ids:
+            match_conditions.append(link.category_id.in_(category_ids))
+        matching = (
+            sa.select(link.campaign_version_id)
+            .where(sa.or_(*match_conditions))
+            .subquery()
+        )
+        rows = self._session.execute(
+            sa.select(Campaign, current)
+            .select_from(Campaign)
+            .join(current, Campaign.current_version_id == current.id)
+            .where(
+                Campaign.is_archived.is_(False),
+                current.starts_at <= as_of,
+                current.ends_at >= as_of,
+                current.id.in_(sa.select(matching.c.campaign_version_id)),
+            )
+            .order_by(current.ends_at, current.name, Campaign.id)
+        ).all()
+        return [(row[0], row[1]) for row in rows]
+
     def active_for_product(
         self, product_id: uuid.UUID, *, as_of: datetime
     ) -> Sequence[ActiveCampaignLink]:
@@ -200,6 +252,9 @@ class SqlAlchemyCampaignRepository:
             )
             .where(
                 CampaignVersionProduct.product_id == product_id,
+                CampaignVersionProduct.relation_type.in_(
+                    ("benefit", "related")
+                ),
                 Campaign.is_archived.is_(False),
                 current.starts_at <= as_of,
                 current.ends_at >= as_of,

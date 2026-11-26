@@ -103,6 +103,10 @@ class CampaignVersion(Base):
             "AND char_length(trim(gift_description)) > 0)",
             name="optional_gift_requires_description",
         ),
+        sa.CheckConstraint(
+            "min_basket_total IS NULL OR min_basket_total >= 0",
+            name="min_basket_total_non_negative",
+        ),
         sa.Index("ix_campaign_versions_campaign_id", "campaign_id"),
         sa.Index("ix_campaign_versions_dates", "starts_at", "ends_at"),
     )
@@ -127,6 +131,11 @@ class CampaignVersion(Base):
     gift_yes_base_price_type: Mapped[str | None] = mapped_column(sa.Text)
     gift_no_base_price_type: Mapped[str | None] = mapped_column(sa.Text)
     employee_note: Mapped[str | None] = mapped_column(sa.Text)
+    combines_with_others: Mapped[bool] = mapped_column(
+        sa.Boolean, server_default=sa.true()
+    )
+    exclusion_group: Mapped[str | None] = mapped_column(sa.Text)
+    min_basket_total: Mapped[Decimal | None] = mapped_column(MONEY)
     conditions: Mapped[list[str] | None] = mapped_column(JSONB)
     source_category: Mapped[str | None] = mapped_column(sa.Text)
     source_product_count: Mapped[int | None] = mapped_column(sa.Integer)
@@ -166,11 +175,35 @@ class CampaignVersionProduct(Base):
             "quantity_required IS NULL OR quantity_required > 0",
             name="quantity_required_positive",
         ),
+        sa.CheckConstraint(
+            "product_id IS NULL OR category_id IS NULL",
+            name="product_or_category_not_both",
+        ),
+        sa.CheckConstraint(
+            f"discount_type IS NULL OR discount_type IN {DISCOUNT_TYPE_SQL}",
+            name="relation_discount_type_valid",
+        ),
+        sa.CheckConstraint(
+            "base_price_type IS NULL "
+            f"OR base_price_type IN {BASE_PRICE_TYPE_SQL}",
+            name="relation_base_price_type_valid",
+        ),
+        sa.CheckConstraint(
+            "(discount_type IS NULL AND discount_value IS NULL) "
+            "OR (discount_type = 'percent' AND discount_value IS NOT NULL "
+            "AND discount_value >= 0 AND discount_value <= 100) "
+            "OR (discount_type IN ('fixed_amount', 'special_price') "
+            "AND discount_value IS NOT NULL AND discount_value >= 0) "
+            "OR (discount_type IN ('gift', 'info_only') "
+            "AND discount_value IS NULL)",
+            name="relation_discount_value_valid",
+        ),
         sa.Index(
             "ix_campaign_version_products_campaign_version_id",
             "campaign_version_id",
         ),
         sa.Index("ix_campaign_version_products_product_id", "product_id"),
+        sa.Index("ix_campaign_version_products_category_id", "category_id"),
     )
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -180,11 +213,18 @@ class CampaignVersionProduct(Base):
     product_id: Mapped[uuid.UUID | None] = mapped_column(
         sa.ForeignKey("products.id", ondelete="SET NULL")
     )
+    category_id: Mapped[uuid.UUID | None] = mapped_column(
+        sa.ForeignKey("product_categories.id", ondelete="SET NULL")
+    )
     product_name_snapshot: Mapped[str] = mapped_column(sa.Text)
     relation_type: Mapped[str] = mapped_column(
         sa.Text, server_default=sa.text("'related'")
     )
     quantity_required: Mapped[int | None] = mapped_column(sa.Integer)
+    discount_type: Mapped[str | None] = mapped_column(sa.Text)
+    discount_value: Mapped[Decimal | None] = mapped_column(MONEY)
+    base_price_type: Mapped[str | None] = mapped_column(sa.Text)
+    applies_per_unit: Mapped[bool | None] = mapped_column(sa.Boolean)
 
 
 class DealerPricing(Base):

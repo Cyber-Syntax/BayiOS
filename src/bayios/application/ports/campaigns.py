@@ -81,3 +81,15 @@ class CampaignRepository(Protocol):
     def active_for_product(
         self, product_id: uuid.UUID, *, as_of: datetime
     ) -> Sequence[ActiveCampaignLink]: ...
+
+    def active_versions(
+        self, *, as_of: datetime
+    ) -> Sequence[tuple[Campaign, CampaignVersion]]: ...
+
+    def active_for_basket(
+        self,
+        product_ids: Sequence[uuid.UUID],
+        category_ids: Sequence[uuid.UUID],
+        *,
+        as_of: datetime,
+    ) -> Sequence[tuple[Campaign, CampaignVersion]]: ...

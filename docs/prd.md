@@ -314,6 +314,11 @@ benefit kurallarıdır. Bayiler bu iki kampanyayı aynı sepette birleştirmek y
 fatura keserek her iki indirimden ayrı ayrı yararlanır. Bu nedenle aynı sepette kurutma + klima
 indirimlerinin "toplanması" davranışı modellenmez.
 
+**Sepet indirimi uygulaması:** Şart ürünü/kategorisi + fayda ürünü/kategorisi tanımlanabilir; bir kez
+uygulanan sabit indirim katılan satırlara orantılı dağıtılır. Aynı satırda yalnızca tek şirket indirimi
+(kampanya veya Oliz) geçerlidir; farklı satırlar farklı kampanya kullanabilir. Olası birleşimler arasından
+toplam indirimi en büyük yapan çözüm seçilir. Uygulama ayrıntısı: [campaign-refactor-plan.md](./campaign-refactor-plan.md) §5.
+
 ### 4.8 Komisyon ve minimum fiyat hesabı
 
 - Birden fazla banka desteklenir; banka listesi kullanıcı tarafından yönetilir ve formdan hızlıca yeni banka eklenebilir (§5.5 FR-FIN-01).

@@ -189,7 +189,7 @@ def test_offers_list_and_form_render(client: TestClient) -> None:
     assert form.status_code == 200
     assert "Yeni Teklif" in form.text
     assert "Bayi İndirimi" in form.text
-    assert "Otomatik (en yüksek indirim)" in form.text
+    assert "POS ile aynı (otomatik)" in form.text
 
 
 def test_new_offer_prefills_product_from_deep_link(

@@ -14,7 +14,6 @@ from bayios.adapters.db.models.campaigns import (
 )
 from bayios.adapters.db.models.products import Product
 from bayios.application.errors import NotFoundError, ValidationError
-from bayios.application.ports.campaigns import ActiveCampaignLink
 from bayios.application.ports.unit_of_work import UnitOfWork
 from bayios.domain.campaigns import (
     BASE_PRICE_TYPE_LABELS,
@@ -45,9 +44,14 @@ from bayios.domain.products import ActorContext
 
 @dataclass(frozen=True)
 class CampaignProductInput:
-    product_id: uuid.UUID
+    product_id: uuid.UUID | None = None
     relation_type: ProductRelationType = ProductRelationType.RELATED
     quantity_required: int | None = None
+    category_id: uuid.UUID | None = None
+    discount_type: DiscountType | None = None
+    discount_value: Decimal | None = None
+    base_price_type: BasePriceType | None = None
+    applies_per_unit: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -65,6 +69,9 @@ class CampaignInput:
     gift_yes_base_price_type: BasePriceType | None = None
     gift_no_base_price_type: BasePriceType | None = None
     employee_note: str | None = None
+    combines_with_others: bool = True
+    exclusion_group: str | None = None
+    min_basket_total: Decimal | None = None
     external_id: str | None = None
     source_url: str | None = None
     conditions: tuple[str, ...] = ()
@@ -81,6 +88,13 @@ class CampaignProductView:
     relation_type: str
     relation_label: str
     quantity_required: int | None
+    category_id: uuid.UUID | None = None
+    target_type: str = "product"
+    discount_type: str | None = None
+    discount_type_label: str | None = None
+    discount_value: Decimal | None = None
+    base_price_type: str | None = None
+    applies_per_unit: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -105,6 +119,9 @@ class CampaignVersionView:
     gift_yes_base_price_type: str | None
     gift_no_base_price_type: str | None
     employee_note: str | None
+    combines_with_others: bool
+    exclusion_group: str | None
+    min_basket_total: Decimal | None
     conditions: tuple[str, ...]
     source_category: str | None
     source_product_count: int | None
@@ -380,10 +397,11 @@ def get_campaign_detail(
         )
         price_input = _price_input(selected_product, pricing)
         scenarios: tuple[CampaignScenario, ...] = ()
-        if price_input is not None:
+        contract = _contract_from_row(current, current_links)
+        if price_input is not None and not contract.explicit_benefit_links:
             try:
                 scenarios = campaign_scenarios(
-                    _contract_from_row(current, current_links),
+                    contract,
                     price_input,
                     percent,
                 )
@@ -436,45 +454,60 @@ def list_active_campaigns_for_product(
             return ()
         pricing = uow.dealer_pricing.get(product_id)
         percent = _effective_dealer_percent(uow, dealer_percent)
-        links = uow.campaigns.active_for_product(product_id, as_of=reference)
-        if not links:
+        category_id = getattr(product, "category_id", None)
+        rows = uow.campaigns.active_for_basket(
+            [product_id],
+            [category_id] if category_id is not None else [],
+            as_of=reference,
+        )
+        if not rows:
             return ()
 
+        version_ids = [version.id for _campaign, version in rows]
         links_by_version = uow.campaigns.get_version_products_for_versions(
-            list({link.version.id for link in links})
+            version_ids
         )
         price_input = _price_input(product, pricing)
-        grouped: dict[uuid.UUID, list[ActiveCampaignLink]] = {}
-        for link in links:
-            grouped.setdefault(link.version.id, []).append(link)
 
         views: list[ProductCampaignView] = []
-        for version_id, version_links in grouped.items():
-            first = version_links[0]
-            version = first.version
-            contract = _contract_from_row(
-                version, links_by_version.get(version_id, ())
-            )
-            try:
-                scenarios = campaign_scenarios(contract, price_input, percent)
-            except ValueError as exc:
-                raise ValidationError(
-                    f"Kampanya senaryosu hesaplanamadı: {exc}"
-                ) from exc
-            state = _state(first.campaign, version, reference)
+        for campaign, version in rows:
+            version_links = links_by_version.get(version.id, ())
+            matching_links = [
+                link
+                for link in version_links
+                if link.product_id == product_id
+                or (
+                    category_id is not None
+                    and getattr(link, "category_id", None) == category_id
+                )
+            ]
+            if not matching_links:
+                matching_links = list(version_links)
+            contract = _contract_from_row(version, version_links)
+            scenarios: tuple[CampaignScenario, ...] = ()
+            if not contract.explicit_benefit_links:
+                try:
+                    scenarios = campaign_scenarios(
+                        contract, price_input, percent
+                    )
+                except ValueError as exc:
+                    raise ValidationError(
+                        f"Kampanya senaryosu hesaplanamadı: {exc}"
+                    ) from exc
+            state = _state(campaign, version, reference)
             relation_labels = ", ".join(
                 sorted(
                     {
                         PRODUCT_RELATION_TYPE_LABELS[
-                            ProductRelationType(link.link.relation_type)
+                            ProductRelationType(link.relation_type)
                         ]
-                        for link in version_links
+                        for link in matching_links
                     }
                 )
             )
             views.append(
                 ProductCampaignView(
-                    campaign_id=first.campaign.id,
+                    campaign_id=campaign.id,
                     campaign_name=version.name,
                     version_no=version.version_no,
                     starts_at=version.starts_at,
@@ -497,24 +530,61 @@ def list_active_campaigns_for_product(
 
 
 def _build_contract(uow: UnitOfWork, data: CampaignInput) -> CampaignContract:
-    product_ids = [item.product_id for item in data.products]
+    product_ids = [
+        item.product_id for item in data.products if item.product_id is not None
+    ]
+    category_ids = [
+        item.category_id for item in data.products if item.category_id is not None
+    ]
     products = (
         {product.id: product for product in uow.products.get_by_ids(product_ids)}
         if product_ids
         else {}
     )
-    missing = [product_id for product_id in product_ids if product_id not in products]
-    if missing:
+    categories = (
+        {
+            category.id: category
+            for category in uow.products.get_categories()
+            if category.id in set(category_ids)
+        }
+        if category_ids
+        else {}
+    )
+    missing_products = [
+        product_id for product_id in product_ids if product_id not in products
+    ]
+    if missing_products:
         raise ValidationError("Seçilen ürünlerden bazıları bulunamadı.")
+    missing_categories = [
+        category_id
+        for category_id in category_ids
+        if category_id not in categories
+    ]
+    if missing_categories:
+        raise ValidationError("Seçilen kategorilerden bazıları bulunamadı.")
 
     links = tuple(
         CampaignProductLink(
-            product_id=str(item.product_id),
-            product_name=products[item.product_id].name,
+            product_id=(
+                str(item.product_id) if item.product_id is not None else None
+            ),
+            category_id=(
+                str(item.category_id) if item.category_id is not None else None
+            ),
+            product_name=(
+                products[item.product_id].name
+                if item.product_id is not None
+                else categories[item.category_id].name
+            ),
             relation_type=item.relation_type,
             quantity_required=item.quantity_required,
+            discount_type=item.discount_type,
+            discount_value=item.discount_value,
+            base_price_type=item.base_price_type,
+            applies_per_unit=item.applies_per_unit,
         )
         for item in data.products
+        if item.product_id is not None or item.category_id is not None
     )
     try:
         return CampaignContract(
@@ -531,6 +601,9 @@ def _build_contract(uow: UnitOfWork, data: CampaignInput) -> CampaignContract:
             gift_yes_base_price_type=data.gift_yes_base_price_type,
             gift_no_base_price_type=data.gift_no_base_price_type,
             employee_note=_clean_text(data.employee_note),
+            combines_with_others=data.combines_with_others,
+            exclusion_group=_clean_text(data.exclusion_group),
+            min_basket_total=data.min_basket_total,
             conditions=tuple(
                 condition.strip()
                 for condition in data.conditions
@@ -578,6 +651,9 @@ def _version_row(
             else None
         ),
         employee_note=contract.employee_note,
+        combines_with_others=contract.combines_with_others,
+        exclusion_group=contract.exclusion_group,
+        min_basket_total=contract.min_basket_total,
         conditions=list(contract.conditions) if contract.conditions else None,
         source_category=contract.source_category,
         source_product_count=contract.source_product_count,
@@ -596,9 +672,20 @@ def _link_rows(
             id=uuid.uuid4(),
             campaign_version_id=version_id,
             product_id=uuid.UUID(link.product_id) if link.product_id else None,
+            category_id=(
+                uuid.UUID(link.category_id) if link.category_id else None
+            ),
             product_name_snapshot=link.product_name,
             relation_type=link.relation_type.value,
             quantity_required=link.quantity_required,
+            discount_type=(
+                link.discount_type.value if link.discount_type else None
+            ),
+            discount_value=link.discount_value,
+            base_price_type=(
+                link.base_price_type.value if link.base_price_type else None
+            ),
+            applies_per_unit=link.applies_per_unit,
         )
         for link in contract.products
     )
@@ -630,15 +717,39 @@ def _contract_from_row(
             else None
         ),
         employee_note=version.employee_note,
+        combines_with_others=(
+            True
+            if getattr(version, "combines_with_others", True) is None
+            else bool(version.combines_with_others)
+        ),
+        exclusion_group=getattr(version, "exclusion_group", None),
+        min_basket_total=getattr(version, "min_basket_total", None),
         conditions=tuple(version.conditions or ()),
         source_category=version.source_category,
         source_product_count=version.source_product_count,
         products=tuple(
             CampaignProductLink(
                 product_id=str(link.product_id) if link.product_id else None,
+                category_id=(
+                    str(link.category_id)
+                    if getattr(link, "category_id", None)
+                    else None
+                ),
                 product_name=link.product_name_snapshot,
                 relation_type=ProductRelationType(link.relation_type),
                 quantity_required=link.quantity_required,
+                discount_type=(
+                    DiscountType(link.discount_type)
+                    if getattr(link, "discount_type", None)
+                    else None
+                ),
+                discount_value=getattr(link, "discount_value", None),
+                base_price_type=(
+                    BasePriceType(link.base_price_type)
+                    if getattr(link, "base_price_type", None)
+                    else None
+                ),
+                applies_per_unit=getattr(link, "applies_per_unit", None),
             )
             for link in links
         ),
@@ -676,6 +787,13 @@ def _version_view(
         gift_yes_base_price_type=version.gift_yes_base_price_type,
         gift_no_base_price_type=version.gift_no_base_price_type,
         employee_note=version.employee_note,
+        combines_with_others=(
+            True
+            if getattr(version, "combines_with_others", True) is None
+            else bool(version.combines_with_others)
+        ),
+        exclusion_group=getattr(version, "exclusion_group", None),
+        min_basket_total=getattr(version, "min_basket_total", None),
         conditions=tuple(version.conditions or ()),
         source_category=version.source_category,
         source_product_count=version.source_product_count,
@@ -710,18 +828,35 @@ def _list_item(
         discount_type_label=DISCOUNT_TYPE_LABELS[discount_type],
         discount_value=version.discount_value,
         gift_description=version.gift_description,
-        product_count=len(links),
+        product_count=sum(
+            1 for link in links if link.product_id is not None
+        ),
     )
 
 
 def _product_view(link: CampaignVersionProduct) -> CampaignProductView:
     relation = ProductRelationType(link.relation_type)
+    discount_type = (
+        DiscountType(link.discount_type)
+        if getattr(link, "discount_type", None)
+        else None
+    )
+    category_id = getattr(link, "category_id", None)
     return CampaignProductView(
         product_id=link.product_id,
         product_name=link.product_name_snapshot,
         relation_type=relation.value,
         relation_label=PRODUCT_RELATION_TYPE_LABELS[relation],
         quantity_required=link.quantity_required,
+        category_id=category_id,
+        target_type="category" if category_id else "product",
+        discount_type=discount_type.value if discount_type else None,
+        discount_type_label=(
+            DISCOUNT_TYPE_LABELS[discount_type] if discount_type else None
+        ),
+        discount_value=getattr(link, "discount_value", None),
+        base_price_type=getattr(link, "base_price_type", None),
+        applies_per_unit=getattr(link, "applies_per_unit", None),
     )
 
 

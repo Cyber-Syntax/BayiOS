@@ -687,6 +687,42 @@ class FakeCampaignRepository:
         total = len(rows)
         return rows[offset : offset + limit], total
 
+    def active_versions(
+        self, *, as_of: datetime
+    ) -> Sequence[tuple[Campaign, CampaignVersion]]:
+        rows: list[tuple[Campaign, CampaignVersion]] = []
+        for campaign in self.campaigns.values():
+            if campaign.is_archived:
+                continue
+            version = self.get_current_version(campaign.id)
+            if version is None:
+                continue
+            if version.starts_at > as_of or version.ends_at < as_of:
+                continue
+            rows.append((campaign, version))
+        rows.sort(key=lambda item: (item[1].ends_at, item[1].name))
+        return rows
+
+    def active_for_basket(
+        self,
+        product_ids: Sequence[uuid.UUID],
+        category_ids: Sequence[uuid.UUID],
+        *,
+        as_of: datetime,
+    ) -> Sequence[tuple[Campaign, CampaignVersion]]:
+        products = set(product_ids)
+        categories = set(category_ids)
+        rows: list[tuple[Campaign, CampaignVersion]] = []
+        for campaign, version in self.active_versions(as_of=as_of):
+            for link in self.version_products.get(version.id, []):
+                if (
+                    link.product_id in products
+                    or link.category_id in categories
+                ):
+                    rows.append((campaign, version))
+                    break
+        return rows
+
     def active_for_product(
         self, product_id: uuid.UUID, *, as_of: datetime
     ) -> Sequence[ActiveCampaignLink]:
@@ -700,7 +736,10 @@ class FakeCampaignRepository:
             if version.starts_at > as_of or version.ends_at < as_of:
                 continue
             for link in self.version_products.get(version.id, []):
-                if link.product_id == product_id:
+                if (
+                    link.product_id == product_id
+                    and link.relation_type in ("benefit", "related")
+                ):
                     results.append(
                         ActiveCampaignLink(
                             campaign=campaign,

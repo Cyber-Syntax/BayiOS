@@ -73,6 +73,7 @@
                   <div x-show="item.campaign_name" class="offer-line-campaign">
                     <span class="offer-line-campaign-name" x-text="item.campaign_name" :title="item.campaign_name"></span>
                     <span class="muted small" x-text="campaignEffect(item)"></span>
+                    <span class="muted small" x-show="item.is_basket">Sepet kampanyası; kayıtta hesaplanır</span>
                     <strong class="mono small" x-text="formatMoney(item.campaign_price) + ' TL'"></strong>
                   </div>
                 </div>
@@ -89,9 +90,9 @@
                 <div class="form-group">
                   <label>Kampanya</label>
                   <select name="campaign_id" class="form-control" x-model="item.campaign_id" @change="campaignChanged(item); notifyChange()">
-                    <option value="auto">Otomatik (en yüksek indirim)</option>
-                    <option value="">Kampanya yok</option>
-                    {% for campaign in campaigns %}<option value="{{ campaign.id }}">{{ campaign.name }}</option>{% endfor %}
+                    <template x-for="option in campaignOptions(item)" :key="option.value">
+                      <option :value="option.value" x-text="option.label"></option>
+                    </template>
                   </select>
                 </div>
                 <div class="form-group">
@@ -196,6 +197,15 @@
 
         {{ basket_totals(none, false) }}
 
+        <div id="offer-basket-preview"
+             hx-post="/offers/basket-preview"
+             hx-trigger="load delay:500ms, offer-changed from:body, change from:#offer-form, input delay:600ms from:#offer-form"
+             hx-include="#offer-form"
+             hx-target="this"
+             hx-swap="innerHTML">
+          <p class="muted" style="margin: 0;">Sepet kampanya önizlemesi hazırlanıyor…</p>
+        </div>
+
         <details class="accordion offer-scenario-accordion" open>
           <summary>
             <span class="accordion-title">{{ icon("chart") }} Senaryo Özeti</span>
@@ -297,6 +307,7 @@
         company_price: item.company_price || '',
         company_discount: item.company_discount || '0',
         company_share: item.company_share || '0',
+        is_basket: item.is_basket || false,
         key: (item.product_id || item.product_name) + '-' + index + '-' + Date.now(),
       })),
       init() {
@@ -326,6 +337,7 @@
           company_price: selected.price || payload.regular_price || '',
           company_discount: selected.discount_amount || '0',
           company_share: selected.share_amount || '0',
+          is_basket: selected.is_basket || false,
           key: payload.product_id + '-' + Date.now(),
         });
         this.$nextTick(() => this.notifyChange());
@@ -389,6 +401,27 @@
       notifyChange() {
         document.body.dispatchEvent(new CustomEvent('offer-changed'));
       },
+      campaignOptions(item) {
+        const options = [
+          { value: 'auto', label: 'POS ile aynı (otomatik)' },
+          { value: '', label: 'Kampanya yok (Oliz)' },
+        ];
+        const seen = new Set(options.map((option) => option.value));
+        const previews = item.previews || {};
+        Object.entries(previews).forEach(([key, preview]) => {
+          if (key === 'none' || key === 'auto' || seen.has(key)) return;
+          const label = (preview.campaign_name || key) + (preview.is_basket ? ' (sepet kampanyası)' : '');
+          options.push({ value: key, label });
+          seen.add(key);
+        });
+        if (item.campaign_id && !seen.has(item.campaign_id)) {
+          options.push({
+            value: item.campaign_id,
+            label: (item.campaign_name || 'Seçili kampanya') + ' (pasif)',
+          });
+        }
+        return options;
+      },
       campaignChanged(item) {
         const key = item.campaign_id === '' ? 'none' : item.campaign_id;
         const preview = item.previews[key] || item.previews.auto || item.previews.none || {};
@@ -400,6 +433,7 @@
         item.company_price = preview.price || item.regular_price || '';
         item.company_discount = preview.discount_amount || '0';
         item.company_share = preview.share_amount || '0';
+        item.is_basket = preview.is_basket || false;
       },
       campaignEffect(item) {
         if (!item.campaign_name) return '';
