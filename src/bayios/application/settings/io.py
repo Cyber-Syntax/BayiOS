@@ -22,6 +22,7 @@ from bayios.domain.naming import canonical_display_name, normalize_name
 
 BANK_HEADERS = {
     "name": ("Banka", "Bank", "name"),
+    "card_networks": ("Kart Ağları", "Kart Aglari", "card_networks"),
     "active": ("Aktif", "Durum", "active"),
 }
 CATEGORY_HEADERS = {
@@ -38,6 +39,7 @@ def export_banks_xlsx(uow: UnitOfWork) -> bytes:
         rows = [
             {
                 "name": bank.name,
+                "card_networks": ", ".join(bank.card_networks or []),
                 "active": "Evet" if bank.is_active else "Hayır",
             }
             for bank in banks
@@ -46,11 +48,13 @@ def export_banks_xlsx(uow: UnitOfWork) -> bytes:
         title="Bankalar",
         columns=(
             ColumnSpec("Banka", "name", "text", 28),
+            ColumnSpec("Kart Ağları", "card_networks", "text", 28),
             ColumnSpec("Aktif", "active", "text", 10),
         ),
         rows=rows,
         instructions=(
             ("Banka", "Zorunlu", "Banka adı; normalize edilerek eşleştirilir."),
+            ("Kart Ağları", "Opsiyonel", "Virgülle: World, Bonus, Maximum. Boşsa mevcut değer korunur."),
             ("Aktif", "Opsiyonel", "Evet/Hayır; boşsa mevcut değer korunur."),
         ),
     )
@@ -95,6 +99,24 @@ def _parse_active(value: object) -> bool | None:
     raise ValueError("Aktif değeri Evet/Hayır olmalıdır.")
 
 
+def _parse_networks(value: object) -> list[str] | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    networks: list[str] = []
+    seen: set[str] = set()
+    for item in raw.split(","):
+        cleaned = " ".join(item.split())
+        if not cleaned:
+            continue
+        key = cleaned.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        networks.append(cleaned)
+    return networks or None
+
+
 def _parse_group(value: object) -> str | None:
     text = normalize_header(value)
     if not text:
@@ -111,7 +133,7 @@ def import_banks_xlsx(uow: UnitOfWork, source: bytes) -> MasterImportResult:
     layout = locate_header(
         sheet.rows, BANK_HEADERS, required=("name",), sheet_label=sheet.name
     )
-    parsed: list[tuple[int, str, str, bool | None]] = []
+    parsed: list[tuple[int, str, str, list[str] | None, bool | None]] = []
     errors: list[str] = []
     seen: set[str] = set()
     for offset, raw in enumerate(sheet.rows[layout.row_index + 1 :], start=1):
@@ -130,12 +152,20 @@ def import_banks_xlsx(uow: UnitOfWork, source: bytes) -> MasterImportResult:
         except ValueError as exc:
             errors.append(f"Satır {row_number}: {exc}")
             continue
-        parsed.append((row_number, canonical, normalized, active))
+        parsed.append(
+            (
+                row_number,
+                canonical,
+                normalized,
+                _parse_networks(row_value(raw, layout, "card_networks")),
+                active,
+            )
+        )
     if errors:
         raise ValidationError(" ".join(errors[:5]))
     created = updated = skipped = 0
     with uow:
-        for _row, canonical, normalized, active in parsed:
+        for _row, canonical, normalized, networks, active in parsed:
             existing = uow.commissions.get_bank_by_normalized(normalized)
             if existing is None:
                 uow.commissions.add_bank(
@@ -143,6 +173,7 @@ def import_banks_xlsx(uow: UnitOfWork, source: bytes) -> MasterImportResult:
                         id=uuid.uuid4(),
                         name=canonical,
                         name_normalized=normalized,
+                        card_networks=networks,
                         is_active=True if active is None else active,
                     )
                 )
@@ -150,6 +181,8 @@ def import_banks_xlsx(uow: UnitOfWork, source: bytes) -> MasterImportResult:
                 continue
             if existing.name != canonical:
                 existing.name = canonical
+            if networks is not None and existing.card_networks != networks:
+                existing.card_networks = networks
             if active is not None and existing.is_active != active:
                 existing.is_active = active
             updated += 1

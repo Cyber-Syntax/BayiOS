@@ -1,6 +1,6 @@
 # Kampanya Sistemi ve Teklif Fiyatlama Refactor Planı
 
-Durum: **Çekirdek uygulandı** (26 Kasım 2026); kart ağı ve bedava ürün alanları sonraki adım · Hazırlayan: lead · Tarih: 23 Kasım 2026
+Durum: **Çekirdek + kart ağı + hediye + dışlama grubu uygulandı** (26 Kasım 2026); %100 bedava ürün benefit türü sonraki adım · Hazırlayan: lead · Tarih: 23 Kasım 2026
 Kapsam: kampanya veri modeli + sepet çözümleme motoru + teklif toplamları + ödeme tipi UX + yeni kampanya türleri.
 
 Bu belge, bayios'taki kampanyaların tekliflerle birlikte kullanıldığında "tam anlaşılmama" sorununu
@@ -290,8 +290,15 @@ Bu bölüm, planın koda nasıl geçtiğini özetler; ayrıntı için kod ve tes
   olarak doğrulanır. Ödeme koşulları JSON ile taşınır; Excel güncellemesinde korunur.
 - **Dışlama grubu:** `exclusion_group` alanı DB/JSON'da korunur; aynı grup için sepet geneli
   "yalnızca bir kampanya" zorlaması henüz UI'da yok. Satır bazlı tek kampanya kuralı geçerlidir.
-- **Kart ağı / bedava ürün:** Banka kart ağı etiketi ve otomatik bedava/hediye ürün satırı henüz
-  yok; hediye kampanyaları bilgi olarak gösterilir.
+- **Kart ağı:** `banks.card_networks` ile bankaya World/Bonus/Maximum gibi ağlar atanır; teklifte
+  kart ağı seçilebilir ve kampanya ödeme koşulu kart ağına göre filtrelenir.
+- **Hediye:** `gift` ilişkili ürünler, kampanyanın tetikleyicisi ve ödeme koşulu sağlandığında teklife
+  **0 TL hediye satırı** olarak eklenir. İsteğe bağlı hediyede çalışan "Hediye yok" seçerse satır eklenmez.
+  Hediye satırı rezervasyon/teslim akışına dahildir; stok çıkışı normal teslimatla yapılır.
+- **Bedava ürün indirimi:** %100 indirimli ürün (fiyatı sıfırlayan kural) henüz ayrı bir benefit türü
+  olarak modellenmedi; hediye satırı bunun pratik karşılığıdır.
+- **Dışlama grubu:** Aynı `exclusion_group` değerine sahip kampanyalardan sepet genelinde en yüksek
+  toplam indirimi veren uygulanır; gruptaki diğer kampanyalar o sepette devre dışı kalır.
 - **İçe/dışa aktarma:** JSON kategori hedeflerini ve kural alanlarını taşır; aynı şema ile geri
   içe aktarılabilir. Excel ürün sayfası yalnız ürün ilişkilerini taşır; mevcut kampanya Excel'den
   güncellenirse kategori kuralları ve kampanya seviyesindeki birleşme/eşik alanları korunur.

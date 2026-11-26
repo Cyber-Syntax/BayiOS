@@ -51,6 +51,7 @@ OFFER_HEADERS = {
     "payment_type": ("Ödeme Türü", "Odeme Turu", "payment_type"),
     "channel": ("Kanal", "channel"),
     "bank": ("Banka", "bank"),
+    "card_network": ("Kart Ağı", "Kart Agi", "card_network"),
     "installment_count": ("Taksit", "Taksit Sayısı", "installment_count"),
     "card_type": ("Kart Tipi", "Kart Tipi", "card_type"),
     "dealer_discount_percent": (
@@ -93,6 +94,7 @@ ITEM_HEADERS = {
     "quantity": ("Adet", "Miktar", "quantity"),
     "campaign": ("Kampanya", "campaign", "campaign_name"),
     "gift_present": ("Hediye Durumu", "gift_present"),
+    "is_gift": ("Hediye Ürün", "Hediye Urun", "is_gift"),
     "unit_price_cash": ("Nakit Birim Fiyat", "unit_price_cash"),
     "unit_price_card": ("Kart Birim Fiyat", "unit_price_card"),
 }
@@ -306,6 +308,7 @@ def _parse_offers(
                     "quantity": row_value(raw, item_layout, "quantity"),
                     "campaign": row_value(raw, item_layout, "campaign"),
                     "gift_present": row_value(raw, item_layout, "gift_present"),
+                    "is_gift": row_value(raw, item_layout, "is_gift"),
                     "unit_price_cash": row_value(raw, item_layout, "unit_price_cash"),
                     "unit_price_card": row_value(raw, item_layout, "unit_price_card"),
                 }
@@ -379,6 +382,10 @@ def _parse_offers(
             except ValueError as exc:
                 errors.append(str(exc))
                 card_type = None
+            card_network = (
+                str(row_value(raw, offer_layout, "card_network") or "").strip()
+                or None
+            )
             try:
                 installment_count = parse_int(
                     row_value(raw, offer_layout, "installment_count"),
@@ -508,6 +515,8 @@ def _parse_offers(
                         )
                     else:
                         campaign_id = matches[0].id
+                if parse_bool(item["is_gift"], "Hediye ürün"):
+                    continue
                 gift_present = None
                 try:
                     gift_present = parse_bool(item["gift_present"], "Hediye durumu")
@@ -541,6 +550,7 @@ def _parse_offers(
                 items=tuple(offer_items),
                 channel=channel,
                 bank_id=bank.id if bank is not None else None,
+                card_network=card_network,
                 installment_count=installment_count,
                 card_type=card_type,
                 note=str(row_value(raw, offer_layout, "note") or "").strip() or None,

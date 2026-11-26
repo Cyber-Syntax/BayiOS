@@ -104,6 +104,7 @@ class Offer(Base):
         sa.ForeignKey("banks.id", ondelete="SET NULL")
     )
     bank_name_snapshot: Mapped[str | None] = mapped_column(sa.Text)
+    card_network: Mapped[str | None] = mapped_column(sa.Text)
     installment_count: Mapped[int | None] = mapped_column(sa.Integer)
     card_type: Mapped[str | None] = mapped_column(sa.Text)
     dealer_discount_percent: Mapped[Decimal] = mapped_column(

@@ -714,13 +714,17 @@ class FakeCampaignRepository:
         categories = set(category_ids)
         rows: list[tuple[Campaign, CampaignVersion]] = []
         for campaign, version in self.active_versions(as_of=as_of):
-            for link in self.version_products.get(version.id, []):
-                if (
+            links = self.version_products.get(version.id, [])
+            if (
+                getattr(version, "min_basket_total", None) is not None
+                or any(link.relation_type == "gift" for link in links)
+                or any(
                     link.product_id in products
                     or link.category_id in categories
-                ):
-                    rows.append((campaign, version))
-                    break
+                    for link in links
+                )
+            ):
+                rows.append((campaign, version))
         return rows
 
     def active_for_product(

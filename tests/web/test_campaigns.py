@@ -296,6 +296,7 @@ def test_campaign_form_accepts_payment_condition(
             "payment_channel": "pos",
             "payment_bank_id": str(bank_id),
             "payment_card_type": "consumer",
+            "payment_card_network": "World",
             "payment_installment_count": "8",
             "product_id": str(product.id),
             "relation_type": "benefit",
@@ -315,7 +316,7 @@ def test_campaign_form_accepts_payment_condition(
             "channel": "pos",
             "bank_ids": [str(bank_id)],
             "card_type": "consumer",
-            "card_network": None,
+            "card_network": "World",
             "installment_count": 8,
         }
     ]
@@ -323,6 +324,7 @@ def test_campaign_form_accepts_payment_condition(
     assert detail.status_code == 200
     assert "8 taksit" in detail.text
     assert "Bireysel" in detail.text
+    assert "World" in detail.text
 
 
 def test_campaign_filters_by_type(

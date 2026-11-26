@@ -159,6 +159,13 @@
                   </select>
                 </div>
                 <div class="form-group">
+                  <label for="offer-card-network">Kart Ağı (isteğe bağlı)</label>
+                  <select id="offer-card-network" name="card_network" class="form-control">
+                    <option value="">Genel</option>
+                    {% for network in card_network_options %}<option value="{{ network }}" {% if values.card_network == network %}selected{% endif %}>{{ network }}</option>{% endfor %}
+                  </select>
+                </div>
+                <div class="form-group">
                   <label for="offer-installment">Taksit</label>
                   <input type="number" id="offer-installment" name="installment_count" class="form-control" min="1" value="{{ values.installment_count }}" inputmode="numeric">
                 </div>

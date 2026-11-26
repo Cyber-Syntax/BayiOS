@@ -236,6 +236,27 @@ def _active_card_uow(
     return uow, product.id
 
 
+def test_card_offer_stores_card_network() -> None:
+    uow, product_id = _active_card_uow()
+    offer_id = create_offer(
+        uow,
+        OfferInput(
+            customer_name="Kart Ağı",
+            customer_phone=None,
+            payment_type=PaymentType.CARD,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product_id, 1),),
+            channel=PaymentChannel.POS,
+            card_network="World",
+            installment_count=2,
+            card_type=CardType.CONSUMER,
+        ),
+    )
+    detail = get_offer_detail(uow, offer_id)
+    assert detail is not None
+    assert detail.offer.card_network == "World"
+
+
 def test_card_offer_can_be_saved_without_bank() -> None:
     uow, product_id = _active_card_uow()
     offer_id = create_offer(

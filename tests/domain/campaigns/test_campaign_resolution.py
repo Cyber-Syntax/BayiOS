@@ -290,3 +290,53 @@ def test_qualifying_quantity_required_is_enforced() -> None:
     two = [BasketLine("l1", "p1", None, 2, Decimal(10000), None)]
     assert resolve_basket(one, _campaigns(contract)).lines["l1"].unit_discount == Decimal(0)
     assert resolve_basket(two, _campaigns(contract)).lines["l1"].unit_discount == Decimal("1000.00")
+
+
+def test_exclusion_group_keeps_largest_basket_campaign() -> None:
+    def contract(name: str, product: str, percent: int) -> CampaignContract:
+        return CampaignContract(
+            name=name,
+            campaign_type=CampaignType.PRODUCT_DISCOUNT,
+            starts_at=NOW,
+            ends_at=NOW,
+            discount_type=DiscountType.PERCENT,
+            discount_value=Decimal(percent),
+            exclusion_group="grup",
+            products=(
+                CampaignProductLink(
+                    product, product, ProductRelationType.RELATED
+                ),
+            ),
+        )
+
+    lines = [
+        BasketLine("l1", "p1", None, 1, Decimal(10000), None),
+        BasketLine("l2", "p2", None, 1, Decimal(10000), None),
+    ]
+    campaigns = _campaigns(
+        contract("Büyük", "p1", 50),
+        contract("Küçük", "p2", 10),
+    )
+    resolution = resolve_basket(lines, campaigns)
+    assert resolution.lines["l1"].unit_discount == Decimal("5000.00")
+    assert resolution.lines["l2"].unit_discount == Decimal(0)
+
+    separate = _campaigns(
+        contract("Büyük", "p1", 50),
+        CampaignContract(
+            name="Küçük",
+            campaign_type=CampaignType.PRODUCT_DISCOUNT,
+            starts_at=NOW,
+            ends_at=NOW,
+            discount_type=DiscountType.PERCENT,
+            discount_value=Decimal(10),
+            products=(
+                CampaignProductLink(
+                    "p2", "p2", ProductRelationType.RELATED
+                ),
+            ),
+        ),
+    )
+    resolution = resolve_basket(lines, separate)
+    assert resolution.lines["l1"].unit_discount == Decimal("5000.00")
+    assert resolution.lines["l2"].unit_discount == Decimal("1000.00")

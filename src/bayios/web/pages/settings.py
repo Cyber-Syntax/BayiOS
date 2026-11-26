@@ -22,6 +22,7 @@ from bayios.application.settings import (
     rename_bank,
     rename_category,
     set_bank_active,
+    update_bank_card_networks,
     update_category_group,
 )
 from bayios.application.settings.io import (
@@ -128,6 +129,22 @@ def rename_bank_route(
         return _redirect_error("/settings/banks", exc)
     return RedirectResponse(
         url=f"/settings/banks?{urlencode({'msg': 'renamed', 'count': bank.name})}",
+        status_code=303,
+    )
+
+
+@router.post("/banks/{bank_id}/card-networks")
+def bank_card_networks_route(
+    bank_id: uuid.UUID,
+    uow: UnitOfWorkDep,
+    card_networks: Annotated[str | None, Form()] = None,
+) -> RedirectResponse:
+    try:
+        bank = update_bank_card_networks(uow, bank_id, card_networks or "")
+    except (NotFoundError, ValidationError) as exc:
+        return _redirect_error("/settings/banks", exc)
+    return RedirectResponse(
+        url=f"/settings/banks?{urlencode({'msg': 'bank_networks', 'count': bank.name})}",
         status_code=303,
     )
 

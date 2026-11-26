@@ -89,6 +89,21 @@ class BasketResolution:
 
 
 @dataclass(frozen=True)
+class GiftProduct:
+    """One gift product earned by an eligible campaign."""
+
+    campaign_id: str
+    version_id: str
+    campaign_name: str
+    version_no: int
+    product_id: str
+    product_name: str
+    quantity: int
+    optional: bool
+    description: str | None
+
+
+@dataclass(frozen=True)
 class _Alternative:
     benefit: LineBenefit
     unit_discount: Decimal
@@ -160,6 +175,9 @@ def resolve_basket(
             payment,
         )
     ]
+    active_campaigns = _apply_exclusion_groups(
+        active_campaigns, lines, allowed_by_line
+    )
 
     base_alternatives = {
         line.key: _best_alternative(
@@ -229,6 +247,122 @@ def resolve_basket(
     )
 
 
+def eligible_gift_campaigns(
+    lines: Sequence[BasketLine],
+    campaigns: Sequence[BasketCampaign],
+    *,
+    preferences: Mapping[str, str] | None = None,
+    payment: PaymentContext | None = None,
+) -> tuple[GiftProduct, ...]:
+    """Return gift products earned by eligible campaigns.
+
+    Gift-only campaigns are not price discounts; they add a free line. The same
+    trigger, payment and per-line preference rules apply as for discounts.
+    """
+    if not lines:
+        return ()
+    preference_map = dict(preferences or {})
+    basket_total = sum((line.regular_total for line in lines), ZERO)
+    allowed_by_line: dict[str, frozenset[str]] = {}
+    for line in lines:
+        preference = (preference_map.get(line.key) or "auto").strip()
+        if preference == "auto":
+            allowed_by_line[line.key] = frozenset(
+                campaign.campaign_id for campaign in campaigns
+            )
+        elif preference in ("", "none"):
+            allowed_by_line[line.key] = frozenset()
+        else:
+            allowed_by_line[line.key] = frozenset({preference})
+    eligible = [
+        campaign
+        for campaign in campaigns
+        if _campaign_reaches_basket(
+            campaign, lines, basket_total, allowed_by_line, payment
+        )
+    ]
+    eligible = _apply_exclusion_groups(eligible, lines, allowed_by_line)
+    gifts: list[GiftProduct] = []
+    seen_products: set[str] = set()
+    for campaign in eligible:
+        for link in campaign.contract.gift_links:
+            if link.product_id is None or link.product_id in seen_products:
+                continue
+            seen_products.add(link.product_id)
+            gifts.append(
+                GiftProduct(
+                    campaign_id=campaign.campaign_id,
+                    version_id=campaign.version_id,
+                    campaign_name=campaign.name,
+                    version_no=campaign.version_no,
+                    product_id=link.product_id,
+                    product_name=link.product_name,
+                    quantity=link.quantity_required or 1,
+                    optional=campaign.contract.gift_optional,
+                    description=(
+                        campaign.contract.gift_description
+                        or link.product_name
+                    ),
+                )
+            )
+    return tuple(gifts)
+
+
+def _apply_exclusion_groups(
+    campaigns: Sequence[BasketCampaign],
+    lines: Sequence[BasketLine],
+    allowed_by_line: Mapping[str, frozenset[str]],
+) -> list[BasketCampaign]:
+    grouped: dict[str, list[BasketCampaign]] = {}
+    kept: list[BasketCampaign] = []
+    for campaign in campaigns:
+        group = (campaign.contract.exclusion_group or "").strip().casefold()
+        if not group:
+            kept.append(campaign)
+        else:
+            grouped.setdefault(group, []).append(campaign)
+    for items in grouped.values():
+        kept.append(
+            max(
+                items,
+                key=lambda campaign: _campaign_group_score(
+                    campaign, lines, allowed_by_line
+                ),
+            )
+        )
+    return kept
+
+
+def _campaign_group_score(
+    campaign: BasketCampaign,
+    lines: Sequence[BasketLine],
+    allowed_by_line: Mapping[str, frozenset[str]],
+) -> Decimal:
+    score = ZERO
+    for line in lines:
+        if campaign.campaign_id not in allowed_by_line.get(
+            line.key, frozenset()
+        ):
+            continue
+        benefit = _per_line_benefit(campaign, line)
+        if benefit is not None:
+            score += quantize_money(benefit.unit_discount * line.quantity)
+    best_flat = ZERO
+    for link in campaign.contract.one_time_links:
+        targets = [
+            line
+            for line in lines
+            if _link_matches_line(link, line)
+            and campaign.campaign_id
+            in allowed_by_line.get(line.key, frozenset())
+        ]
+        if not targets:
+            continue
+        value, _warning = _flat_value(link, campaign.contract, targets)
+        best_flat = max(best_flat, value)
+    return quantize_money(score + best_flat)
+
+
 def _campaign_reaches_basket(
     campaign: BasketCampaign,
     lines: Sequence[BasketLine],
@@ -269,6 +403,8 @@ def _campaign_reaches_basket(
                 allowed_by_line,
             )
         )
+    if contract.gift_links:
+        return bool(qualifying) or contract.min_basket_total is not None
     return False
 
 

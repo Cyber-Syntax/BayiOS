@@ -109,6 +109,19 @@ def _export(
                 "date_text": _date_text(version.starts_at, version.ends_at),
                 "start_date": version.starts_at.date().isoformat(),
                 "end_date": version.ends_at.date().isoformat(),
+                "campaign_type": version.campaign_type,
+                "base_price_type": version.base_price_type,
+                "discount_type": version.discount_type,
+                "discount_value": (
+                    str(version.discount_value)
+                    if version.discount_value is not None
+                    else None
+                ),
+                "gift_description": version.gift_description,
+                "gift_optional": bool(version.gift_optional),
+                "gift_yes_base_price_type": version.gift_yes_base_price_type,
+                "gift_no_base_price_type": version.gift_no_base_price_type,
+                "employee_note": version.employee_note,
                 "conditions": list(version.conditions or ()),
                 "product_count": (
                     version.source_product_count

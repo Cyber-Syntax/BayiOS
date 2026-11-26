@@ -5,6 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from bayios.adapters.db.models.base import MONEY, Base, uuid_pk
@@ -24,6 +25,7 @@ class Bank(Base):
     id: Mapped[uuid.UUID] = uuid_pk()
     name: Mapped[str] = mapped_column(sa.Text, unique=True)
     name_normalized: Mapped[str] = mapped_column(sa.Text, unique=True)
+    card_networks: Mapped[list[str] | None] = mapped_column(JSONB)
     is_active: Mapped[bool] = mapped_column(sa.Boolean, server_default=sa.true())
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True), server_default=sa.func.now()

@@ -4,6 +4,7 @@ from bayios.application.settings import (
     create_banks_bulk,
     create_categories_bulk,
     set_bank_active,
+    update_bank_card_networks,
 )
 from bayios.application.settings.io import (
     export_banks_xlsx,
@@ -22,6 +23,7 @@ def test_bank_excel_roundtrip() -> None:
         if bank.name == "Garanti BBVA"
     )
     set_bank_active(source, bank.id, False)
+    update_bank_card_networks(source, bank.id, "World, Bonus")
 
     data = export_banks_xlsx(source)
     target = FakeUnitOfWork()
@@ -30,6 +32,16 @@ def test_bank_excel_roundtrip() -> None:
     assert result.created == 2
     names = {bank.name: bank.is_active for bank in target.commissions.banks.values()}
     assert names == {"Akbank": True, "Garanti BBVA": False}
+    source_networks = {
+        bank.name: bank.card_networks
+        for bank in source.commissions.banks.values()
+    }
+    target_networks = {
+        bank.name: bank.card_networks
+        for bank in target.commissions.banks.values()
+    }
+    assert target_networks == source_networks
+    assert target_networks["Garanti BBVA"] == ["World", "Bonus"]
 
 
 def test_category_excel_roundtrip() -> None:

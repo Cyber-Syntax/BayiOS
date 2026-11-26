@@ -18,6 +18,17 @@ CHIPPIN_MAX_INSTALLMENTS = 6
 BUSINESS_MAX_INSTALLMENTS = 2
 
 
+CARD_NETWORKS = (
+    "World",
+    "Bonus",
+    "Maximum",
+    "Axess",
+    "Paraf",
+    "Flexi",
+    "Troy",
+)
+
+
 class PaymentChannel(StrEnum):
     POS = "pos"
     ODERO = "odero"

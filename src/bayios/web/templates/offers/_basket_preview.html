@@ -26,7 +26,7 @@
       <tbody>
         {% for line in preview.lines %}
         <tr>
-          <td>{{ line.product_name }}{% if line.is_flat %}<br><small class="muted">sepet payı</small>{% endif %}</td>
+          <td>{{ line.product_name }}{% if line.is_gift %} <span class="badge badge-success">Hediye</span>{% endif %}{% if line.is_flat %}<br><small class="muted">sepet payı</small>{% endif %}</td>
           <td>{{ line.quantity }}</td>
           <td class="mono">{{ line.regular_price | tr_money }} TL</td>
           <td>

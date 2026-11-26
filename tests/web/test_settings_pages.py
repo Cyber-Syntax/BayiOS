@@ -86,6 +86,23 @@ def test_used_bank_requires_force_to_delete_with_rates(
 
 
 
+def test_bank_card_networks_update(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    client.post("/settings/banks", data={"name": "Yapı Kredi"})
+    bank = next(iter(fake_uow.commissions.banks.values()))
+    response = client.post(
+        f"/settings/banks/{bank.id}/card-networks",
+        data={"card_networks": "World, Bonus"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert bank.card_networks == ["World", "Bonus"]
+    page = client.get(response.headers["location"])
+    assert "World" in page.text
+    assert "Bonus" in page.text
+
+
 @pytest.fixture
 def fake_uow() -> FakeUnitOfWork:
     return FakeUnitOfWork()

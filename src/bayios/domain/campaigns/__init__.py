@@ -293,6 +293,15 @@ class CampaignContract:
         )
 
     @property
+    def gift_links(self) -> tuple[CampaignProductLink, ...]:
+        return tuple(
+            link
+            for link in self.products
+            if link.relation_type is ProductRelationType.GIFT
+            and link.product_id is not None
+        )
+
+    @property
     def one_time_links(self) -> tuple[CampaignProductLink, ...]:
         return tuple(
             link

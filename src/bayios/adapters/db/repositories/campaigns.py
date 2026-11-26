@@ -214,6 +214,7 @@ class SqlAlchemyCampaignRepository:
             return []
         current = aliased(CampaignVersion)
         link = aliased(CampaignVersionProduct)
+        gift_link = aliased(CampaignVersionProduct)
         match_conditions = []
         if product_ids:
             match_conditions.append(link.product_id.in_(product_ids))
@@ -223,17 +224,30 @@ class SqlAlchemyCampaignRepository:
             sa.select(link.campaign_version_id)
             .where(sa.or_(*match_conditions))
             .subquery()
+            if match_conditions
+            else None
+        )
+        conditions = [
+            Campaign.is_archived.is_(False),
+            current.starts_at <= as_of,
+            current.ends_at >= as_of,
+        ]
+        basket_level: list[object] = [current.min_basket_total.is_not(None)]
+        if matching is not None:
+            basket_level.append(
+                current.id.in_(sa.select(matching.c.campaign_version_id))
+            )
+        basket_level.append(
+            sa.exists().where(
+                gift_link.campaign_version_id == current.id,
+                gift_link.relation_type == "gift",
+            )
         )
         rows = self._session.execute(
             sa.select(Campaign, current)
             .select_from(Campaign)
             .join(current, Campaign.current_version_id == current.id)
-            .where(
-                Campaign.is_archived.is_(False),
-                current.starts_at <= as_of,
-                current.ends_at >= as_of,
-                current.id.in_(sa.select(matching.c.campaign_version_id)),
-            )
+            .where(*conditions, sa.or_(*basket_level))
             .order_by(current.ends_at, current.name, Campaign.id)
         ).all()
         return [(row[0], row[1]) for row in rows]

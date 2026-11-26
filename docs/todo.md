@@ -14,7 +14,7 @@
 - [ ] feat: database backup otomatikleştirmek
 - [ ] feat: hızlı tüm komisyon, ürün vb. bilgilerin hepsini tek bir kerette excel ile dışarı almak, tüm excel dosyalarını. Ayarlar backup'a eklenebilir. Buna mantıksal veri dışa/içe aktarma json veya excel. Aynı zamanda json auto backup ile wsl backup yaparız, günlük, saatlik?
 
-- [ ] feat: bankalara kart ağı (World/Bonus/Maximum/Axess/Paraf/Flexi …) etiketi; Ayarlar ekranında yönetim; kampanya ödeme koşulunda "tüm World kartlar" gibi kart ağı hedefleme. (Kısa vadede kampanya koşulunda doğrudan banka adları kullanılır.)
+- [x] feat: bankalara kart ağı (World/Bonus/Maximum/Axess/Paraf/Flexi …) etiketi; Ayarlar ekranında yönetim; kampanya ödeme koşulunda "tüm World kartlar" gibi kart ağı hedefleme. (Kısa vadede kampanya koşulunda doğrudan banka adları kullanılır.)
 
 ## teklif sorunları
 

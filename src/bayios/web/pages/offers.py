@@ -37,6 +37,7 @@ from bayios.application.offers.io import export_offers_xlsx
 from bayios.application.offers.json_io import export_offers_json
 from bayios.application.products import search_products
 from bayios.domain.commissions import (
+    CARD_NETWORKS,
     CARD_TYPE_LABELS,
     CHANNEL_LABELS,
     CardType,
@@ -579,6 +580,8 @@ def _detail_initial_items(
     items: list[dict[str, object]] = []
     for item in detail.items:
         snapshot = item.campaign_snapshot or {}
+        if snapshot.get("is_gift"):
+            continue
         campaign_id = str(snapshot.get("campaign_id") or "")
         preview_payload: dict[str, object] = {}
         if item.product_id is not None:
@@ -801,6 +804,18 @@ def _render_form(
 ) -> HTMLResponse:
     campaigns, _ = list_campaigns(uow, state="active", limit=200)
     banks = list_banks(uow)
+    card_network_options = tuple(
+        dict.fromkeys(
+            [
+                *CARD_NETWORKS,
+                *(
+                    network
+                    for bank in banks
+                    for network in (getattr(bank, "card_networks", None) or ())
+                ),
+            ]
+        )
+    )
     products, _ = search_products(uow, query=None, limit=3, offset=0)
     initial_items: list[dict[str, object]] = []
     default_discount = get_default_dealer_discount(uow).default_percent
@@ -811,6 +826,7 @@ def _render_form(
         "payment_type": "cash",
         "channel": "",
         "bank_id": "",
+        "card_network": "",
         "installment_count": "",
         "card_type": "",
         "dealer_discount_percent": str(default_discount),
@@ -850,6 +866,7 @@ def _render_form(
                 "payment_type": offer.payment_type,
                 "channel": offer.channel or "",
                 "bank_id": str(offer.bank_id) if offer.bank_id else "",
+                "card_network": offer.card_network or "",
                 "installment_count": (
                     str(offer.installment_count)
                     if offer.installment_count
@@ -917,6 +934,7 @@ def _render_form(
             "initial_items": initial_items,
             "campaigns": campaigns,
             "banks": banks,
+            "card_network_options": card_network_options,
             "products": products,
             "product_previews": product_previews,
             "channel_options": tuple(
@@ -943,6 +961,7 @@ def _form_state_from_form(
         "payment_type": str(get("payment_type") or "cash"),
         "channel": str(get("channel") or ""),
         "bank_id": str(get("bank_id") or ""),
+        "card_network": str(get("card_network") or ""),
         "installment_count": str(get("installment_count") or ""),
         "card_type": str(get("card_type") or ""),
         "dealer_discount_percent": str(
@@ -1072,6 +1091,7 @@ def _offer_input_from_form(form: object) -> OfferInput:
         payment_type=payment_type,
         channel=PaymentChannel(channel_value) if channel_value else None,
         bank_id=_optional_uuid(str(get("bank_id") or "")),
+        card_network=str(get("card_network") or "") or None,
         installment_count=(
             _int_value(str(get("installment_count") or "0"))
             if str(get("installment_count") or "").strip()

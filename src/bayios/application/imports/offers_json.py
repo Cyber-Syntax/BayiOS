@@ -261,6 +261,7 @@ def _parse_one(
         payment_type = PaymentType.CASH
     channel = _enum_or_none(PaymentChannel, raw.get("channel"), errors, "Kanal")
     card_type = _enum_or_none(CardType, raw.get("card_type"), errors, "Kart tipi")
+    card_network = _text(raw.get("card_network")) or None
     bank_name = _text(raw.get("bank_name"))
     bank_id = None
     if bank_name:
@@ -297,6 +298,8 @@ def _parse_one(
     for raw_item in items_raw:
         if not isinstance(raw_item, dict):
             errors.append("Ürün satırı nesne olmalıdır.")
+            continue
+        if raw_item.get("is_gift"):
             continue
         product_name = _text(raw_item.get("product_name"))
         product_id = _text(raw_item.get("product_id")) or None
@@ -335,6 +338,7 @@ def _parse_one(
             payment_type=payment_type,
             channel=channel,
             bank_id=bank_id,
+            card_network=card_network,
             installment_count=_positive_int_or_none(raw.get("installment_count")),
             card_type=card_type,
             dealer_discount_percent=_decimal(raw.get("dealer_discount_percent")) or Decimal(10),

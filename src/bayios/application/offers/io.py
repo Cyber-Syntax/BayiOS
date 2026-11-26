@@ -62,6 +62,7 @@ def export_offers_xlsx(
                 "channel": CHANNEL_LABELS.get(offer.channel, offer.channel or ""),
                 "bank": offer.bank_name_snapshot
                 or bank_names.get(offer.bank_id, ""),
+                "card_network": offer.card_network or "",
                 "installment_count": offer.installment_count,
                 "card_type": CARD_TYPE_LABELS.get(
                     offer.card_type, offer.card_type or ""
@@ -104,6 +105,9 @@ def export_offers_xlsx(
                     "cost_price": item.cost_price_snapshot,
                     "campaign": item.campaign_name_snapshot or "",
                     "gift_present": item.campaign_gift_present,
+                    "is_gift": bool(
+                        (item.campaign_snapshot or {}).get("is_gift")
+                    ),
                     "base_price": item.base_price_used,
                     "suggested_cash": item.suggested_cash_price,
                     "suggested_card": item.suggested_card_price,
@@ -144,6 +148,7 @@ def export_offers_xlsx(
             ColumnSpec("Ödeme Türü", "payment_type", "text", 12),
             ColumnSpec("Kanal", "channel", "text", 18),
             ColumnSpec("Banka", "bank", "text", 18),
+            ColumnSpec("Kart Ağı", "card_network", "text", 14),
             ColumnSpec("Taksit", "installment_count", "int", 10),
             ColumnSpec("Kart Tipi", "card_type", "text", 12),
             ColumnSpec("Kart Bayi İndirimi %", "dealer_discount_percent", "percent", 16),
@@ -183,6 +188,7 @@ def export_offers_xlsx(
             ColumnSpec("Maliyet", "cost_price", "money", 16),
             ColumnSpec("Kampanya", "campaign", "text", 26),
             ColumnSpec("Hediye Durumu", "gift_present", "bool", 14),
+            ColumnSpec("Hediye Ürün", "is_gift", "bool", 12),
             ColumnSpec("Fiyat Tabanı", "base_price", "money", 16),
             ColumnSpec("Önerilen Nakit", "suggested_cash", "money", 16),
             ColumnSpec("Önerilen Kart", "suggested_card", "money", 16),
@@ -236,6 +242,7 @@ def offer_import_template() -> bytes:
             ColumnSpec("Ödeme Türü", "payment_type", "text", 12),
             ColumnSpec("Kanal", "channel", "text", 18),
             ColumnSpec("Banka", "bank", "text", 18),
+            ColumnSpec("Kart Ağı", "card_network", "text", 14),
             ColumnSpec("Taksit", "installment_count", "int", 10),
             ColumnSpec("Kart Tipi", "card_type", "text", 12),
             ColumnSpec("Kart Bayi İndirimi %", "dealer_discount_percent", "percent", 16),
@@ -246,6 +253,7 @@ def offer_import_template() -> bytes:
             ColumnSpec("Adet", "quantity", "int", 10),
             ColumnSpec("Kampanya", "campaign", "text", 26),
             ColumnSpec("Hediye Durumu", "gift_present", "bool", 14),
+            ColumnSpec("Hediye Ürün", "is_gift", "bool", 12),
             ColumnSpec("Nakit Birim Fiyat", "unit_price_cash", "money", 16),
             ColumnSpec("Kart Birim Fiyat", "unit_price_card", "money", 16),
         ),

@@ -126,6 +126,12 @@
           <input type="text" id="campaign-min-basket" name="min_basket_total" class="form-control"
                  value="{{ values.min_basket_total }}" placeholder="örn: 125000" inputmode="decimal">
         </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-exclusion">Dışlama Grubu</label>
+          <input type="text" id="campaign-exclusion" name="exclusion_group" class="form-control"
+                 value="{{ values.exclusion_group }}" placeholder="örn: world (opsiyonel)">
+          <small class="muted">Aynı grupta sepet genelinde yalnızca en yüksek indirimli kampanya uygulanır.</small>
+        </div>
       </div>
     </div>
 
@@ -148,6 +154,15 @@
             <option value="">Tümü</option>
             {% for value, label in card_type_options %}
             <option value="{{ value }}" {% if values.payment_card_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-payment-network">Kart Ağı</label>
+          <select id="campaign-payment-network" name="payment_card_network" class="form-control">
+            <option value="">Tümü</option>
+            {% for network in card_network_options %}
+            <option value="{{ network }}" {% if values.payment_card_network == network %}selected{% endif %}>{{ network }}</option>
             {% endfor %}
           </select>
         </div>

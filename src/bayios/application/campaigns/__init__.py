@@ -294,10 +294,6 @@ def update_campaign_in_uow(
         effective_data = replace(
             effective_data, scraped_at=current.scraped_at
         )
-    if data.exclusion_group is None:
-        effective_data = replace(
-            effective_data, exclusion_group=current.exclusion_group
-        )
 
     contract = _build_contract(uow, effective_data)
     current_links = uow.campaigns.get_version_products(current.id)

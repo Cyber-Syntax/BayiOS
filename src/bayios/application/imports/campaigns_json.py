@@ -322,6 +322,32 @@ def _parse_one(
         raw.get("payment_conditions"), warnings
     )
     has_payment_conditions_key = "payment_conditions" in raw
+    campaign_type_value = _enum_or_default(
+        raw.get("campaign_type"), CampaignType, CampaignType.GENERAL, warnings
+    )
+    campaign_base_price_type_value = _enum_or_default(
+        raw.get("base_price_type"),
+        BasePriceType,
+        BasePriceType.REGULAR,
+        warnings,
+    )
+    campaign_discount_type_value = _enum_or_default(
+        raw.get("discount_type"), DiscountType, DiscountType.INFO_ONLY, warnings
+    )
+    discount_value = _decimal_or_none(
+        raw.get("discount_value"), warnings, "İndirim değeri"
+    )
+    gift_description = _text(raw.get("gift_description")) or None
+    gift_optional = raw.get("gift_optional", False)
+    if not isinstance(gift_optional, bool):
+        gift_optional = False
+    gift_yes_base_price_type = _parse_optional_enum(
+        raw.get("gift_yes_base_price_type"), BasePriceType, warnings
+    )
+    gift_no_base_price_type = _parse_optional_enum(
+        raw.get("gift_no_base_price_type"), BasePriceType, warnings
+    )
+    employee_note = _text(raw.get("employee_note")) or None
 
     raw_products = raw.get("products")
     if raw_products is None:
@@ -606,13 +632,28 @@ def _parse_one(
     if not errors:
         data = CampaignInput(
             name=name,
-            campaign_type=CampaignType.GENERAL,
+            campaign_type=CampaignType(str(campaign_type_value)),
             starts_at=starts_at,
             ends_at=ends_at,
-            base_price_type=BasePriceType.REGULAR,
+            base_price_type=BasePriceType(
+                str(campaign_base_price_type_value)
+            ),
             description=None,
-            discount_type=DiscountType.INFO_ONLY,
-            discount_value=None,
+            discount_type=DiscountType(str(campaign_discount_type_value)),
+            discount_value=discount_value,
+            gift_description=gift_description,
+            gift_optional=gift_optional,
+            gift_yes_base_price_type=(
+                BasePriceType(str(gift_yes_base_price_type))
+                if gift_yes_base_price_type is not None
+                else None
+            ),
+            gift_no_base_price_type=(
+                BasePriceType(str(gift_no_base_price_type))
+                if gift_no_base_price_type is not None
+                else None
+            ),
+            employee_note=employee_note,
             external_id=external_id,
             source_url=source_url,
             conditions=conditions,
@@ -833,6 +874,16 @@ def _parse_payment_conditions(
         except ValueError as exc:
             warnings.append(f"Ödeme koşulu geçersiz: {exc}")
     return tuple(conditions)
+
+
+def _enum_or_default(
+    value: object,
+    enum_type: type,
+    default: object,
+    warnings: list[str],
+) -> object:
+    parsed = _parse_optional_enum(value, enum_type, warnings)
+    return default if parsed is None else parsed
 
 
 def _parse_optional_enum(

@@ -25,6 +25,7 @@ from bayios.domain.campaigns import PaymentContext
 from bayios.domain.campaigns.resolution import (
     BasketCampaign,
     BasketLine,
+    eligible_gift_campaigns,
     resolve_basket,
 )
 from bayios.domain.commissions import (
@@ -71,6 +72,7 @@ class OfferItemInput:
     unit_price_cash: Decimal | None = None
     unit_price_card: Decimal | None = None
     auto_campaign: bool = False
+    is_gift: bool = False
 
 
 @dataclass(frozen=True)
@@ -82,6 +84,7 @@ class OfferInput:
     items: tuple[OfferItemInput, ...]
     channel: PaymentChannel | None = None
     bank_id: uuid.UUID | None = None
+    card_network: str | None = None
     installment_count: int | None = None
     card_type: CardType | None = None
     note: str | None = None
@@ -148,6 +151,7 @@ class OfferBasketLinePreview:
     line_total_cash: Decimal | None
     line_total_card: Decimal | None
     is_flat: bool
+    is_gift: bool
     warning: str | None
 
 
@@ -430,6 +434,7 @@ class _PreparedItem:
     regular_price: Decimal | None = None
     oliz_price: Decimal | None = None
     cost_price: Decimal | None = None
+    is_gift: bool = False
 
 
 def _apply_manual_totals(
@@ -828,7 +833,7 @@ def preview_offer_comparison(
     category_ids = [
         str(item.category_id)
         for item in prepared
-        if item.category_id is not None
+        if item.category_id is not None and not item.is_gift
     ]
     options: list[OfferComparisonOption] = []
     for channel in PaymentChannel:
@@ -1180,9 +1185,27 @@ def preview_offer_basket(
             total_regular += quantize_money(
                 item.regular_price * item.input.quantity
             )
-        line_warnings = list(quote.warnings)
-        if company is not None and company.warning:
-            line_warnings.append(company.warning)
+        if item.is_gift:
+            line_warnings = []
+            unit_price_cash = Decimal(0)
+            unit_price_card = Decimal(0)
+            line_total_cash = Decimal(0)
+            line_total_card = Decimal(0)
+            campaign_name = (
+                str((item.campaign_snapshot or {}).get("name") or "")
+                or "Hediye"
+            )
+        else:
+            line_warnings = list(quote.warnings)
+            if company is not None and company.warning:
+                line_warnings.append(company.warning)
+            unit_price_cash = quote.unit_price_cash
+            unit_price_card = quote.unit_price_card
+            line_total_cash = quote.line_total_cash
+            line_total_card = quote.line_total_card
+            campaign_name = (
+                company.campaign_name if company is not None else None
+            )
         warnings.extend(line_warnings)
         lines.append(
             OfferBasketLinePreview(
@@ -1193,19 +1216,18 @@ def preview_offer_basket(
                 source=(
                     company.source.value if company is not None else "none"
                 ),
-                campaign_name=(
-                    company.campaign_name if company is not None else None
-                ),
+                campaign_name=campaign_name,
                 discount_amount=quantize_money(discount),
-                unit_price_cash=quote.unit_price_cash,
-                unit_price_card=quote.unit_price_card,
-                line_total_cash=quote.line_total_cash,
-                line_total_card=quote.line_total_card,
+                unit_price_cash=unit_price_cash,
+                unit_price_card=unit_price_card,
+                line_total_cash=line_total_cash,
+                line_total_card=line_total_card,
                 is_flat=bool(
                     company is not None
                     and company.snapshot
                     and company.snapshot.get("is_flat_allocation")
                 ),
+                is_gift=item.is_gift,
                 warning="; ".join(dict.fromkeys(line_warnings)) or None,
             )
         )
@@ -1274,7 +1296,7 @@ def create_offer(
             category_ids=[
                 item.category_id
                 for item in prepared
-                if item.category_id is not None
+                if item.category_id is not None and not item.is_gift
             ],
         )
         commission_percent = resolution.commission_percent
@@ -1306,6 +1328,7 @@ def create_offer(
             channel=data.channel.value if data.channel else None,
             bank_id=selected_bank_id,
             bank_name_snapshot=bank.name if bank is not None else None,
+            card_network=_clean(data.card_network),
             installment_count=data.installment_count,
             card_type=data.card_type.value if data.card_type else None,
             dealer_discount_percent=data.dealer_discount_percent,
@@ -1403,7 +1426,7 @@ def update_offer(
             category_ids=[
                 item.category_id
                 for item in prepared
-                if item.category_id is not None
+                if item.category_id is not None and not item.is_gift
             ],
         )
         commission_percent = resolution.commission_percent
@@ -1435,6 +1458,7 @@ def update_offer(
         offer.channel = data.channel.value if data.channel else None
         offer.bank_id = selected_bank_id
         offer.bank_name_snapshot = bank.name if bank is not None else None
+        offer.card_network = _clean(data.card_network)
         offer.installment_count = data.installment_count
         offer.card_type = data.card_type.value if data.card_type else None
         offer.dealer_discount_percent = data.dealer_discount_percent
@@ -1830,21 +1854,21 @@ def _prepare_items(
             if getattr(product, "category_id", None) is not None
         ],
     )
+    payment_context = PaymentContext(
+        payment_type=data.payment_type.value,
+        channel=data.channel.value if data.channel is not None else None,
+        bank_id=str(data.bank_id) if data.bank_id is not None else None,
+        card_type=(
+            data.card_type.value if data.card_type is not None else None
+        ),
+        card_network=data.card_network,
+        installment_count=data.installment_count,
+    )
     resolution = resolve_basket(
         lines,
         campaign_definitions,
         preferences=preferences,
-        payment=PaymentContext(
-            payment_type=data.payment_type.value,
-            channel=(
-                data.channel.value if data.channel is not None else None
-            ),
-            bank_id=str(data.bank_id) if data.bank_id is not None else None,
-            card_type=(
-                data.card_type.value if data.card_type is not None else None
-            ),
-            installment_count=data.installment_count,
-        ),
+        payment=payment_context,
     )
     campaign_by_id = {
         campaign.campaign_id: campaign for campaign in campaign_definitions
@@ -1917,6 +1941,117 @@ def _prepare_items(
                 regular_price=regular_price,
                 oliz_price=oliz_price,
                 cost_price=getattr(product, "cost_price", None),
+            )
+        )
+    prepared.extend(
+        _prepared_gifts(
+            uow,
+            data,
+            lines,
+            campaign_definitions,
+            preferences,
+            payment_context,
+            products,
+        )
+    )
+    return prepared
+
+
+def _prepared_gifts(
+    uow: UnitOfWork,
+    data: OfferInput,
+    lines: Sequence[BasketLine],
+    campaigns: Sequence[BasketCampaign],
+    preferences: dict[str, str],
+    payment: PaymentContext,
+    products: dict[uuid.UUID, object],
+) -> list[_PreparedItem]:
+    gifts = eligible_gift_campaigns(
+        lines,
+        campaigns,
+        preferences=preferences,
+        payment=payment,
+    )
+    if not gifts:
+        return []
+    declined_optional = any(
+        item.gift_present is False for item in data.items
+    )
+    selected = [
+        gift
+        for gift in gifts
+        if not (gift.optional and declined_optional)
+    ]
+    missing_ids = [
+        uuid.UUID(gift.product_id)
+        for gift in selected
+        if uuid.UUID(gift.product_id) not in products
+    ]
+    if missing_ids:
+        for product in uow.products.get_by_ids(missing_ids):
+            products[product.id] = product
+    prepared: list[_PreparedItem] = []
+    for gift in selected:
+        product = products.get(uuid.UUID(gift.product_id))
+        if product is None:
+            continue
+        category = (
+            uow.products.get_category(product.category_id)
+            if getattr(product, "category_id", None)
+            else None
+        )
+        group_value = (
+            getattr(category, "commission_group", "other")
+            if category is not None
+            else "other"
+        )
+        try:
+            product_group = ProductCommissionGroup(group_value)
+        except ValueError:
+            product_group = ProductCommissionGroup.OTHER
+        snapshot = {
+            "campaign_id": gift.campaign_id,
+            "version_id": gift.version_id,
+            "version_no": gift.version_no,
+            "name": gift.campaign_name,
+            "campaign_type": "gift",
+            "is_gift": True,
+            "gift_description": gift.description,
+            "campaign_discount_amount": "0.00",
+            "final_price": "0.00",
+            "warning": None,
+        }
+        prepared.append(
+            _PreparedItem(
+                product=product,
+                input=OfferItemInput(
+                    product_id=product.id,
+                    quantity=gift.quantity,
+                    is_gift=True,
+                    unit_price_cash=Decimal(0),
+                    unit_price_card=Decimal(0),
+                ),
+                layers=OfferPriceLayers(
+                    cost_price=getattr(product, "cost_price", None),
+                    regular_price=Decimal(0),
+                    website_price=None,
+                    campaign_price=Decimal(0),
+                    campaign_name=gift.campaign_name,
+                    campaign_gift_present=True,
+                ),
+                pricing=None,
+                dealer_discount=Decimal(0),
+                dealer_discount_cash=Decimal(0),
+                product_group=product_group,
+                category_id=getattr(product, "category_id", None),
+                campaign_version_id=uuid.UUID(gift.version_id),
+                campaign_snapshot=snapshot,
+                company=None,
+                best_campaign=None,
+                regular_price=Decimal(0),
+                oliz_price=None,
+                cost_price=getattr(product, "cost_price", None),
+                is_gift=True,
             )
         )
     return prepared
@@ -2259,6 +2394,48 @@ def _build_items(
     target_value = target.target_value if target is not None else None
     rows: list[OfferItem] = []
     for position, prepared_item in enumerate(prepared):
+        if prepared_item.is_gift:
+            product = prepared_item.product
+            gift_snapshot = prepared_item.campaign_snapshot or {}
+            rows.append(
+                OfferItem(
+                    id=uuid.uuid4(),
+                    offer_id=offer.id,
+                    product_id=getattr(product, "id", None),
+                    product_name_snapshot=getattr(product, "name", ""),
+                    quantity=prepared_item.input.quantity,
+                    regular_price_snapshot=getattr(
+                        product, "regular_price", None
+                    ),
+                    website_price_snapshot=None,
+                    cost_price_snapshot=getattr(product, "cost_price", None),
+                    campaign_version_id=prepared_item.campaign_version_id,
+                    campaign_name_snapshot=(
+                        str(gift_snapshot.get("name") or "")
+                        or prepared_item.layers.campaign_name
+                    ),
+                    campaign_snapshot=gift_snapshot,
+                    campaign_gift_present=True,
+                    base_price_used=Decimal(0),
+                    company_discount_source="none",
+                    company_discount_amount=Decimal(0),
+                    company_share_amount=Decimal(0),
+                    campaign_discount_amount=Decimal(0),
+                    campaign_base_price=None,
+                    campaign_price=Decimal(0),
+                    dealer_discount_percent=Decimal(0),
+                    dealer_discount_cash_percent=Decimal(0),
+                    suggested_cash_price=Decimal(0),
+                    suggested_card_price=Decimal(0),
+                    unit_price_cash=Decimal(0),
+                    unit_price_card=Decimal(0),
+                    line_total_cash=Decimal(0),
+                    line_total_card=Decimal(0),
+                    warning_text="Hediye ürün",
+                    position=position,
+                )
+            )
+            continue
         quote = quote_offer_item(
             prepared_item.layers,
             quantity=prepared_item.input.quantity,

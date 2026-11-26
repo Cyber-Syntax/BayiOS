@@ -47,6 +47,7 @@ from bayios.domain.campaigns import (
     ProductRelationType,
 )
 from bayios.domain.commissions import (
+    CARD_NETWORKS,
     CARD_TYPE_LABELS,
     CHANNEL_LABELS,
     CardType,
@@ -99,6 +100,7 @@ TEXT_FIELDS = (
     "min_basket_total",
     "payment_channel",
     "payment_card_type",
+    "payment_card_network",
     "payment_installment_count",
 )
 _DATE_FORMATS = ("%Y-%m-%d", "%d.%m.%Y", "%d-%m-%Y", "%d.%m.%y", "%d-%m-%y")
@@ -756,6 +758,7 @@ def _parse_payment_conditions(
         PaymentChannel, get("payment_channel")
     )
     card_type = _parse_optional_enum(CardType, get("payment_card_type"))
+    card_network = str(get("payment_card_network") or "").strip() or None
     installment_count = _parse_optional_int(
         str(get("payment_installment_count") or "")
     )
@@ -768,13 +771,20 @@ def _parse_payment_conditions(
             bank_ids.append(str(uuid.UUID(value)))
         except ValueError as exc:
             raise ValidationError("Ödeme koşulundaki banka geçersiz.") from exc
-    if not bank_ids and channel is None and card_type is None and installment_count is None:
+    if (
+        not bank_ids
+        and channel is None
+        and card_type is None
+        and card_network is None
+        and installment_count is None
+    ):
         return ()
     return (
         CampaignPaymentCondition(
             channel=channel.value if channel is not None else None,
             bank_ids=tuple(dict.fromkeys(bank_ids)),
             card_type=card_type.value if card_type is not None else None,
+            card_network=card_network,
             installment_count=installment_count,
         ),
     )
@@ -1001,6 +1011,11 @@ def _edit_form_state(
             if version.payment_conditions
             else ""
         ),
+        "payment_card_network": (
+            str(version.payment_conditions[0].get("card_network") or "")
+            if version.payment_conditions
+            else ""
+        ),
         "payment_installment_count": (
             str(
                 version.payment_conditions[0].get("installment_count")
@@ -1077,6 +1092,7 @@ def _empty_form_values() -> dict[str, object]:
         "payment_channel": "",
         "payment_bank_ids": [],
         "payment_card_type": "",
+        "payment_card_network": "",
         "payment_installment_count": "",
     }
 
@@ -1099,10 +1115,23 @@ def _render_form(
             {"id": str(category.id), "name": category.name}
             for category in uow.products.get_categories()
         ]
+        banks = list(uow.commissions.get_banks(active_only=True))
         bank_options = [
             {"id": str(bank.id), "name": bank.name}
-            for bank in uow.commissions.get_banks(active_only=True)
+            for bank in banks
         ]
+        card_network_options = tuple(
+            dict.fromkeys(
+                [
+                    *CARD_NETWORKS,
+                    *(
+                        network
+                        for bank in banks
+                        for network in (getattr(bank, "card_networks", None) or ())
+                    ),
+                ]
+            )
+        )
     return templates.TemplateResponse(
         request,
         "campaigns/form.html",
@@ -1116,6 +1145,7 @@ def _render_form(
             "products": products,
             "category_options": category_options,
             "bank_options": bank_options,
+            "card_network_options": card_network_options,
             "channel_options": [
                 (channel.value, CHANNEL_LABELS[channel])
                 for channel in PaymentChannel

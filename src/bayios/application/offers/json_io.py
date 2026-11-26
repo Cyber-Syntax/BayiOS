@@ -58,6 +58,7 @@ def export_offers_json(
                 if offer.channel
                 else "",
                 "bank_name": offer.bank_name_snapshot or "",
+                "card_network": offer.card_network or "",
                 "installment_count": offer.installment_count,
                 "card_type": offer.card_type or "",
                 "card_type_label": CARD_TYPE_LABELS.get(
@@ -98,6 +99,9 @@ def export_offers_json(
                         "product_name": item.product_name_snapshot,
                         "quantity": item.quantity,
                         "campaign_name": item.campaign_name_snapshot or "",
+                        "is_gift": bool(
+                            (item.campaign_snapshot or {}).get("is_gift")
+                        ),
                         "gift_present": item.campaign_gift_present,
                         "unit_price_cash": (
                             str(item.unit_price_cash)

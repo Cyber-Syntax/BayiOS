@@ -260,6 +260,29 @@ def rename_bank(uow: UnitOfWork, bank_id: uuid.UUID, raw_name: str) -> Bank:
         return bank
 
 
+def update_bank_card_networks(
+    uow: UnitOfWork, bank_id: uuid.UUID, raw_networks: str
+) -> Bank:
+    networks: list[str] = []
+    seen: set[str] = set()
+    for raw in (raw_networks or "").split(","):
+        value = " ".join(raw.split())
+        if not value:
+            continue
+        key = value.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        networks.append(value)
+    with uow:
+        bank = uow.commissions.get_bank(bank_id)
+        if bank is None:
+            raise NotFoundError("Banka bulunamadı.")
+        bank.card_networks = networks or None
+        uow.commit()
+        return bank
+
+
 def set_bank_active(
     uow: UnitOfWork, bank_id: uuid.UUID, active: bool
 ) -> Bank:

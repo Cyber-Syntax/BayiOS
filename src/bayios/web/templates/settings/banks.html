@@ -10,6 +10,8 @@
 <div class="alert alert-success"><span><strong>Başarılı:</strong> {{ count }} olarak güncellendi.</span></div>
 {% elif msg == 'active' %}
 <div class="alert alert-success"><span><strong>Başarılı:</strong> {{ count }} durumu güncellendi.</span></div>
+{% elif msg == 'bank_networks' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> {{ count }} kart ağları güncellendi.</span></div>
 {% elif msg == 'merged' %}
 <div class="alert alert-success"><span><strong>Başarılı:</strong> Bankalar birleştirildi.</span></div>
 {% elif msg == 'deleted' %}
@@ -70,11 +72,18 @@
 
   <div class="table-container" data-table-scroll>
     <table class="data-table">
-      <thead><tr><th>Banka</th><th>Durum</th><th>Kullanım (Oran / Limit / Teklif)</th><th>İşlemler</th></tr></thead>
+      <thead><tr><th>Banka</th><th>Kart Ağları</th><th>Durum</th><th>Kullanım (Oran / Limit / Teklif)</th><th>İşlemler</th></tr></thead>
       <tbody>
         {% for row in rows %}
         <tr>
           <td><strong>{{ row.bank.name }}</strong></td>
+          <td>
+            {% if row.bank.card_networks %}
+              {% for network in row.bank.card_networks %}<span class="badge badge-info">{{ network }}</span>{% endfor %}
+            {% else %}
+            <span class="muted">—</span>
+            {% endif %}
+          </td>
           <td>{% if row.bank.is_active %}<span class="badge badge-success">Aktif</span>{% else %}<span class="badge badge-danger">Pasif</span>{% endif %}</td>
           <td>{{ row.rate_count }} / {{ row.limit_count }} / {{ row.offer_count }}</td>
           <td>
@@ -84,6 +93,10 @@
                 <form method="post" action="/settings/banks/{{ row.bank.id }}/rename" style="display: flex; gap: .35rem;">
                   <input type="text" name="name" value="{{ row.bank.name }}" class="form-control" required>
                   <button type="submit" class="btn btn-sm">Yeniden Adlandır</button>
+                </form>
+                <form method="post" action="/settings/banks/{{ row.bank.id }}/card-networks" style="display: flex; gap: .35rem;">
+                  <input type="text" name="card_networks" value="{{ row.bank.card_networks | join(', ') if row.bank.card_networks else '' }}" class="form-control" placeholder="World, Bonus, Maximum">
+                  <button type="submit" class="btn btn-sm">Kart Ağları</button>
                 </form>
                 <form method="post" action="/settings/banks/{{ row.bank.id }}/active">
                   <input type="hidden" name="active" value="{% if row.bank.is_active %}0{% else %}1{% endif %}">
@@ -116,7 +129,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="4" class="muted" style="text-align: center; padding: 1.5rem;">Banka bulunamadı.</td></tr>
+        <tr><td colspan="5" class="muted" style="text-align: center; padding: 1.5rem;">Banka bulunamadı.</td></tr>
         {% endfor %}
       </tbody>
     </table>

@@ -66,7 +66,7 @@
   <div class="stat-box">
     <div class="stat-label">Ödeme</div>
     <div class="stat-value stat-value-sm">{{ payment_labels.get(offer.payment_type, offer.payment_type) }}</div>
-    {% if offer.channel %}<div class="stat-hint">{{ channel_labels.get(offer.channel, offer.channel) }}{% if offer.bank_name_snapshot %} · {{ offer.bank_name_snapshot }}{% endif %}{% if offer.installment_count %} · {{ offer.installment_count }} taksit{% endif %}{% if offer.card_type %} · {{ card_labels.get(offer.card_type, offer.card_type) }}{% endif %}</div>{% endif %}
+    {% if offer.channel %}<div class="stat-hint">{{ channel_labels.get(offer.channel, offer.channel) }}{% if offer.bank_name_snapshot %} · {{ offer.bank_name_snapshot }}{% endif %}{% if offer.card_network %} · {{ offer.card_network }}{% endif %}{% if offer.installment_count %} · {{ offer.installment_count }} taksit{% endif %}{% if offer.card_type %} · {{ card_labels.get(offer.card_type, offer.card_type) }}{% endif %}</div>{% endif %}
   </div>
   <div class="stat-box">
     <div class="stat-label">Seçili Toplam</div>
@@ -216,6 +216,7 @@
           <tr>
             <td data-label="Ürün">
               <strong>{{ item.product_name_snapshot }}</strong>
+              {% if item.campaign_snapshot and item.campaign_snapshot.get('is_gift') %}<span class="badge badge-success">Hediye</span>{% endif %}
               {% if external_ids.get(item.product_id) %}<div class="muted small mono">ID: {{ external_ids.get(item.product_id) }}</div>{% endif %}
               {% if item.warning_text %}<div class="form-error">{{ item.warning_text }}</div>{% endif %}
             </td>
