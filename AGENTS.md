@@ -54,6 +54,40 @@ Route handlers stay thin: parse the request, call an application use case with a
 - **Out of scope:** auth/roles, in-app/web scraping, WMS/Dynamics integration, POS basket optimization, PDF attachments, barcode product lookup, and manual barcode entry. Do not imply these exist. Importing the external scraper's Excel/CSV/`catalog.json` and campaign JSON output is in scope; the app never scrapes websites itself.
 - **Tests:** assert observable behavior, not implementation details. Use `FakeUnitOfWork` for application/web tests; add PostgreSQL integration coverage for transaction, idempotency, and concurrency changes. Keep Turkish UI strings exact in assertions.
 
+## Domain rules (agent-critical)
+
+Verify against `docs/plan.md` and code before relying on any of these —
+where the PRD disagrees, code/plan.md wins.
+
+### Money
+
+- Rounding: `ROUND_HALF_UP`, two decimals, kuruş precision. `float` is forbidden at every layer (domain, app, adapter, tests).
+
+### Bank and category names
+
+- Match on `name_normalized`: Unicode NFKC, trim, whitespace collapse, Turkish case folding (`I↔ı`, `İ↔i`). Unique index per table.
+- Display uses canonical Turkish title case (`İ→i`, `I→ı`). `str.title()` is forbidden — it breaks Turkish.
+- Product names are excluded from canonicalization: stored as typed, matched on `name_normalized`, leading zeros preserved, whitespace significant (`07325 A` ≠ `07325A`).
+
+### Commission resolution
+
+- Scope: `(period, channel, bank, product_group, amount_tier, installment)`.
+- Resolution order: bank-specific row → bank-general row (`bank_id IS NULL`) → explicit error. Never silently fall back to 0%.
+- A bank-specific row overrides only that bank; other banks keep using the general row.
+- Effective installment ceiling = `min(bank-specific or general limit, category limit, available rate rows)`. Category ceiling is bank-independent; a bank-specific row cannot raise it.
+
+### Snapshots and immutability
+
+- Offer rows carry `*_snapshot`, `campaign_snapshot_json`, `commission_percent_snapshot`. A later product/commission/floor change never alters an issued offer.
+- Campaign edits create a new `campaign_versions` row; issued offers keep their own snapshot.
+- Only actual changes create history/version rows — no-op updates are silent.
+
+### Data policy (public repo)
+
+- Repo is public. Never commit real commission rates, cost prices, dealer floor prices, customer PII, real stock counts, or revenue.
+- Every example, fixture, test, and doc uses representative values.
+- Before any commit that adds a rate/cost/margin-like number: stop and verify its source.
+
 ## Agent skills
 
 ### Issue tracker
