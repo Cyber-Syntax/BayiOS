@@ -1,8 +1,8 @@
 # BayiOS UI/UX Sözleşmesi
 
 **Durum:** Tek geçerli UI/UX sözleşmesi  
-**Sürüm:** 2.0  
-**Tarih:** 23.11.2026  
+**Sürüm:** 2.1  
+**Tarih:** 26.11.2026  
 **Kapsam:** Yalnız arayüz, görsel dil, yerleşim, bileşen davranışı ve responsive kurallar. İş kuralları [prd.md](./prd.md), mimari [plan.md](./plan.md) ve [ui-redesign-plan.md](./ui-redesign-plan.md) içindedir.
 
 Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek kaynağıdır. PRD'deki ekran anlatımları işlevsel gereksinimi tanımlar; yerleşim, bileşen, renk, tipografi, kırılım ve etkileşim için bu belge esastır. Çelişki halinde işlev için PRD, arayüz için bu belge geçerlidir.
@@ -249,6 +249,7 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 ### 5.12 Fiyat gösterimi
 
 - Normal fiyat ekranın en büyük metnidir (28–34px mono). Oliz/Web fiyatı ikincil satırdadır.
+- Oliz indirim tutarı, Oliz/Web fiyatının yanında “Oliz indirimi: 10.000,00 TL” biçiminde ikincil satırda gösterilir; yalnız iki fiyat da tanımlıysa ve fark pozitifse görünür. Tutar mono, iki ondalık ve TL soneklidir; normal fiyatın görsel hiyerarşisini geçmez, rengi tek başına anlam taşımaz.
 - Bayi nakit/kart taban fiyatları ayrı kompakt bloklarda gösterilir.
 - Fiyat yoksa “—” gösterilir; sıfır fiyat “0,00 TL” olarak gösterilir.
 - Kart ve nakit toplamları ayrı; manuel toplam varsa “manuel” etiketi taşır.
@@ -293,7 +294,8 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 
 - Sıra: geri bağlantısı, başlık + kategori/arşiv rozetleri, **katlanabilir “Fiyat ve stok”**, **katlanabilir “Aktif Kampanyalar”**, diğer kapalı bölümler.
 - Başlık meta: yalnız güncel scraper ID ikincil metin olarak; kayıt numarası ve kategori grubu burada gösterilmez, “İç Bilgiler” bölümünde yer alır.
-- Fiyat hero'su: **normal fiyat en büyük metin**; Oliz/Web fiyatı ikincil satırda; nakit/kart taban ayrı kompakt bloklarda; stok ve açık rezervasyon ayrı dikey bilgi listesinde. Aynı veri iki yerde tekrarlanmaz.
+- Fiyat hero'su: **normal fiyat en büyük metin**; Oliz/Web fiyatı ve varsa Oliz indirim tutarı ikincil satırda; nakit/kart taban ayrı kompakt bloklarda; stok ve açık rezervasyon ayrı dikey bilgi listesinde. Aynı veri iki yerde tekrarlanmaz.
+- Oliz indirim tutarı normal fiyattan Oliz fiyatı çıkarılarak gösterilir; Oliz fiyatı yoksa veya fark pozitif değilse satır hiç görünmez. Dar ekranda indirim satırı kendi satırına geçebilir; tutar ve fiyat metni bölünmez.
 - Birincil eylemler: “Teklife Ekle”, “Rezervasyon Aç”. İkincil: Düzenle, Stok Güncelle, Arşivle, Sil (Diğer işlemler altında).
 - Aktif kampanyalar: ad, geçerlilik, durum, indirim/hediye, hediye var/yok bayi senaryosu; mobilde tek sütun. Bölüm başlığından açılıp kapanır; kampanya yoksa kapalı başlar. Bölümde tek “Kampanyalar” bağlantısı bulunur; başlık veya buton tekrar edilmez.
 - “Fiyat ve stok” bölümü varsayılan açık; aktif kampanyalar varsa açık, yoksa kapalı başlar. Tüm detay bölümleri başlıktan açılıp kapanabilir.

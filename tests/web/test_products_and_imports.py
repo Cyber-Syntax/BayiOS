@@ -137,6 +137,26 @@ def test_get_product_detail(client: TestClient, fake_uow: FakeUnitOfWork) -> Non
     assert "Stok Hareket Geçmişi" in response.text
 
 
+def test_product_detail_shows_oliz_discount_amount(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    p = next(iter(fake_uow.products.get_all()))
+    response = client.get(f"/products/{p.id}")
+
+    assert "Oliz indirimi:" in response.text
+    assert "4.000,00 TL" in response.text
+
+
+def test_product_detail_hides_oliz_discount_without_oliz_price(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    p = next(iter(fake_uow.products.get_all()))
+    p.website_discounted_price = None
+    response = client.get(f"/products/{p.id}")
+
+    assert "Oliz indirimi:" not in response.text
+
+
 def test_get_imports_upload_page(client: TestClient) -> None:
     response = client.get("/imports/products")
     assert response.status_code == 200

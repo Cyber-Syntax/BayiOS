@@ -1,8 +1,8 @@
 # BayiOS — Product Requirements Document (PRD)
 
-**Belge sürümü:** 1.4
+**Belge sürümü:** 1.5
 **Durum:** MVP geliştirmeye hazır ürün gereksinimleri  
-**Tarih:** 23 Kasım 2026  
+**Tarih:** 26 Kasım 2026  
 **Ürün:** BayiOS  
 **UI/UX sözleşmesi:** [ui.md](./ui.md) — görsel dil, yerleşim, bileşen ve responsive kuralların tek kaynağı  
 **Kamuya açık depo:** Evet — gerçek komisyon, maliyet ve bayi taban fiyatı verisi bu depoda tutulmaz (bkz. §3.4).  
@@ -200,6 +200,7 @@ Bir ürün için ayrı alanlar:
 
 - **Normal fiyat:** `regular_price`.
 - **Şirket/Oliz indirimli fiyatı:** `website_discounted_price`; olmayabilir.
+- **Oliz indirim tutarı (türetilmiş):** Normal fiyat ile Oliz fiyatı arasındaki fark (`normal fiyat - Oliz fiyatı`). Yalnız iki fiyat da tanımlıysa ve fark pozitifse gösterilir; örn. `58.599,00 - 48.599,00 = 10.000,00 TL`. Saklanmaz, görüntülemede hesaplanır ve fiyat geçmişi kaydı oluşturmaz. Oliz fiyatı yoksa, sıfırsa veya fark pozitif değilse gösterilmez.
 - **Alış maliyeti:** `cost_price`; bayi tarafından bilinen, KDV dahil ve mevcut iş modelindeki 60 gün vade etkisini içeren toptan alış maliyeti olarak ele alınır.
 - **Bayi nakit minimum satış fiyatı:** Patronun ürüne özel belirlediği alt sınır/referans.
 - **Bayi kart minimum satış fiyatı:** Patronun ürüne özel belirlediği alt sınır/referans.
@@ -385,7 +386,7 @@ Bu hesap, POS komisyonu kesintisi sonrasında maliyet + seçilen hedef kârı ka
 
 **FR-PROD-01 (P0):** Ürün listesi ürün adına göre aranabilmelidir; arama baştaki sıfırları korumalıdır.
 
-**FR-PROD-02 (P0):** Ürün detayında normal fiyat, Oliz fiyatı, alış maliyeti, fiziksel stok ve açık rezervasyon gösterilmelidir.
+**FR-PROD-02 (P0):** Ürün detayında normal fiyat, Oliz fiyatı, Oliz indirim tutarı (normal fiyat − Oliz fiyatı), alış maliyeti, fiziksel stok ve açık rezervasyon gösterilmelidir. Oliz indirim tutarı yalnız iki fiyat da tanımlı ve fark pozitifken gösterilir; örn. 58.599,00 − 48.599,00 = 10.000,00 TL. Türetilmiş değerdir; saklanmaz ve fiyat geçmişi oluşturmaz.
 
 **FR-PROD-03 (P0):** Ürün detayında aktif kampanyalar ve bayi özel fiyatları gösterilmelidir.
 

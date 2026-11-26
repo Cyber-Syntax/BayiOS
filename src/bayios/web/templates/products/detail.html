@@ -79,6 +79,9 @@
     <div class="price-sub">
       {% if product.regular_price is not none and has_oliz %}
       <span>Oliz / Web: <strong class="mono">{{ product.website_discounted_price | tr_money }} TL</strong></span>
+      {% if oliz_discount is not none %}
+      <span class="price-discount">· Oliz indirimi: <strong class="mono">{{ oliz_discount | tr_money }} TL</strong></span>
+      {% endif %}
       {% elif product.regular_price is none %}
       <span>Normal fiyat tanımlı değil</span>
       {% endif %}

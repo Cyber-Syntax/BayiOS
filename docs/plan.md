@@ -235,7 +235,8 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
    - `SearchProducts`: Normalleştirilmiş ad ve baştaki sıfırları koruyan substring arama; kategori ve arşiv filtresi; sayfalama desteği.
    - **Arama kutusu düzeni:** Arama input alanı ve yanındaki "Ara" butonu responsive flex yapısında yan yana kalır (`whitespace-nowrap shrink-0`); buton metninin `AR<br>a` şeklinde kırılması engellenir. Arama/filtre kartı üstte sticky kalır.
    - **Seçim ve toplu işlem:** Seçim varken toplu işlem çubuğu `position: fixed` alt footer olarak gösterilir; tablo altına spacer eklenir. Çubukta tümünü seç checkbox'ı yer alır ve tablo başlığındaki seçimle senkron çalışır. Satır boş alanı tıklaması tüm ekranlarda seçim yapar; etkileşimli öğeler hariçtir.
-   - `GetProductDetail`: Normal fiyat, Oliz fiyatı, maliyet, fiziksel stok, açık rezervasyon (M1'de 0), fiyat geçmişi ve stok hareket günlüğü.
+   - `GetProductDetail`: Normal fiyat, Oliz fiyatı, Oliz indirim tutarı, maliyet, fiziksel stok, açık rezervasyon (M1'de 0), fiyat geçmişi ve stok hareket günlüğü.
+   - **Oliz indirim tutarı:** `calculate_oliz_discount(regular_price, website_discounted_price)` saf domain fonksiyonu; iki haneli `Decimal` ve `ROUND_HALF_UP`. Oliz fiyatı yok/sıfırsa, normal fiyat yoksa veya fark `<= 0` ise `None` döner. Türetilmiş değerdir; saklanmaz, veritabanı kolonu veya migration gerektirmez, fiyat geçmişi yazmaz.
 8. **Katalog dışa aktarma (`ExportProducts`):**
    - Tüm ürünleri CSV (`utf-8-sig`) veya `.xlsx` olarak export etme.
    - Kolonlar: `product_name`, `category`, `regular_price`, `website_discounted_price`, `quantity`, `cost_price`.
@@ -275,6 +276,7 @@ Gerçek bayi dosyasının incelenmesi sonucunda saptanan biçim özellikleri ve 
 - `ÇAMAŞIR MAKİNESİ` ve `çamaşır makinesi` aynı kategoriyi eşler ve görünen ad `Çamaşır Makinesi` olur. Ürün adı `901 KMX` yazıldığı gibi kalır; `901 kmx` araması onu bulur.
 - Aynı ürün ikinci kez aktarıldığında yeni ürün açılmaz, mevcut güncellenir.
 - Fiyat değişmemişse `ProductPriceHistory` oluşturulmaz; değişmişse eski/yeni değerlerle tarihçe yazılır.
+- Normal 58.599,00 TL ve Oliz 48.599,00 TL olan üründe detay "Oliz indirimi: 10.000,00 TL" gösterir; Oliz yoksa, sıfırsa veya fark pozitif değilse indirim satırı görünmez. Değer `float` kullanılmadan iki haneli `Decimal` ile hesaplanır ve fiyat geçmişi oluşturmaz.
 - Boş `quantity` mevcut stoku korur; `0` stoku sıfırlar ve stok hareketi oluşturur.
 - Oliz kolonu varsa boş/`0` hücre güncellemede mevcut Oliz fiyatını otomatik siler ve fiyat geçmişi yazar; kolon hiç yoksa mevcut Oliz değeri korunur.
 - CSV'de bulunmayan ürünler silinmez ve `is_archived=True` yapılmaz.

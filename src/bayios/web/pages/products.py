@@ -39,6 +39,7 @@ from bayios.application.products import (
 )
 from bayios.application.reservations import get_open_reservation_totals
 from bayios.domain.commissions import PRODUCT_GROUP_LABELS, ProductCommissionGroup
+from bayios.domain.products import calculate_oliz_discount
 from bayios.domain.products.details import ProductDetails
 from bayios.web.deps import ActorDep, UnitOfWorkDep
 from bayios.web.templating import templates
@@ -423,6 +424,10 @@ def product_detail(
         {
             "active_nav": "products",
             "product": detail.product,
+            "oliz_discount": calculate_oliz_discount(
+                detail.product.regular_price,
+                detail.product.website_discounted_price,
+            ),
             "product_details": product_details,
             "price_history": detail.price_history,
             "stock_movements": detail.stock_movements,
