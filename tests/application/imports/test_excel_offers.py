@@ -168,12 +168,13 @@ def test_offer_export_has_three_sheets_and_profit_rows() -> None:
     assert workbook["Kâr Detayı"].max_row == 2
 
 
-def test_offer_round_trip_updates_draft() -> None:
+def test_offer_round_trip_skips_unchanged_draft() -> None:
     uow, offer_id = _fixture()
     data = export_offers_xlsx(uow)
     preview = preview_offer_import(uow, data)
     assert len(preview.rows) == 1
-    assert preview.rows[0].decision == "update"
+    assert preview.rows[0].decision == "skip"
+    assert preview.rows[0].values["status"] == "Değişiklik yok"
     result = commit_offer_import(
         uow,
         file_name="teklif.xlsx",
@@ -182,7 +183,8 @@ def test_offer_round_trip_updates_draft() -> None:
         decisions={},
         commit_token="offer-roundtrip",
     )
-    assert result.updated_count == 1
+    assert result.updated_count == 0
+    assert result.skipped_count == 1
     assert len(uow.offers.offers) == 1
     assert offer_id in uow.offers.offers
 

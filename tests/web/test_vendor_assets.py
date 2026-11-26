@@ -53,13 +53,22 @@ def test_picker_copies_ghost_text_to_the_visible_input() -> None:
     assert "altInput.placeholder = placeholder" in script
 
 
-def test_sticky_table_scroll_asset_is_present_and_used_by_import_preview() -> None:
+def test_sticky_table_scroll_asset_is_present_and_used_by_generic_imports() -> None:
     from bayios.web.templating import TEMPLATES_DIR
 
     script = (STATIC_DIR / "js" / "table-scroll.js").read_text(encoding="utf-8")
     assert "data-table-scroll" in script
     assert "table-scroll-bar" in script
-    template = (TEMPLATES_DIR / "imports" / "preview.html").read_text(
+    generic = (TEMPLATES_DIR / "imports" / "generic_preview.html").read_text(
         encoding="utf-8"
     )
-    assert "data-table-scroll" in template
+    assert "data-table-scroll" in generic
+
+    # The product preview is a compact table on laptops and cards on mobile;
+    # it must not force horizontal scrolling.
+    product = (TEMPLATES_DIR / "imports" / "preview.html").read_text(
+        encoding="utf-8"
+    )
+    assert "mobile-cards" in product
+    assert "product-preview-table" in product
+    assert "data-table-scroll" not in product

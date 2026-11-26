@@ -278,25 +278,7 @@ def update_campaign_in_uow(
     if data.source_url is not None:
         campaign.source_url = data.source_url
 
-    effective_data = data
-    if not data.conditions and current.conditions:
-        effective_data = replace(
-            effective_data, conditions=tuple(current.conditions)
-        )
-    if data.source_category is None:
-        effective_data = replace(
-            effective_data, source_category=current.source_category
-        )
-    if data.source_product_count is None:
-        effective_data = replace(
-            effective_data,
-            source_product_count=current.source_product_count,
-        )
-    if data.scraped_at is None:
-        effective_data = replace(
-            effective_data, scraped_at=current.scraped_at
-        )
-
+    effective_data = _effective_update_data(data, current)
     contract = _build_contract(uow, effective_data)
     current_links = uow.campaigns.get_version_products(current.id)
     current_contract = _contract_from_row(current, current_links)
@@ -315,6 +297,50 @@ def update_campaign_in_uow(
     uow.campaigns.add_version_products(_link_rows(contract, version.id))
     uow.campaigns.set_current_version(campaign.id, version.id)
     return campaign, True
+
+
+def campaign_update_would_change(
+    uow: UnitOfWork,
+    campaign_id: uuid.UUID,
+    data: CampaignInput,
+) -> bool:
+    """True when an update would create a new campaign version.
+
+    The preview uses this to avoid telling the user a campaign will be updated
+    when the incoming contract is identical to the current version.
+    """
+    current = uow.campaigns.get_current_version(campaign_id)
+    if current is None:
+        return True
+    effective_data = _effective_update_data(data, current)
+    contract = _build_contract(uow, effective_data)
+    current_links = uow.campaigns.get_version_products(current.id)
+    current_contract = _contract_from_row(current, current_links)
+    return not is_same_contract(current_contract, contract)
+
+
+def _effective_update_data(
+    data: CampaignInput, current: CampaignVersion
+) -> CampaignInput:
+    effective_data = data
+    if not data.conditions and current.conditions:
+        effective_data = replace(
+            effective_data, conditions=tuple(current.conditions)
+        )
+    if data.source_category is None:
+        effective_data = replace(
+            effective_data, source_category=current.source_category
+        )
+    if data.source_product_count is None:
+        effective_data = replace(
+            effective_data,
+            source_product_count=current.source_product_count,
+        )
+    if data.scraped_at is None:
+        effective_data = replace(
+            effective_data, scraped_at=current.scraped_at
+        )
+    return effective_data
 
 
 def archive_campaign(

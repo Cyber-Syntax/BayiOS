@@ -109,7 +109,8 @@ def test_campaign_round_trip_is_skipped_unchanged() -> None:
     data = export_campaigns_xlsx(uow)
     preview = preview_campaign_import(uow, data)
     assert len(preview.rows) == 1
-    assert preview.rows[0].decision == "update"
+    assert preview.rows[0].decision == "skip"
+    assert preview.rows[0].values["status"] == "Değişiklik yok"
     result = commit_campaign_import(
         uow,
         file_name="kampanya.xlsx",

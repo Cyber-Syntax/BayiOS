@@ -1,9 +1,6 @@
 # BayiOS UI/UX Sözleşmesi
 
-**Durum:** Tek geçerli UI/UX sözleşmesi  
-**Sürüm:** 2.1  
-**Tarih:** 26.11.2026  
-**Kapsam:** Yalnız arayüz, görsel dil, yerleşim, bileşen davranışı ve responsive kurallar. İş kuralları [prd.md](./prd.md), mimari [plan.md](./plan.md) ve [ui-redesign-plan.md](./ui-redesign-plan.md) içindedir.
+**Durum:** Tek geçerli UI/UX sözleşmesi · **Sürüm:** 2.2 · **Tarih:** 26.11.2026 · **Kapsam:** Yalnız arayüz, görsel dil, yerleşim, bileşen davranışı ve responsive kurallar. İş kuralları [prd.md](./prd.md), mimari [plan.md](./plan.md) ve [ui-redesign-plan.md](./ui-redesign-plan.md) içindedir.
 
 Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek kaynağıdır. PRD'deki ekran anlatımları işlevsel gereksinimi tanımlar; yerleşim, bileşen, renk, tipografi, kırılım ve etkileşim için bu belge esastır. Çelişki halinde işlev için PRD, arayüz için bu belge geçerlidir.
 
@@ -180,6 +177,7 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 - Stok: “Stok: 3”, “Stokta yok”, negatifse “Stok düzeltmesi gerekli”.
 - Durum: “Taslak”, “Müşteriye sunuldu”, “Kabul edildi”, “Süresi geçti”, “Arşivde”.
 - **Sert kural:** Serbest metin taşıyan rozetler satır kırar. Global `white-space: nowrap` kullanılmaz; tüm rozetlerde `max-width: 100%` ve `overflow-wrap: anywhere` vardır. Uzun kampanya/hediye/ürün adı yatay kaydırma üretmez.
+- Kısa durum rozetleri (Yeni, Güncellenecek, Değişiklik yok, Hatalı, Atlanacak) tek satırdır; kategori/ürün türü gibi serbest metinler rozet değil düz metin olarak gösterilir.
 - Teklif satırında kampanya adı rozet değildir; tek satır, ellipsis metin olarak gösterilir. Rozet yalnız kısa durum/etiket bilgisinde kullanılır.
 - Flex/grid çocuklarında `min-width: 0`; uzun metin, select veya badge kartı ekran dışına taşıramaz.
 
@@ -382,8 +380,9 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 ### 6.10 İçe/dışa aktarma
 
 - Akış: dosya seç → önizleme → satır/toplu karar → tek transaction.
-- Önizleme: yeni/güncellenecek/hatalı sayaçları, hatalı satırlar en üstte.
-- Mobilde “Bu işlem laptopta daha rahattır” notu; tablo data-table-scroll.
+- Önizleme: yeni/güncellenecek/değişmeyecek/hatalı sayaçları, hatalı satırlar en üstte.
+- Ürün önizlemesi laptopta kompakt tablodur: satır, ürün + madde kodu, fiyat, stok, durum/değişiklik ve karar. Alış, taban fiyatlar, aktif kampanya ve ürün detayı satır içindeki “Diğer bilgiler” açılır bölümündedir; tablo yatay kaydırmaz.
+- Mobilde ürün önizlemesi kart görünümüne döner; “Bu işlem laptopta daha rahattır” notu ve alt sticky “Onayla” çubuğu bulunur. Kartlar yatay kaydırmaz.
 - Onay olmadan veri yazılmaz; sonuç Türkçe özet bandıyla gösterilir.
 
 ### 6.11 A4 ve yazdırma

@@ -32,6 +32,16 @@ def export_offers_json(
             product.id: product
             for product in uow.products.get_by_ids(product_ids)
         }
+        campaign_ids_by_version: dict[object, str] = {}
+        for version_id in {
+            item.campaign_version_id
+            for items in items_by_offer.values()
+            for item in items
+            if item.campaign_version_id is not None
+        }:
+            version = uow.campaigns.get_version(version_id)
+            if version is not None:
+                campaign_ids_by_version[version_id] = str(version.campaign_id)
 
     payload = {
         "schema_version": "1.0",
@@ -99,6 +109,9 @@ def export_offers_json(
                         "product_name": item.product_name_snapshot,
                         "quantity": item.quantity,
                         "campaign_name": item.campaign_name_snapshot or "",
+                        "campaign_id": campaign_ids_by_version.get(
+                            item.campaign_version_id, ""
+                        ),
                         "is_gift": bool(
                             (item.campaign_snapshot or {}).get("is_gift")
                         ),

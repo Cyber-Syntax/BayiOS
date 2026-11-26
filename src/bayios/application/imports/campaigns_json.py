@@ -10,10 +10,11 @@ from bayios.adapters.db.models.products import Product
 from bayios.application.campaigns import (
     CampaignInput,
     CampaignProductInput,
+    campaign_update_would_change,
     create_campaign_in_uow,
     update_campaign_in_uow,
 )
-from bayios.application.errors import ImportFormatError
+from bayios.application.errors import ImportFormatError, ValidationError
 from bayios.application.imports.common import (
     ImportPreview,
     ImportResult,
@@ -67,6 +68,7 @@ class _JsonCampaign:
     resolved_product_count: int
     existing_id: uuid.UUID | None
     data: CampaignInput | None
+    changed: bool
     errors: tuple[str, ...]
     warnings: tuple[str, ...]
     decision: str
@@ -97,10 +99,14 @@ def preview_campaign_json(
                 "conditions": len(campaign.conditions),
                 "products": (
                     f"{campaign.resolved_product_count} / "
-                    f"{campaign.source_product_count or 0}"
+                    f"{campaign.source_product_count or campaign.resolved_product_count}"
                 ),
                 "status": (
-                    "Güncellenecek" if campaign.existing_id else "Yeni"
+                    "Değişiklik yok"
+                    if campaign.existing_id and not campaign.changed
+                    else "Güncellenecek"
+                    if campaign.existing_id
+                    else "Yeni"
                 ),
             },
             errors=campaign.errors,
@@ -579,6 +585,7 @@ def _parse_one(
                         applies_per_unit=getattr(
                             link, "applies_per_unit", None
                         ),
+                        gift_price=getattr(link, "gift_price", None),
                     )
                 )
             for link in existing_links:
@@ -602,6 +609,7 @@ def _parse_one(
                         applies_per_unit=getattr(
                             link, "applies_per_unit", None
                         ),
+                        gift_price=getattr(link, "gift_price", None),
                     )
                 )
             products = preserved
@@ -676,7 +684,20 @@ def _parse_one(
             scraped_at=scraped_at,
             products=tuple(products),
         )
-    decision = "error" if errors else ("update" if existing_id else "create")
+    changed = False
+    if existing_id is not None and data is not None:
+        try:
+            changed = campaign_update_would_change(uow, existing_id, data)
+        except ValidationError as exc:
+            errors.append(str(exc))
+    if errors:
+        decision = "error"
+    elif existing_id is None:
+        decision = "create"
+    elif changed:
+        decision = "update"
+    else:
+        decision = "skip"
     return _JsonCampaign(
         key=key,
         row_number=row_number,
@@ -693,6 +714,7 @@ def _parse_one(
         resolved_product_count=len(products),
         existing_id=existing_id,
         data=data,
+        changed=changed,
         errors=tuple(errors),
         warnings=tuple(warnings),
         decision=decision,
@@ -715,6 +737,7 @@ def _error_campaign(row_number: int, message: str) -> _JsonCampaign:
         resolved_product_count=0,
         existing_id=None,
         data=None,
+        changed=False,
         errors=(message,),
         warnings=(),
         decision="error",

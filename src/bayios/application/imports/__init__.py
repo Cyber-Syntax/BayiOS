@@ -7,8 +7,8 @@ import json
 import re
 import unicodedata
 import uuid
-from collections.abc import Iterable
-from dataclasses import dataclass
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 
@@ -64,6 +64,7 @@ class ProductImportRow:
     clear_cash_floor_price: bool = False
     clear_card_floor_price: bool = False
     clear_website_discounted_price: bool = False
+    changes: tuple[str, ...] = ()
     errors: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
 
@@ -76,6 +77,26 @@ class ProductImportRow:
             or self.decision == "error"
         )
 
+    @property
+    def status_label(self) -> str:
+        if self.errors or self.decision == "error":
+            return "Hatalı"
+        if self.decision == "create":
+            return "Yeni"
+        if self.decision == "update":
+            return "Güncellenecek"
+        if self.decision == "skip":
+            return "Atlanacak" if self.changes else "Değişiklik yok"
+        return "—"
+
+    @property
+    def kind_label(self) -> str:
+        return {
+            "warranty": "Garanti",
+            "explicit": "Açık ürün",
+            "product": "Ürün",
+        }.get(self.kind or "", "—")
+
 
 @dataclass(frozen=True)
 class ProductImportPreview:
@@ -83,6 +104,47 @@ class ProductImportPreview:
     source_type: str = "csv"
     schema_version: str | None = None
     catalog_scraped_at: str | None = None
+
+
+@dataclass(frozen=True)
+class ProductIndex:
+    """Current catalog snapshot used to classify import rows without writing."""
+
+    by_external_id: Mapping[str, Product]
+    by_alias: Mapping[str, Product]
+    by_name: Mapping[str, tuple[Product, ...]]
+    by_id: Mapping[uuid.UUID, Product]
+    category_names: Mapping[uuid.UUID, str]
+    pricing: Mapping[uuid.UUID, object]
+
+    @classmethod
+    def load(cls, uow: UnitOfWork) -> ProductIndex:
+        products = list(uow.products.get_all())
+        by_id = {product.id: product for product in products}
+        by_name: dict[str, list[Product]] = {}
+        by_external_id: dict[str, Product] = {}
+        for product in products:
+            by_name.setdefault(product.name_normalized, []).append(product)
+            if product.external_id:
+                by_external_id[product.external_id] = product
+        by_alias: dict[str, Product] = {}
+        for entry in uow.products.get_external_id_history():
+            product = by_id.get(entry.product_id)
+            if product is not None:
+                by_alias[entry.external_id] = product
+        category_names = {
+            category.id: category.name
+            for category in uow.products.get_categories()
+        }
+        pricing = uow.dealer_pricing.get_many([product.id for product in products])
+        return cls(
+            by_external_id=by_external_id,
+            by_alias=by_alias,
+            by_name={key: tuple(value) for key, value in by_name.items()},
+            by_id=by_id,
+            category_names=category_names,
+            pricing=pricing,
+        )
 
 
 @dataclass(frozen=True)
@@ -105,6 +167,10 @@ WEBSITE_PRICE_HEADERS = (
 EXTERNAL_ID_HEADERS = (
     "ürün id",
     "urun id",
+    "madde kodu",
+    "madde_kodu",
+    "madde kodu (ürün id)",
+    "stok kodu",
     "product id",
     "product_id",
     "external_id",
@@ -129,6 +195,8 @@ def preview_product_import(
     existing_names: set[str] | None = None,
     known_external_ids: set[str] | None = None,
     existing_name_counts: dict[str, int] | None = None,
+    *,
+    index: ProductIndex | None = None,
 ) -> ProductImportPreview:
     source_type = _detect_source_type(source)
     rows: list[ProductImportRow] = []
@@ -206,8 +274,10 @@ def preview_product_import(
 
         if not product_name:
             errors.append("Ürün adı zorunludur.")
-        elif not re.fullmatch(r"[0-9A-Z]+(?: [0-9A-Z]+)*", product_name.upper()):
-            warnings.append("Ürün adı biçimi kontrol edilmeli.")
+        if product_name and not external_id:
+            warnings.append(
+                "Madde kodu yok; ürün ada göre eşleştirilecek."
+            )
         if currency and currency != "TRY":
             warnings.append(f"Para birimi TRY olmalıdır: {currency}")
         kind = _normalize_kind(raw_kind, category_name, warnings)
@@ -276,61 +346,112 @@ def preview_product_import(
         norm_name = (
             normalize_product_name(product_name) if product_name else ""
         )
+        product: Product | None = None
+        ambiguous_name = False
+        matched_external = bool(
+            external_id
+            and known_external_ids
+            and external_id in known_external_ids
+        )
+        matched_name = bool(
+            norm_name and existing_names and norm_name in existing_names
+        )
+        if index is not None and not duplicate_id:
+            if external_id:
+                product = (
+                    index.by_external_id.get(external_id)
+                    or index.by_alias.get(external_id)
+                )
+            if product is None and norm_name:
+                matches = index.by_name.get(norm_name, ())
+                if len(matches) == 1:
+                    product = matches[0]
+                elif len(matches) > 1:
+                    ambiguous_name = True
+
+        row = ProductImportRow(
+            row_number=row_number,
+            decision="create",
+            external_id=external_id,
+            product_name=product_name or None,
+            category_name=category_name or None,
+            regular_price=normalized_price,
+            website_discounted_price=normalized_discounted_price,
+            quantity=normalized_quantity,
+            cost_price=normalized_cost,
+            cash_floor_price=normalized_cash,
+            card_floor_price=normalized_card,
+            active_campaigns=active_campaigns or None,
+            kind=kind,
+            kind_present=kind_present,
+            source_url=source_url,
+            scraped_at=scraped_at,
+            details=details,
+            details_present=details_present,
+            details_error=details_error,
+            clear_cost_price=clear_cost,
+            clear_cash_floor_price=clear_cash,
+            clear_card_floor_price=clear_card,
+            clear_website_discounted_price=clear_discounted,
+            errors=tuple(errors),
+            warnings=tuple(warnings),
+        )
+        changes: tuple[str, ...] = ()
         if errors:
             decision = "error"
         elif duplicate_id:
             decision = "skip"
-        elif external_id and known_external_ids and external_id in known_external_ids:
+            changes = ("Tekrarlanan madde kodu",)
+        elif product is not None:
+            changes = _product_changes(
+                row,
+                product,
+                category_names=(
+                    index.category_names if index is not None else None
+                ),
+                pricing=index.pricing if index is not None else None,
+                alias_ids=index.by_alias if index is not None else None,
+            )
+            decision = "update" if changes else "skip"
+        elif ambiguous_name:
+            errors.append(
+                "Aynı ada sahip birden fazla ürün var; "
+                f"madde kodu girin: {product_name}"
+            )
+            decision = "error"
+        elif index is None and (matched_external or matched_name):
             decision = "update"
-        elif norm_name and existing_names and norm_name in existing_names:
-            decision = "update"
-            if external_id and not (
-                known_external_ids and external_id in known_external_ids
-            ):
-                warnings.append(
-                    "Mevcut ürün ada göre eşleşti; ürün ID'si güncellenecek."
-                )
             if (
                 existing_name_counts
                 and existing_name_counts.get(norm_name, 0) > 1
             ):
                 warnings.append(
-                    "Aynı ada sahip birden fazla ürün var; ID ile eşleştirme gerekir."
+                    "Aynı ada sahip birden fazla ürün var; "
+                    "madde kodu ile eşleştirme gerekir."
                 )
         else:
             decision = "create"
 
         rows.append(
-            ProductImportRow(
-                row_number=row_number,
+            replace(
+                row,
                 decision=decision,
-                external_id=external_id,
-                product_name=product_name or None,
-                category_name=category_name or None,
-                regular_price=normalized_price,
-                website_discounted_price=normalized_discounted_price,
-                quantity=normalized_quantity,
-                cost_price=normalized_cost,
-                cash_floor_price=normalized_cash,
-                card_floor_price=normalized_card,
-                active_campaigns=active_campaigns or None,
-                kind=kind,
-                kind_present=kind_present,
-                source_url=source_url,
-                scraped_at=scraped_at,
-                details=details,
-                details_present=details_present,
-                details_error=details_error,
-                clear_cost_price=clear_cost,
-                clear_cash_floor_price=clear_cash,
-                clear_card_floor_price=clear_card,
-                clear_website_discounted_price=clear_discounted,
+                changes=changes,
                 errors=tuple(errors),
                 warnings=tuple(warnings),
             )
         )
 
-    rows.sort(key=lambda r: (0 if r.is_problematic else 1, r.row_number))
+    rows.sort(
+        key=lambda r: (
+            0
+            if r.errors or r.decision == "error"
+            else 1
+            if r.warnings
+            else 2,
+            r.row_number,
+        )
+    )
     return ProductImportPreview(
         rows=tuple(rows),
         source_type=source_type,
@@ -339,11 +460,112 @@ def preview_product_import(
     )
 
 
+def _touch_product_seen(
+    product: Product, row: ProductImportRow, now: datetime
+) -> None:
+    """Refresh last-seen metadata for an unchanged row without writing history."""
+    product.last_seen_at = now
+    if row.scraped_at:
+        parsed = _parse_datetime(row.scraped_at)
+        if parsed is not None:
+            product.scraped_at = parsed
+
+
+def _product_changes(
+    row: ProductImportRow,
+    product: Product,
+    *,
+    category_names: Mapping[uuid.UUID, str] | None = None,
+    pricing: Mapping[uuid.UUID, object] | None = None,
+    alias_ids: Iterable[str] | None = None,
+    force_clear_discount: bool = False,
+) -> tuple[str, ...]:
+    """Return the user-visible fields an import row would actually change."""
+    changes: list[str] = []
+    aliases = alias_ids if alias_ids is not None else ()
+    if row.external_id and product.external_id != row.external_id:
+        if row.external_id in aliases:
+            if product.external_id is None:
+                changes.append("Madde kodu eklenecek")
+        else:
+            changes.append(
+                "Madde kodu güncellenecek"
+                if product.external_id
+                else "Madde kodu eklenecek"
+            )
+    if row.product_name and product.name != row.product_name:
+        changes.append("Ürün adı")
+    if row.category_name:
+        current_category = (
+            category_names.get(product.category_id)
+            if category_names is not None and product.category_id is not None
+            else None
+        )
+        if normalize_category_name(
+            current_category or ""
+        ) != normalize_category_name(row.category_name):
+            changes.append("Kategori")
+    if (
+        row.regular_price is not None
+        and product.regular_price != Decimal(row.regular_price)
+    ):
+        changes.append("Perakende fiyat")
+    if row.clear_website_discounted_price or force_clear_discount:
+        if product.website_discounted_price is not None:
+            changes.append("Oliz fiyatı (temizle)")
+    elif (
+        row.website_discounted_price is not None
+        and product.website_discounted_price
+        != Decimal(row.website_discounted_price)
+    ):
+        changes.append("Oliz fiyatı")
+    if (
+        row.quantity is not None
+        and int(row.quantity) != product.physical_stock
+    ):
+        changes.append("Fiziksel stok")
+    new_cost = product.cost_price
+    if row.clear_cost_price:
+        new_cost = None
+    elif row.cost_price is not None:
+        new_cost = Decimal(row.cost_price)
+    if new_cost != product.cost_price:
+        changes.append("Alış fiyatı")
+    current_pricing = (
+        pricing.get(product.id) if pricing is not None else None
+    )
+    current_cash = getattr(current_pricing, "cash_floor_price", None)
+    current_card = getattr(current_pricing, "card_floor_price", None)
+    new_cash = current_cash
+    new_card = current_card
+    if row.clear_cash_floor_price:
+        new_cash = None
+    elif row.cash_floor_price is not None:
+        new_cash = Decimal(row.cash_floor_price)
+    if row.clear_card_floor_price:
+        new_card = None
+    elif row.card_floor_price is not None:
+        new_card = Decimal(row.card_floor_price)
+    if new_cash != current_cash:
+        changes.append("Nakit taban fiyat")
+    if new_card != current_card:
+        changes.append("Kart taban fiyat")
+    if row.details_present and row.details != product.details:
+        changes.append("Ürün detayları")
+    if row.kind_present and row.kind and product.kind != row.kind:
+        changes.append("Ürün türü")
+    if row.source_url and product.source_url != row.source_url:
+        changes.append("Kaynak URL")
+    if product.is_archived:
+        changes.append("Arşivden çıkar")
+    return tuple(dict.fromkeys(changes))
+
+
 def product_import_template() -> bytes:
     sheet = SheetSpec(
         title="Ürünler",
         columns=(
-            ColumnSpec("Ürün ID", "external_id", "text", 18),
+            ColumnSpec("Madde Kodu (Ürün ID)", "external_id", "text", 24),
             ColumnSpec("Ürün Adı", "product_name", "text", 32),
             ColumnSpec("Kategori", "category", "text", 22),
             ColumnSpec("Perakende Fiyat", "regular_price", "money", 16),
@@ -358,7 +580,7 @@ def product_import_template() -> bytes:
         ),
         rows=(),
         instructions=(
-            ("Ürün ID", "Opsiyonel", "Scraper ID'si; baştaki sıfırlar korunur. Boşsa ada göre eşleşir."),
+            ("Madde Kodu (Ürün ID)", "Opsiyonel", "Ürünün madde kodu; baştaki sıfırlar korunur. Boşsa ada göre eşleşir."),
             ("Ürün Adı", "Zorunlu", "Ürün kimliği; baştaki sıfırlar korunur."),
             ("Kategori", "Opsiyonel", "Boşsa mevcut kategori korunur; yeni ad otomatik oluşturulur."),
             ("Perakende Fiyat", "Opsiyonel", "Boşsa korunur; - yazılırsa temizlenir."),
@@ -407,7 +629,6 @@ def commit_product_import(
                     total_count=existing_batch.row_count,
                 )
 
-        raw_preview = preview_product_import(source)
         all_products = list(uow.products.get_all())
         product_by_id = {product.id: product for product in all_products}
         by_name: dict[str, list[Product]] = {}
@@ -428,6 +649,25 @@ def commit_product_import(
             or normalize_category_name(name): category
             for name, category in categories.items()
         }
+        category_names = {
+            category.id: category.name for category in categories.values()
+        }
+        pricing = dict(
+            uow.dealer_pricing.get_many(
+                [product.id for product in all_products]
+            )
+        )
+        index = ProductIndex(
+            by_external_id=by_external,
+            by_alias=by_alias,
+            by_name={
+                key: tuple(value) for key, value in by_name.items()
+            },
+            by_id=product_by_id,
+            category_names=category_names,
+            pricing=pricing,
+        )
+        raw_preview = preview_product_import(source, index=index)
 
         def resolve_category(category_name: str | None) -> ProductCategory | None:
             if not category_name:
@@ -448,6 +688,7 @@ def commit_product_import(
             uow.products.add_category(category)
             categories[category.name] = category
             categories_by_norm[norm] = category
+            category_names[category.id] = category.name
             return category
 
         def remember(product: Product) -> None:
@@ -522,7 +763,7 @@ def commit_product_import(
         details_error_count = 0
         seen_ids: set[str] = set()
 
-        for row in raw_preview.rows:
+        for row in sorted(raw_preview.rows, key=lambda item: item.row_number):
             if row.errors or not row.product_name:
                 error_count += 1
                 continue
@@ -532,13 +773,13 @@ def commit_product_import(
                 if decisions
                 else row.decision
             ) or row.decision
-            if chosen_decision == "skip":
-                skipped_count += 1
-                continue
 
             if row.external_id:
                 if row.external_id in seen_ids:
-                    error_count += 1
+                    if chosen_decision == "skip":
+                        skipped_count += 1
+                    else:
+                        error_count += 1
                     continue
                 seen_ids.add(row.external_id)
 
@@ -569,6 +810,9 @@ def commit_product_import(
                 error_count += 1
 
             if product is None:
+                if chosen_decision == "skip":
+                    skipped_count += 1
+                    continue
                 category = resolve_category(row.category_name)
                 scraped_at = (
                     _parse_datetime(row.scraped_at) if row.scraped_at else None
@@ -635,7 +879,7 @@ def commit_product_import(
                     else None
                 )
                 if cash_floor is not None or card_floor is not None:
-                    apply_dealer_pricing_values(
+                    pricing[product.id] = apply_dealer_pricing_values(
                         uow,
                         product_id=product.id,
                         cash_floor_price=cash_floor,
@@ -660,6 +904,26 @@ def commit_product_import(
                             created_by_device=actor.device_name,
                         )
                     )
+                continue
+
+            changes = _product_changes(
+                row,
+                product,
+                category_names=category_names,
+                pricing=pricing,
+                alias_ids=by_alias,
+                force_clear_discount=chosen_decision == "clear_discount",
+            )
+            if not changes:
+                # No business field would change. Refresh the seen timestamp so
+                # "last seen" stays accurate (FR-PROD-16) but keep the row out
+                # of the updated count (FR-PROD-08).
+                _touch_product_seen(product, row, now)
+                skipped_count += 1
+                continue
+
+            if chosen_decision == "skip":
+                skipped_count += 1
                 continue
 
             # Existing product: update fields; ID is the primary key.
@@ -760,7 +1024,7 @@ def commit_product_import(
                 or new_cash is not None
                 or new_card is not None
             ):
-                apply_dealer_pricing_values(
+                pricing[product.id] = apply_dealer_pricing_values(
                     uow,
                     product_id=product.id,
                     cash_floor_price=new_cash,

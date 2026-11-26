@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -1378,6 +1378,93 @@ def create_offer(
         )
         uow.commit()
         return offer.id
+
+
+def offer_would_change(
+    uow: UnitOfWork,
+    offer_id: uuid.UUID,
+    data: OfferInput,
+) -> bool:
+    """True when re-applying the same input would change the draft offer.
+
+    The caller must already have an active unit of work. Import previews use
+    this so an unchanged re-import is reported as "Değişiklik yok" instead of
+    "Güncellenecek".
+    """
+    offer = uow.offers.get(offer_id)
+    if offer is None or offer.status != OfferStatus.DRAFT.value:
+        return True
+    items = list(uow.offers.get_items(offer_id))
+    campaign_id_by_version: dict[uuid.UUID, uuid.UUID | None] = {}
+    for item in items:
+        version_id = item.campaign_version_id
+        if version_id is None or version_id in campaign_id_by_version:
+            continue
+        version = uow.campaigns.get_version(version_id)
+        campaign_id_by_version[version_id] = (
+            version.campaign_id if version is not None else None
+        )
+    return not _offer_input_matches(
+        offer, items, campaign_id_by_version, data
+    )
+
+
+def _offer_input_matches(
+    offer: Offer,
+    items: Sequence[OfferItem],
+    campaign_id_by_version: Mapping[uuid.UUID, uuid.UUID | None],
+    data: OfferInput,
+) -> bool:
+    if getattr(offer, "pricing_version", "legacy") != "v2":
+        return False
+    actual_items = [
+        item for item in items if item.warning_text != "Hediye ürün"
+    ]
+    if len(actual_items) != len(data.items):
+        return False
+    for existing, incoming in zip(actual_items, data.items, strict=True):
+        if existing.product_id != incoming.product_id:
+            return False
+        if existing.quantity != incoming.quantity:
+            return False
+        existing_campaign_id = (
+            campaign_id_by_version.get(existing.campaign_version_id)
+            if existing.campaign_version_id is not None
+            else None
+        )
+        if existing_campaign_id != incoming.campaign_id:
+            return False
+        if (
+            incoming.gift_present is not None
+            and existing.campaign_gift_present != incoming.gift_present
+        ):
+            return False
+        if (
+            incoming.unit_price_cash is not None
+            and existing.unit_price_cash != incoming.unit_price_cash
+        ):
+            return False
+        if (
+            incoming.unit_price_card is not None
+            and existing.unit_price_card != incoming.unit_price_card
+        ):
+            return False
+    return (
+        _clean(offer.customer_name) == _clean(data.customer_name)
+        and _clean(offer.customer_phone) == _clean(data.customer_phone)
+        and offer.payment_type == data.payment_type.value
+        and offer.channel == (data.channel.value if data.channel else None)
+        and offer.bank_id == data.bank_id
+        and _clean(offer.card_network) == _clean(data.card_network)
+        and offer.installment_count == data.installment_count
+        and offer.card_type == (data.card_type.value if data.card_type else None)
+        and offer.dealer_discount_percent == data.dealer_discount_percent
+        and offer.dealer_discount_cash_percent
+        == data.dealer_discount_cash_percent
+        and _clean(offer.note) == _clean(data.note)
+        and offer.cash_total_override == data.cash_total_override
+        and offer.card_total_override == data.card_total_override
+    )
 
 
 def update_offer(

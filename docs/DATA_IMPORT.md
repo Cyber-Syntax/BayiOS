@@ -6,7 +6,7 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 ## Ortak kurallar
 
 - Yeni modüller **.xlsx** kabul eder; ürünler ayrıca **.csv** (UTF-8/UTF-8-SIG veya cp1254, `,`/`;`) ve scraper **catalog.json** (schema_version 1.0) kabul eder. Teklifler, rezervasyonlar ve kampanyalar ayrıca **JSON** (schema_version 1.0) içe/dışa aktarır; CSV/Excel yedek/geçiş formatı olarak korunur.
-- Başlıklar Türkçe veya İngilizce olabilir; `Ürün Adı` = `Urun Adi` = `product_name` eşleşir. Ürün referanslı tüm importlarda `Ürün ID` kolonu opsiyoneldir; önce ID, ID boşsa ad ile eşleşir.
+- Başlıklar Türkçe veya İngilizce olabilir; `Ürün Adı` = `Urun Adi` = `product_name`, `Madde Kodu` = `Ürün ID` = `external_id` eşleşir. Ürün referanslı tüm importlarda `Ürün ID` (madde kodu) kolonu opsiyoneldir; önce madde kodu, kod boşsa ad ile eşleşir.
 - Boş hücre genelde “mevcut değeri koru”; **Oliz İndirimli Fiyat istisnadır**: kolon varsa boş/`0` hücre güncellemede Oliz fiyatını siler. `-`, `temizle`, `clear` her zaman “değeri kaldır” anlamına gelir.
 - Para hücreleri `38.099,50`, `38099.50`, `38.099 TL` gibi biçimleri kabul eder.
 - Tarihler `GG.AA.YYYY`, `GG/AA/YYYY`, `YYYY-MM-DD` ve Excel tarih hücresi olarak kabul edilir.
@@ -21,7 +21,7 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 
 | Kolon | Açıklama |
 |---|---|
-| Ürün ID | Scraper ID'si; güncel veya eski alias ile eşleşir; boşsa ad kullanılır |
+| Ürün ID (Madde Kodu) | Ürünün madde kodu; güncel veya eski alias ile eşleşir; boşsa ad kullanılır |
 | Ürün Adı | ID yoksa zorunlu; normalize ada göre eşleşir |
 | Kategori | Boşsa mevcut korunur; bilinmeyen kategori otomatik oluşturulur |
 | Perakende Fiyat | Boşsa korunur; `-` temizler |
@@ -36,12 +36,13 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 
 Ürün import'u fiyat ve dealer pricing değişikliklerinde geçmiş kaydı yazar; stok değişiminde `csv_update` hareketi oluşturur. Yeni ID geldiğinde ürünün `external_id` değeri güncellenir, eski ID alias olarak saklanır; boş ID mevcut değeri korur. `catalog.json` null `discounted_price` mevcut Oliz fiyatını siler.
 
-**Ürün ID eşleştirme kuralları**
+**Madde kodu (`external_id`) eşleştirme kuralları**
 
-- ID doluysa yalnızca güncel `external_id` veya `product_external_id_history` alias'ı ile eşleşir; ID bulunamazsa satır hata verir, ada göre fallback yapılmaz.
-- ID boşsa normalize ürün adıyla legacy eşleşir; aynı ad birden fazla ürüne denk gelirse ID girmesi istenir.
-- Ürün kataloğu importunda yeni ID, mevcut ürünün adıyla tek eşleşiyorsa `external_id` güncellenir; eski ID alias olarak saklanır. Aynı ad farklı ID ile ayrı ürün olabilir.
-- Teklif/rezervasyon/kampanya importları ürün ID'sini yalnızca çözer; ürünün güncel ID'sini değiştirmez.
+- Madde kodu doluysa yalnızca güncel `external_id` veya `product_external_id_history` alias'ı ile eşleşir; kod bulunamazsa satır hata verir, ada göre fallback yapılmaz.
+- Madde kodu boşsa normalize ürün adıyla legacy eşleşir; aynı ad birden fazla ürüne denk gelirse madde kodu girmesi istenir. Bu satırlar sarı uyarı alır (ör. ek garanti ürünleri); ürün adı biçimi ayrıca denetlenmez.
+- Ürün kataloğu importunda yeni madde kodu, mevcut ürünün adıyla tek eşleşiyorsa `external_id` güncellenir; eski kod alias olarak saklanır. Aynı ad farklı kodla ayrı ürün olabilir.
+- Yalnızca gerçek alan değişiklikleri "Güncellenecek" sayılır; hiçbir iş alanı değişmiyorsa satır "Değişiklik yok" olarak atlanır ve güncellenen sayısına eklenmez.
+- Teklif/rezervasyon/kampanya importları ürünün madde kodunu yalnızca çözer; ürünün güncel kodunu değiştirmez.
 
 ## Kampanyalar
 
@@ -52,7 +53,7 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 - `Kampanya Adı`, `Başlangıç Tarihi`, `Bitiş Tarihi` zorunludur.
 - İlişki türleri: `Şart ürünü`, `Fayda ürünü`, `Hediye ürünü`, `İlgili ürün`.
 - Hediye kampanyasında `Hediye Açıklaması` zorunludur.
-- Eşleşme önce `Kampanya ID` ile, yoksa normalize ad + başlangıç + bitiş ile yapılır. Aynı sözleşme yeni sürüm üretmez.
+- Eşleşme önce `Kampanya ID` ile, yoksa normalize ad + başlangıç + bitiş ile yapılır. Aynı sözleşme yeni sürüm üretmez; önizlemede "Değişiklik yok" olarak atlanır ve güncellenen sayısına eklenmez.
 - Tek sayfa şirket dosyası da kabul edilir; aynı kampanya satırları kampanya adı ve tarihlerle gruplanır.
 - `Kampanya Ürünleri` sayfası yoksa mevcut ilişkiler korunur.
 - Kampanya detayından yapılan dışa aktarma `Ürün ID, Ürün Adı, İlişki Türü, Gerekli Adet` kolonlarını içerir. Aynı dosyaya yüzlerce ürün satırı eklenip detaydan içe aktarılabilir; kampanya başlığı tekrar edilmez.
@@ -104,7 +105,7 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 
 **Kâr Detayı:** `Teklif No, Teklif Anahtarı, Ürün Adı, Taksit, Komisyon %, Komisyon Sonrası, Kampanya Hakedişi, Oliz Hakedişi, Toplam Gelir, Maliyet, Kâr/Zarar, Kâr Marjı %`
 
-- Import yalnızca taslak teklif oluşturur/günceller. Durum, komisyon ve kâr kolonları salt okunurdur; sunucu yeniden hesaplar.
+- Import yalnızca taslak teklif oluşturur/günceller. Durum, komisyon ve kâr kolonları salt okunurdur; sunucu yeniden hesaplar. Değişmeyen taslak teklifler "Değişiklik yok" olarak atlanır.
 - Yeni tekliflerde `Teklif Anahtarı` satırları gruplar; mevcut taslaklar `Teklif No` ile güncellenir.
 - Kartta kanal, taksit, kart tipi zorunlu; banka isteğe bağlıdır (boşsa genel oran kullanılır). Kart ve nakit bayi indirimi ayrı kolonlardadır; boş bırakılan nakit indirimi kart indirimini kullanır.
 - `Nakit Toplam (Manuel)` / `Kart Toplam (Manuel)` boşsa otomatik hesap kullanılır; doluysa toplam, mevcut satır satış toplamlarına göre orantılı olarak satır birim fiyatlarına dağıtılır. Kuruş yuvarlama artığı kalırsa kâr özetinde manuel fark olarak gösterilir.
@@ -112,9 +113,10 @@ Kullanıcıya gösterilen tüm metinler Türkçedir; teknik hata ayrıntıları 
 
 ### Teklifler JSON
 
-`schema_version` 1.0, `offers[]`. Her teklifte müşteri, tarih, durum, ödeme/kanal/banka/taksit/kart tipi, indirimler, nakit/kart/seçili toplamlar, manuel toplamlar, not ve `items[]` bulunur. `items[]`: `product_id` (önce scraper ID/alias, yoksa iç UUID veya ad), `product_name`, `quantity`, `campaign_name`, `unit_price_cash`, `unit_price_card`.
+`schema_version` 1.0, `offers[]`. Her teklifte müşteri, tarih, durum, ödeme/kanal/banka/taksit/kart tipi, indirimler, nakit/kart/seçili toplamlar, manuel toplamlar, not ve `items[]` bulunur. `items[]`: `product_id` (önce scraper ID/alias, yoksa iç UUID veya ad), `product_name`, `quantity`, `campaign_id` (opsiyonel; dışa aktarımda doldurulur), `campaign_name`, `unit_price_cash`, `unit_price_card`.
 
 - Import önce `offer_number` ile eşleşir; yalnızca taslak teklif güncellenir. Yeni tekliflerde durum, geçerli geçişlerle (taslak → sunuldu → kabul) geri yüklenir.
+- Aynı taslak teklif değişmeden tekrar yüklenirse satır "Değişiklik yok" olarak atlanır; güncellenen sayısına eklenmez. `campaign_id` dışa aktarımda yazılır ve geri yüklemede aynı kampanyayı eşler.
 - Ürün ID'si bulunamazsa ad denenir; o da yoksa satır hata verir.
 - JSON import/export, CSV/Excel'e alternatif değil; ikisi de desteklenir.
 

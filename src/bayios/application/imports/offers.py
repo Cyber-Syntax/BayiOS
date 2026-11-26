@@ -18,6 +18,7 @@ from bayios.application.offers import (
     OfferInput,
     OfferItemInput,
     create_offer,
+    offer_would_change,
     update_offer,
 )
 from bayios.application.ports.unit_of_work import UnitOfWork
@@ -117,6 +118,7 @@ class _OfferEntity:
     payment_label: str
     item_count: int
     data: OfferInput | None
+    changed: bool
     errors: tuple[str, ...]
     warnings: tuple[str, ...]
     decision: str
@@ -140,9 +142,19 @@ def preview_offer_import(
                 "payment": entity.payment_label,
                 "items": entity.item_count,
                 "status": (
-                    "Güncellenecek"
-                    if entity.existing_id and entity.existing_status == "draft"
-                    else "Yeni"
+                    "Değişiklik yok"
+                    if entity.existing_id
+                    and entity.existing_status == "draft"
+                    and not entity.changed
+                    else (
+                        "Güncellenecek"
+                        if entity.existing_id and entity.existing_status == "draft"
+                        else (
+                            "Taslak değil (atlanacak)"
+                            if entity.existing_id
+                            else "Yeni"
+                        )
+                    )
                 ),
             },
             errors=entity.errors,
@@ -199,8 +211,11 @@ def commit_offer_import(
         decision = decisions.get(entity.key) or entity.decision
         if decision == "skip" or (
             entity.existing_id is not None
-            and entity.existing_status != "draft"
             and decision != "create"
+            and (
+                entity.existing_status != "draft"
+                or not entity.changed
+            )
         ):
             skipped += 1
             continue
@@ -557,9 +572,21 @@ def _parse_offers(
                 cash_total_override=cash_override,
                 card_total_override=card_override,
             )
-            if existing is not None and existing.status != "draft":
-                errors.append("Yalnızca taslak teklifler güncellenebilir.")
-            decision = "error" if errors else ("update" if existing else "create")
+            changed = False
+            if (
+                not errors
+                and existing is not None
+                and existing.status == "draft"
+            ):
+                changed = offer_would_change(uow, existing.id, data)
+            if errors:
+                decision = "error"
+            elif existing is not None and existing.status != "draft":
+                decision = "skip"
+            elif existing is not None:
+                decision = "update" if changed else "skip"
+            else:
+                decision = "create"
             entities.append(
                 _OfferEntity(
                     key=key,
@@ -571,6 +598,7 @@ def _parse_offers(
                     payment_label=PAYMENT_TYPE_LABELS[payment_type],
                     item_count=len(offer_items),
                     data=data if not errors else None,
+                    changed=changed,
                     errors=tuple(errors),
                     warnings=tuple(row_warnings),
                     decision=decision,

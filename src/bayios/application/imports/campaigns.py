@@ -8,6 +8,7 @@ from bayios.application.campaigns import (
     CampaignInput,
     CampaignProductInput,
     _build_contract,
+    campaign_update_would_change,
     create_campaign_in_uow,
     update_campaign_in_uow,
 )
@@ -103,6 +104,7 @@ class _CampaignEntity:
     starts_at: datetime
     ends_at: datetime
     data: CampaignInput | None
+    changed: bool
     errors: tuple[str, ...]
     warnings: tuple[str, ...]
     decision: str
@@ -141,7 +143,9 @@ def preview_campaign_import(
                 ),
                 "products": entity.product_count,
                 "status": (
-                    "Güncellenecek"
+                    "Değişiklik yok"
+                    if entity.existing_id and not entity.changed
+                    else "Güncellenecek"
                     if entity.existing_id
                     else "Yeni"
                 ),
@@ -726,7 +730,20 @@ def _parse_campaigns(
                 existing_id = None
             if campaign_id is not None and existing_id is None:
                 errors.append("Kampanya ID bulunamadı.")
-        decision = "error" if errors else ("update" if existing_id else "create")
+        changed = False
+        if existing_id is not None and not errors:
+            try:
+                changed = campaign_update_would_change(uow, existing_id, data)
+            except (ValidationError, ValueError) as exc:
+                errors.append(str(exc))
+        if errors:
+            decision = "error"
+        elif existing_id is None:
+            decision = "create"
+        elif changed:
+            decision = "update"
+        else:
+            decision = "skip"
         entities.append(
             _CampaignEntity(
                 key=key,
@@ -737,6 +754,7 @@ def _parse_campaigns(
                 starts_at=data.starts_at,
                 ends_at=data.ends_at,
                 data=data if not errors else None,
+                changed=changed,
                 errors=tuple(errors),
                 warnings=warnings,
                 decision=decision,

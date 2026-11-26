@@ -95,6 +95,68 @@ def test_offer_json_export_and_import_round_trip() -> None:
     assert imported_items[0].quantity == 2
 
 
+def test_offer_json_reimport_of_same_draft_is_unchanged() -> None:
+    uow, product = _product_uow()
+    create_offer(
+        uow,
+        OfferInput(
+            customer_name="JSON Müşteri",
+            customer_phone="555",
+            payment_type=PaymentType.CASH,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product.id, 2),),
+            note="JSON notu",
+        ),
+    )
+    exported = export_offers_json(uow)
+
+    preview = preview_offer_json(uow, exported)
+
+    assert preview.rows[0].decision == "skip"
+    assert preview.rows[0].values["status"] == "Değişiklik yok"
+    result = commit_offer_json(
+        uow,
+        file_name="teklifler.json",
+        file_type="json",
+        source=exported,
+        decisions={},
+    )
+    assert result.created_count == 0
+    assert result.updated_count == 0
+    assert result.skipped_count == 1
+
+
+def test_offer_json_changed_customer_updates_draft() -> None:
+    uow, product = _product_uow()
+    create_offer(
+        uow,
+        OfferInput(
+            customer_name="Eski Müşteri",
+            customer_phone="555",
+            payment_type=PaymentType.CASH,
+            dealer_discount_percent=Decimal(10),
+            items=(OfferItemInput(product.id, 2),),
+        ),
+    )
+    payload = json.loads(export_offers_json(uow))
+    payload["offers"][0]["customer_name"] = "Yeni Müşteri"
+    source = json.dumps(payload, ensure_ascii=False).encode()
+
+    preview = preview_offer_json(uow, source)
+
+    assert preview.rows[0].decision == "update"
+    result = commit_offer_json(
+        uow,
+        file_name="teklifler.json",
+        file_type="json",
+        source=source,
+        decisions={},
+    )
+    assert result.updated_count == 1
+    imported = next(iter(uow.offers.offers.values()))
+    assert imported.customer_name == "Yeni Müşteri"
+
+
 def test_reservation_json_export_and_import_round_trip() -> None:
     uow, product = _product_uow()
     created = create_reservation(

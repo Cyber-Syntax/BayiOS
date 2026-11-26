@@ -21,6 +21,7 @@ from bayios.application.offers import (
     OfferInput,
     OfferItemInput,
     create_offer,
+    offer_would_change,
     set_offer_status,
     update_offer,
 )
@@ -49,6 +50,7 @@ class _OfferJson:
     item_count: int
     data: OfferInput | None
     target_status: str
+    changed: bool
     errors: tuple[str, ...]
     warnings: tuple[str, ...]
     decision: str
@@ -85,13 +87,19 @@ def preview_offer_json(
                     "payment": offer.payment_label,
                     "items": offer.item_count,
                     "status": (
-                        "Güncellenecek"
+                        "Değişiklik yok"
                         if offer.existing_id
                         and offer.existing_status == OfferStatus.DRAFT.value
+                        and not offer.changed
                         else (
-                            "Taslak değil (atlanacak)"
+                            "Güncellenecek"
                             if offer.existing_id
-                            else "Yeni"
+                            and offer.existing_status == OfferStatus.DRAFT.value
+                            else (
+                                "Taslak değil (atlanacak)"
+                                if offer.existing_id
+                                else "Yeni"
+                            )
                         )
                     ),
                 },
@@ -130,8 +138,11 @@ def commit_offer_json(
         decision = decisions.get(offer.key) or offer.decision
         if decision == "skip" or (
             offer.existing_id is not None
-            and offer.existing_status != OfferStatus.DRAFT.value
             and decision != "create"
+            and (
+                offer.existing_status != OfferStatus.DRAFT.value
+                or not offer.changed
+            )
         ):
             skipped += 1
             continue
@@ -210,6 +221,7 @@ def _parse_json(
             continue
         parsed.append(
             _parse_one(
+                uow,
                 raw,
                 row_number=offset,
                 lookup=lookup,
@@ -228,6 +240,7 @@ def _parse_json(
 
 
 def _parse_one(
+    uow: UnitOfWork,
     raw: dict[str, Any],
     *,
     row_number: int,
@@ -309,13 +322,22 @@ def _parse_one(
             continue
         quantity = _positive_int(raw_item.get("quantity"), 1)
         campaign_name = _text(raw_item.get("campaign_name"))
-        campaign = (
-            campaigns_by_name.get(normalize_name(campaign_name))
-            if campaign_name
-            else None
-        )
-        if campaign_name and campaign is None:
-            warnings.append(f"Kampanya bulunamadı; kampanyasız aktarılacak: {campaign_name}")
+        campaign = None
+        campaign_id_raw = _text(raw_item.get("campaign_id"))
+        if campaign_id_raw:
+            try:
+                campaign_uuid = uuid.UUID(campaign_id_raw)
+            except ValueError:
+                campaign_uuid = None
+            if campaign_uuid is not None:
+                campaign = uow.campaigns.get(campaign_uuid)
+        if campaign is None and campaign_name:
+            campaign = campaigns_by_name.get(normalize_name(campaign_name))
+            if campaign is None:
+                warnings.append(
+                    "Kampanya bulunamadı; kampanyasız aktarılacak: "
+                    f"{campaign_name}"
+                )
         items.append(
             OfferItemInput(
                 product_id=product.id,
@@ -341,9 +363,11 @@ def _parse_one(
             card_network=card_network,
             installment_count=_positive_int_or_none(raw.get("installment_count")),
             card_type=card_type,
-            dealer_discount_percent=_decimal(raw.get("dealer_discount_percent")) or Decimal(10),
-            dealer_discount_cash_percent=(
-                _decimal(raw.get("dealer_discount_cash_percent")) or Decimal(10)
+            dealer_discount_percent=_decimal_or_default(
+                raw.get("dealer_discount_percent"), Decimal(10)
+            ),
+            dealer_discount_cash_percent=_decimal_or_default(
+                raw.get("dealer_discount_cash_percent"), Decimal(10)
             ),
             note=_text(raw.get("note")) or None,
             cash_total_override=_decimal(raw.get("cash_total_override")),
@@ -351,12 +375,20 @@ def _parse_one(
             created_at=created_at,
             items=tuple(items),
         )
+    changed = False
+    if (
+        not errors
+        and existing_id is not None
+        and existing_status == OfferStatus.DRAFT.value
+        and data is not None
+    ):
+        changed = offer_would_change(uow, existing_id, data)
     if errors:
         decision = "error"
     elif existing_id is not None and existing_status != OfferStatus.DRAFT.value:
         decision = "skip"
     elif existing_id is not None:
-        decision = "update"
+        decision = "update" if changed else "skip"
     else:
         decision = "create"
     return _OfferJson(
@@ -372,6 +404,7 @@ def _parse_one(
         item_count=len(items),
         data=data,
         target_status=target_status,
+        changed=changed,
         errors=tuple(errors),
         warnings=tuple(warnings),
         decision=decision,
@@ -434,6 +467,7 @@ def _error_offer(row_number: int, message: str) -> _OfferJson:
         item_count=0,
         data=None,
         target_status=OfferStatus.DRAFT.value,
+        changed=False,
         errors=(message,),
         warnings=(),
         decision="error",
@@ -479,6 +513,11 @@ def _decimal(value: object) -> Decimal | None:
         return Decimal(str(value).replace(",", "."))
     except (InvalidOperation, ValueError):
         return None
+
+
+def _decimal_or_default(value: object, default: Decimal) -> Decimal:
+    parsed = _decimal(value)
+    return default if parsed is None else parsed
 
 
 def _optional_bool(value: object) -> bool | None:

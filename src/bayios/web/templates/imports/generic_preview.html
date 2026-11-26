@@ -25,6 +25,7 @@
   <div class="stat-box"><div class="stat-label">Toplam</div><div class="stat-value">{{ preview.rows | length }}</div></div>
   <div class="stat-box"><div class="stat-label">Yeni</div><div class="stat-value" style="color: #059669;">{{ preview.created_count }}</div></div>
   <div class="stat-box"><div class="stat-label">Güncellenecek</div><div class="stat-value" style="color: #2563eb;">{{ preview.updated_count }}</div></div>
+  <div class="stat-box"><div class="stat-label">Değişmeyecek</div><div class="stat-value" style="color: #6b7280;">{{ preview.skipped_count }}</div></div>
   <div class="stat-box"><div class="stat-label">Hatalı</div><div class="stat-value" style="{% if preview.error_count %}color: #dc2626;{% endif %}">{{ preview.error_count }}</div></div>
 </div>
 

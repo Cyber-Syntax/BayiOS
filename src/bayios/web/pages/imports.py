@@ -10,6 +10,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from bayios.application.errors import ImportFormatError
 from bayios.application.imports import (
+    ProductIndex,
     commit_product_import,
     preview_product_import,
     product_import_template,
@@ -73,28 +74,12 @@ async def preview_import(
             {"active_nav": "products", "error": "Yüklenen dosya boş."},
         )
 
-    # Find existing products to pre-populate update vs create decision
+    # Find existing products to pre-populate create/update/unchanged decisions.
     with uow:
-        all_products = list(uow.products.get_all())
-        existing_names = {p.name_normalized for p in all_products}
-        existing_name_counts: dict[str, int] = {}
-        known_external_ids: set[str] = set()
-        for product in all_products:
-            existing_name_counts[product.name_normalized] = (
-                existing_name_counts.get(product.name_normalized, 0) + 1
-            )
-            if product.external_id:
-                known_external_ids.add(product.external_id)
-        for entry in uow.products.get_external_id_history():
-            known_external_ids.add(entry.external_id)
+        index = ProductIndex.load(uow)
 
     try:
-        preview = preview_product_import(
-            content,
-            existing_names=existing_names,
-            known_external_ids=known_external_ids,
-            existing_name_counts=existing_name_counts,
-        )
+        preview = preview_product_import(content, index=index)
     except ImportFormatError as exc:
         return templates.TemplateResponse(
             request,
@@ -104,6 +89,7 @@ async def preview_import(
 
     create_count = sum(1 for r in preview.rows if r.decision == "create")
     update_count = sum(1 for r in preview.rows if r.decision == "update")
+    unchanged_count = sum(1 for r in preview.rows if r.decision == "skip")
     error_count = sum(
         1 for r in preview.rows if r.decision == "error" or r.details_error
     )
@@ -132,6 +118,7 @@ async def preview_import(
             "total_rows": len(preview.rows),
             "create_count": create_count,
             "update_count": update_count,
+            "unchanged_count": unchanged_count,
             "error_count": error_count,
             "rows": preview.rows,
             "source_b64": source_b64,

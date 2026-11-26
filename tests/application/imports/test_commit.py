@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from bayios.application.imports import commit_product_import
@@ -570,3 +571,56 @@ def test_commit_duplicate_external_id_first_row_wins() -> None:
     assert result.skipped_count == 1
     assert uow.products.get_by_external_id("8000") is not None
     assert uow.products.get_by_normalized_name("ürün b") is None
+
+
+def test_commit_skips_unchanged_catalog_row_and_reports_zero_updated() -> None:
+    uow = FakeUnitOfWork()
+    source = _catalog_bytes(
+        [
+            {
+                "id": "100",
+                "product_name": "07325 A",
+                "category": "",
+                "price": 38099.0,
+                "discounted_price": None,
+                "currency": "TRY",
+                "source_url": "https://example.test/100",
+                "features": [],
+                "specifications": [],
+                "kind": "product",
+                "scraped_at": "2026-11-24T20:47:23Z",
+            }
+        ]
+    )
+
+    first = commit_product_import(
+        uow=uow,
+        file_name="catalog.json",
+        file_type="json",
+        source=source,
+        decisions={},
+    )
+    assert first.created_count == 1
+    product = uow.products.get_by_external_id("100")
+    assert product is not None
+    old_seen = datetime(2020, 1, 1, tzinfo=UTC)
+    old_scraped = datetime(2020, 1, 2, tzinfo=UTC)
+    product.last_seen_at = old_seen
+    product.scraped_at = old_scraped
+
+    second = commit_product_import(
+        uow=uow,
+        file_name="catalog.json",
+        file_type="json",
+        source=source,
+        decisions={},
+    )
+
+    assert second.created_count == 0
+    assert second.updated_count == 0
+    assert second.skipped_count == 1
+    # FR-PROD-16: unchanged rows still refresh the seen timestamp.
+    assert product.last_seen_at is not None
+    assert product.last_seen_at > old_seen
+    assert product.scraped_at is not None
+    assert product.scraped_at > old_scraped

@@ -525,7 +525,10 @@ def test_post_imports_preview_accepts_catalog_json(
     assert "schema 1.0" in response.text
     assert "457100070000" in response.text
     assert "1 özellik / 1 teknik" in response.text
-    assert "Ürün ID" in response.text
+    assert "Madde kodu" in response.text
+    assert "product-preview-table" in response.text
+    assert "mobile-cards" in response.text
+    assert "data-table-scroll" not in response.text
 
 
 def test_product_detail_shows_scraper_id_kind_and_details(

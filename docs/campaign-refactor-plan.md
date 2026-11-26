@@ -304,6 +304,9 @@ Bu bölüm, planın koda nasıl geçtiğini özetler; ayrıntı için kod ve tes
 - **İçe/dışa aktarma:** JSON kategori hedeflerini ve kural alanlarını taşır; aynı şema ile geri
   içe aktarılabilir. Excel ürün sayfası yalnız ürün ilişkilerini taşır; mevcut kampanya Excel'den
   güncellenirse kategori kuralları ve kampanya seviyesindeki birleşme/eşik alanları korunur.
+- **Scraper uyumluluğu:** Dış scraper'ın mevcut JSON'u değişmeden import edilir; yeni alanlar
+  opsiyoneldir ve scraper'dan gelmesi beklenmez. Scraper JSON'u tekrar yüklendiğinde elle düzenlenmiş
+  şart/fayda ilişkileri, kategori hedefleri, ödeme koşulları, birleşme/eşik ve hediye fiyatı korunur.
 - **Gerçek veri:** "Seçili Beyaz Eşya, Ankastre Set..." kampanyasının mevcut 75/77 ürün ilişkisi
   `qualifying` yapıldı; Kurutma Makinesi kategorisi için 17.850 TL ve Klima kategorisi için
   19.200 TL `applies_per_unit=False` fayda kuralı eklendi. Yeni sürüm: v7.

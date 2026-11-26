@@ -205,6 +205,10 @@ def test_campaign_json_reimport_is_idempotent_and_condition_change_creates_versi
     campaign = next(iter(uow.campaigns.campaigns.values()))
     first_version = uow.campaigns.get_current_version(campaign.id)
 
+    preview = preview_campaign_json(uow, source)
+    assert preview.rows[0].decision == "skip"
+    assert preview.rows[0].values["status"] == "Değişiklik yok"
+
     result = commit_campaign_json(
         uow,
         file_name="kampanyalar.json",
