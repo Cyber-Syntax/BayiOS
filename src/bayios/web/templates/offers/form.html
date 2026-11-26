@@ -133,11 +133,11 @@
               </div>
               <div class="form-group">
                 <label for="offer-discount">Kart Bayi İndirimi (%)</label>
-                <input type="number" id="offer-discount" name="dealer_discount_percent" class="form-control" min="0" max="100" step="0.01" inputmode="decimal" value="{{ values.dealer_discount_percent }}">
+                <input type="number" id="offer-discount" name="dealer_discount_percent" class="form-control" min="0" max="100" step="0.01" inputmode="decimal" value="{{ values.dealer_discount_percent }}" @input="recalculateUnitPrices()" @change="notifyChange()">
               </div>
               <div class="form-group">
                 <label for="offer-cash-discount">Nakit Bayi İndirimi (%)</label>
-                <input type="number" id="offer-cash-discount" name="dealer_discount_cash_percent" class="form-control" min="0" max="100" step="0.01" inputmode="decimal" value="{{ values.dealer_discount_cash_percent }}">
+                <input type="number" id="offer-cash-discount" name="dealer_discount_cash_percent" class="form-control" min="0" max="100" step="0.01" inputmode="decimal" value="{{ values.dealer_discount_cash_percent }}" @input="recalculateUnitPrices()" @change="notifyChange()">
               </div>
             </div>
 
@@ -347,7 +347,10 @@
           is_basket: selected.is_basket || false,
           key: payload.product_id + '-' + Date.now(),
         });
-        this.$nextTick(() => this.notifyChange());
+        this.$nextTick(() => {
+          this.recalculateUnitPrices();
+          this.notifyChange();
+        });
       },
       remove(index) {
         this.items.splice(index, 1);
@@ -429,6 +432,18 @@
         }
         return options;
       },
+      recalculateUnitPrices() {
+        const cardPercent = Number(document.getElementById('offer-discount')?.value || 0);
+        const cashPercent = Number(document.getElementById('offer-cash-discount')?.value || 0);
+        const round = (value) => (Math.round((value + Number.EPSILON) * 100) / 100).toFixed(2);
+        this.items.forEach((item) => {
+          if (item.is_basket) return;
+          const base = Number(item.company_price || item.campaign_price || item.regular_price || 0);
+          if (!base) return;
+          item.unit_price_cash = round(base * (100 - cashPercent) / 100);
+          item.unit_price_card = round(base * (100 - cardPercent) / 100);
+        });
+      },
       campaignChanged(item) {
         const key = item.campaign_id === '' ? 'none' : item.campaign_id;
         const preview = item.previews[key] || item.previews.auto || item.previews.none || {};
@@ -441,6 +456,7 @@
         item.company_discount = preview.discount_amount || '0';
         item.company_share = preview.share_amount || '0';
         item.is_basket = preview.is_basket || false;
+        this.recalculateUnitPrices();
       },
       campaignEffect(item) {
         if (!item.campaign_name) return '';

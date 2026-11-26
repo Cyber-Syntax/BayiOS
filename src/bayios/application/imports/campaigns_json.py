@@ -31,6 +31,7 @@ from bayios.domain.campaigns import (
     DiscountType,
     ProductRelationType,
 )
+from bayios.domain.naming import normalize_name
 from bayios.domain.products import (
     ActorContext,
     normalize_category_name,
@@ -319,7 +320,7 @@ def _parse_one(
         raw.get("min_basket_total"), warnings, "Sepet alt sınırı"
     )
     payment_conditions = _parse_payment_conditions(
-        raw.get("payment_conditions"), warnings
+        uow, raw.get("payment_conditions"), warnings
     )
     has_payment_conditions_key = "payment_conditions" in raw
     campaign_type_value = _enum_or_default(
@@ -334,7 +335,7 @@ def _parse_one(
     campaign_discount_type_value = _enum_or_default(
         raw.get("discount_type"), DiscountType, DiscountType.INFO_ONLY, warnings
     )
-    discount_value = _decimal_or_none(
+    campaign_discount_value = _decimal_or_none(
         raw.get("discount_value"), warnings, "İndirim değeri"
     )
     gift_description = _text(raw.get("gift_description")) or None
@@ -618,6 +619,7 @@ def _parse_one(
             )
             if not has_payment_conditions_key:
                 payment_conditions = _parse_payment_conditions(
+                    uow,
                     getattr(current_version, "payment_conditions", None),
                     warnings,
                 )
@@ -629,6 +631,7 @@ def _parse_one(
         current_version = uow.campaigns.get_current_version(existing_id)
         if current_version is not None:
             payment_conditions = _parse_payment_conditions(
+                uow,
                 getattr(current_version, "payment_conditions", None),
                 warnings,
             )
@@ -645,7 +648,7 @@ def _parse_one(
             ),
             description=None,
             discount_type=DiscountType(str(campaign_discount_type_value)),
-            discount_value=discount_value,
+            discount_value=campaign_discount_value,
             gift_description=gift_description,
             gift_optional=gift_optional,
             gift_yes_base_price_type=(
@@ -847,8 +850,28 @@ def _positive_int_or_none(value: object) -> int | None:
     return parsed if parsed and parsed > 0 else None
 
 
+def _resolve_payment_banks(
+    uow: UnitOfWork, raw: dict, warnings: list[str]
+) -> tuple[str, ...]:
+    bank_ids: list[str] = []
+    for raw_id in raw.get("bank_ids") or ():
+        value = str(raw_id).strip()
+        if value:
+            bank_ids.append(value)
+    for raw_name in raw.get("bank_names") or ():
+        name = str(raw_name).strip()
+        if not name:
+            continue
+        bank = uow.commissions.get_bank_by_normalized(normalize_name(name))
+        if bank is None:
+            warnings.append(f"Ödeme koşulundaki banka bulunamadı: {name}")
+            continue
+        bank_ids.append(str(bank.id))
+    return tuple(dict.fromkeys(bank_ids))
+
+
 def _parse_payment_conditions(
-    value: object, warnings: list[str]
+    uow: UnitOfWork, value: object, warnings: list[str]
 ) -> tuple[CampaignPaymentCondition, ...]:
     if value is None:
         return ()
@@ -864,11 +887,7 @@ def _parse_payment_conditions(
             conditions.append(
                 CampaignPaymentCondition(
                     channel=_text(raw.get("channel")) or None,
-                    bank_ids=tuple(
-                        str(bank_id)
-                        for bank_id in (raw.get("bank_ids") or ())
-                        if str(bank_id).strip()
-                    ),
+                    bank_ids=_resolve_payment_banks(uow, raw, warnings),
                     card_type=_text(raw.get("card_type")) or None,
                     card_network=_text(raw.get("card_network")) or None,
                     installment_count=_int_or_none(

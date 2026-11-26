@@ -4,6 +4,7 @@ import json
 import uuid
 from decimal import Decimal
 
+from bayios.adapters.db.models.commissions import Bank
 from bayios.adapters.db.models.products import Product
 from bayios.application.campaigns.json_io import export_campaign_detail_json
 from bayios.application.imports.campaigns_json import (
@@ -87,6 +88,74 @@ def _payload(
         },
         ensure_ascii=False,
     ).encode("utf-8")
+
+
+def test_campaign_json_imports_structured_campaign_fields() -> None:
+    uow, _fridge, freezer = _fixture()
+    bank = Bank(
+        id=uuid.uuid4(),
+        name="Akbank",
+        name_normalized="akbank",
+        is_active=True,
+    )
+    uow.commissions.add_bank(bank)
+    payload = _payload()
+    data = json.loads(payload)
+    campaign = data["campaigns"][0]
+    campaign.update(
+        {
+            "campaign_type": "bundle",
+            "discount_type": "fixed_amount",
+            "discount_value": 17850,
+            "min_basket_total": 125000,
+            "combines_with_others": False,
+            "gift_description": "Çay Makinesi",
+            "gift_optional": False,
+            "payment_conditions": [
+                {
+                    "channel": "pos",
+                    "bank_names": ["Akbank"],
+                    "card_type": "consumer",
+                    "card_network": "World",
+                    "installment_count": 8,
+                }
+            ],
+        }
+    )
+    campaign["products"][1]["gift_price"] = 800
+    source = json.dumps(data, ensure_ascii=False).encode("utf-8")
+
+    preview = preview_campaign_json(uow, source)
+    assert not preview.rows[0].errors
+
+    commit_campaign_json(
+        uow,
+        file_name="kampanyalar.json",
+        file_type="json",
+        source=source,
+        decisions={},
+    )
+    campaign_row = next(iter(uow.campaigns.campaigns.values()))
+    version = uow.campaigns.get_current_version(campaign_row.id)
+    assert version is not None
+    assert version.campaign_type == "bundle"
+    assert version.discount_type == "fixed_amount"
+    assert version.discount_value == Decimal(17850)
+    assert version.min_basket_total == Decimal(125000)
+    assert version.combines_with_others is False
+    assert version.gift_description == "Çay Makinesi"
+    assert version.payment_conditions == [
+        {
+            "channel": "pos",
+            "bank_ids": [str(bank.id)],
+            "card_type": "consumer",
+            "card_network": "World",
+            "installment_count": 8,
+        }
+    ]
+    links = uow.campaigns.get_version_products(version.id)
+    gift_link = next(link for link in links if link.product_id == freezer.id)
+    assert gift_link.gift_price == Decimal(800)
 
 
 def test_campaign_json_preview_and_commit_saves_conditions() -> None:
