@@ -3,11 +3,13 @@ from __future__ import annotations
 import hashlib
 from datetime import UTC, date, datetime, timedelta, timezone
 from decimal import Decimal
+from functools import lru_cache
 from importlib.metadata import version
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi.templating import Jinja2Templates
+from starlette.requests import Request
 
 from bayios.web.navigation import NAV_ITEMS
 
@@ -15,7 +17,14 @@ WEB_DIR = Path(__file__).parent
 STATIC_DIR = WEB_DIR / "static"
 TEMPLATES_DIR = WEB_DIR / "templates"
 
-templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+def _asset_context(_request: Request) -> dict[str, str]:
+    # Computed per request (not once at import) so a CSS/JS edit changes the
+    # ?v= URL and phones do not keep running a cached stylesheet.
+    return {"asset_version": _asset_version()}
+
+
+templates = Jinja2Templates(directory=TEMPLATES_DIR, context_processors=[_asset_context])
 
 TURKISH_MONTHS = (
     "Ocak",
@@ -96,12 +105,21 @@ def tr_percent(value: Decimal | float | None) -> str:
     return f"{Decimal(value):.2f}".replace(".", ",") + " %"
 
 
-def _asset_version() -> str:
+@lru_cache(maxsize=4)
+def _static_digest(signature: tuple[tuple[str, int, int], ...]) -> str:
     digest = hashlib.sha256()
-    for path in sorted(STATIC_DIR.rglob("*")):
-        if path.is_file():
-            digest.update(path.read_bytes())
-    return f"{version('bayios')}-{digest.hexdigest()[:12]}"
+    for path, _mtime_ns, _size in signature:
+        digest.update(Path(path).read_bytes())
+    return digest.hexdigest()[:12]
+
+
+def _asset_version() -> str:
+    signature = tuple(
+        (str(path), path.stat().st_mtime_ns, path.stat().st_size)
+        for path in sorted(STATIC_DIR.rglob("*"))
+        if path.is_file()
+    )
+    return f"{version('bayios')}-{_static_digest(signature)}"
 
 
 templates.env.filters.update(
@@ -112,4 +130,4 @@ templates.env.filters.update(
     tr_money=tr_money,
     tr_percent=tr_percent,
 )
-templates.env.globals.update(nav_items=NAV_ITEMS, asset_version=_asset_version())
+templates.env.globals.update(nav_items=NAV_ITEMS)

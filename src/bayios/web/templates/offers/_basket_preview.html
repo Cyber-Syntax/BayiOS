@@ -10,8 +10,8 @@
   {% if error %}
   <div class="alert alert-danger" style="margin-top: .5rem;"><span><strong>Hesaplanamadı:</strong> {{ error }}</span></div>
   {% elif preview and preview.lines %}
-  <div class="table-container" style="margin-top: .5rem;">
-    <table class="data-table" style="min-width: 0;">
+  <div class="table-container mobile-cards-container" style="margin-top: .5rem;">
+    <table class="data-table mobile-cards basket-preview-table" style="min-width: 0;">
       <thead>
         <tr>
           <th>Ürün</th>
@@ -26,17 +26,17 @@
       <tbody>
         {% for line in preview.lines %}
         <tr>
-          <td>{{ line.product_name }}{% if line.is_gift %} <span class="badge badge-success">Hediye</span>{% endif %}{% if line.is_flat %}<br><small class="muted">sepet payı</small>{% endif %}</td>
-          <td>{{ line.quantity }}</td>
-          <td class="mono">{{ line.regular_price | tr_money }} TL</td>
-          <td>
+          <td class="preview-product" data-label="Ürün">{{ line.product_name }}{% if line.is_gift %} <span class="badge badge-success">Hediye</span>{% endif %}{% if line.is_flat %}<br><small class="muted">sepet payı</small>{% endif %}</td>
+          <td data-label="Adet">{{ line.quantity }}</td>
+          <td class="mono" data-label="Normal">{{ line.regular_price | tr_money }} TL</td>
+          <td data-label="Kampanya / Kaynak">
             {% if line.source == 'campaign' %}{{ line.campaign_name or 'Kampanya' }}
             {% elif line.source == 'oliz' %}Oliz
             {% else %}Normal{% endif %}
           </td>
-          <td class="mono">{{ line.discount_amount | tr_money }} TL</td>
-          <td class="mono">{{ line.unit_price_cash | tr_money }} TL</td>
-          <td class="mono">{{ line.unit_price_card | tr_money }} TL</td>
+          <td class="mono" data-label="İndirim">{{ line.discount_amount | tr_money }} TL</td>
+          <td class="mono" data-label="Birim Nakit">{{ line.unit_price_cash | tr_money }} TL</td>
+          <td class="mono" data-label="Birim Kart">{{ line.unit_price_card | tr_money }} TL</td>
         </tr>
         {% if line.warning %}
         <tr><td colspan="7" class="muted" style="font-size: .8rem;">{{ line.warning }}</td></tr>
@@ -52,6 +52,11 @@
         </tr>
       </tfoot>
     </table>
+  </div>
+  <div class="basket-preview-totals">
+    <span><small>Toplam İndirim</small><strong class="mono">{{ preview.total_discount | tr_money }} TL</strong></span>
+    <span><small>Nakit Toplam</small><strong class="mono">{{ preview.cash_total | tr_money }} TL</strong></span>
+    <span><small>Kart Toplam</small><strong class="mono">{{ preview.card_total | tr_money }} TL</strong></span>
   </div>
   {% else %}
   <p class="muted" style="margin: .5rem 0 0;">Ürün ekleyince sepet kampanyaları burada hesaplanır.</p>

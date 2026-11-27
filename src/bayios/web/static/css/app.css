@@ -1506,7 +1506,7 @@ table.products-table input[type="checkbox"],
   .offer-line-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 599px) {
-  .offer-line-controls { grid-template-columns: 1fr 1fr; }
+  .offer-line-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .offer-line { padding: 10px; }
 }
 
@@ -1807,7 +1807,7 @@ table.products-table input[type="checkbox"],
   .offer-line-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 599px) {
-  .offer-line-controls { grid-template-columns: 1fr 1fr; }
+  .offer-line-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .mobile-actions { display: none; }
@@ -2393,7 +2393,9 @@ table.products-table input[type="checkbox"],
 
 /* Offer form single-column flow */
 .offer-form-shell { max-width: 1080px; margin: 0 auto; }
-.offer-basket-panel .panel-body { display: grid; gap: 16px; }
+/* Pin the single track so no child (wide preview table, long labels) can
+   stretch the panel and push the product picker's Ekle buttons sideways. */
+.offer-basket-panel .panel-body { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
 .basket-add-block {
   padding: 12px;
   border: 1px dashed var(--border-strong);
@@ -2407,6 +2409,42 @@ table.products-table input[type="checkbox"],
 .basket-totals-grid > span { display: grid; gap: 2px; min-width: 0; }
 .basket-totals-grid small { color: var(--muted); font-size: 10.5px; font-weight: 600; }
 .basket-totals-grid strong { color: var(--ink-strong); font-family: var(--font-mono); font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Basket preview: desktop table, mobile cards (no horizontal scroll) */
+.basket-preview-totals { display: none; }
+@media (max-width: 1023px) {
+  .basket-preview-table tfoot { display: none; }
+  .basket-preview-table td.preview-product { grid-column: 1 / -1; }
+  .basket-preview-table td.mono { white-space: nowrap; }
+  .basket-preview-totals {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+    gap: 8px 12px;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+  }
+  .basket-preview-totals > span { display: grid; gap: 2px; min-width: 0; }
+  .basket-preview-totals small {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+  .basket-preview-totals strong {
+    color: var(--ink-strong);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}
+@media (max-width: 359px) {
+  .basket-preview-table td.mono { font-size: 12px; }
+}
 
 /* Comparison: table is the section, select column sticky, mobile cards */
 .comparison-table-container { max-height: 30rem; overflow: auto; border: 0; border-radius: 0; }
@@ -2538,7 +2576,7 @@ table.products-table input[type="checkbox"],
 .offer-line-total { margin-left: auto; }
 .offer-line-meta { overflow-wrap: anywhere; line-height: 1.45; }
 .offer-line-title strong { overflow-wrap: anywhere; }
-.offer-line-controls .form-control { min-width: 0; width: 100%; }
+.offer-line-controls .form-control { min-width: 0; width: 100%; max-width: 100%; }
 .picker-item { min-width: 0; }
 .picker-name, .picker-meta { overflow-wrap: anywhere; }
 .offer-line-campaign {
