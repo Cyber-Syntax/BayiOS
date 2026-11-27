@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% from "_pagination.html" import pagination with context %}
+{% from "_icons.html" import icon %}
+{% block title %}Sayım #{{ session.count_number }}{% endblock %}
+{% block body_class %}no-tabbar{% endblock %}
+{% block mobile_nav %}{% endblock %}
+
+{% macro count_table(editable, items) %}
+<div class="table-container mobile-cards-container">
+  <table class="data-table mobile-cards stock-session-table">
+    <thead>
+      <tr>
+        <th class="col-name">Ürün Adı</th>
+        <th class="col-stock">Sistem Stoğu</th>
+        <th class="col-stock">Sayılan Miktar</th>
+        <th class="col-stock">Fark</th>
+        <th class="col-date">Uygulandı</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr class="count-row" data-product-id="{{ item.product_id }}">
+        <td class="col-name count-product" data-label="Ürün"><strong>{{ item.product_name }}</strong></td>
+        <td class="col-stock count-system" data-label="Sistem Stoğu">{{ item.system_quantity }}</td>
+        <td class="col-stock count-counted" data-label="Sayılan Miktar">
+          {% if editable %}
+          <input type="number" min="0" step="1" name="counted_{{ item.product_id }}"
+                 value="{{ item.counted_quantity if item.counted_quantity is not none else '' }}"
+                 class="form-control stock-input" aria-label="{{ item.product_name }} sayılan miktar" inputmode="numeric">
+          {% else %}
+          {{ item.counted_quantity if item.counted_quantity is not none else '—' }}
+          {% endif %}
+        </td>
+        <td class="col-stock count-difference" data-label="Fark">
+          {% if item.difference is not none %}
+            {% if item.difference > 0 %}<strong style="color: var(--success);">+{{ item.difference }}</strong>
+            {% elif item.difference < 0 %}<strong style="color: var(--danger);">{{ item.difference }}</strong>
+            {% else %}<span class="muted">0</span>{% endif %}
+          {% else %}<span class="muted">—</span>{% endif %}
+        </td>
+        <td class="col-date count-applied" data-label="Uygulandı">{{ item.applied_at | tr_datetime if item.applied_at else '—' }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" style="padding: 0;">
+          <div class="table-empty">
+            {{ icon("search") }}
+            <strong>Henüz ürün yok.</strong>
+            <p>Ürün arayarak sayıma başlayın.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% block content %}
+<div x-data="{ showCancel: false, showReverse: false }">
+{% set saved_ok = request.query_params.get('msg') == 'saved' %}
+{% set draft_ok = request.query_params.get('msg') == 'draft_saved' %}
+{% set refreshed = request.query_params.get('msg') == 'refreshed' %}
+{% set cancelled_msg = request.query_params.get('msg') == 'cancelled' %}
+{% if saved_ok %}
+<div class="alert alert-success"><span><strong>Kaydedildi:</strong> 0'dan büyük girilen miktarlar stoğa işlendi; 0 veya boş bırakılan satırlar değiştirilmedi.</span></div>
+{% elif draft_ok %}
+<div class="alert alert-success"><span><strong>Ara kayıt:</strong> Girilen miktarlar kaydedildi. Stoklar "Sayımı Kaydet" denince güncellenir.</span></div>
+{% elif refreshed %}
+<div class="alert alert-success"><span><strong>Yenilendi:</strong> Sistem stokları güncellendi. Farkları yeniden inceleyin.</span></div>
+{% elif cancelled_msg %}
+<div class="alert alert-danger"><span><strong>{% if session.reversed_at %}Geri alındı:{% else %}İptal edildi:{% endif %}</strong> {% if session.reversed_at %}Sayımda uygulanan stok düzeltmeleri geri alındı; stoklar sayım öncesi değerlere döndü.{% else %}Sayım kapandı; stoklar değiştirilmedi.{% endif %}</span></div>
+{% endif %}
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+<div class="page-header">
+  <div class="page-heading">
+    <a class="breadcrumb" href="/stock">{{ icon("arrow-left", "icon icon-sm") }} Stok / Sayım</a>
+    <h1>Sayım #{{ session.count_number }}</h1>
+    <div class="product-heading-meta">
+      {% if session.status == 'cancelled' %}
+        <span class="badge badge-danger">İptal{% if session.reversed_at %} · Geri Alındı{% endif %}</span>
+      {% elif session.status == 'completed' %}
+        <span class="badge badge-success">Tamamlandı</span>
+      {% else %}
+        <span class="badge badge-info">Açık</span>
+      {% endif %}
+      {% if session.mode == 'quick' %}<span class="badge badge-info">Hızlı Sayım</span>{% endif %}
+      <span class="muted small">Kategori: {{ session.category_name or 'Tüm Ürünler' }}</span>
+      <span class="muted small">· Başlangıç: {{ session.started_at | tr_datetime if session.started_at else '—' }}</span>
+      {% if session.completed_at %}<span class="muted small">· Tamamlanma: {{ session.completed_at | tr_datetime }}</span>{% endif %}
+      {% if session.cancelled_at %}<span class="muted small">· İptal: {{ session.cancelled_at | tr_datetime }}</span>{% endif %}
+    </div>
+  </div>
+  <div class="page-actions">
+    <a class="btn" href="/stock/print{% if session.category_id %}?category_id={{ session.category_id }}{% endif %}" target="_blank">{{ icon("print") }} A5 Sayım Listesi</a>
+    {% if session.status in ('open', 'review') %}
+    <form method="post" action="/stock/sessions/{{ session.id }}/refresh"><button type="submit" class="btn">{{ icon("refresh") }} Farkları Yenile</button></form>
+    <button type="button" class="btn btn-danger" @click="showCancel = true">{{ icon("close") }} Sayımı İptal Et</button>
+    {% elif session.status == 'completed' %}
+    <button type="button" class="btn btn-danger" @click="showReverse = true">{{ icon("refresh") }} Sayımı Geri Al</button>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid-stats" style="margin-bottom: 16px;">
+  <div class="stat-box"><div class="stat-label">Ürün Sayısı</div><div class="stat-value">{{ total_items }}</div></div>
+  <div class="stat-box"><div class="stat-label">Sayılan</div><div class="stat-value">{{ session.counted_lines }}</div></div>
+  <div class="stat-box"><div class="stat-label">Sayılmayan</div><div class="stat-value">{{ session.skipped_lines }}</div></div>
+  <div class="stat-box"><div class="stat-label">Toplam Fark</div><div class="stat-value" style="{% if session.total_difference != 0 %}color: var(--danger);{% endif %}">{{ session.total_difference }}</div></div>
+</div>
+
+{% if session.note %}<div class="internal-banner" style="margin-bottom: 16px;">{{ icon("info") }}<span><strong>Not:</strong> {{ session.note }}</span></div>{% endif %}
+
+{% if session.status == 'cancelled' %}
+<div class="alert alert-danger">
+  <span>
+    <strong>Bu sayım iptal edildi.</strong>
+    {% if session.reversed_at %}
+    Sayımda uygulanan stok düzeltmeleri ters kayıtla geri alındı; stoklar sayım öncesi değerlere döndü.
+    {% else %}
+    Stoklarda herhangi bir değişiklik yapılmadı.
+    {% endif %}
+    {% if session.cancel_reason %} Gerekçe: {{ session.cancel_reason }}{% endif %}
+  </span>
+</div>
+{{ count_table(false, page_items) }}
+<div class="table-footer">
+  <small class="muted">Toplam {{ total_items }} satır</small>
+  {{ pagination(page, total_pages) }}
+</div>
+
+{% elif session.status == 'completed' %}
+{{ count_table(false, page_items) }}
+<div class="table-footer">
+  <small class="muted">Toplam {{ total_items }} satır</small>
+  {{ pagination(page, total_pages) }}
+</div>
+<section class="panel">
+  <div class="panel-header"><h2>Sayım Özeti</h2></div>
+  <div class="panel-body">
+    {% set summary = session.summary or {} %}
+    <p style="margin: 0;">
+      <strong>{{ summary.get('adjusted_count', 0) }}</strong> üründe stok düzeltmesi uygulandı,
+      <strong>{{ summary.get('unchanged_count', 0) }}</strong> ürünün stoğu değişmedi,
+      <strong>{{ summary.get('skipped_count', 0) }}</strong> ürün sayılmadı.
+      Toplam miktar farkı: <strong>{{ summary.get('total_difference', 0) }}</strong>.
+    </p>
+    {% if session.reversed_at %}
+    <p class="muted" style="margin-bottom: 0;">Geri alınma: {{ session.reversed_at | tr_datetime }}</p>
+    {% endif %}
+  </div>
+</section>
+
+{% else %}
+{% if session.mode == 'quick' %}
+<section class="panel" style="margin-bottom: 16px;">
+  <div class="panel-header">
+    <div>
+      <h2>Ürün Ekle</h2>
+      <p>Ürün adı veya ID yazın; yalnızca eklediğiniz ürünler sayılır.</p>
+    </div>
+  </div>
+  <div class="panel-body">
+    <div class="search-field">
+      {{ icon("search") }}
+      <input type="search" id="quick-search" name="q" class="form-control search-input"
+             placeholder="Ürün adı veya ID ile ara..."
+             autocomplete="off" aria-label="Sayıma ürün ekle"
+             hx-get="/stock/sessions/{{ session.id }}/lookup"
+             hx-trigger="keyup changed delay:250ms, search"
+             hx-target="#quick-lookup-results"
+             hx-swap="innerHTML"
+             hx-include="this">
+    </div>
+    <div id="quick-lookup-results" style="margin-top: 10px;"></div>
+  </div>
+</section>
+<form id="count-form" method="post" action="/stock/sessions/{{ session.id }}/save">
+  <div id="quick-lines">
+    {% include "stock/_quick_lines.html" %}
+  </div>
+</form>
+{% else %}
+<form id="count-form" method="post" action="/stock/sessions/{{ session.id }}/save">
+  {{ count_table(true, page_items) }}
+</form>
+<div class="table-footer">
+  <small class="muted">Toplam {{ total_items }} satır</small>
+  {{ pagination(page, total_pages) }}
+</div>
+{% endif %}
+
+<div class="sticky-action-spacer no-print" aria-hidden="true"></div>
+<div class="sticky-action-bar no-print">
+  <small class="muted sticky-note">0 veya boş = sayılmadı; stok değişmez. Yalnızca 0'dan büyük girilen miktarlar kaydedilir.</small>
+  <div style="display: flex; gap: 8px; align-items: center;">
+    <button type="submit" form="count-form" formaction="/stock/sessions/{{ session.id }}/count" class="btn">Ara Kaydet</button>
+    <button type="submit" form="count-form" class="btn btn-primary" id="save-count-btn">{{ icon("save") }} Sayımı Kaydet</button>
+  </div>
+</div>
+{% endif %}
+
+<div x-show="showCancel" class="modal-backdrop" x-cloak @click.self="showCancel = false">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="cancel-title">
+    <div class="modal-header">
+      <div>
+        <h2 id="cancel-title">Sayımı İptal Et</h2>
+        <p>Stoklarda herhangi bir değişiklik yapılmaz. Girilen miktarlar kayıt için saklanır.</p>
+      </div>
+      <button type="button" class="modal-close" @click="showCancel = false" aria-label="Kapat">{{ icon("close") }}</button>
+    </div>
+    <form method="post" action="/stock/sessions/{{ session.id }}/cancel">
+      <div class="form-group">
+        <label for="cancel-reason">Gerekçe (opsiyonel)</label>
+        <input type="text" id="cancel-reason" name="reason" class="form-control" placeholder="örn: yanlış kategori seçildi">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" @click="showCancel = false">Vazgeç</button>
+        <button type="submit" class="btn btn-danger">Sayımı İptal Et</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div x-show="showReverse" class="modal-backdrop" x-cloak @click.self="showReverse = false">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="reverse-title">
+    <div class="modal-header">
+      <div>
+        <h2 id="reverse-title">Sayımı Geri Al</h2>
+        <p>Bu sayımda uygulanan stok düzeltmeleri ters kayıtla geri alınacak. Sayımdan sonra stok değiştiyse işlem durur.</p>
+      </div>
+      <button type="button" class="modal-close" @click="showReverse = false" aria-label="Kapat">{{ icon("close") }}</button>
+    </div>
+    <form method="post" action="/stock/sessions/{{ session.id }}/cancel">
+      <div class="form-group">
+        <label for="reverse-reason">Gerekçe (opsiyonel)</label>
+        <input type="text" id="reverse-reason" name="reason" class="form-control" placeholder="örn: yanlış sayım">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" @click="showReverse = false">Vazgeç</button>
+        <button type="submit" class="btn btn-danger">Stokları Geri Al</button>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+
+<script>
+  document.body.addEventListener('htmx:afterSwap', function (event) {
+    var target = event.detail && event.detail.target;
+    if (!target || target.id !== 'quick-lines') return;
+    var inputs = Array.from(target.querySelectorAll('input[name^="counted_"]'));
+    var empty = inputs.find(function (input) { return !input.value; });
+    var focusTarget = empty || inputs[inputs.length - 1];
+    if (focusTarget) focusTarget.focus();
+  });
+</script>
+{% endblock %}

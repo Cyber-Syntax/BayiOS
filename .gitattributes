@@ -1,0 +1,7 @@
+# Shell scripts must stay LF even on Windows checkouts; CRLF causes
+# "set: pipefail: invalid option" in Git Bash/WSL.
+*.sh text eol=lf
+
+# PowerShell 5.1 tolerates LF, but CRLF is safer for Notepad and Task Scheduler.
+*.ps1 text eol=crlf
+*.psm1 text eol=crlf

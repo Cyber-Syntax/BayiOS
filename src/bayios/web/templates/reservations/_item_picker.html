@@ -1,0 +1,29 @@
+{% from "_icons.html" import icon %}
+{% if products %}
+<div class="picker-list" style="max-height: 20rem; overflow-y: auto;">
+  {% for product in products %}
+  <div class="picker-item">
+    <div class="picker-main">
+      <div class="picker-name">{{ product.name }}</div>
+      <div class="picker-meta">
+        {% if product.external_id %}<span class="mono">ID: {{ product.external_id }}</span> · {% endif %}
+        <span>Fiziksel stok: <span class="mono">{{ product.physical_stock }}</span></span>
+        {% if product.physical_stock == 0 %}<span class="badge badge-warning">Stok yok</span>{% endif %}
+        {% if product.physical_stock < 0 %}<span class="badge badge-danger">Stok düzeltmesi gerekli</span>{% endif %}
+      </div>
+    </div>
+    <form method="post" action="/reservations/{{ reservation_id }}/items" style="display: flex; gap: 6px; align-items: center;">
+      <input type="hidden" name="product_id" value="{{ product.id }}">
+      <input type="number" name="quantity" class="form-control stock-input" min="1" value="1" aria-label="Miktar" inputmode="numeric">
+      <button type="submit" class="btn btn-sm btn-primary">{{ icon("plus", "icon icon-sm") }} Ekle</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state" style="padding: 20px;">
+  {{ icon("search") }}
+  <strong>Eşleşen ürün bulunamadı</strong>
+  <p>Arama terimini değiştirin.</p>
+</div>
+{% endif %}

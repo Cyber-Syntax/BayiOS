@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{% if mode == 'edit' %}Kampanya Düzenle{% else %}Yeni Kampanya{% endif %}{% endblock %}
+{% block content %}
+<div x-data='{ ...campaignBuilder({{ selected_products | tojson }}, {{ selected_categories | tojson }}, {{ category_options | tojson }}), discountType: {{ values.discount_type | tojson }}, campaignType: {{ values.campaign_type | tojson }} }'>
+  <div class="page-header">
+    <div class="page-heading">
+      <a class="breadcrumb" href="/campaigns">{{ icon("arrow-left", "icon icon-sm") }} Kampanyalar</a>
+      <h1>{% if mode == 'edit' %}Kampanya Düzenle{% else %}Yeni Kampanya{% endif %}</h1>
+      <p class="page-subtitle">Kampanya bilgileri, fiyat/indirim ve ürün ilişkilerini girin. Değişiklik yeni sürüm oluşturur.</p>
+    </div>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-danger"><span><strong>Kaydedilemedi:</strong> {{ error }}</span></div>
+  {% endif %}
+
+  <form method="post" action="{% if mode == 'edit' %}/campaigns/{{ campaign_id }}/edit{% else %}/campaigns{% endif %}">
+    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+      <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Kampanya Bilgileri</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .75rem;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-name">Kampanya Adı *</label>
+          <input type="text" id="campaign-name" name="name" class="form-control" required
+                 value="{{ values.name }}" placeholder="örn: Kasım hediye kampanyası">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-type">Kampanya Tipi</label>
+          <select id="campaign-type" name="campaign_type" class="form-control" x-model="campaignType">
+            {% for value, label in type_options %}
+            <option value="{{ value }}" {% if values.campaign_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-starts-at">Başlangıç Tarihi *</label>
+          <input type="date" id="campaign-starts-at" name="starts_at" class="form-control" required
+                 value="{{ values.starts_at }}" data-date-picker data-date-preview="campaign-starts-at-preview">
+          <small id="campaign-starts-at-preview" class="muted"></small>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-ends-at">Bitiş Tarihi *</label>
+          <input type="date" id="campaign-ends-at" name="ends_at" class="form-control" required
+                 value="{{ values.ends_at }}" data-date-picker data-date-preview="campaign-ends-at-preview">
+          <small id="campaign-ends-at-preview" class="muted"></small>
+        </div>
+        <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+          <label for="campaign-description">Açıklama</label>
+          <textarea id="campaign-description" name="description" class="form-control" rows="2">{{ values.description }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+      <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Fiyat ve İndirim</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .75rem;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-base-price">Fiyat Tabanı</label>
+          <select id="campaign-base-price" name="base_price_type" class="form-control">
+            {% for value, label in base_price_options %}
+            <option value="{{ value }}" {% if values.base_price_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-discount-type">İndirim Türü</label>
+          <select id="campaign-discount-type" name="discount_type" class="form-control" x-model="discountType">
+            {% for value, label in discount_type_options %}
+            <option value="{{ value }}" {% if values.discount_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;" x-show="['percent', 'fixed_amount', 'special_price'].includes(discountType)">
+          <label for="campaign-discount-value">İndirim Değeri</label>
+          <input type="text" id="campaign-discount-value" name="discount_value" class="form-control"
+                 value="{{ values.discount_value }}" placeholder="örn: 10 veya 500">
+          <small class="muted">Yüzde için %0–100 arası bir değer girin.</small>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;" x-show="discountType === 'gift' || campaignType === 'gift'">
+          <label for="campaign-gift-description">Hediye Açıklaması</label>
+          <input type="text" id="campaign-gift-description" name="gift_description" class="form-control"
+                 value="{{ values.gift_description }}" placeholder="örn: Buzdolabı hediye">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;" x-show="discountType === 'gift' || campaignType === 'gift'">
+          <label for="campaign-gift-yes-base">Hediye Varsa Taban</label>
+          <select id="campaign-gift-yes-base" name="gift_yes_base_price_type" class="form-control">
+            {% for value, label in gift_base_price_options %}
+            <option value="{{ value }}" {% if (values.gift_yes_base_price_type or '') == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;" x-show="discountType === 'gift' || campaignType === 'gift'">
+          <label for="campaign-gift-no-base">Hediye Yoksa Taban</label>
+          <select id="campaign-gift-no-base" name="gift_no_base_price_type" class="form-control">
+            {% for value, label in gift_base_price_options %}
+            <option value="{{ value }}" {% if (values.gift_no_base_price_type or '') == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0; display: flex; align-items: center; gap: .5rem;" x-show="discountType === 'gift' || campaignType === 'gift'">
+          <input type="checkbox" id="campaign-gift-optional" name="gift_optional" value="1"
+                 {% if values.gift_optional %}checked{% endif %}>
+          <label for="campaign-gift-optional" style="margin: 0;">Müşteri hediyeyi istemeyebilir</label>
+        </div>
+        <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+          <label for="campaign-employee-note">Çalışan Notu</label>
+          <textarea id="campaign-employee-note" name="employee_note" class="form-control" rows="2"
+                    placeholder="Rehberde görünecek kısa açıklama">{{ values.employee_note }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+      <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Birleşme ve Sepet</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .75rem;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-combines">Birleşme</label>
+          <select id="campaign-combines" name="combines_with_others" class="form-control">
+            <option value="1" {% if values.combines_with_others %}selected{% endif %}>Diğer kampanyalarla birleşebilir</option>
+            <option value="0" {% if not values.combines_with_others %}selected{% endif %}>Aynı satırda birleşemez</option>
+          </select>
+          <small class="muted">Farklı satırlar yine farklı kampanya kullanabilir.</small>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-min-basket">Sepet Alt Sınırı (TL)</label>
+          <input type="text" id="campaign-min-basket" name="min_basket_total" class="form-control"
+                 value="{{ values.min_basket_total }}" placeholder="örn: 125000" inputmode="decimal">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-exclusion">Dışlama Grubu</label>
+          <input type="text" id="campaign-exclusion" name="exclusion_group" class="form-control"
+                 value="{{ values.exclusion_group }}" placeholder="örn: world (opsiyonel)">
+          <small class="muted">Aynı grupta sepet genelinde yalnızca en yüksek indirimli kampanya uygulanır.</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+      <h2 style="margin: 0 0 .75rem; font-size: 1.1rem;">Ödeme Koşulu</h2>
+      <p class="muted" style="margin: 0 0 .75rem; font-size: .85rem;">Boş bırakılırsa kampanya tüm ödemelerde geçerlidir. Kart koşulu seçilirse nakit teklifte kampanya uygulanmaz.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .75rem;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-payment-channel">Kanal</label>
+          <select id="campaign-payment-channel" name="payment_channel" class="form-control">
+            <option value="">Tümü</option>
+            {% for value, label in channel_options %}
+            <option value="{{ value }}" {% if values.payment_channel == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-payment-card-type">Kart Tipi</label>
+          <select id="campaign-payment-card-type" name="payment_card_type" class="form-control">
+            <option value="">Tümü</option>
+            {% for value, label in card_type_options %}
+            <option value="{{ value }}" {% if values.payment_card_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-payment-network">Kart Ağı</label>
+          <select id="campaign-payment-network" name="payment_card_network" class="form-control">
+            <option value="">Tümü</option>
+            {% for network in card_network_options %}
+            <option value="{{ network }}" {% if values.payment_card_network == network %}selected{% endif %}>{{ network }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="campaign-payment-installment">Taksit</label>
+          <input type="number" id="campaign-payment-installment" name="payment_installment_count" class="form-control"
+                 min="1" value="{{ values.payment_installment_count }}" placeholder="Tümü" inputmode="numeric">
+        </div>
+        <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+          <label for="campaign-payment-bank">Bankalar</label>
+          <select id="campaign-payment-bank" name="payment_bank_id" class="form-control" multiple size="4">
+            {% for bank in bank_options %}
+            <option value="{{ bank.id }}" {% if bank.id in values.payment_bank_ids %}selected{% endif %}>{{ bank.name }}</option>
+            {% endfor %}
+          </select>
+          <small class="muted">Birden fazla banka seçmek için Ctrl/Cmd tuşunu kullanın.</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <h2 style="margin: 0; font-size: 1.1rem;">Ürünler</h2>
+        <span class="muted" style="font-size: .85rem;">Şart, fayda, hediye ve ilgili ürünleri buradan ilişkilendirin.</span>
+      </div>
+
+      <div style="margin-top: .75rem; display: grid; gap: .5rem;">
+        <template x-for="(product, index) in products" :key="product.key">
+          <div style="display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; padding: .5rem; border: 1px solid var(--border, #e5e7eb); border-radius: .5rem;">
+            <input type="hidden" name="product_id" :value="product.product_id">
+            <span style="flex: 1 1 12rem; font-weight: 500;" x-text="product.product_name"></span>
+            <select name="relation_type" class="form-control" style="max-width: 11rem;" x-model="product.relation_type">
+              {% for value, label in relation_type_options %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <input type="number" name="quantity_required" class="form-control" style="max-width: 7rem;"
+                   min="1" placeholder="Adet (ops.)" x-model="product.quantity_required">
+            <select name="product_discount_type" class="form-control" style="max-width: 10rem;" x-model="product.discount_type">
+              <option value="">Varsayılan indirim</option>
+              {% for value, label in discount_type_options %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <input type="text" name="product_discount_value" class="form-control" style="max-width: 7rem;"
+                   placeholder="Değer" x-model="product.discount_value" x-show="product.discount_type">
+            <select name="product_base_price_type" class="form-control" style="max-width: 10rem;" x-model="product.base_price_type">
+              <option value="">Varsayılan taban</option>
+              {% for value, label in base_price_options %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <select name="product_applies_per_unit" class="form-control" style="max-width: 10rem;" x-model="product.applies_per_unit">
+              <option value="1">Adet başına</option>
+              <option value="0">Sepette bir kez</option>
+            </select>
+            <input type="text" name="product_gift_price" class="form-control" style="max-width: 8rem;"
+                   placeholder="Hediye fiyatı" x-model="product.gift_price">
+            <button type="button" class="btn btn-sm btn-danger" @click="removeProduct(index)">Çıkar</button>
+          </div>
+        </template>
+        <p class="muted" x-show="products.length === 0" style="margin: 0;">Henüz ürün eklenmedi. Aşağıdan ürün arayıp ekleyin.</p>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <div>
+          <h2 style="margin: 0; font-size: 1.1rem;">Kategori Hedefleri</h2>
+          <p class="muted" style="margin: .25rem 0 0; font-size: .85rem;">Kurutma, klima gibi tüm kategoriyi şart veya fayda ürünü olarak ekleyin.</p>
+        </div>
+        <div style="display: flex; gap: .5rem; align-items: center;">
+          <select class="form-control" style="max-width: 16rem;" x-model="categoryToAdd">
+            <option value="">Kategori seçin</option>
+            <template x-for="category in allCategories" :key="category.id">
+              <option :value="category.id" x-text="category.name"></option>
+            </template>
+          </select>
+          <button type="button" class="btn btn-sm" @click="addCategory()">Kategori Ekle</button>
+        </div>
+      </div>
+
+      <div style="margin-top: .75rem; display: grid; gap: .5rem;">
+        <template x-for="(target, index) in selectedCategories" :key="target.key">
+          <div style="display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; padding: .5rem; border: 1px solid var(--border, #e5e7eb); border-radius: .5rem;">
+            <input type="hidden" name="category_id" :value="target.category_id">
+            <span style="flex: 1 1 12rem; font-weight: 500;" x-text="target.product_name"></span>
+            <select name="category_relation_type" class="form-control" style="max-width: 11rem;" x-model="target.relation_type">
+              {% for value, label in relation_type_options %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <select name="category_discount_type" class="form-control" style="max-width: 10rem;" x-model="target.discount_type">
+              <option value="">Varsayılan indirim</option>
+              {% for value, label in discount_type_options %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <input type="text" name="category_discount_value" class="form-control" style="max-width: 7rem;"
+                   placeholder="Değer" x-model="target.discount_value" x-show="target.discount_type">
+            <select name="category_base_price_type" class="form-control" style="max-width: 10rem;" x-model="target.base_price_type">
+              <option value="">Varsayılan taban</option>
+              {% for value, label in base_price_options %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <select name="category_applies_per_unit" class="form-control" style="max-width: 10rem;" x-model="target.applies_per_unit">
+              <option value="1">Adet başına</option>
+              <option value="0">Sepette bir kez</option>
+            </select>
+            <input type="text" name="category_gift_price" class="form-control" style="max-width: 8rem;"
+                   placeholder="Hediye fiyatı" x-model="target.gift_price">
+            <button type="button" class="btn btn-sm btn-danger" @click="removeCategory(index)">Çıkar</button>
+          </div>
+        </template>
+        <p class="muted" x-show="selectedCategories.length === 0" style="margin: 0;">Henüz kategori eklenmedi.</p>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 1rem; margin-bottom: 1rem;">
+      <h2 style="margin: 0 0 .5rem; font-size: 1.1rem;">Ürün Ekle</h2>
+      <input type="search" name="q" class="form-control" placeholder="Ürün adı ile ara"
+             autocomplete="off"
+             hx-get="/campaigns/picker"
+             hx-trigger="keyup changed delay:300ms, search"
+             hx-target="#campaign-product-picker"
+             hx-include="this">
+      <div id="campaign-product-picker" style="margin-top: .75rem;">
+        {% include "campaigns/_product_picker.html" %}
+      </div>
+    </div>
+
+    <div class="sticky-action-spacer"></div>
+    <div class="sticky-action-bar no-print">
+      <div class="sticky-note">Kampanya kaydedilmeden önce tarih, indirim ve ürün ilişkilerini kontrol edin.</div>
+      <div class="actions-group">
+        <a href="/campaigns" class="btn">Vazgeç</a>
+        <button type="submit" class="btn btn-primary">{% if mode == 'edit' %}Kaydet{% else %}Kampanyayı Oluştur{% endif %}</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+  function campaignBuilder(initialProducts, initialCategories, allCategories) {
+    const normalizeProduct = (product, index) => ({
+      product_id: product.product_id || '',
+      category_id: product.category_id || '',
+      product_name: product.product_name,
+      relation_type: product.relation_type || 'related',
+      quantity_required: product.quantity_required || '',
+      discount_type: product.discount_type || '',
+      discount_value: product.discount_value || '',
+      base_price_type: product.base_price_type || '',
+      applies_per_unit: product.applies_per_unit === '0' || product.applies_per_unit === 0 ? '0' : '1',
+      gift_price: product.gift_price || '',
+      key: `${product.product_id || product.category_id || product.product_name}-${index}`,
+    });
+    return {
+      products: initialProducts.map(normalizeProduct),
+      selectedCategories: initialCategories.map(normalizeProduct),
+      allCategories: allCategories,
+      categoryToAdd: '',
+      addProduct(id, name) {
+        if (this.products.some((product) => product.product_id === id)) {
+          return;
+        }
+        this.products.push({
+          product_id: id,
+          category_id: '',
+          product_name: name,
+          relation_type: 'related',
+          quantity_required: '',
+          discount_type: '',
+          discount_value: '',
+          base_price_type: '',
+          applies_per_unit: '1',
+          gift_price: '',
+          key: `${id}-${Date.now()}`,
+        });
+      },
+      removeProduct(index) {
+        this.products.splice(index, 1);
+      },
+      addCategory() {
+        const id = this.categoryToAdd;
+        if (!id || this.selectedCategories.some((target) => target.category_id === id)) {
+          return;
+        }
+        const category = this.allCategories.find((item) => String(item.id) === String(id));
+        if (!category) {
+          return;
+        }
+        this.selectedCategories.push({
+          product_id: '',
+          category_id: String(category.id),
+          product_name: category.name,
+          relation_type: 'benefit',
+          quantity_required: '',
+          discount_type: '',
+          discount_value: '',
+          base_price_type: '',
+          applies_per_unit: '1',
+          gift_price: '',
+          key: `${category.id}-${Date.now()}`,
+        });
+        this.categoryToAdd = '';
+      },
+      removeCategory(index) {
+        this.selectedCategories.splice(index, 1);
+      },
+    };
+  }
+</script>
+{% endblock %}

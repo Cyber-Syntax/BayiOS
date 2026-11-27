@@ -1,0 +1,37 @@
+{% from "_icons.html" import icon %}
+{% if rows %}
+<div class="picker-list">
+  {% for row in rows %}
+  <div class="picker-item">
+    <div class="picker-main">
+      <div class="picker-name">{{ row.product.name }}</div>
+      <div class="picker-meta">
+        {% if row.product.external_id %}<span class="mono">ID: {{ row.product.external_id }}</span> · {% endif %}
+        <span>{{ category_names.get(row.product.category_id, 'Kategorisiz') }}</span> ·
+        <span>Fiziksel: <span class="mono">{{ row.summary.physical }}</span></span> ·
+        <span>Rezervasyon: <span class="mono">{{ row.summary.open_reservation }}</span></span>
+        {% if row.summary.physical == 0 %}<span class="badge badge-warning">Stok yok</span>{% endif %}
+        {% if row.summary.physical < 0 %}<span class="badge badge-danger">Stok düzeltmesi gerekli</span>{% endif %}
+      </div>
+    </div>
+    {% if row.product.id in existing_ids %}
+    <span class="badge badge-success">Eklendi</span>
+    {% else %}
+    <form hx-post="/stock/sessions/{{ session.id }}/items"
+          hx-target="#quick-lines" hx-swap="innerHTML"
+          hx-on::after-request="document.getElementById('quick-search').value=''; document.getElementById('quick-lookup-results').innerHTML='';"
+          style="margin: 0;">
+      <input type="hidden" name="product_id" value="{{ row.product.id }}">
+      <button type="submit" class="btn btn-sm btn-primary">{{ icon("plus", "icon icon-sm") }} Ekle</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% elif q %}
+<div class="empty-state" style="padding: 20px;">
+  {{ icon("search") }}
+  <strong>Eşleşen ürün bulunamadı</strong>
+  <p>Arama terimini değiştirin.</p>
+</div>
+{% endif %}

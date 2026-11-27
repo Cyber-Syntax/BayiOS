@@ -1,0 +1,50 @@
+{% from "_icons.html" import icon %}
+<div class="table-container mobile-cards-container">
+  <table class="data-table mobile-cards stock-session-table">
+    <thead>
+      <tr>
+        <th class="col-name">Ürün Adı</th>
+        <th class="col-stock">Sistem Stoğu</th>
+        <th class="col-stock">Sayılan Miktar</th>
+        <th class="col-stock">Fark</th>
+        <th class="col-date">Uygulandı</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in page_items %}
+      <tr class="count-row" data-product-id="{{ item.product_id }}">
+        <td class="col-name count-product" data-label="Ürün"><strong>{{ item.product_name }}</strong></td>
+        <td class="col-stock count-system" data-label="Sistem Stoğu">{{ item.system_quantity }}</td>
+        <td class="col-stock count-counted" data-label="Sayılan Miktar">
+          <input type="number" min="0" step="1" name="counted_{{ item.product_id }}"
+                 value="{{ item.counted_quantity if item.counted_quantity is not none else '' }}"
+                 class="form-control stock-input" aria-label="{{ item.product_name }} sayılan miktar" inputmode="numeric">
+        </td>
+        <td class="col-stock count-difference" data-label="Fark">
+          {% if item.difference is not none %}
+            {% if item.difference > 0 %}<strong style="color: var(--success);">+{{ item.difference }}</strong>
+            {% elif item.difference < 0 %}<strong style="color: var(--danger);">{{ item.difference }}</strong>
+            {% else %}<span class="muted">0</span>{% endif %}
+          {% else %}<span class="muted">—</span>{% endif %}
+        </td>
+        <td class="col-date count-applied" data-label="Uygulandı">{{ item.applied_at | tr_datetime if item.applied_at else '—' }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" style="padding: 0;">
+          <div class="table-empty">
+            {{ icon("search") }}
+            <strong>Henüz ürün eklenmedi.</strong>
+            <p>Yukarıdaki arama kutusuna ürün adı veya ID yazıp ekleyin.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if total_items %}
+<div class="table-footer">
+  <small class="muted">Toplam {{ total_items }} satır</small>
+</div>
+{% endif %}

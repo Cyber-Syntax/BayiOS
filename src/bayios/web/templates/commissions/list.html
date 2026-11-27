@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Komisyonlar{% endblock %}
+{% block content %}
+{% set msg = request.query_params.get('msg') %}
+{% if msg == 'activated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Komisyon dönemi aktifleştirildi.</span></div>
+{% elif msg == 'deleted' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Komisyon dönemi silindi.</span></div>
+{% elif msg == 'import_success' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Excel içe aktarıldı: {{ request.query_params.get('created', 0) }} yeni, {{ request.query_params.get('updated', 0) }} güncellenen, {{ request.query_params.get('skipped', 0) }} atlanan satır.</span>{% if request.query_params.get('errors', '0') != '0' %}<span class="muted"> {{ request.query_params.get('errors') }} hatalı satır atlandı.</span>{% endif %}</div>
+{% elif msg and msg.startswith('error:') %}
+<div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
+{% endif %}
+
+<div class="page-header list-page-header">
+  <div class="page-heading">
+    <h1>Komisyonlar</h1>
+    <p class="page-subtitle">{{ periods | length }} dönem</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-primary" href="#new-period">{{ icon("plus") }} Yeni Dönem</a>
+    <div class="desktop-actions">
+      <details class="menu">
+        <summary class="btn">{{ icon("upload") }} İçe Aktar {{ icon("chevron-down", "icon icon-sm") }}</summary>
+        <div class="menu-panel">
+          <a href="/imports/commissions/rates">Oranları İçe Aktar</a>
+          <a href="/imports/commissions/limits">Limitleri İçe Aktar</a>
+        </div>
+      </details>
+      <details class="menu">
+        <summary class="btn">{{ icon("download") }} Dışa Aktar {{ icon("chevron-down", "icon icon-sm") }}</summary>
+        <div class="menu-panel">
+          <a href="/commissions/export/rates.xlsx">Oranları Dışa Aktar</a>
+          <a href="/commissions/export/limits.xlsx">Limitleri Dışa Aktar</a>
+        </div>
+      </details>
+    </div>
+    <details class="menu mobile-actions">
+      <summary class="btn" aria-label="Diğer işlemler" title="Diğer işlemler">{{ icon("more") }}</summary>
+      <div class="menu-panel">
+        <a href="/imports/commissions/rates">Oranları İçe Aktar</a>
+        <a href="/imports/commissions/limits">Limitleri İçe Aktar</a>
+        <a href="/commissions/export/rates.xlsx">Oranları Dışa Aktar</a>
+        <a href="/commissions/export/limits.xlsx">Limitleri Dışa Aktar</a>
+      </div>
+    </details>
+  </div>
+</div>
+
+<section class="panel" id="new-period" style="margin-bottom: 16px;">
+  <div class="panel-header">
+    <div>
+      <h2>Yeni Dönem</h2>
+      <p>Önceki dönemi kopyalayarak veya boş başlayın.</p>
+    </div>
+  </div>
+  <div class="panel-body">
+    <form method="post" action="/commissions" class="form-grid">
+      <div class="form-group"><label for="period-year">Yıl</label><input type="number" id="period-year" name="year" class="form-control" value="{{ now.year }}" required inputmode="numeric"></div>
+      <div class="form-group"><label for="period-month">Ay</label><input type="number" id="period-month" name="month" class="form-control" min="1" max="12" value="{{ now.month }}" required inputmode="numeric"></div>
+      <div class="form-group"><label for="copy-from">Önceki Dönemden Kopyala</label><select id="copy-from" name="copy_from_id" class="form-control"><option value="">Boş dönem</option>{% for period in periods %}<option value="{{ period.id }}">{{ period.period_key }} · {{ status_labels.get(period.status, period.status) }}</option>{% endfor %}</select></div>
+      <div class="form-group" style="align-self: end;"><button type="submit" class="btn btn-primary">Dönem Oluştur</button></div>
+    </form>
+  </div>
+</section>
+
+<div class="table-container mobile-cards-container">
+  <table class="data-table mobile-cards">
+    <thead><tr><th>Dönem</th><th>Geçerlilik</th><th>Durum</th><th>Kopyalandığı Dönem</th><th class="col-actions">İşlem</th></tr></thead>
+    <tbody>
+      {% for period in periods %}
+      <tr class="period-row">
+        <td class="period-key" data-label="Dönem"><a href="/commissions/{{ period.id }}"><strong>{{ period.period_key }}</strong></a></td>
+        <td class="period-validity" data-label="Geçerlilik">{{ period.valid_from | tr_date }} – {{ period.valid_until | tr_date }}</td>
+        <td class="period-status" data-label="Durum"><span class="badge {% if period.status == 'active' %}badge-success{% elif period.status == 'draft' %}badge-info{% else %}badge-neutral{% endif %}">{{ status_labels.get(period.status, period.status) }}</span></td>
+        <td class="period-copied" data-label="Kopyalandığı Dönem">{% if period.copied_from_id %}{{ period.copied_from_id }}{% else %}—{% endif %}</td>
+        <td class="col-actions period-actions" data-label="İşlem">
+          <div class="actions-inline">
+            <a class="btn btn-sm" href="/commissions/{{ period.id }}">Detay {{ icon("chevron-right", "icon icon-sm") }}</a>
+            {% if period.status in ('draft', 'inactive') %}
+            <form method="post" action="/commissions/{{ period.id }}/activate"><button type="submit" class="btn btn-sm btn-primary">Aktifleştir</button></form>
+            {% elif period.status == 'active' %}
+            <form method="post" action="/commissions/{{ period.id }}/deactivate"><button type="submit" class="btn btn-sm">Pasifleştir</button></form>
+            {% endif %}
+            <form method="post" action="/commissions/{{ period.id }}/delete" onsubmit="return confirm('Bu dönem ve tüm oran/limit kayıtları silinecek. Emin misiniz?');"><button type="submit" class="btn btn-sm btn-danger" title="Sil">{{ icon("trash", "icon icon-sm") }}</button></form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="padding: 0;"><div class="table-empty">{{ icon("commissions") }}<strong>Henüz komisyon dönemi oluşturulmadı.</strong><p>Yukarıdaki formdan ilk dönemi açın.</p></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

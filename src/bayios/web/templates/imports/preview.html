@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block title %}İçe Aktarma Önizlemesi{% endblock %}
+{% block content %}
+{% macro status_badge(row) %}
+  {% if row.errors or row.decision == 'error' %}
+  <span class="badge badge-short badge-danger">{{ row.status_label }}</span>
+  {% elif row.decision == 'create' %}
+  <span class="badge badge-short badge-success">{{ row.status_label }}</span>
+  {% elif row.decision == 'update' %}
+  <span class="badge badge-short badge-info">{{ row.status_label }}</span>
+  {% elif row.changes %}
+  <span class="badge badge-short badge-warning">{{ row.status_label }}</span>
+  {% else %}
+  <span class="badge badge-short badge-neutral">{{ row.status_label }}</span>
+  {% endif %}
+{% endmacro %}
+
+<div class="actions-bar">
+  <div>
+    <div style="margin-bottom: .25rem;">
+      <a href="/imports/products" class="muted" style="text-decoration: none;">&larr; Yeniden Dosya Seç</a>
+    </div>
+    <h1>İçe Aktarma Önizlemesi</h1>
+    <p class="muted" style="margin: 0;">Dosya: <strong>{{ file_name }}</strong> ({{ total_rows }} satır)</p>
+  </div>
+</div>
+
+<div class="grid-stats product-preview-stats">
+  <div class="stat-box">
+    <div class="stat-label">Toplam Satır</div>
+    <div class="stat-value">{{ total_rows }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Yeni Ürün</div>
+    <div class="stat-value" style="color: #059669;">{{ create_count }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Güncellenecek</div>
+    <div class="stat-value" style="color: #2563eb;">{{ update_count }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Değişmeyecek</div>
+    <div class="stat-value" style="color: #6b7280;">{{ unchanged_count }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Hatalı Satır</div>
+    <div class="stat-value" style="{% if error_count > 0 %}color: #dc2626;{% endif %}">{{ error_count }}</div>
+  </div>
+</div>
+
+{% if source_type == 'json' %}
+<div class="alert alert-info">
+  <span><strong>catalog.json</strong> · schema {{ schema_version or '—' }}{% if catalog_scraped_at %} · scraper: {{ catalog_scraped_at }}{% endif %}</span>
+</div>
+{% endif %}
+
+<div class="alert alert-info mobile-note-only"><span><strong>Not:</strong> Bu işlem laptopta daha rahattır. Kartları aşağı kaydırarak inceleyebilirsiniz.</span></div>
+
+<form id="importCommitForm" action="/imports/products/commit" method="post" class="product-preview-form">
+  <input type="hidden" name="file_name" value="{{ file_name }}">
+  <input type="hidden" name="file_type" value="{{ file_type }}">
+  <input type="hidden" name="source_b64" value="{{ source_b64 }}">
+  <input type="hidden" name="import_token" value="{{ import_token }}">
+  <input type="hidden" name="decisions_json" id="decisionsJsonInput">
+
+  <div class="actions-bar preview-actions-bar" style="margin-top: 1rem; align-items: center; flex-wrap: wrap; gap: .75rem;">
+    <div style="display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;">
+      <span class="muted" style="font-size: .85rem;">Toplu Karar:</span>
+      <button type="button" class="btn" style="padding: .25rem .6rem; font-size: .8rem;" onclick="setAllDecisions('update')">Tümünü Güncelle</button>
+      <button type="button" class="btn" style="padding: .25rem .6rem; font-size: .8rem;" onclick="setAllDecisions('skip')">Tümünü Atla</button>
+      <button type="button" class="btn" style="padding: .25rem .6rem; font-size: .8rem;" onclick="setAllDecisions('create')">Tümünü Yeni Ürün</button>
+      <button type="button" class="btn" style="padding: .25rem .6rem; font-size: .8rem; background: #fef3c7; color: #92400e; border-color: #fde68a;" onclick="skipProblematicRows()">⚠️ Sorunluları Atla</button>
+    </div>
+    <div class="actions-group">
+      <button type="submit" id="submitBtn" class="btn btn-primary preview-submit">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+        Değişiklikleri Onayla ve Veritabanına Aktar
+      </button>
+      <a href="/imports/products" class="btn">Vazgeç</a>
+    </div>
+  </div>
+
+  <div class="table-container mobile-cards-container product-preview-container">
+    <table class="data-table mobile-cards product-preview-table">
+      <thead>
+        <tr>
+          <th class="col-row">#</th>
+          <th class="col-name">Ürün</th>
+          <th class="col-price">Fiyat</th>
+          <th class="col-stock">Stok</th>
+          <th class="col-status">Durum</th>
+          <th class="col-actions">Karar</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr class="{% if row.errors or row.decision == 'error' %}preview-row-error{% elif row.warnings or row.details_error %}preview-row-warning{% endif %}">
+          <td class="col-row">{{ row.row_number }}</td>
+          <td class="col-name" data-label="Ürün">
+            <div class="preview-product">
+              <div class="preview-product-head">
+                <strong class="preview-product-name">{{ row.product_name or '—' }}</strong>
+                <span class="preview-row-no">#{{ row.row_number }}</span>
+              </div>
+              <div class="preview-product-meta">
+                {% if row.external_id %}
+                <span class="preview-code-label">Madde kodu</span>
+                <code class="preview-code">{{ row.external_id }}</code>
+                {% else %}
+                <span class="preview-code-missing">Madde kodu yok</span>
+                {% endif %}
+                {% if row.category_name %}
+                <span class="preview-dot">·</span><span>{{ row.category_name }}</span>
+                {% endif %}
+                {% if row.kind_label and row.kind_label != '—' %}
+                <span class="preview-dot">·</span><span>{{ row.kind_label }}</span>
+                {% endif %}
+              </div>
+              {% for err in row.errors %}
+              <div class="preview-message preview-message-error">• {{ err }}</div>
+              {% endfor %}
+              {% if row.details_error %}
+              <div class="preview-message preview-message-error">• {{ row.details_error }}</div>
+              {% endif %}
+              {% for warn in row.warnings %}
+              <div class="preview-message preview-message-warning">• {{ warn }}</div>
+              {% endfor %}
+              <details class="preview-more">
+                <summary>Diğer bilgiler</summary>
+                <div class="preview-more-grid">
+                  <div class="preview-more-item">
+                    <span>Alış fiyatı</span>
+                    <strong>{% if row.cost_price is not none %}{{ row.cost_price|tr_money }} TL{% elif 'Alış fiyatı' in row.changes %}Temizlenecek{% elif row.decision == 'create' %}—{% else %}Değişmez{% endif %}</strong>
+                  </div>
+                  <div class="preview-more-item">
+                    <span>Kart taban</span>
+                    <strong>{% if row.card_floor_price is not none %}{{ row.card_floor_price|tr_money }} TL{% elif 'Kart taban fiyat' in row.changes %}Temizlenecek{% elif row.decision == 'create' %}—{% else %}Değişmez{% endif %}</strong>
+                  </div>
+                  <div class="preview-more-item">
+                    <span>Nakit taban</span>
+                    <strong>{% if row.cash_floor_price is not none %}{{ row.cash_floor_price|tr_money }} TL{% elif 'Nakit taban fiyat' in row.changes %}Temizlenecek{% elif row.decision == 'create' %}—{% else %}Değişmez{% endif %}</strong>
+                  </div>
+                  <div class="preview-more-item">
+                    <span>Aktif kampanya</span>
+                    <strong>{{ row.active_campaigns or '—' }}</strong>
+                  </div>
+                  <div class="preview-more-item">
+                    <span>Ürün detayı</span>
+                    <strong>
+                      {% if row.details_error %}Hatalı JSON
+                      {% elif row.details_present and row.details %}
+                        {% set feature_count = row.details.get('features', []) | length %}
+                        {% set spec_count = row.details.get('specifications', []) | length %}
+                        {% if feature_count or spec_count %}{{ feature_count }} özellik / {{ spec_count }} teknik{% elif 'Ürün detayları' in row.changes %}Temizlenecek{% else %}Değişmez{% endif %}
+                      {% elif row.decision == 'create' %}—
+                      {% else %}Değişmez{% endif %}
+                    </strong>
+                  </div>
+                  <div class="preview-more-item">
+                    <span>Satır</span>
+                    <strong>{{ row.row_number }}</strong>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </td>
+          <td class="col-price" data-label="Fiyat">
+            <div class="preview-price-main">
+              {% if row.regular_price is not none %}{{ row.regular_price|tr_money }} TL{% elif row.decision == 'create' %}<span class="muted">—</span>{% else %}<span class="muted">Değişmez</span>{% endif %}
+            </div>
+            <div class="preview-price-sub">
+              <span>Oliz</span>
+              {% if row.website_discounted_price is not none %}<strong>{{ row.website_discounted_price|tr_money }} TL</strong>
+              {% elif 'Oliz fiyatı (temizle)' in row.changes %}<span class="preview-clear">Temizlenecek</span>
+              {% elif row.decision == 'create' %}<span class="muted">—</span>
+              {% else %}<span class="muted">Değişmez</span>{% endif %}
+            </div>
+          </td>
+          <td class="col-stock" data-label="Stok">
+            {% if row.quantity is not none %}<span class="preview-stock">{{ row.quantity }} adet</span>
+            {% elif row.decision == 'create' %}<span class="preview-stock">0 adet</span>
+            {% else %}<span class="muted">Değişmez</span>{% endif %}
+          </td>
+          <td class="col-status" data-label="Durum">
+            {{ status_badge(row) }}
+            {% if row.changes %}
+            <div class="preview-changes"><span>Değişiklik:</span> {{ row.changes|join(', ') }}</div>
+            {% endif %}
+          </td>
+          <td class="col-actions" data-label="Karar">
+            {% if row.errors %}
+            <select class="form-control decision-select preview-decision"
+                    data-row="{{ row.row_number }}"
+                    data-problematic="true"
+                    aria-label="Satır {{ row.row_number }} kararı">
+              <option value="skip" selected>Atla (Hatalı)</option>
+            </select>
+            {% else %}
+            <select class="form-control decision-select preview-decision"
+                    data-row="{{ row.row_number }}"
+                    data-problematic="{{ 'true' if row.is_problematic else 'false' }}"
+                    aria-label="Satır {{ row.row_number }} kararı">
+              <option value="create" {% if row.decision == 'create' %}selected{% endif %}>Yeni Ürün</option>
+              <option value="update" {% if row.decision == 'update' %}selected{% endif %}>Güncelle</option>
+              <option value="skip" {% if row.decision == 'skip' %}selected{% endif %}>Atla</option>
+              <option value="clear_discount" {% if row.decision == 'clear_discount' %}selected{% endif %}>Oliz'i Temizle</option>
+            </select>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="product-preview-sticky">
+    <div class="preview-sticky-summary">
+      <strong>{{ update_count }}</strong> güncellenecek · <strong>{{ unchanged_count }}</strong> değişmeyecek
+    </div>
+    <button type="submit" class="btn btn-primary preview-submit">Onayla</button>
+  </div>
+</form>
+
+<script>
+function setAllDecisions(val) {
+  const selects = document.querySelectorAll('select.decision-select');
+  for (let i = 0; i < selects.length; i++) {
+    selects[i].value = val;
+  }
+}
+
+function skipProblematicRows() {
+  const selects = document.querySelectorAll('select.decision-select[data-problematic="true"]');
+  for (let i = 0; i < selects.length; i++) {
+    selects[i].value = 'skip';
+  }
+}
+
+document.getElementById('importCommitForm').addEventListener('submit', function (e) {
+  const decisions = {};
+  const selects = document.querySelectorAll('select.decision-select');
+  for (let i = 0; i < selects.length; i++) {
+    decisions[selects[i].getAttribute('data-row')] = selects[i].value;
+  }
+  document.getElementById('decisionsJsonInput').value = JSON.stringify(decisions);
+  const submits = this.querySelectorAll('button[type="submit"]');
+  for (let i = 0; i < submits.length; i++) {
+    submits[i].disabled = true;
+    submits[i].textContent = 'Aktarılıyor...';
+  }
+});
+</script>
+{% endblock %}

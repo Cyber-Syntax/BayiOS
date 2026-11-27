@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Ürün Kataloğu İçe Aktar{% endblock %}
+{% block content %}
+<div class="actions-bar">
+  <div>
+    <div style="margin-bottom: .25rem;">
+      <a href="/products" class="muted" style="text-decoration: none;">&larr; Ürünler</a>
+    </div>
+    <h1>Ürün Kataloğu İçe Aktar</h1>
+    <p class="muted" style="margin: 0;">CSV, Excel (.xlsx) veya scraper <code>catalog.json</code> dosyası yükleyerek ürün kataloğunu güncelleyin.</p>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div class="alert alert-info">
+  <span><strong>Scraper entegrasyonu:</strong> <code>catalog.json</code> (schema_version 1.0) dosyasını da aynı ekrandan yükleyebilirsiniz. Ürün ID, fiyatlar ve JSON detayları otomatik eşleştirilir.</span>
+</div>
+
+<div class="card">
+  <form action="/imports/products/preview" method="post" enctype="multipart/form-data">
+    <div class="form-group">
+      <label for="import-file">Dosya Seçin (.csv, .xlsx, .json):</label>
+      <input type="file" id="import-file" name="file" class="form-control" accept=".csv,.xlsx,.json" required>
+    </div>
+
+    <div style="margin-top: 1.5rem; display: flex; gap: .75rem;">
+      <button type="submit" class="btn btn-primary">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+        Önizlemeyi Göster
+      </button>
+      <a href="/imports/products/template" class="btn">Şablon İndir</a>
+      <a href="/products" class="btn">İptal</a>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="background: var(--bg); border: 1px dashed var(--border);">
+  <h3 style="margin-top: 0;">Dosya ve Format Kuralları</h3>
+  <ul style="color: var(--muted); font-size: .9rem; line-height: 1.6; margin: 0; padding-left: 1.25rem;">
+    <li><strong>Desteklenen Formatlar:</strong> Gerçek bayi CSV'si, standart CSV (virgül veya noktalı virgül ayracı, <code>utf-8</code>, <code>cp1254</code>), Excel <code>.xlsx</code> ve scraper <code>catalog.json</code> (schema_version 1.0).</li>
+    <li><strong>Türkçe Başlıklar:</strong> <code>Ürün ID, Ürün Adı, Kategori, Perakende Fiyat, Oliz İndirimli Fiyat, Fiziksel Stok, Alış Fiyatı, Kredi Kartı Taban Fiyatı, Nakit Taban Fiyatı, Aktif Kampanya, Ürün Özellikleri (JSON)</code> desteklenir. 9/10 sütunlu eski dosyalar ve İngilizce başlıklar da okunur.</li>
+    <li><strong>Madde Kodu (Ürün ID):</strong> Ürünün madde kodudur; güncel veya eski alias ile eşleşir. Kod boşsa ada göre eşleşir ve satır sarı uyarı alır (ör. ek garanti). Ürün detayları <code>{"features":[],"specifications":[]}</code> JSON hücresinden okunur; boş hücre mevcut detayı korur, boş listeler temizler.</li>
+    <li><strong>Değişiklik Yok:</strong> Hiçbir iş alanı değişmeyen satırlar "Değişiklik yok" olarak atlanır; güncellenen sayısına eklenmez.</li>
+    <li><strong>Fiyat Formatı:</strong> <code>38.099 TL</code>, <code>475 TL</code> gibi binlik noktalı ve <code>TL</code> sonekli fiyatlar ile <code>12,50</code> gibi virgüllü ondalıklar otomatik algılanır. Oliz boş/0 ise mevcut Oliz silinir.</li>
+    <li><strong>Stok Durumu:</strong> <code>Fiziksel Stok</code> boş veya eksik bırakılırsa mevcut stok korunur; <code>0</code> girilirse fiziksel stok sıfırlanır.</li>
+    <li><strong>Kategori:</strong> Boş gelirse mevcut kategori korunur; bilinmeyen kategori adları otomatik oluşturulur.</li>
+    <li><strong>Alış / Taban Fiyatlar:</strong> Boş hücre mevcut değeri korur; değeri tamamen kaldırmak için <code>-</code> veya <code>temizle</code> yazın.</li>
+    <li><strong>Aktif Kampanya:</strong> Dışa aktarmada bilgi amaçlıdır; içe aktarmada kampanya oluşturmaz. Kampanyalar sekmesinden yönetilir.</li>
+    <li><strong>Güvenlik ve Doğrulama:</strong> Önizleme onaylanmadan veritabanına hiçbir kayıt yazılmaz; dosyadaki ürünler atomik (tek transaction) olarak kaydedilir.</li>
+  </ul>
+</div>
+{% endblock %}

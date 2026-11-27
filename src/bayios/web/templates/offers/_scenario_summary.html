@@ -1,0 +1,30 @@
+<div id="offer-scenario-summary" hx-swap-oob="true">
+  <h3 class="sr-only">Senaryo Özeti</h3>
+  {% if comparison and comparison.scenarios %}
+  <div class="table-container mobile-cards-container" style="margin-top: 0; border: 0; border-radius: 0;">
+    <table class="data-table mobile-cards" style="min-width: 0;">
+      <thead>
+        <tr>
+          <th>Senaryo</th><th>Nakit Satış</th><th>Nakit Kâr</th>
+          <th>Kart Satış</th><th>Kart Kâr</th><th>Marj</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for scenario in comparison.scenarios %}
+        <tr>
+          <td data-label="Senaryo"><strong>{{ scenario.label }}</strong></td>
+          <td class="mono" data-label="Nakit Satış">{{ scenario.sale_cash | tr_money }} TL</td>
+          <td data-label="Nakit Kâr">{% if scenario.cash_profit is none %}<span class="badge badge-warning">Maliyet yok</span>{% else %}<strong style="color: {% if scenario.cash_profit < 0 %}var(--danger){% else %}var(--success){% endif %};">{{ scenario.cash_profit | tr_money }} TL</strong>{% endif %}</td>
+          <td class="mono" data-label="Kart Satış">{{ scenario.sale_card | tr_money }} TL</td>
+          <td data-label="Kart Kâr">{% if scenario.card_profit is none %}<span class="badge badge-warning">Maliyet yok</span>{% else %}<strong style="color: {% if scenario.card_profit < 0 %}var(--danger){% else %}var(--success){% endif %};">{{ scenario.card_profit | tr_money }} TL</strong>{% endif %}</td>
+          <td data-label="Marj">{% if scenario.margin_percent is not none %}{{ scenario.margin_percent | tr_percent }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="form-hint" style="margin: 8px 0 0;">Senaryolar bilgi amaçlıdır; teklif seçili ödeme ve indirimlerle kaydedilir. Kart kârı seçili taksit komisyonuyla hesaplanır.</p>
+  {% else %}
+  <p class="muted" style="margin: 0;">Senaryolar hesaplanıyor… Ürün ve ödeme bilgileri değiştiğinde otomatik güncellenir.</p>
+  {% endif %}
+</div>

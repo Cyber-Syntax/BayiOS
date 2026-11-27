@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="actions-bar">
+  <div>
+    <div style="margin-bottom: .25rem;">
+      <a href="{{ back_url }}" class="muted" style="text-decoration: none;">&larr; {{ back_label }}</a>
+    </div>
+    <h1>{{ title }}</h1>
+    <p class="muted" style="margin: 0;">{{ description }}</p>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger"><span><strong>Hata:</strong> {{ error }}</span></div>
+{% endif %}
+
+<div class="alert alert-info mobile-note-only"><span><strong>Not:</strong> Bu işlem laptopta daha rahattır. Telefonda önizleme tablosunu yatay kaydırabilirsiniz.</span></div>
+
+<div class="card">
+  <form action="{{ form_action }}" method="post" enctype="multipart/form-data">
+    {% if campaign_id %}<input type="hidden" name="campaign_id" value="{{ campaign_id }}">{% endif %}
+    <div class="form-group">
+      <label for="import-file">Dosya Seçin ({{ accept }}):</label>
+      <input type="file" id="import-file" name="file" class="form-control" accept="{{ accept }}" required>
+    </div>
+    {% if show_bank_autocreate %}
+    <div class="form-group" style="display: flex; gap: .5rem; align-items: center;">
+      <input type="checkbox" id="auto-create-banks" name="auto_create_banks" value="1">
+      <label for="auto-create-banks" style="margin: 0;">Bilinmeyen bankaları otomatik oluştur (yazım hatası riski)</label>
+    </div>
+    {% endif %}
+    <div style="margin-top: 1.5rem; display: flex; gap: .75rem; flex-wrap: wrap;">
+      <button type="submit" class="btn btn-primary">Önizlemeyi Göster</button>
+      <a href="{{ template_url }}" class="btn">{{ template_label | default('Şablon İndir') }}</a>
+      {% if json_template_url %}<a href="{{ json_template_url }}" class="btn">{{ json_template_label | default('Örnek JSON İndir') }}</a>{% endif %}
+      <a href="{{ back_url }}" class="btn">İptal</a>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="background: var(--bg); border: 1px dashed var(--border);">
+  <h3 style="margin-top: 0;">Dosya ve Format Kuralları</h3>
+  <ul style="color: var(--muted); font-size: .9rem; line-height: 1.6; margin: 0; padding-left: 1.25rem;">
+    {% for line in help_lines %}<li>{{ line }}</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

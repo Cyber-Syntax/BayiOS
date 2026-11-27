@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ detail.period.period_key }} · Komisyonlar{% endblock %}
+{% block content %}
+{% set msg = request.query_params.get('msg') %}
+{% if msg == 'rate_added' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Komisyon oranı eklendi.</span></div>
+{% elif msg == 'rate_updated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Komisyon oranı güncellendi.</span></div>
+{% elif msg == 'rate_deleted' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Komisyon oranı silindi.</span></div>
+{% elif msg == 'limit_added' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Taksit limiti eklendi.</span></div>
+{% elif msg == 'limit_updated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Taksit limiti güncellendi.</span></div>
+{% elif msg == 'limit_deleted' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Taksit limiti silindi.</span></div>
+{% elif msg == 'activated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Dönem aktifleştirildi.</span></div>
+{% elif msg == 'deactivated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Dönem pasifleştirildi.</span></div>
+{% elif msg and msg.startswith('error:') %}
+<div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
+{% endif %}
+
+<div class="page-header">
+  <div class="page-heading">
+    <a class="breadcrumb" href="/commissions">{{ icon("arrow-left", "icon icon-sm") }} Komisyonlar</a>
+    <h1>{{ detail.period.period_key }}</h1>
+    <div class="product-heading-meta">
+      <span class="badge {% if detail.period.status == 'active' %}badge-success{% elif detail.period.status == 'draft' %}badge-info{% else %}badge-neutral{% endif %}">{{ status_labels.get(detail.period.status, detail.period.status) }}</span>
+      <span class="muted small">{{ detail.period.valid_from | tr_date }} – {{ detail.period.valid_until | tr_date }}</span>
+    </div>
+  </div>
+  <div class="page-actions">
+    <details class="menu">
+      <summary class="btn">{{ icon("download") }} Dışa Aktar {{ icon("chevron-down", "icon icon-sm") }}</summary>
+      <div class="menu-panel">
+        <a href="/commissions/export/rates.xlsx?period_id={{ detail.period.id }}">Oranları Dışa Aktar</a>
+        <a href="/commissions/export/limits.xlsx?period_id={{ detail.period.id }}">Limitleri Dışa Aktar</a>
+      </div>
+    </details>
+    <details class="menu">
+      <summary class="btn">{{ icon("upload") }} İçe Aktar {{ icon("chevron-down", "icon icon-sm") }}</summary>
+      <div class="menu-panel">
+        <a href="/imports/commissions/rates">Oranları İçe Aktar</a>
+        <a href="/imports/commissions/limits">Limitleri İçe Aktar</a>
+      </div>
+    </details>
+    {% if detail.period.status in ('draft', 'inactive') %}
+    <form method="post" action="/commissions/{{ detail.period.id }}/activate"><button type="submit" class="btn btn-primary">Dönemi Aktifleştir</button></form>
+    {% elif detail.period.status == 'active' %}
+    <form method="post" action="/commissions/{{ detail.period.id }}/deactivate"><button type="submit" class="btn">Dönemi Pasifleştir</button></form>
+    {% endif %}
+    <details class="menu">
+      <summary class="btn">{{ icon("more") }}</summary>
+      <div class="menu-panel">
+        <form method="post" action="/commissions/{{ detail.period.id }}/delete" onsubmit="return confirm('Bu dönem ve tüm oran/limit kayıtları silinecek. Emin misiniz?');">
+          <button type="submit" class="danger">Dönemi Sil</button>
+        </form>
+      </div>
+    </details>
+  </div>
+</div>
+
+{% if rate_matrix_default %}
+<section class="panel" style="margin-bottom: 16px;" x-data="{ channel: '{{ rate_matrix_default }}' }">
+  <div class="panel-header">
+    <div>
+      <h2>Oran Matrisi</h2>
+      <p>Banka ve taksit bazında hızlı okuma. Hücreler salt okunur; düzenleme aşağıdaki oran tablosunda.</p>
+    </div>
+  </div>
+  <div class="panel-body">
+    <div class="filter-pills" style="margin-bottom: 12px;">
+      {% for ch in rate_matrix %}
+      <button type="button" class="filter-pill" :class="{ active: channel === '{{ ch.value }}' }" @click="channel = '{{ ch.value }}'">
+        {{ ch.label }}
+        <span class="mono">{{ ch.rows | length }}</span>
+      </button>
+      {% endfor %}
+    </div>
+    {% for ch in rate_matrix %}
+    <div x-show="channel === '{{ ch.value }}'" x-cloak>
+      {% if ch.rows %}
+      <div class="table-container table-flush" data-table-scroll style="margin-top: 0;">
+        <table class="data-table rate-matrix-table" style="min-width: 0;">
+          <thead>
+            <tr>
+              <th>Banka</th>
+              <th>Ürün Grubu</th>
+              <th>Ödero Bandı</th>
+              {% for installment in ch.installments %}<th>{{ installment }} Taksit</th>{% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in ch.rows %}
+            <tr>
+              <td><strong>{{ row.bank_name }}</strong></td>
+              <td>{{ row.product_group_label }}</td>
+              <td>{{ row.tier_label }}</td>
+              {% for installment in ch.installments %}
+              {% set value = row.cells.get(installment) %}
+              <td class="mono">{% if value is not none %}{{ value | tr_percent }}{% else %}<span class="muted">—</span>{% endif %}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding: 24px;">
+        {{ icon("commissions") }}
+        <strong>Bu kanalda oran yok</strong>
+        <p>Aşağıdaki oran tablosundan ekleyin.</p>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="panel" style="margin-bottom: 16px;">
+  <div class="panel-header">
+    <div>
+      <h2>Komisyon Oranları</h2>
+      <p>{{ detail.rates | length }} oran · banka özel satır genel oranı geçersiz kılar.</p>
+    </div>
+  </div>
+  <div class="panel-body">
+    {% if detail.period.status != 'archived' %}
+    <form hx-post="/commissions/banks/quick-add" hx-target="#bank-quick-status" hx-swap="outerHTML" class="cluster" style="margin-bottom: 12px;">
+      <input type="hidden" name="select_id" value="rate-bank">
+      <input type="text" name="name" class="form-control" placeholder="Yeni banka adı" required style="max-width: 16rem;">
+      <button type="submit" class="btn btn-sm">Banka Ekle</button>
+      <span id="bank-quick-status" class="muted small"></span>
+    </form>
+    {% endif %}
+    <div class="table-container mobile-cards-container">
+      <table class="data-table mobile-cards commission-rates-table">
+        <thead><tr><th>Kanal</th><th>Banka</th><th>Ürün Grubu</th><th>Ödero Bandı</th><th>Taksit</th><th>Oran</th><th class="col-actions">İşlem</th></tr></thead>
+        <tbody>
+          {% for rate in detail.rates %}
+          <tr class="rate-row">
+            <td class="rate-channel" data-label="Kanal">{{ channel_labels.get(rate.channel, rate.channel) }}</td>
+            <td class="rate-bank" data-label="Banka">{% if rate.bank_id %}{{ bank_names.get(rate.bank_id | string, rate.bank_id) }}{% else %}<span class="badge badge-neutral">Genel</span>{% endif %}</td>
+            <td class="rate-group" data-label="Ürün Grubu">{{ group_labels.get(rate.product_group, rate.product_group or '—') }}</td>
+            <td class="rate-tier" data-label="Ödero Bandı">{{ tier_labels.get(rate.amount_tier, rate.amount_tier or '—') }}</td>
+            <td class="rate-installment" data-label="Taksit">{{ rate.installment_count }} taksit</td>
+            <td class="rate-percent" data-label="Oran">
+              <form method="post" action="/commissions/{{ detail.period.id }}/rates/{{ rate.id }}/edit" class="rate-inline-form">
+                <input type="text" name="commission_percent" value="{{ rate.commission_percent }}" class="form-control rate-value-input" inputmode="decimal" aria-label="Komisyon oranı">
+                <button type="submit" class="btn btn-sm">Kaydet</button>
+              </form>
+            </td>
+            <td class="col-actions rate-actions" data-label="İşlem">
+              <form method="post" action="/commissions/{{ detail.period.id }}/rates/{{ rate.id }}/delete" onsubmit="return confirm('Bu komisyon oranı silinecek. Emin misiniz?');">
+                <button type="submit" class="btn btn-sm btn-danger" title="Sil">{{ icon("trash", "icon icon-sm") }}</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7"><div class="table-empty"><strong>Oran tanımlı değil</strong><p>Aşağıdaki formdan ilk oranı ekleyin.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if detail.period.status != 'archived' %}
+    <div class="card-section">
+      <h3 style="margin-bottom: 10px;">Oran Ekle</h3>
+      <form method="post" action="/commissions/{{ detail.period.id }}/rates" class="form-grid">
+        <div class="form-group"><label for="rate-channel">Kanal</label><select id="rate-channel" name="channel" class="form-control">{% for value, label in channel_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label for="rate-bank">Banka</label><select id="rate-bank" name="bank_id" class="form-control"><option value="">Genel (tüm bankalar)</option>{% for bank in detail.banks %}<option value="{{ bank.id }}">{{ bank.name }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label for="rate-group">Ürün Grubu</label><select id="rate-group" name="product_group" class="form-control"><option value="">—</option>{% for value, label in group_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label for="rate-tier">Ödero Bandı</label><select id="rate-tier" name="amount_tier" class="form-control"><option value="">—</option>{% for value, label in tier_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label for="rate-installment">Taksit</label><input type="number" id="rate-installment" name="installment_count" class="form-control" min="1" required inputmode="numeric"></div>
+        <div class="form-group"><label for="rate-percent">Oran (%)</label><input type="text" id="rate-percent" name="commission_percent" class="form-control" required inputmode="decimal"></div>
+        <div class="form-group" style="align-self: end;"><button type="submit" class="btn btn-primary">Oran Ekle</button></div>
+      </form>
+      <p class="form-hint">Klima'da Ödero bandı boş bırakılabilir. Chippin'de banka seçilebilir; banka boş = genel (tüm bankalar).</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<div class="commission-limits-stack" style="margin-bottom: 16px;">
+  <section class="panel">
+    <div class="panel-header">
+      <div>
+        <h2>Kategori Bazlı Limitler</h2>
+        <p>Bankadan bağımsız yasal/limit satırları.</p>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="table-container mobile-cards-container">
+        <table class="data-table mobile-cards commission-limits-table">
+          <thead><tr><th>Kanal</th><th>Ürün Grubu</th><th>Kategori</th><th>Kart Tipi</th><th>Max Taksit</th><th class="col-actions">İşlem</th></tr></thead>
+          <tbody>
+            {% for limit in detail.limits if limit.category_id %}
+            <tr class="limit-row category-limit-row">
+              <td class="limit-channel" data-label="Kanal">{{ channel_labels.get(limit.channel, limit.channel or '—') }}</td>
+              <td class="limit-primary limit-category" data-label="Kategori">{{ category_names.get(limit.category_id | string, '—') }}</td>
+              <td class="limit-group" data-label="Ürün Grubu">{{ group_labels.get(limit.product_group, limit.product_group or '—') }}</td>
+              <td class="limit-card" data-label="Kart Tipi">{{ card_labels.get(limit.card_type, limit.card_type or '—') }}</td>
+              <td class="limit-max" data-label="Max Taksit">
+                <form method="post" action="/commissions/{{ detail.period.id }}/limits/{{ limit.id }}/edit" class="limit-inline-form">
+                  <input type="number" name="max_installments" value="{{ limit.max_installments }}" min="1" class="form-control limit-value-input" inputmode="numeric" aria-label="Max taksit">
+                  <button type="submit" class="btn btn-sm">Kaydet</button>
+                </form>
+              </td>
+              <td class="col-actions limit-actions" data-label="İşlem">
+                <form method="post" action="/commissions/{{ detail.period.id }}/limits/{{ limit.id }}/delete" onsubmit="return confirm('Bu taksit limiti silinecek. Emin misiniz?');">
+                  <button type="submit" class="btn btn-sm btn-danger" title="Sil">{{ icon("trash", "icon icon-sm") }}</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6"><div class="table-empty"><strong>Kategori limiti yok</strong><p>Aşağıdaki formdan ekleyin.</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if detail.period.status != 'archived' %}
+      <form method="post" action="/commissions/{{ detail.period.id }}/limits" class="form-grid" style="margin-top: 12px;">
+        <div class="form-group"><label for="limit-channel">Kanal</label><select id="limit-channel" name="channel" class="form-control"><option value="">—</option>{% for value, label in channel_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label for="limit-group">Ürün Grubu</label><select id="limit-group" name="product_group" class="form-control"><option value="">—</option>{% for value, label in group_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label for="limit-category">Kategori</label><select id="limit-category" name="category_id" class="form-control"><option value="">—</option>{% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label for="limit-card">Kart Tipi</label><select id="limit-card" name="card_type" class="form-control"><option value="">—</option>{% for value, label in card_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label for="limit-max">Max Taksit</label><input type="number" id="limit-max" name="max_installments" class="form-control" min="1" required inputmode="numeric"></div>
+        <div class="form-group" style="align-self: end;"><button type="submit" class="btn btn-primary">Limit Ekle</button></div>
+      </form>
+      <p class="form-hint">Kategori sınırı bankadan bağımsızdır ve banka özel limit tarafından yükseltilemez.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <div>
+        <h2>Banka Bazlı Limitler</h2>
+        <p>Kanal + banka (+ kart tipi) bazında max taksit.</p>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="table-container mobile-cards-container">
+        <table class="data-table mobile-cards commission-limits-table">
+          <thead><tr><th>Kanal</th><th>Banka</th><th>Ürün Grubu</th><th>Kart Tipi</th><th>Max Taksit</th><th class="col-actions">İşlem</th></tr></thead>
+          <tbody>
+            {% for limit in detail.limits if not limit.category_id %}
+            <tr class="limit-row bank-limit-row">
+              <td class="limit-channel" data-label="Kanal">{{ channel_labels.get(limit.channel, limit.channel or '—') }}</td>
+              <td class="limit-primary limit-bank" data-label="Banka">{% if limit.bank_id %}{{ bank_names.get(limit.bank_id | string, limit.bank_id) }}{% else %}<span class="badge badge-neutral">Genel</span>{% endif %}</td>
+              <td class="limit-group" data-label="Ürün Grubu">{{ group_labels.get(limit.product_group, limit.product_group or '—') }}</td>
+              <td class="limit-card" data-label="Kart Tipi">{{ card_labels.get(limit.card_type, limit.card_type or '—') }}</td>
+              <td class="limit-max" data-label="Max Taksit">
+                <form method="post" action="/commissions/{{ detail.period.id }}/limits/{{ limit.id }}/edit" class="limit-inline-form">
+                  <input type="number" name="max_installments" value="{{ limit.max_installments }}" min="1" class="form-control limit-value-input" inputmode="numeric" aria-label="Max taksit">
+                  <button type="submit" class="btn btn-sm">Kaydet</button>
+                </form>
+              </td>
+              <td class="col-actions limit-actions" data-label="İşlem">
+                <form method="post" action="/commissions/{{ detail.period.id }}/limits/{{ limit.id }}/delete" onsubmit="return confirm('Bu taksit limiti silinecek. Emin misiniz?');">
+                  <button type="submit" class="btn btn-sm btn-danger" title="Sil">{{ icon("trash", "icon icon-sm") }}</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6"><div class="table-empty"><strong>Banka limiti yok</strong><p>Aşağıdaki formdan ekleyin.</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if detail.period.status != 'archived' %}
+      <form method="post" action="/commissions/{{ detail.period.id }}/limits" class="form-grid" style="margin-top: 12px;">
+        <div class="form-group"><label for="bank-limit-channel">Kanal</label><select id="bank-limit-channel" name="channel" class="form-control"><option value="">—</option>{% for value, label in channel_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label for="bank-limit-bank">Banka</label><select id="bank-limit-bank" name="bank_id" class="form-control"><option value="">Genel (tüm bankalar)</option>{% for bank in detail.banks %}<option value="{{ bank.id }}">{{ bank.name }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label for="bank-limit-group">Ürün Grubu</label><select id="bank-limit-group" name="product_group" class="form-control"><option value="">—</option>{% for value, label in group_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label for="bank-limit-card">Kart Tipi</label><select id="bank-limit-card" name="card_type" class="form-control"><option value="">—</option>{% for value, label in card_options %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label for="bank-limit-max">Max Taksit</label><input type="number" id="bank-limit-max" name="max_installments" class="form-control" min="1" required inputmode="numeric"></div>
+        <div class="form-group" style="align-self: end;"><button type="submit" class="btn btn-primary">Banka Limiti Ekle</button></div>
+      </form>
+      <p class="form-hint">Banka özel limit, aynı kapsamdaki bankasız genel limitin yerine geçer. Örnek: Ödero / Garanti / 9.</p>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

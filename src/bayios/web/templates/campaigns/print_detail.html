@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% set version = campaign.current_version %}
+{% block title %}{{ version.name }} · A4{% endblock %}
+{% block content %}
+<div class="actions-bar no-print">
+  <div>
+    <a href="/campaigns/{{ campaign.id }}" class="muted" style="text-decoration: none;">&larr; Kampanya</a>
+    <h1 style="margin-top: .25rem;">A4 Kampanya Rehberi</h1>
+  </div>
+  <div class="actions-group">
+    <button type="button" class="btn btn-primary" onclick="window.print()">Yazdır</button>
+  </div>
+</div>
+
+<div class="card print-copy">
+  <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+    <div>
+      <h2 style="margin: 0;">{{ version.name }}</h2>
+      <p class="muted" style="margin: .25rem 0 0;">
+        {{ version.campaign_type_label }} · {{ version.base_price_type_label }} · Sürüm v{{ version.version_no }}
+      </p>
+    </div>
+    <div style="text-align: right; font-size: .85rem;">
+      <div>Yazdırma: {{ generated_at | tr_datetime }}</div>
+      <div>Geçerlilik: {{ version.starts_at | tr_date_long }} – {{ version.ends_at | tr_date_long }}</div>
+      <div>Durum: {{ campaign.state_label }}</div>
+    </div>
+  </div>
+
+  {% if version.description %}
+  <p style="margin: 0 0 .5rem;"><strong>Açıklama:</strong> {{ version.description }}</p>
+  {% endif %}
+  <p style="margin: 0 0 .5rem;">
+    <strong>İndirim:</strong>
+    {% if version.discount_type == 'percent' %}
+    {{ version.discount_value | tr_percent }}
+    {% elif version.discount_type in ('fixed_amount', 'special_price') %}
+    {{ version.discount_value | tr_money }} TL
+    {% else %}
+    {{ version.discount_type_label }}
+    {% endif %}
+    {% if version.gift_description %} · <strong>Hediye:</strong> {{ version.gift_description }}{% if version.gift_optional %} (isteğe bağlı){% endif %}{% endif %}
+  </p>
+  {% if version.employee_note %}<p class="muted" style="margin: 0 0 .5rem;"><strong>Not:</strong> {{ version.employee_note }}</p>{% endif %}
+
+  <h3 style="margin: .75rem 0 .25rem; font-size: 1rem;">Ürünler</h3>
+  <table class="data-table" style="min-width: 0;">
+    <thead>
+      <tr>
+        <th style="width: 3rem;">#</th>
+        <th>Ürün</th>
+        <th style="width: 9rem;">İlişki</th>
+        <th style="width: 7rem;">Gerekli Adet</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in version.products %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ product.product_name }}</td>
+        <td>{{ product.relation_label }}</td>
+        <td>{{ product.quantity_required or '—' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted" style="text-align: center;">Ürün ilişkisi bulunmuyor.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if campaign.scenarios %}
+  <h3 style="margin: 1rem 0 .25rem; font-size: 1rem;">Bayi Fiyat Senaryosu</h3>
+  <table class="data-table" style="min-width: 0;">
+    <thead>
+      <tr>
+        <th>Senaryo</th>
+        <th>Taban</th>
+        <th>Taban Fiyat</th>
+        <th>Bayi Oranı</th>
+        <th>Son Fiyat</th>
+        <th>Nakit Taban</th>
+        <th>Kart Taban</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for scenario in campaign.scenarios %}
+      <tr>
+        <td>{% if scenario.gift_present %}Hediye var{% else %}Hediye yok{% endif %}</td>
+        <td>{{ base_price_labels.get(scenario.base_price_type, scenario.base_price_type) }}</td>
+        <td>{{ scenario.base_price | tr_money }} TL</td>
+        <td>{% if scenario.is_informational %}—{% else %}{{ scenario.dealer_percent | tr_percent }}{% endif %}</td>
+        <td>{% if scenario.is_informational %}Bilgi{% else %}{{ scenario.final_price | tr_money }} TL{% endif %}</td>
+        <td>{{ scenario.cash_floor_price | tr_money }} TL</td>
+        <td>{{ scenario.card_floor_price | tr_money }} TL</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <div style="margin-top: 1rem; font-size: .85rem; display: flex; justify-content: space-between; gap: 1rem;">
+    <div>Bu çıktı otomatik fiyat uygulaması değildir; çalışan rehberidir.</div>
+    <div>Hazırlayan: ____________________ &nbsp;&nbsp; İmza: ____________________</div>
+  </div>
+</div>
+{% endblock %}

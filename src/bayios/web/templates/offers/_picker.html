@@ -1,0 +1,29 @@
+{% from "_icons.html" import icon %}
+{% if products %}
+<div class="picker-list">
+  {% for product in products %}
+  {% set preview = product_previews.get(product.id) if product_previews else none %}
+  <div class="picker-item">
+    <div class="picker-main">
+      <div class="picker-name">{{ product.name }}</div>
+      <div class="picker-meta">
+        {% if product.external_id %}<span class="mono">ID: {{ product.external_id }}</span> · {% endif %}
+        <span>Normal: <span class="mono">{{ product.regular_price | tr_money }} TL</span></span>
+        {% if product.website_discounted_price is not none %}<span> · Oliz: <span class="mono">{{ product.website_discounted_price | tr_money }} TL</span></span>{% endif %}
+      </div>
+    </div>
+    <button type="button" class="btn btn-sm btn-primary"
+            @click='addProduct({{ (preview or {"product_id": product.id | string, "product_name": product.name, "previews": {}}) | tojson }})'>
+      {{ icon("plus", "icon icon-sm") }}
+      Ekle
+    </button>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state" style="padding: 20px;">
+  {{ icon("search") }}
+  <strong>Ürün bulunamadı</strong>
+  <p>Arama terimini değiştirin.</p>
+</div>
+{% endif %}

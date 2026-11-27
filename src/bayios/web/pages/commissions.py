@@ -1,0 +1,505 @@
+from __future__ import annotations
+
+import uuid
+from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
+from typing import Annotated
+from urllib.parse import urlencode
+
+from fastapi import APIRouter, Form, HTTPException, Query, Request, Response
+from fastapi.responses import HTMLResponse, RedirectResponse
+
+from bayios.application.commissions import (
+    CommissionRateInput,
+    activate_commission_period,
+    add_commission_limit,
+    add_commission_rate,
+    create_commission_period,
+    deactivate_commission_period,
+    delete_commission_limit,
+    delete_commission_period,
+    delete_commission_rate,
+    ensure_bank,
+    get_commission_period_detail,
+    list_banks,
+    list_commission_periods,
+    update_commission_limit,
+    update_commission_rate,
+)
+from bayios.application.commissions.io import (
+    export_commission_limits_xlsx,
+    export_commission_rates_xlsx,
+)
+from bayios.application.errors import NotFoundError, ValidationError
+from bayios.application.inventory import list_categories
+from bayios.domain.commissions import (
+    CARD_TYPE_LABELS,
+    CHANNEL_LABELS,
+    ODERO_TIER_LABELS,
+    PERIOD_STATUS_LABELS,
+    PRODUCT_GROUP_LABELS,
+    CardType,
+    OderoTier,
+    PaymentChannel,
+    ProductCommissionGroup,
+)
+from bayios.domain.commissions import (
+    CommissionLimit as DomainLimit,
+)
+from bayios.web.deps import UnitOfWorkDep
+from bayios.web.templating import templates
+
+router = APIRouter(prefix="/commissions", tags=["commissions"])
+
+def _build_rate_matrix(detail: object, bank_names: dict[str, str]) -> tuple[list[dict[str, object]], str]:
+    """Read-only pivot of commission rates: channel -> bank/group/tier x installment."""
+    channels: list[dict[str, object]] = []
+    default_channel = ""
+    for channel in PaymentChannel:
+        rates = [rate for rate in detail.rates if rate.channel == channel.value]
+        if not rates:
+            channels.append(
+                {
+                    "value": channel.value,
+                    "label": CHANNEL_LABELS[channel],
+                    "installments": [],
+                    "rows": [],
+                }
+            )
+            continue
+        if not default_channel:
+            default_channel = channel.value
+        installments = sorted({rate.installment_count for rate in rates})
+        grouped: dict[tuple[object, object, object], dict[int, object]] = {}
+        for rate in rates:
+            key = (rate.bank_id, rate.product_group, rate.amount_tier)
+            grouped.setdefault(key, {})[rate.installment_count] = rate
+        rows = []
+        for (bank_id, group, tier), cells in sorted(
+            grouped.items(),
+            key=lambda item: (
+                str(item[0][0] or ""),
+                str(item[0][1] or ""),
+                str(item[0][2] or ""),
+            ),
+        ):
+            rows.append(
+                {
+                    "bank_name": (
+                        bank_names.get(str(bank_id), str(bank_id))
+                        if bank_id
+                        else "Genel"
+                    ),
+                    "product_group_label": (
+                        PRODUCT_GROUP_LABELS.get(
+                            ProductCommissionGroup(group), str(group)
+                        )
+                        if group
+                        else "—"
+                    ),
+                    "tier_label": (
+                        ODERO_TIER_LABELS.get(OderoTier(tier), str(tier))
+                        if tier
+                        else "—"
+                    ),
+                    "cells": {
+                        installment: rate.commission_percent
+                        for installment, rate in cells.items()
+                    },
+                }
+            )
+        channels.append(
+            {
+                "value": channel.value,
+                "label": CHANNEL_LABELS[channel],
+                "installments": installments,
+                "rows": rows,
+            }
+        )
+    return channels, default_channel
+
+
+
+@router.get("", response_class=HTMLResponse)
+def commission_periods_page(
+    request: Request, uow: UnitOfWorkDep
+) -> HTMLResponse:
+    periods = list_commission_periods(uow)
+    return templates.TemplateResponse(
+        request,
+        "commissions/list.html",
+        {
+            "active_nav": "commissions",
+            "periods": periods,
+            "status_labels": PERIOD_STATUS_LABELS,
+            "now": datetime.now(UTC),
+        },
+    )
+
+
+@router.post("")
+def create_period_route(
+    uow: UnitOfWorkDep,
+    year: Annotated[str, Form()],
+    month: Annotated[str, Form()],
+    copy_from_id: Annotated[str | None, Form()] = None,
+) -> RedirectResponse:
+    try:
+        period = create_commission_period(
+            uow,
+            int(year),
+            int(month),
+            copy_from_id=_optional_uuid(copy_from_id),
+        )
+    except (ValueError, ValidationError) as exc:
+        return RedirectResponse(
+            url=f"/commissions?{urlencode({'msg': f'error:{exc}'})}",
+            status_code=303,
+        )
+    return RedirectResponse(url=f"/commissions/{period.id}", status_code=303)
+
+
+@router.post("/banks/quick-add", response_class=HTMLResponse)
+def quick_add_bank_route(
+    request: Request,
+    uow: UnitOfWorkDep,
+    name: Annotated[str, Form()],
+    select_id: Annotated[str, Form()] = "rate-bank",
+) -> HTMLResponse:
+    created = None
+    message = ""
+    try:
+        created = ensure_bank(uow, name)
+        message = f"{created.name} eklendi."
+    except ValidationError as exc:
+        message = f"Hata: {exc}"
+    safe_select_id = (
+        select_id if select_id.replace("-", "").isalnum() else "rate-bank"
+    )
+    return templates.TemplateResponse(
+        request,
+        "commissions/_bank_select_oob.html",
+        {
+            "banks": list_banks(uow),
+            "selected_id": str(created.id) if created is not None else "",
+            "select_id": safe_select_id,
+            "message": message,
+        },
+    )
+
+
+@router.get("/export/rates.xlsx")
+def export_rates_route(
+    uow: UnitOfWorkDep,
+    period_id: Annotated[str | None, Query()] = None,
+) -> Response:
+    content = export_commission_rates_xlsx(
+        uow, period_id=_optional_uuid(period_id)
+    )
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": "attachment; filename=bayios-komisyon-oranlari.xlsx"
+        },
+    )
+
+
+@router.get("/export/limits.xlsx")
+def export_limits_route(
+    uow: UnitOfWorkDep,
+    period_id: Annotated[str | None, Query()] = None,
+) -> Response:
+    content = export_commission_limits_xlsx(
+        uow, period_id=_optional_uuid(period_id)
+    )
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": "attachment; filename=bayios-taksit-limitleri.xlsx"
+        },
+    )
+
+
+@router.get("/{period_id}", response_class=HTMLResponse)
+def commission_period_detail_page(
+    request: Request, period_id: uuid.UUID, uow: UnitOfWorkDep
+) -> HTMLResponse:
+    detail = get_commission_period_detail(uow, period_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Komisyon dönemi bulunamadı.")
+    categories = list_categories(uow)
+    bank_names = {
+        str(bank.id): bank.name for bank in list_banks(uow, active_only=False)
+    }
+    rate_matrix, rate_matrix_default = _build_rate_matrix(detail, bank_names)
+    return templates.TemplateResponse(
+        request,
+        "commissions/detail.html",
+        {
+            "active_nav": "commissions",
+            "detail": detail,
+            "rate_matrix": rate_matrix,
+            "rate_matrix_default": rate_matrix_default,
+            "bank_names": bank_names,
+            "categories": categories,
+            "category_names": {
+                str(category.id): category.name for category in categories
+            },
+            "status_labels": PERIOD_STATUS_LABELS,
+            "channel_labels": {
+                value: label
+                for value, label in (
+                    (item.value, CHANNEL_LABELS[item])
+                    for item in PaymentChannel
+                )
+            },
+            "group_labels": {
+                value: label
+                for value, label in (
+                    (item.value, PRODUCT_GROUP_LABELS[item])
+                    for item in ProductCommissionGroup
+                )
+            },
+            "card_labels": {
+                value: label
+                for value, label in (
+                    (item.value, CARD_TYPE_LABELS[item]) for item in CardType
+                )
+            },
+            "tier_labels": {
+                value: label
+                for value, label in (
+                    (item.value, ODERO_TIER_LABELS[item]) for item in OderoTier
+                )
+            },
+            "channel_options": tuple(
+                (item.value, CHANNEL_LABELS[item]) for item in PaymentChannel
+            ),
+            "group_options": tuple(
+                (item.value, PRODUCT_GROUP_LABELS[item])
+                for item in ProductCommissionGroup
+            ),
+            "card_options": tuple(
+                (item.value, CARD_TYPE_LABELS[item]) for item in CardType
+            ),
+            "tier_options": tuple(
+                (item.value, ODERO_TIER_LABELS[item]) for item in OderoTier
+            ),
+            "msg": request.query_params.get("msg"),
+        },
+    )
+
+
+@router.post("/{period_id}/activate")
+def activate_period_route(
+    period_id: uuid.UUID, uow: UnitOfWorkDep
+) -> RedirectResponse:
+    try:
+        activate_commission_period(uow, period_id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return RedirectResponse(
+        url=f"/commissions/{period_id}?{urlencode({'msg': 'activated'})}",
+        status_code=303,
+    )
+
+
+@router.post("/{period_id}/rates")
+def add_rate_route(
+    period_id: uuid.UUID,
+    uow: UnitOfWorkDep,
+    channel: Annotated[str, Form()],
+    installment_count: Annotated[str, Form()],
+    commission_percent: Annotated[str, Form()],
+    product_group: Annotated[str | None, Form()] = None,
+    bank_id: Annotated[str | None, Form()] = None,
+    amount_tier: Annotated[str | None, Form()] = None,
+) -> RedirectResponse:
+    try:
+        item = CommissionRateInput(
+            channel=PaymentChannel(channel),
+            bank_id=_optional_uuid(bank_id),
+            product_group=(
+                ProductCommissionGroup(product_group) if product_group else None
+            ),
+            installment_count=_required_int(installment_count),
+            commission_percent=_required_decimal(commission_percent),
+            amount_tier=(
+                OderoTier(amount_tier) if amount_tier else None
+            ),
+        )
+        add_commission_rate(uow, period_id, item)
+    except (ValueError, ValidationError, NotFoundError) as exc:
+        return _redirect_error(period_id, exc)
+    return RedirectResponse(
+        url=f"/commissions/{period_id}?{urlencode({'msg': 'rate_added'})}",
+        status_code=303,
+    )
+
+
+@router.post("/{period_id}/rates/{rate_id}/edit")
+def update_rate_route(
+    period_id: uuid.UUID,
+    rate_id: uuid.UUID,
+    uow: UnitOfWorkDep,
+    commission_percent: Annotated[str, Form()],
+) -> RedirectResponse:
+    try:
+        update_commission_rate(
+            uow,
+            period_id,
+            rate_id,
+            _required_decimal(commission_percent),
+        )
+    except (ValueError, ValidationError, NotFoundError) as exc:
+        return _redirect_error(period_id, exc)
+    return RedirectResponse(
+        url=f"/commissions/{period_id}?{urlencode({'msg': 'rate_updated'})}",
+        status_code=303,
+    )
+
+
+@router.post("/{period_id}/rates/{rate_id}/delete")
+def delete_rate_route(
+    period_id: uuid.UUID, rate_id: uuid.UUID, uow: UnitOfWorkDep
+) -> RedirectResponse:
+    try:
+        delete_commission_rate(uow, period_id, rate_id)
+    except (ValidationError, NotFoundError) as exc:
+        return _redirect_error(period_id, exc)
+    return RedirectResponse(
+        url=f"/commissions/{period_id}?{urlencode({'msg': 'rate_deleted'})}",
+        status_code=303,
+    )
+
+
+@router.post("/{period_id}/limits")
+def add_limit_route(
+    period_id: uuid.UUID,
+    uow: UnitOfWorkDep,
+    max_installments: Annotated[str, Form()],
+    channel: Annotated[str | None, Form()] = None,
+    bank_id: Annotated[str | None, Form()] = None,
+    product_group: Annotated[str | None, Form()] = None,
+    category_id: Annotated[str | None, Form()] = None,
+    card_type: Annotated[str | None, Form()] = None,
+) -> RedirectResponse:
+    try:
+        limit = DomainLimit(
+            max_installments=_required_int(max_installments),
+            channel=PaymentChannel(channel) if channel else None,
+            bank_id=str(_optional_uuid(bank_id)) if bank_id else None,
+            product_group=(
+                ProductCommissionGroup(product_group) if product_group else None
+            ),
+            category_id=(
+                str(_optional_uuid(category_id)) if category_id else None
+            ),
+            card_type=CardType(card_type) if card_type else None,
+        )
+        add_commission_limit(uow, period_id, limit)
+    except (ValueError, ValidationError, NotFoundError) as exc:
+        return _redirect_error(period_id, exc)
+    return RedirectResponse(
+        url=f"/commissions/{period_id}?{urlencode({'msg': 'limit_added'})}",
+        status_code=303,
+    )
+
+
+@router.post("/{period_id}/deactivate")
+def deactivate_period_route(
+    period_id: uuid.UUID, uow: UnitOfWorkDep
+) -> RedirectResponse:
+    try:
+        deactivate_commission_period(uow, period_id)
+    except (NotFoundError, ValidationError) as exc:
+        return _redirect_error(period_id, exc)
+    return RedirectResponse(
+        url=f"/commissions/{period_id}?{urlencode({'msg': 'deactivated'})}",
+        status_code=303,
+    )
+
+
+@router.post("/{period_id}/delete")
+def delete_period_route(
+    period_id: uuid.UUID, uow: UnitOfWorkDep
+) -> RedirectResponse:
+    try:
+        delete_commission_period(uow, period_id)
+    except (NotFoundError, ValidationError) as exc:
+        return RedirectResponse(
+            url=f"/commissions?{urlencode({'msg': f'error:{exc}'})}",
+            status_code=303,
+        )
+    return RedirectResponse(
+        url=f"/commissions?{urlencode({'msg': 'deleted'})}",
+        status_code=303,
+    )
+
+
+@router.post("/{period_id}/limits/{limit_id}/edit")
+def update_limit_route(
+    period_id: uuid.UUID,
+    limit_id: uuid.UUID,
+    uow: UnitOfWorkDep,
+    max_installments: Annotated[str, Form()],
+) -> RedirectResponse:
+    try:
+        update_commission_limit(
+            uow,
+            period_id,
+            limit_id,
+            _required_int(max_installments),
+        )
+    except (ValueError, ValidationError, NotFoundError) as exc:
+        return _redirect_error(period_id, exc)
+    return RedirectResponse(
+        url=f"/commissions/{period_id}?{urlencode({'msg': 'limit_updated'})}",
+        status_code=303,
+    )
+
+
+@router.post("/{period_id}/limits/{limit_id}/delete")
+def delete_limit_route(
+    period_id: uuid.UUID, limit_id: uuid.UUID, uow: UnitOfWorkDep
+) -> RedirectResponse:
+    try:
+        delete_commission_limit(uow, period_id, limit_id)
+    except (ValidationError, NotFoundError) as exc:
+        return _redirect_error(period_id, exc)
+    return RedirectResponse(
+        url=f"/commissions/{period_id}?{urlencode({'msg': 'limit_deleted'})}",
+        status_code=303,
+    )
+
+
+def _redirect_error(period_id: uuid.UUID, exc: Exception) -> RedirectResponse:
+    return RedirectResponse(
+        url=f"/commissions/{period_id}?{urlencode({'msg': f'error:{exc}'})}",
+        status_code=303,
+    )
+
+
+def _optional_uuid(value: str | None) -> uuid.UUID | None:
+    if not value or not value.strip():
+        return None
+    try:
+        return uuid.UUID(value)
+    except ValueError as exc:
+        raise ValidationError("Geçersiz banka seçimi.") from exc
+
+
+def _required_int(value: str) -> int:
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise ValidationError("Taksit sayısı tam sayı olmalıdır.") from exc
+
+
+def _required_decimal(value: str) -> Decimal:
+    try:
+        return Decimal(value.replace(",", ".").strip())
+    except (InvalidOperation, AttributeError) as exc:
+        raise ValidationError("Komisyon oranı geçersiz.") from exc

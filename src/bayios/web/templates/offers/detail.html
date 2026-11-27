@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Teklif #{{ detail.offer.offer_number }}{% endblock %}
+{% block content %}
+{% set msg = request.query_params.get('msg') %}
+{% if msg == 'created' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif oluşturuldu.</span></div>
+{% elif msg == 'updated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif güncellendi.</span></div>
+{% elif msg == 'status' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif durumu güncellendi.</span></div>
+{% elif msg == 'reserved' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif için rezervasyon açıldı.</span></div>
+{% elif msg == 'sold' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Teklif teslim edildi; fiziksel stok düşüldü.</span></div>
+{% elif msg and msg.startswith('error:') %}
+<div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
+{% endif %}
+{% set offer = detail.offer %}
+{% set ns = namespace(has_oliz=false) %}
+{% for item in detail.items %}{% if item.website_price_snapshot %}{% set ns.has_oliz = true %}{% endif %}{% endfor %}
+
+<div class="page-header">
+  <div class="page-heading">
+    <a class="breadcrumb" href="/offers">{{ icon("arrow-left", "icon icon-sm") }} Teklifler</a>
+    <h1>Teklif #{{ offer.offer_number }}</h1>
+    <div class="product-heading-meta">
+      <span class="badge {% if offer.status == 'accepted' %}badge-success{% elif offer.status == 'lost' or offer.status == 'expired' %}badge-danger{% elif offer.status == 'presented' %}badge-info{% else %}badge-neutral{% endif %}">
+        {{ status_labels.get(offer.status, offer.status) }}
+      </span>
+      <span class="muted small">{{ offer.created_at | tr_datetime }}</span>
+      {% if offer.customer_name %}<span class="muted small">· {{ offer.customer_name }}</span>{% endif %}
+    </div>
+  </div>
+  <div class="page-actions">
+    {% if offer.status == 'draft' %}<a class="btn" href="/offers/{{ offer.id }}/edit">{{ icon("edit") }} Düzenle</a>{% endif %}
+    <a class="btn" href="/offers/{{ offer.id }}/print">{{ icon("print") }} A4</a>
+    {% if offer.status == 'draft' %}
+    <form method="post" action="/offers/{{ offer.id }}/status"><input type="hidden" name="target_status" value="presented"><button class="btn btn-primary" type="submit">Sunuldu</button></form>
+    {% elif offer.status == 'presented' %}
+    <form method="post" action="/offers/{{ offer.id }}/status"><input type="hidden" name="target_status" value="accepted"><button class="btn btn-primary" type="submit">Kabul Edildi</button></form>
+    {% endif %}
+    <details class="menu">
+      <summary class="btn">{{ icon("more") }} Diğer</summary>
+      <div class="menu-panel">
+        {% if offer.status in ('draft', 'presented') %}
+        <form method="post" action="/offers/{{ offer.id }}/status"><input type="hidden" name="target_status" value="lost"><button type="submit">Kaybedildi</button></form>
+        <form method="post" action="/offers/{{ offer.id }}/status"><input type="hidden" name="target_status" value="expired"><button type="submit">Geçersiz</button></form>
+        {% endif %}
+        <form method="post" action="/offers/{{ offer.id }}/delete"
+              onsubmit="return confirm('{% if offer.converted_reservation_id %}Bu teklif rezervasyona dönüşmüş. Teklif silinecek, bağlı rezervasyon KORUNACAK. Devam edilsin mi?{% else %}Teklif kalıcı olarak silinecek. Emin misiniz?{% endif %}') && confirm('Son onay: teklif, satırları ve durum geçmişi silinecek. Geri alınamaz.');">
+          <input type="hidden" name="confirm" value="1">
+          <button type="submit" class="danger">Teklifi Sil</button>
+        </form>
+      </div>
+    </details>
+  </div>
+</div>
+
+<div class="grid-stats">
+  <div class="stat-box">
+    <div class="stat-label">Müşteri</div>
+    <div class="stat-value stat-value-sm">{{ offer.customer_name or '—' }}</div>
+    {% if offer.customer_phone %}<div class="stat-hint">{{ offer.customer_phone }}</div>{% endif %}
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Ödeme</div>
+    <div class="stat-value stat-value-sm">{{ payment_labels.get(offer.payment_type, offer.payment_type) }}</div>
+    {% if offer.channel %}<div class="stat-hint">{{ channel_labels.get(offer.channel, offer.channel) }}{% if offer.bank_name_snapshot %} · {{ offer.bank_name_snapshot }}{% endif %}{% if offer.card_network %} · {{ offer.card_network }}{% endif %}{% if offer.installment_count %} · {{ offer.installment_count }} taksit{% endif %}{% if offer.card_type %} · {{ card_labels.get(offer.card_type, offer.card_type) }}{% endif %}</div>{% endif %}
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Seçili Toplam</div>
+    <div class="stat-value" style="color: var(--info);">{{ offer.selected_total | tr_money }} TL</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Kart / Nakit İndirimi</div>
+    <div class="stat-value stat-value-sm">{{ offer.dealer_discount_percent | tr_percent }} / {{ offer.dealer_discount_cash_percent | tr_percent }}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Komisyon</div>
+    <div class="stat-value stat-value-sm">{% if offer.commission_percent_snapshot is not none %}{{ offer.commission_percent_snapshot | tr_percent }}{% else %}—{% endif %}</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Nakit / Kart Toplam</div>
+    <div class="stat-value stat-value-sm">{{ offer.cash_total | tr_money }} / {{ offer.card_total | tr_money }} TL</div>
+  </div>
+</div>
+
+<div class="dashboard-grid" style="margin-bottom: 16px;">
+  <section class="panel">
+    <div class="panel-header">
+      <div>
+        <h2>Finansal Özet</h2>
+        <p>Satır toplamları ve manuel toplam farkı.</p>
+      </div>
+    </div>
+    <div class="panel-body">
+      <dl class="kv-list">
+        <div class="kv-row"><dt>Normal Toplam</dt><dd>{{ display_totals.regular_total | tr_money }} TL</dd></div>
+        {% if ns.has_oliz %}<div class="kv-row"><dt>Oliz Toplam</dt><dd>{{ display_totals.oliz_total | tr_money }} TL</dd></div>{% endif %}
+        <div class="kv-row"><dt>Şirket İndirimi</dt><dd>{{ display_totals.company_discount_total | tr_money }} TL</dd></div>
+        <div class="kv-row"><dt>Maliyet</dt><dd>{{ display_totals.cost_total | tr_money }} TL</dd></div>
+        <div class="kv-row"><dt>Nakit Toplam</dt><dd>{{ offer.cash_total | tr_money }} TL</dd></div>
+        <div class="kv-row"><dt>Kart Toplam</dt><dd>{{ offer.card_total | tr_money }} TL</dd></div>
+        {% if offer.cash_total_override is not none or offer.card_total_override is not none %}
+        <div class="kv-row"><dt>Manuel Toplam</dt><dd>Nakit: {% if offer.cash_total_override is not none %}{{ offer.cash_total_override | tr_money }} TL{% else %}—{% endif %} · Kart: {% if offer.card_total_override is not none %}{{ offer.card_total_override | tr_money }} TL{% else %}—{% endif %}</dd></div>
+        {% endif %}
+      </dl>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <div>
+        <h2>Hızlı İşlemler</h2>
+        <p>Rezervasyon açma ve teslim.</p>
+      </div>
+    </div>
+    <div class="panel-body">
+      {% if offer.converted_reservation_id %}
+      <a class="btn btn-block" href="/reservations/{{ offer.converted_reservation_id }}">{{ icon("reservations") }} Rezervasyonu Gör</a>
+      {% endif %}
+      {% if offer.status not in ('lost', 'expired') %}
+      {% if not offer.converted_reservation_id %}
+      <form method="post" action="/offers/{{ offer.id }}/reserve" style="margin-bottom: 8px;">
+        <button class="btn btn-primary btn-block" type="submit">{{ icon("reservations") }} Rezervasyon Aç</button>
+      </form>
+      {% endif %}
+      <form method="post" action="/offers/{{ offer.id }}/sell">
+        <div class="form-group">
+          <label for="low-stock-reason">Stok yetersizse gerekçe (opsiyonel)</label>
+          <input type="text" id="low-stock-reason" name="low_stock_reason" class="form-control" placeholder="örn: Müşteri teslim aldı, stok sonra düzeltilecek">
+        </div>
+        <button class="btn btn-danger btn-block" type="submit">{{ icon("check") }} Teslim Et (Hızlı Sat)</button>
+      </form>
+      {% else %}
+      <p class="muted" style="margin: 0;">Bu teklif için hızlı işlem yok.</p>
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+<section class="panel" style="margin-bottom: 16px;">
+  <div class="panel-header">
+    <div>
+      <h2>Kâr / Komisyon Özeti</h2>
+      <p>Satır toplamları ve manuel toplam farkı üzerinden hesaplanır.</p>
+    </div>
+  </div>
+  <div class="panel-body">
+    {% if profit_summary.manual_adjustment %}
+    <p class="muted small">Manuel toplam farkı: <strong>{{ profit_summary.manual_adjustment | tr_money }} TL</strong></p>
+    {% endif %}
+    {% if profit_summary.has_missing_cost %}
+    <div class="alert alert-warning" style="margin-bottom: 12px;"><span>Bazı satırlarda maliyet tanımlı değil; toplam kâr yalnızca maliyeti bilinen satırları kapsar.</span></div>
+    {% endif %}
+    <div class="table-container mobile-cards-container profit-table-container">
+      <table class="data-table mobile-cards profit-table">
+        <thead>
+          <tr>
+            <th>Ürün</th><th>Adet</th><th>Satış Fiyatı</th><th>Taksit</th><th class="hide-mobile">Komisyon</th><th class="hide-mobile">Komisyon Sonrası</th><th class="hide-mobile">Kampanya Hakedişi</th>
+            {% if ns.has_oliz %}<th class="hide-mobile">Oliz Hakedişi</th>{% endif %}
+            <th>Toplam Gelir</th><th class="hide-mobile">Maliyet</th><th>Kâr / Zarar</th><th>Marj</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in profit_summary.lines %}
+          <tr>
+            <td data-label="Ürün">{{ line.item.product_name_snapshot }}</td>
+            <td class="mono" data-label="Adet">{{ line.quantity }}</td>
+            <td class="mono" data-label="Satış Fiyatı">{{ line.sale_price | tr_money }} TL</td>
+            <td data-label="Taksit">{% if line.installment_count == 0 %}Nakit{% else %}{{ line.installment_count }}{% endif %}</td>
+            <td class="hide-mobile" data-label="Komisyon">{{ line.commission_percent | tr_percent }}</td>
+            <td class="hide-mobile mono" data-label="Komisyon Sonrası">{{ line.net_after_commission | tr_money }} TL</td>
+            <td class="hide-mobile mono" data-label="Kampanya Hakedişi">{{ line.campaign_share | tr_money }} TL</td>
+            {% if ns.has_oliz %}<td class="hide-mobile mono" data-label="Oliz Hakedişi">{{ line.oliz_share | tr_money }} TL</td>{% endif %}
+            <td class="mono" data-label="Toplam Gelir"><strong>{{ line.total_revenue | tr_money }} TL</strong></td>
+            <td class="hide-mobile mono" data-label="Maliyet">{% if line.cost is not none %}{{ line.cost | tr_money }} TL{% else %}<span class="muted">Eksik</span>{% endif %}</td>
+            <td class="mono" data-label="Kâr / Zarar">{% if line.profit is none %}—{% else %}<strong style="color: {% if line.profit < 0 %}var(--danger){% else %}var(--success){% endif %};">{{ line.profit | tr_money }} TL</strong>{% endif %}</td>
+            <td data-label="Marj">{% if line.margin_percent is not none %}{{ line.margin_percent | tr_percent }}{% else %}—{% endif %}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="{{ 12 if ns.has_oliz else 11 }}"><div class="table-empty"><strong>Kâr detayı yok</strong><p>Fiyat ve maliyet bilgisi olan satırlar burada görünür.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if profit_summary.lines %}
+    <div class="profit-total">
+      <span>Toplam Gelir: <strong>{{ profit_summary.total_revenue | tr_money }} TL</strong></span>
+      <span>Toplam Maliyet: <strong>{{ profit_summary.total_cost | tr_money }} TL</strong></span>
+      <span>Toplam Kâr: <strong>{{ profit_summary.total_profit | tr_money }} TL</strong></span>
+      <span>Marj: <strong>{% if profit_summary.margin_percent is not none %}{{ profit_summary.margin_percent | tr_percent }}{% else %}—{% endif %}</strong></span>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="panel" style="margin-bottom: 16px;">
+  <div class="panel-header">
+    <div>
+      <h2>Teklif Satırları</h2>
+      <p>{{ detail.items | length }} satır · ürün fiyatları ve seçilen ödeme.</p>
+    </div>
+  </div>
+  <div class="panel-body panel-body-flush">
+    <div class="table-container mobile-cards-container" style="margin-top: 0; border: 0; border-radius: 0;">
+      <table class="data-table mobile-cards offer-lines-table">
+        <thead>
+          <tr>
+            <th>Ürün</th><th>Adet</th><th class="hide-mobile">Normal</th>{% if ns.has_oliz %}<th class="hide-mobile">Oliz</th>{% endif %}<th class="hide-mobile">Kampanya</th><th class="hide-mobile">Taban</th><th>Nakit</th><th>Kart</th><th>Satır Toplamı</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in detail.items %}
+          <tr>
+            <td data-label="Ürün">
+              <strong>{{ item.product_name_snapshot }}</strong>
+              {% if item.campaign_snapshot and item.campaign_snapshot.get('is_gift') %}<span class="badge badge-success">Hediye</span>{% endif %}
+              {% if external_ids.get(item.product_id) %}<div class="muted small mono">ID: {{ external_ids.get(item.product_id) }}</div>{% endif %}
+              {% if item.warning_text %}<div class="form-error">{{ item.warning_text }}</div>{% endif %}
+            </td>
+            <td class="mono" data-label="Adet">{{ item.quantity }}</td>
+            <td class="hide-mobile mono" data-label="Normal">{{ item.regular_price_snapshot | tr_money }}</td>
+            {% if ns.has_oliz %}<td class="hide-mobile mono" data-label="Oliz">{{ item.website_price_snapshot | tr_money }}</td>{% endif %}
+            <td class="hide-mobile" data-label="Kampanya">{{ item.campaign_name_snapshot or '—' }}{% if item.campaign_gift_present is not none %}<div class="muted small">{% if item.campaign_gift_present %}Hediye var{% else %}Hediye yok{% endif %}</div>{% endif %}</td>
+            <td class="hide-mobile mono" data-label="Taban">{{ item.base_price_used | tr_money }}</td>
+            <td class="mono" data-label="Nakit"><strong>{{ item.unit_price_cash | tr_money }}</strong></td>
+            <td class="mono" data-label="Kart"><strong>{{ item.unit_price_card | tr_money }}</strong></td>
+            <td class="mono" data-label="Satır Toplamı">{{ item.line_total_cash | tr_money }} / {{ item.line_total_card | tr_money }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="{{ 9 if ns.has_oliz else 8 }}"><div class="table-empty"><strong>Teklif satırı yok</strong><p>Sepete ürün ekleyin.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <div>
+      <h2>Durum Geçmişi</h2>
+      <p>Teklifin durum değişiklikleri.</p>
+    </div>
+  </div>
+  <div class="panel-body panel-body-flush">
+    <div class="table-container" data-table-scroll style="margin-top: 0; border: 0; border-radius: 0;">
+      <table class="data-table" style="min-width: 0;">
+        <thead><tr><th>Tarih</th><th>Eski</th><th>Yeni</th><th>Not</th><th>İşlemi yapan</th></tr></thead>
+        <tbody>
+          {% for row in detail.history %}
+          <tr><td>{{ row.changed_at | tr_datetime }}</td><td>{{ status_labels.get(row.old_status, row.old_status or '—') }}</td><td>{{ status_labels.get(row.new_status, row.new_status) }}</td><td>{{ row.note or '—' }}</td><td>{{ row.changed_by_name or '—' }}</td></tr>
+          {% else %}
+          <tr><td colspan="5"><div class="table-empty"><strong>Geçmiş yok</strong><p>Durum değiştiğinde burada görünür.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

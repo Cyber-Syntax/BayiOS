@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: docker.io/library/postgres:17
+    environment:
+      POSTGRES_USER: bayios
+      POSTGRES_PASSWORD: bayios
+      POSTGRES_DB: bayios
+    ports:
+      # Dev only: production keeps Postgres off the host network (see OPERATIONS.md).
+      - "127.0.0.1:${BAYIOS_DEV_PG_PORT:-5432}:5432"
+    volumes:
+      - bayios_dev_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bayios -d bayios"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  bayios_dev_pgdata:

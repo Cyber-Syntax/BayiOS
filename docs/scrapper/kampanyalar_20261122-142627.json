@@ -1,0 +1,4508 @@
+{
+  "schema_version": "1.0",
+  "scraped_at": "2026-11-22T14:26:27Z",
+  "campaigns": [
+    {
+      "id": "arcelikten-secili-beyaz-esya-ankastre-set-alimina-kurutma-makineleri-veya-klimalarda-indirim-firsatlari",
+      "name": "Seçili Beyaz Eşya, Ankastre Set alımına Kurutma Makineleri veya Klimalarda %50'ye Varan İndirim Fırsatı!",
+      "category": "beyaz-esya-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/beyaz-esya-kampanyalari/arcelikten-secili-beyaz-esya-ankastre-set-alimina-kurutma-makineleri-veya-klimalarda-indirim-firsatlari",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.Seçili 70 cm ve üzeri Buzdolabı, Çamaşır Makinesi, Bulaşık Makinesi veya Ankastre set modellerinde geçerlidir.%50 indirim 802 KMX kurutma makinesi modelinde geçerlidir. Diğer Kurutma Makinesi modellerinde 17.850 TL indirim uygulanacaktır.%50 indirim 09605 Klima modelinde geçerlidir. Diğer Klima modellerinde 19.200 TL indirim uygulanacaktır.Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.Kampanyadan 1 kez yararlanılabilir.Bu kampanya, diğer kampanyalar ile birleştirilemez.Kampanya, Arçelik mağazaları ve arcelik.com.tr web sitemizde geçerlidir.Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar.",
+        "Kampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "Seçili 70 cm ve üzeri Buzdolabı, Çamaşır Makinesi, Bulaşık Makinesi veya Ankastre set modellerinde geçerlidir.",
+        "%50 indirim 802 KMX kurutma makinesi modelinde geçerlidir. Diğer Kurutma Makinesi modellerinde 17.850 TL indirim uygulanacaktır.",
+        "%50 indirim 09605 Klima modelinde geçerlidir. Diğer Klima modellerinde 19.200 TL indirim uygulanacaktır.",
+        "Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya, diğer kampanyalar ile birleştirilemez.",
+        "Kampanya, Arçelik mağazaları ve arcelik.com.tr web sitemizde geçerlidir.",
+        "Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar."
+      ],
+      "product_count": 76,
+      "products": [
+        {
+          "name": "9252 MI",
+          "product_id": "7606610177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "391641 EI",
+          "product_id": "7285520143",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "274532 EB",
+          "product_id": "7281620118",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "274532 EI",
+          "product_id": "7281620197",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "10140 PMF",
+          "product_id": "7178520900",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1280 YKM",
+          "product_id": "7175722600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278551 ESC",
+          "product_id": "7282120137",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "10120 IMP",
+          "product_id": "7170520100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12140 MX",
+          "product_id": "457100000023",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12140 MXA",
+          "product_id": "457100000024",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "11140 MXA",
+          "product_id": "457100000013",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "11140 MX",
+          "product_id": "457100000014",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "9120 DMX",
+          "product_id": "457100000020",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "391572 EI",
+          "product_id": "7293720177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278551 EDI",
+          "product_id": "7282120136",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "391572 ESC",
+          "product_id": "7295520135",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 EA",
+          "product_id": "7202920101",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283616 EI",
+          "product_id": "7296520186",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AB 250",
+          "product_id": "7628410177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AB 240",
+          "product_id": "7630610177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "274533 MB",
+          "product_id": "7281620117",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "574509 MB",
+          "product_id": "7263520116",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "383510 EI",
+          "product_id": "7293420156",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278550 EB Fit",
+          "product_id": "7281620161",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283613 EB",
+          "product_id": "7296520147",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278550 EI Fit",
+          "product_id": "7282120165",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283613 EI",
+          "product_id": "7296520137",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AB 252",
+          "product_id": "7633010177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "10140 MP O",
+          "product_id": "7178526000",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "9140 MP OG",
+          "product_id": "7175750900",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "9120 TMX",
+          "product_id": "457100034700",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278552 EI AI Fit",
+          "product_id": "7291620111",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "10140 MP OG",
+          "product_id": "7175751100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "578557 EI Fit",
+          "product_id": "7289120155",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "578557 EB Fit",
+          "product_id": "7289120188",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "391572 ESS",
+          "product_id": "7299420123",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "391572 EB",
+          "product_id": "7295520166",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1070 YKMX I",
+          "product_id": "457000009600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 IEBC",
+          "product_id": "7202920108",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1280 YKMP IG",
+          "product_id": "457000010100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270477 EB AI",
+          "product_id": "7202920110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270477 EI AI",
+          "product_id": "7202920111",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "574509 MI",
+          "product_id": "7291727736",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283616 IEBI",
+          "product_id": "7296529446",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 IEGC",
+          "product_id": "7202920107",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 IESC",
+          "product_id": "7202920106",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278551 EBC AI Fit",
+          "product_id": "7286520182",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "583625 IEB Fit",
+          "product_id": "7289120117",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278551 EGC AI Fit",
+          "product_id": "7286520155",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "583632 EB Fit",
+          "product_id": "7289120157",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "583632 EI Fit",
+          "product_id": "7289120164",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 710 b",
+          "product_id": "7638510177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 710 sc",
+          "product_id": "7639810177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 710 i",
+          "product_id": "7638310177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 710 bc",
+          "product_id": "7640010177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 710 si",
+          "product_id": "7638810177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 710 gc",
+          "product_id": "7639910177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 600 b",
+          "product_id": "7638610177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278551 ESC AI Fit",
+          "product_id": "7291620136",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 811 i sd",
+          "product_id": "7640410177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 811 di hp",
+          "product_id": "7640310177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 811 b",
+          "product_id": "7638710177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 811 i ad",
+          "product_id": "7640710177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 811 i",
+          "product_id": "7638410177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "10121 S",
+          "product_id": "457100071900",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "10121",
+          "product_id": "457100071600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "10122 SuperWash Teknolojili",
+          "product_id": "457100070000",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283655 EB AI Fit",
+          "product_id": "7294620178",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 IEKC",
+          "product_id": "7202920113",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283655 EI AI Fit",
+          "product_id": "7294620155",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283656 EI AI Fit",
+          "product_id": "7294620112",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "13142",
+          "product_id": "457100072000",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "11142 A",
+          "product_id": "457100071700",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "11142",
+          "product_id": "457100071200",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12142 A",
+          "product_id": "457100071400",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 MB",
+          "product_id": "7202920104",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-gelecegi-dusunen-beyaz-esya-urunlerine-ozel-kasim-ayi-firsatlari",
+      "name": "Arçelik'ten Geleceği Düşünen Beyaz Eşya Ürünlerine Özel Kasım Ayı Fırsatları!",
+      "category": "ankastre-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/ankastre-kampanyalari/arcelikten-gelecegi-dusunen-beyaz-esya-urunlerine-ozel-kasim-ayi-firsatlari",
+      "date_text": "1 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya, 1-30 Kasım 2026 tarihleri arasında geçerlidir.Seçili ürünlerde %40'a varan değişken tutarlarda indirimler uygulanacaktır.%40 indirim EM 9495 Espresso Makinesinde geçerlidir.Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.Kampanyadan 1 kez yararlanılabilir.Bu kampanya, diğer kampanyalar ile birleştirilemez.Arçelik Pazarlama A.Ş kampanyayı değiştirme hakkını saklı tutar.",
+        "Kampanya, 1-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "Seçili ürünlerde %40'a varan değişken tutarlarda indirimler uygulanacaktır.",
+        "%40 indirim EM 9495 Espresso Makinesinde geçerlidir.",
+        "Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya, diğer kampanyalar ile birleştirilemez.",
+        "Arçelik Pazarlama A.Ş kampanyayı değiştirme hakkını saklı tutar."
+      ],
+      "product_count": 35,
+      "products": [
+        {
+          "name": "YM 9242 I Tadı Var™ Probiyotik",
+          "product_id": "7462000100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MC 6251 Gurme Şef®",
+          "product_id": "8912971100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Imprerium Barista EM 9495",
+          "product_id": "8914721100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "09570 HP",
+          "product_id": "9212751100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12570 HP",
+          "product_id": "9212771100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "18570 HP",
+          "product_id": "9212791100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "24570 HP",
+          "product_id": "9212811100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278552 EI AI Fit",
+          "product_id": "7291620111",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "10140 MP OG",
+          "product_id": "7175751100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1002 KMP HA",
+          "product_id": "7184270190",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1011 KMP IG",
+          "product_id": "7184270150",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2783 DEB",
+          "product_id": "7294220115",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 IEBC",
+          "product_id": "7202920108",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "SMC 9491",
+          "product_id": "8918291100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 362 S",
+          "product_id": "7779420288",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 362 B",
+          "product_id": "7779420287",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 362 G",
+          "product_id": "7779420289",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "931 KMP IG",
+          "product_id": "7184270140",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1011 KMP I",
+          "product_id": "7184170110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 IEGC",
+          "product_id": "7202920107",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 IESC",
+          "product_id": "7202920106",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278551 EBC AI Fit",
+          "product_id": "7286520182",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 472 G",
+          "product_id": "7779320240",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 472 B",
+          "product_id": "7779420292",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 691 B",
+          "product_id": "7768280106",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OI 602-1 YS",
+          "product_id": "7757189027",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278551 EGC AI Fit",
+          "product_id": "7286520155",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278551 ESC AI Fit",
+          "product_id": "7291620136",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 811 i sd",
+          "product_id": "7640410177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 811 di hp",
+          "product_id": "7640310177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 811 b",
+          "product_id": "7638710177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 811 i ad",
+          "product_id": "7640710177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 811 i",
+          "product_id": "7638410177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "EM 9595",
+          "product_id": "8919181100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283656 EI AI Fit",
+          "product_id": "7294620112",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-telvesso-imperium-barista-espresso-makinelerinde-kasim-ayi-firsatlari",
+      "name": "Arçelik Telvesso & Imperium Barista Espresso Makinelerinde Kasım Ayı Fırsatları!",
+      "category": "kucuk-ev-aletleri-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/kucuk-ev-aletleri-kampanyalari/arcelikten-telvesso-imperium-barista-espresso-makinelerinde-kasim-ayi-firsatlari",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.Kampanyadan 1 kez yararlanılabilir.Bu kampanya, diğer kampanyalar ile birleştirilemez.Arçelik Pazarlama A.Ş kampanyayı değiştirme hakkını saklı tutar.",
+        "Kampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya, diğer kampanyalar ile birleştirilemez.",
+        "Arçelik Pazarlama A.Ş kampanyayı değiştirme hakkını saklı tutar."
+      ],
+      "product_count": 4,
+      "products": [
+        {
+          "name": "EM 6395 Imperium Barista® Tam Otomatik",
+          "product_id": "8914761100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Imprerium Barista EM 9495",
+          "product_id": "8914721100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "EM 9595",
+          "product_id": "8919181100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "TEM 9690",
+          "product_id": "9252001100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "oliz-plusa-ozel-alerjen-smart-klimada-indirim-firsati",
+      "name": "Oliz Plus'a Özel Alerjen Smart Klimada 13.000 TL İndirim!",
+      "category": "isitma-sogutma-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/isitma-sogutma-kampanyalari/oliz-plusa-ozel-alerjen-smart-klimada-indirim-firsati",
+      "date_text": "18 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya 18-30 Kasım tarihleri arasında sadece 12770 AL klima modelinde geçerlidir.Oliz Plus üyelerine ilgili modelde 13.000 TL indirim uygulanacaktır.Öncelikle Oliz Plus üyesi değilseniz, Oliz uygulamasını indirerek Ana Menü üzerinden Plus sayfasına gidip Oliz Plus satın alımını gerçekleştirin.Oliz uygulamasında kampanya detaylarında yer alan “İndirim Karekodu” butonuna tıklayarak kodu kopyalayın.Açılan sayfada “Kampanyalı Ürünü Keşfet” butonuna tıklayarak web sitesine gidin.Kampanyaya dahil olan seçili mikrodalgaürününü sepetinize ekleyin.Kopyaladığınız indirim karekodunu “Oliz Kodu” alanına girerek indirimin sepete yansımasını sağlayın.Kampanyadan 1 kez yararlanılabilir.Bu kampanya, diğer Oliz Plus kampanyaları ile birleştirilemez.Kampanya indirimsiz fiyat üzerinden uygulanır.Kampanya fiyatları bireysel satış için sunulmuştur.Bireysel satış haricindeki ticari amaçlı satışlar iptal edilecektir.Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar.",
+        "Kampanya 18-30 Kasım tarihleri arasında sadece 12770 AL klima modelinde geçerlidir.",
+        "Oliz Plus üyelerine ilgili modelde 13.000 TL indirim uygulanacaktır.",
+        "Öncelikle Oliz Plus üyesi değilseniz, Oliz uygulamasını indirerek Ana Menü üzerinden Plus sayfasına gidip Oliz Plus satın alımını gerçekleştirin.",
+        "Oliz uygulamasında kampanya detaylarında yer alan “İndirim Karekodu” butonuna tıklayarak kodu kopyalayın.",
+        "Açılan sayfada “Kampanyalı Ürünü Keşfet” butonuna tıklayarak web sitesine gidin.",
+        "Kampanyaya dahil olan seçili mikrodalgaürününü sepetinize ekleyin.",
+        "Kopyaladığınız indirim karekodunu “Oliz Kodu” alanına girerek indirimin sepete yansımasını sağlayın.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya, diğer Oliz Plus kampanyaları ile birleştirilemez.",
+        "Kampanya indirimsiz fiyat üzerinden uygulanır.",
+        "Kampanya fiyatları bireysel satış için sunulmuştur.",
+        "Bireysel satış haricindeki ticari amaçlı satışlar iptal edilecektir.",
+        "Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar."
+      ],
+      "product_count": 1,
+      "products": [
+        {
+          "name": "12770 AL",
+          "product_id": "9207931100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-secili-ankastre-setlerde-indirim-firsati",
+      "name": "Seçili Ankastre Setlerde 10.500 TL'ye Varan İndirim!",
+      "category": "ankastre-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/ankastre-kampanyalari/arcelikten-secili-ankastre-setlerde-indirim-firsati",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.AFC 330 ve üstü Ankastre Fırınlar, 65 cm ve üstü Ankastre Ocaklarda ve ADE 604-1 ve üzeri Davlumbazlarda geçerlidir.Aspiratörler kampanyaya dahil değildir.Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.Kampanyadan 1 kez yararlanılabilir.Bu kampanya, diğer kampanyalar ile birleştirilemez.Kampanya, Arçelik mağazaları ve arcelik.com.tr web sitemizde geçerlidir.Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar.",
+        "Kampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "AFC 330 ve üstü Ankastre Fırınlar, 65 cm ve üstü Ankastre Ocaklarda ve ADE 604-1 ve üzeri Davlumbazlarda geçerlidir.",
+        "Aspiratörler kampanyaya dahil değildir.",
+        "Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya, diğer kampanyalar ile birleştirilemez.",
+        "Kampanya, Arçelik mağazaları ve arcelik.com.tr web sitemizde geçerlidir.",
+        "Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar."
+      ],
+      "product_count": 71,
+      "products": [
+        {
+          "name": "P 51 AEI",
+          "product_id": "8862281100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD T 651 ES",
+          "product_id": "7763670153",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD T 651 EG",
+          "product_id": "7763670160",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD T 651 EB",
+          "product_id": "7763670152",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD T 651 DWB",
+          "product_id": "7763670148",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD T 651 DWG",
+          "product_id": "7763670175",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OXD T 602 ES",
+          "product_id": "7763570201",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OMD D 611 DWI",
+          "product_id": "7783270120",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OV 6024 B",
+          "product_id": "7762770103",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 606-2 G",
+          "product_id": "7704331102",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 606-2 S",
+          "product_id": "7704331104",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 604 S",
+          "product_id": "7704331106",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OMD D 752 DWI",
+          "product_id": "7785070161",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 906-2 B",
+          "product_id": "7705331102",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD K 651 EG",
+          "product_id": "7763680102",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD K 651 EB",
+          "product_id": "7763680103",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD K 651 ES",
+          "product_id": "7763680101",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 604 B",
+          "product_id": "7704331110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADT 906 I",
+          "product_id": "7706330102",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADT 606-2 S",
+          "product_id": "7703330101",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OV 645",
+          "product_id": "7762780103",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OV 302 S",
+          "product_id": "7724070105",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 606-2 I",
+          "product_id": "7704330106",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 904 S",
+          "product_id": "7705330101",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 604 G",
+          "product_id": "7704330108",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 330 G",
+          "product_id": "7768270204",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD K 651 DWYS",
+          "product_id": "7763680122",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD K 651 DWYG",
+          "product_id": "7763680121",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD K 651 DWYB",
+          "product_id": "7763680120",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 607-2 S",
+          "product_id": "7704331217",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 607-2 G",
+          "product_id": "7704330102",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 607-2 B",
+          "product_id": "7704330103",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD K 752 EWG",
+          "product_id": "7763680131",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD K 752 EWB",
+          "product_id": "7763680130",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD K 752 EWS",
+          "product_id": "7763680132",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 907-2 D",
+          "product_id": "7705330103",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADA 606 S",
+          "product_id": "9210871100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OV 802 ST",
+          "product_id": "7756388608",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADA 908 S",
+          "product_id": "7706330103",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 606-4 B",
+          "product_id": "7704330117",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 606-4 G",
+          "product_id": "7704330116",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD D 902 DWS",
+          "product_id": "8770671100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD D 902 DWG",
+          "product_id": "8770751100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD D 902 DWB",
+          "product_id": "8770741100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 604-1 S",
+          "product_id": "7704330232",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 604-1 B",
+          "product_id": "7704330233",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 604-1 G",
+          "product_id": "7704330234",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 606-2 MS",
+          "product_id": "7704330118",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD K 651 EWB",
+          "product_id": "7763680148",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD K 651 EWG",
+          "product_id": "7763680149",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD K 651 EWS",
+          "product_id": "7763680150",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 362 S",
+          "product_id": "7779420288",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 362 B",
+          "product_id": "7779420287",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 362 G",
+          "product_id": "7779420289",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 331 G",
+          "product_id": "7779420294",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD K 752-3 DWKYG",
+          "product_id": "7763680146",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD K 752-3 DWKYB",
+          "product_id": "7763680145",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OCD K 752-3 DWKYS",
+          "product_id": "7763680144",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 341 S",
+          "product_id": "7779420296",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 472 B",
+          "product_id": "7779420292",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 6062 S1",
+          "product_id": "7704330123",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADP 1006 S",
+          "product_id": "9218831100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 6062 B1",
+          "product_id": "7704330122",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 9062 B1",
+          "product_id": "7705330110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 9062 S1",
+          "product_id": "7705330111",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 6064 B1",
+          "product_id": "7704330124",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "ADE 6041 B1",
+          "product_id": "7704330120",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 331 S",
+          "product_id": "7768280120",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 331 B",
+          "product_id": "7768280121",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 341 G1",
+          "product_id": "7768270259",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 341 B1",
+          "product_id": "7768270256",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-secili-urunlerde-efsane-cuma-firsatlari",
+      "name": "Arçelik'te Seçili Ürünlerde Efsane Cuma Fırsatları!",
+      "category": "kucuk-ev-aletleri-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/kucuk-ev-aletleri-kampanyalari/arcelikten-secili-urunlerde-efsane-cuma-firsatlari",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.Kampanyadan 1 kez yararlanılabilir.Bu kampanya, diğer kampanyalar ile birleştirilemez.Arçelik Pazarlama A.Ş kampanyayı değiştirme hakkını saklı tutar.",
+        "Kampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya, diğer kampanyalar ile birleştirilemez.",
+        "Arçelik Pazarlama A.Ş kampanyayı değiştirme hakkını saklı tutar."
+      ],
+      "product_count": 23,
+      "products": [
+        {
+          "name": "Aria™ Expert BEU 9030 D",
+          "product_id": "8817311100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MA 2521 S",
+          "product_id": "8899691100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MA 2020 I",
+          "product_id": "8899721100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MD 201 S",
+          "product_id": "8912321100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MD 201 B",
+          "product_id": "8912331100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MD 211 DG",
+          "product_id": "8912351100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MD 201 G",
+          "product_id": "9206321100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MA 2521-2 G",
+          "product_id": "9207551100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MA 2030 S",
+          "product_id": "9207601100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MA 2030 B",
+          "product_id": "9207611100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2071 NFB",
+          "product_id": "7284740110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2175 JEB",
+          "product_id": "7294220114",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2175 JEI",
+          "product_id": "7294220194",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12220 P",
+          "product_id": "8511191100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2072 MB",
+          "product_id": "7254120110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2072 MI",
+          "product_id": "7254120590",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2298 JEM",
+          "product_id": "457500000155",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2360 JEM",
+          "product_id": "457500000159",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2298 JEMG",
+          "product_id": "457500000156",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2783 DEB",
+          "product_id": "7294220115",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MD 240",
+          "product_id": "9217261100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Imperium® Go 2.0 SD 9361",
+          "product_id": "8918381100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2071 MNFB",
+          "product_id": "7279720011",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-secili-70-cm-ve-uzeri-buzdolabi-alimina-mikrodalga-veya-buz-makinesi-hediye",
+      "name": "Seçili 70 cm ve Üzeri Buzdolabı Alımına 8.849 TL Değerindeki Buz Makinesi Hediye!",
+      "category": "beyaz-esya-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/beyaz-esya-kampanyalari/arcelikten-secili-70-cm-ve-uzeri-buzdolabi-alimina-mikrodalga-veya-buz-makinesi-hediye",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya,16-30 Kasım 2026 tarihleri arasında geçerlidir.Seçili 70 cm ve üzeri Buzdolabı modellerinde geçerlidir.570471 MB No Frost Buzdolabı kampanyaya dahil değildir.Hediye ürün sepete eklenmelidir.Hediye verilecek BYM 5111 I Buz makinesinin tavsiye edilen perakende peşin fiyatı 8.849 TL ’dirPeşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.Kampanyadan 1 kez yararlanılabilir.Bu kampanya, diğer kampanyalar ile birleştirilemez.Kampanya, Arçelik mağazaları ve arcelik..com.tr web sitemizde geçerlidir.",
+        "Kampanya,16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "Seçili 70 cm ve üzeri Buzdolabı modellerinde geçerlidir.",
+        "570471 MB No Frost Buzdolabı kampanyaya dahil değildir.",
+        "Hediye ürün sepete eklenmelidir.",
+        "Hediye verilecek BYM 5111 I Buz makinesinin tavsiye edilen perakende peşin fiyatı 8.849 TL ’dir",
+        "Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya, diğer kampanyalar ile birleştirilemez.",
+        "Kampanya, Arçelik mağazaları ve arcelik..com.tr web sitemizde geçerlidir."
+      ],
+      "product_count": 59,
+      "products": [
+        {
+          "name": "BYM 5111 I",
+          "product_id": "9009071100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "391641 EI",
+          "product_id": "7285520143",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "274532 EB",
+          "product_id": "7281620118",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "274532 EI",
+          "product_id": "7281620197",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570475 EI",
+          "product_id": "7256120191",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570475 EB",
+          "product_id": "7256120110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278551 ESC",
+          "product_id": "7282120137",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "391572 EI",
+          "product_id": "7293720177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570406 MB",
+          "product_id": "7293220150",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 EB",
+          "product_id": "7293520120",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278551 EDI",
+          "product_id": "7282120136",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 EI",
+          "product_id": "7202920102",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "391572 ESC",
+          "product_id": "7295520135",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 EA",
+          "product_id": "7202920101",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 MB",
+          "product_id": "7202920104",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283616 EI",
+          "product_id": "7296520186",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "583628 EB",
+          "product_id": "7289120114",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 MG",
+          "product_id": "7202920103",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "583628 EI",
+          "product_id": "7283120185",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "274533 MB",
+          "product_id": "7281620117",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "470503 MB",
+          "product_id": "7293320110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570476 MG",
+          "product_id": "7253620181",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570357 MB",
+          "product_id": "7293120114",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "574509 MB",
+          "product_id": "7263520116",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "383510 EI",
+          "product_id": "7293420156",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570477 EB",
+          "product_id": "7217820110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570477 MB",
+          "product_id": "7250820150",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278550 EB Fit",
+          "product_id": "7281620161",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283613 EB",
+          "product_id": "7296520147",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 MI",
+          "product_id": "7202920105",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278550 EI Fit",
+          "product_id": "7282120165",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283613 EI",
+          "product_id": "7296520137",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278552 EI AI Fit",
+          "product_id": "7291620111",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "578557 EI Fit",
+          "product_id": "7289120155",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "578557 EB Fit",
+          "product_id": "7289120188",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "391572 ESS",
+          "product_id": "7299420123",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "391572 EB",
+          "product_id": "7295520166",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 IEBC",
+          "product_id": "7202920108",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270477 EB AI",
+          "product_id": "7202920110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270477 EI AI",
+          "product_id": "7202920111",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570477 MI",
+          "product_id": "7237020131",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "574509 MI",
+          "product_id": "7291727736",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283616 IEBI",
+          "product_id": "7296529446",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 IEGC",
+          "product_id": "7202920107",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 IESC",
+          "product_id": "7202920106",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278551 EBC AI Fit",
+          "product_id": "7286520182",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "583625 IEB Fit",
+          "product_id": "7289120117",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278551 EGC AI Fit",
+          "product_id": "7286520155",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "583632 EB Fit",
+          "product_id": "7289120157",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "583632 EI Fit",
+          "product_id": "7289120164",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278551 ESC AI Fit",
+          "product_id": "7291620136",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570508 MB",
+          "product_id": "7237020102",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570508 MI",
+          "product_id": "7232520110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570508 EB",
+          "product_id": "7237020140",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283655 EB AI Fit",
+          "product_id": "7294620178",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 IEKC",
+          "product_id": "7202920113",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570508 EI",
+          "product_id": "7232520180",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283655 EI AI Fit",
+          "product_id": "7294620155",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283656 EI AI Fit",
+          "product_id": "7294620112",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-ikili-camasir-ve-kurutma-makinesi-alimina-ozel-kacirilmayacak-firsatlar",
+      "name": "Arçelik'ten Çamaşır ve Kurutma Makinesi İkili Alımına Özel Kaçırılmayacak Fırsat!",
+      "category": "beyaz-esya-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/beyaz-esya-kampanyalari/arcelikten-ikili-camasir-ve-kurutma-makinesi-alimina-ozel-kacirilmayacak-firsatlar",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.Kampanyadan 1 kez yararlanabilir.Bu kampanya, diğer kampanyalar ile birleştirilemez.Kampanya fiyatları bireysel satış için sunulmuştur.Bireysel satış haricindeki ticari amaçlı satışlar iptal edilecektir.Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar.",
+        "Kampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.",
+        "Kampanyadan 1 kez yararlanabilir.",
+        "Bu kampanya, diğer kampanyalar ile birleştirilemez.",
+        "Kampanya fiyatları bireysel satış için sunulmuştur.",
+        "Bireysel satış haricindeki ticari amaçlı satışlar iptal edilecektir.",
+        "Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar."
+      ],
+      "product_count": 2,
+      "products": [
+        {
+          "name": "9120 DMX",
+          "product_id": "457100000020",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "902 KMX",
+          "product_id": "7184170140",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-mevsimler-degisir-arcelik-konforu-degismez",
+      "name": "Dört mevsim konfor Arçelik'ten!",
+      "category": "isitma-sogutma-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/isitma-sogutma-kampanyalari/arcelikten-mevsimler-degisir-arcelik-konforu-degismez",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.Kampanya Ev Tipi Klima modellerinde geçerlidir.10 yıl kompresör garantisi seçili klimalarda geçerlidir.Kampanyadan 1 kez yararlanılabilir.Bu kampanya, diğer kampanyalar ile birleştirilemez.Peşin Fiyatına 10 taksit seçili banka kartlarında, sadece yetkili satıcılarımızda geçerlidir.Kampanya, Arçelik mağazaları ve arcelik.com.tr web sitemizde geçerlidir.Arçelik Pazarlama A.Ş kampanyayı değiştirme hakkını saklı tutar.",
+        "Kampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "Kampanya Ev Tipi Klima modellerinde geçerlidir.",
+        "10 yıl kompresör garantisi seçili klimalarda geçerlidir.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya, diğer kampanyalar ile birleştirilemez.",
+        "Peşin Fiyatına 10 taksit seçili banka kartlarında, sadece yetkili satıcılarımızda geçerlidir.",
+        "Kampanya, Arçelik mağazaları ve arcelik.com.tr web sitemizde geçerlidir.",
+        "Arçelik Pazarlama A.Ş kampanyayı değiştirme hakkını saklı tutar."
+      ],
+      "product_count": 34,
+      "products": [
+        {
+          "name": "09325",
+          "product_id": "8866311100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "18325 EKOLOJİK",
+          "product_id": "8866271100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12325",
+          "product_id": "8866291100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "07325",
+          "product_id": "8808691100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12660",
+          "product_id": "8808551100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "24325 EKOLOJİK",
+          "product_id": "8866251100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "09560 HP",
+          "product_id": "9200301100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "18560 HP",
+          "product_id": "9200341100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12560 HP",
+          "product_id": "9200321100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12465 HP",
+          "product_id": "8896351100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "18465 HP",
+          "product_id": "8896371100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "09465 HP",
+          "product_id": "8896331100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "24465 HP",
+          "product_id": "8896391100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "24560 HP",
+          "product_id": "9200361100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12760 AL",
+          "product_id": "9204971100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "07325 A",
+          "product_id": "9205831100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12325 A",
+          "product_id": "9209341100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "09325 A",
+          "product_id": "9209361100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12670",
+          "product_id": "9208011100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "15325 S",
+          "product_id": "9209721100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12770 AL",
+          "product_id": "9207931100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "09570 HP",
+          "product_id": "9212751100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12570 HP",
+          "product_id": "9212771100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "18570 HP",
+          "product_id": "9212791100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "24570 HP",
+          "product_id": "9212811100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12470 HP",
+          "product_id": "9212851100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "18470 HP",
+          "product_id": "9212871100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "24470 HP",
+          "product_id": "9212891100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "09470 HP",
+          "product_id": "9212831100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "21325 T",
+          "product_id": "9212261100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "09605",
+          "product_id": "9209681100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12605",
+          "product_id": "9209701100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "18605",
+          "product_id": "9260571100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "24605",
+          "product_id": "9260591100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-salon-tipi-klima-alana-yagli-radyator-hediye",
+      "name": "Arçelik'ten Salon Tipi Klima Alana Yağlı Radyatör Hediye!",
+      "category": "isitma-sogutma-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/isitma-sogutma-kampanyalari/arcelikten-salon-tipi-klima-alana-yagli-radyator-hediye",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.Salon tipi klima modellerinde geçerlidir.Tüm Salon Tipi Klima modellerine hediye edilecek AR RHO 11M 11 Dilim Yağlı Radyatör ürününün tavsiye edilen perakende peşin fiyatı 6.899 TL’dir.Hediye ürün sepete eklenmelidir.Yerine AR RHO 11D 11 Dilim Dijital Yağlı Radyatör veya AR RHO 13M 13 Dilim Yağlı Radyatör ürününün tercih edilmesi durumunda indirim tutarı sabit olup aradaki farkın ödenmesi gerekmektedir.Kampanya, Arçelik mağazaları ve arcelik.com.tr web sitemizde geçerlidir.Her tüketici kampanyadan 1 kez yararlanabilir.Bu kampanya, diğer kampanyalar ile birleştirilemez.Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar.",
+        "Kampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "Salon tipi klima modellerinde geçerlidir.",
+        "Tüm Salon Tipi Klima modellerine hediye edilecek AR RHO 11M 11 Dilim Yağlı Radyatör ürününün tavsiye edilen perakende peşin fiyatı 6.899 TL’dir.",
+        "Hediye ürün sepete eklenmelidir.",
+        "Yerine AR RHO 11D 11 Dilim Dijital Yağlı Radyatör veya AR RHO 13M 13 Dilim Yağlı Radyatör ürününün tercih edilmesi durumunda indirim tutarı sabit olup aradaki farkın ödenmesi gerekmektedir.",
+        "Kampanya, Arçelik mağazaları ve arcelik.com.tr web sitemizde geçerlidir.",
+        "Her tüketici kampanyadan 1 kez yararlanabilir.",
+        "Bu kampanya, diğer kampanyalar ile birleştirilemez.",
+        "Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar."
+      ],
+      "product_count": 5,
+      "products": [
+        {
+          "name": "48726",
+          "product_id": "8505581100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "34726 Monofaze Inverter Salon Tipi Klima",
+          "product_id": "8510851100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AR RHO 11M",
+          "product_id": "9213371100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "26326",
+          "product_id": "9215521100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "55726",
+          "product_id": "9217341100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelik-oliz-plus-haftanin-firsatlari",
+      "name": "Oliz Plus'a Özel ThermoGurme'de %50 İndirim Fırsatı!",
+      "category": "kucuk-ev-aletleri-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/kucuk-ev-aletleri-kampanyalari/arcelik-oliz-plus-haftanin-firsatlari",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.Oliz Plus üyeleri için geçerlidir.ThermoGurme™ SMC 9491 ürününün tavsiye edilen perakende peşin fiyatı üzerinden %50 indirim uygulanacaktır.Öncelikle Oliz Plus üyesi değilseniz, Oliz uygulamasını indirerek Ana Menü üzerinden Plus sayfasına gidip Oliz Plus satın alımını gerçekleştirin.Oliz uygulamasında kampanya detaylarında yer alan “İndirim Karekodu” butonuna tıklayarak kodu kopyalayın.Açılan sayfada “Kampanyalı Ürünü Keşfet” butonuna tıklayarak web sitesine gidin.Kampanyaya dahil olan ThermoGurme™ SMC 9491ürününü sepetinize ekleyin.Kopyaladığınız indirim karekodunu “Oliz Kodu” alanına girerek indirimin sepete yansımasını sağlayın.Kampanyadan 1 kez yararlanılabilir.Bu kampanya, diğer Oliz Plus kampanyaları ile birleştirilemez.Kampanya indirimsiz fiyat üzerinden uygulanır.Kampanya fiyatları bireysel satış için sunulmuştur.Bireysel satış haricindeki ticari amaçlı satışlar iptal edilecektir.Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar.",
+        "Kampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "Oliz Plus üyeleri için geçerlidir.",
+        "ThermoGurme™ SMC 9491 ürününün tavsiye edilen perakende peşin fiyatı üzerinden %50 indirim uygulanacaktır.",
+        "Öncelikle Oliz Plus üyesi değilseniz, Oliz uygulamasını indirerek Ana Menü üzerinden Plus sayfasına gidip Oliz Plus satın alımını gerçekleştirin.",
+        "Oliz uygulamasında kampanya detaylarında yer alan “İndirim Karekodu” butonuna tıklayarak kodu kopyalayın.",
+        "Açılan sayfada “Kampanyalı Ürünü Keşfet” butonuna tıklayarak web sitesine gidin.",
+        "Kampanyaya dahil olan ThermoGurme™ SMC 9491ürününü sepetinize ekleyin.",
+        "Kopyaladığınız indirim karekodunu “Oliz Kodu” alanına girerek indirimin sepete yansımasını sağlayın.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya, diğer Oliz Plus kampanyaları ile birleştirilemez.",
+        "Kampanya indirimsiz fiyat üzerinden uygulanır.",
+        "Kampanya fiyatları bireysel satış için sunulmuştur.",
+        "Bireysel satış haricindeki ticari amaçlı satışlar iptal edilecektir.",
+        "Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar."
+      ],
+      "product_count": 1,
+      "products": [
+        {
+          "name": "SMC 9491",
+          "product_id": "8918291100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelik-oliz-plusa-ozel-ankastre-mikrodalgalarda-5000-TL-indirim",
+      "name": "Oliz Plus'a Özel Ankastre Mikrodalgalarda 5.000 TL İndirim!",
+      "category": "ankastre-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/ankastre-kampanyalari/arcelik-oliz-plusa-ozel-ankastre-mikrodalgalarda-5000-TL-indirim",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.Oliz Plus üyeleri için geçerlidir.Seçili mikrodalgaların tavsiye edilen perakende peşin fiyatı üzerinden 5.000 TL indirim uygulanacaktır.Öncelikle Oliz Plus üyesi değilseniz, Oliz uygulamasını indirerek Ana Menü üzerinden Plus sayfasına gidip Oliz Plus satın alımını gerçekleştirin.Oliz uygulamasında kampanya detaylarında yer alan “İndirim Karekodu” butonuna tıklayarak kodu kopyalayın.Açılan sayfada “Kampanyalı Ürünü Keşfet” butonuna tıklayarak web sitesine gidin.Kampanyaya dahil olan seçili mikrodalgaürününü sepetinize ekleyin.Kopyaladığınız indirim karekodunu “Oliz Kodu” alanına girerek indirimin sepete yansımasını sağlayın.Kampanyadan 1 kez yararlanılabilir.Bu kampanya, diğer Oliz Plus kampanyaları ile birleştirilemez.Kampanya indirimsiz fiyat üzerinden uygulanır.Kampanya fiyatları bireysel satış için sunulmuştur.Bireysel satış haricindeki ticari amaçlı satışlar iptal edilecektir.Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar.",
+        "Kampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "Oliz Plus üyeleri için geçerlidir.",
+        "Seçili mikrodalgaların tavsiye edilen perakende peşin fiyatı üzerinden 5.000 TL indirim uygulanacaktır.",
+        "Öncelikle Oliz Plus üyesi değilseniz, Oliz uygulamasını indirerek Ana Menü üzerinden Plus sayfasına gidip Oliz Plus satın alımını gerçekleştirin.",
+        "Oliz uygulamasında kampanya detaylarında yer alan “İndirim Karekodu” butonuna tıklayarak kodu kopyalayın.",
+        "Açılan sayfada “Kampanyalı Ürünü Keşfet” butonuna tıklayarak web sitesine gidin.",
+        "Kampanyaya dahil olan seçili mikrodalgaürününü sepetinize ekleyin.",
+        "Kopyaladığınız indirim karekodunu “Oliz Kodu” alanına girerek indirimin sepete yansımasını sağlayın.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya, diğer Oliz Plus kampanyaları ile birleştirilemez.",
+        "Kampanya indirimsiz fiyat üzerinden uygulanır.",
+        "Kampanya fiyatları bireysel satış için sunulmuştur.",
+        "Bireysel satış haricindeki ticari amaçlı satışlar iptal edilecektir.",
+        "Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar."
+      ],
+      "product_count": 4,
+      "products": [
+        {
+          "name": "MA 2030 B",
+          "product_id": "9207611100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MA 2521 S",
+          "product_id": "8899691100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MA 2521-2 G",
+          "product_id": "9207551100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MA 2030 S",
+          "product_id": "9207601100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-portatif-klimada-indirim-firsati",
+      "name": "Arçelik'ten Portatif Klimada 4.000 TL İndirim!",
+      "category": "isitma-sogutma-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/isitma-sogutma-kampanyalari/arcelikten-portatif-klimada-indirim-firsati",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya 16-30 Kasım 2026 tarihleri arasında geçerlidir.12220 P Portatif Klimada geçerlidir.Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.Kampanyadan 1 kez yararlanılabilir.Bu kampanya, diğer kampanyalar ile birleştirilemez.Kampanya, Arçelik mağazaları ve arcelik.com.tr web sitemizde geçerlidir.Arçelik Pazarlama A.Ş kampanyayı değiştirme hakkını saklı tutar.",
+        "Kampanya 16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "12220 P Portatif Klimada geçerlidir.",
+        "Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya, diğer kampanyalar ile birleştirilemez.",
+        "Kampanya, Arçelik mağazaları ve arcelik.com.tr web sitemizde geçerlidir.",
+        "Arçelik Pazarlama A.Ş kampanyayı değiştirme hakkını saklı tutar."
+      ],
+      "product_count": 1,
+      "products": [
+        {
+          "name": "12220 P",
+          "product_id": "8511191100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-ocakli-firinlarda-indirim-firsatlarii",
+      "name": "Ocaklı Fırınlarda 6.000 TL’ye varan indirim!",
+      "category": "ankastre-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/ankastre-kampanyalari/arcelikten-ocakli-firinlarda-indirim-firsatlarii",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.Seçili Ocaklı Fırınlarda modele göre değişen 6.000 TL’ye varan indirimler uygulanacaktır.Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.Kampanyadan 1 kez yararlanılabilir.Bu kampanya, diğer kampanyalar ile birleştirilemez.Kampanya, Arçelik mağazaları ve arcelik.com. tr web sitemizde geçerlidir.Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar.",
+        "Kampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "Seçili Ocaklı Fırınlarda modele göre değişen 6.000 TL’ye varan indirimler uygulanacaktır.",
+        "Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya, diğer kampanyalar ile birleştirilemez.",
+        "Kampanya, Arçelik mağazaları ve arcelik.com. tr web sitemizde geçerlidir.",
+        "Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar."
+      ],
+      "product_count": 8,
+      "products": [
+        {
+          "name": "F 8440-1 B",
+          "product_id": "7786120260",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "F 8440-1 G",
+          "product_id": "7786120264",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "F 8440-1 EB",
+          "product_id": "7786120265",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "F 8431-1 B",
+          "product_id": "7786120273",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "F 8542 EBB",
+          "product_id": "7786120274",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "F 8542 EBG",
+          "product_id": "7786120275",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "F 8450 B",
+          "product_id": "7786980202",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "F 8432 B",
+          "product_id": "7786120276",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-secili-induksiyon-ocaklarda-indirim-firsatlari",
+      "name": "İndüksiyon Ocaklarda 20.000 TL'ye Varan İndirim!",
+      "category": "ankastre-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/ankastre-kampanyalari/arcelikten-secili-induksiyon-ocaklarda-indirim-firsatlari",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya 16-30 Kasım 2026 tarihleri arasında geçerlidir.Seçili İndüksiyonlu Ankastre Ocak alışverişinde 20.000 TL'ye varan indirimler uygulanacaktır.İndirim tutarları modele göre değişiklik göstermektedir.Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.Kampanyadan 1 kez yararlanılabilir.Bu kampanya diğer kampanyalar ile birleştirilemez.Kampanya, Arçelik mağazaları ve arcelik. com.tr web sitemizde geçerlidir.Arçelik Pazarlama A.Ş. Kampanya koşullarını değiştirme hakkını saklı tutar.",
+        "Kampanya 16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "Seçili İndüksiyonlu Ankastre Ocak alışverişinde 20.000 TL'ye varan indirimler uygulanacaktır.",
+        "İndirim tutarları modele göre değişiklik göstermektedir.",
+        "Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya diğer kampanyalar ile birleştirilemez.",
+        "Kampanya, Arçelik mağazaları ve arcelik. com.tr web sitemizde geçerlidir.",
+        "Arçelik Pazarlama A.Ş. Kampanya koşullarını değiştirme hakkını saklı tutar."
+      ],
+      "product_count": 6,
+      "products": [
+        {
+          "name": "OI 90213 S",
+          "product_id": "7761970110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "DOI 602 S",
+          "product_id": "7757180101",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "DOI 802 S",
+          "product_id": "7757180102",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OI 60211 WS",
+          "product_id": "7757187692",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OI 6022 S",
+          "product_id": "7757180110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "OI 602-1 YS",
+          "product_id": "7757189027",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-secili-mikrodalga-firin-alisverisinde-indirim",
+      "name": "Seçili Mikrodalga Fırınlarda 1.500 TL İndirim!",
+      "category": "ankastre-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/ankastre-kampanyalari/arcelikten-secili-mikrodalga-firin-alisverisinde-indirim",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.Seçili Mikrodalga Fırınlarda 1.500 TL indirim uygulanacaktır.Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.Kampanyadan 1 kez yararlanılabilir.Bu kampanya, diğer kampanyalar ile birleştirilemez.Kampanya, Arçelik mağazaları ve arcelik.com.tr web sitemizde geçerlidir.Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar.",
+        "Kampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "Seçili Mikrodalga Fırınlarda 1.500 TL indirim uygulanacaktır.",
+        "Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya, diğer kampanyalar ile birleştirilemez.",
+        "Kampanya, Arçelik mağazaları ve arcelik.com.tr web sitemizde geçerlidir.",
+        "Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar."
+      ],
+      "product_count": 10,
+      "products": [
+        {
+          "name": "MA 2521 S",
+          "product_id": "8899691100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MA 2020 I",
+          "product_id": "8899721100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MD 201 S",
+          "product_id": "8912321100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MD 201 B",
+          "product_id": "8912331100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MD 211 DG",
+          "product_id": "8912351100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MD 201 G",
+          "product_id": "9206321100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MA 2521-2 G",
+          "product_id": "9207551100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MA 2030 S",
+          "product_id": "9207601100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MA 2030 B",
+          "product_id": "9207611100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "MD 240",
+          "product_id": "9217261100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-kasim-ayina-ozel-firsatlar-2026",
+      "name": "Arçelik'ten Kasım ayı fırsatları!",
+      "category": "kucuk-ev-aletleri-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/kucuk-ev-aletleri-kampanyalari/arcelikten-kasim-ayina-ozel-firsatlar-2026",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.Kampanyadan 1 kez yararlanılabilir.Bu kampanya, diğer kampanyalar ile birleştirilemez.Kampanya fiyatları bireysel satış için sunulmuştur.Bireysel satış haricindeki ticari amaçlı satışlar iptal edilecektir.Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar.",
+        "Kampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "Peşin fiyatına 8 taksit uygulaması, Yapı ve Kredi Bankası Kredi Kartları üzerinden yapılan satışlarda geçerlidir.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya, diğer kampanyalar ile birleştirilemez.",
+        "Kampanya fiyatları bireysel satış için sunulmuştur.",
+        "Bireysel satış haricindeki ticari amaçlı satışlar iptal edilecektir.",
+        "Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar."
+      ],
+      "product_count": 5,
+      "products": [
+        {
+          "name": "PF 001 A",
+          "product_id": "9250901100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "DOI 602 S",
+          "product_id": "7757180101",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2072 MB",
+          "product_id": "7254120110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "9120 TMX",
+          "product_id": "457100034700",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570471 MB",
+          "product_id": "7250820140",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "quick-&-shine-firsatlari-2026",
+      "name": "Quick & Shine Kasım Fırsatları!",
+      "category": "temizlik-ve-bakim",
+      "url": "https://www.arcelik.com.tr/kampanyalar/temizlik-ve-bakim/quick-&-shine-firsatlari-2026",
+      "date_text": "16 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-16",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.Kampanyadan 1 kez yararlanılabilir.Bu kampanya, diğer kampanyalar ile birleştirilemez.Kampanya fiyatları bireysel satış için sunulmuştur.Bireysel satış haricindeki ticari amaçlı satışlar iptal edilecektir.Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar.",
+        "Kampanya, 16-30 Kasım 2026 tarihleri arasında geçerlidir.",
+        "Kampanyadan 1 kez yararlanılabilir.",
+        "Bu kampanya, diğer kampanyalar ile birleştirilemez.",
+        "Kampanya fiyatları bireysel satış için sunulmuştur.",
+        "Bireysel satış haricindeki ticari amaçlı satışlar iptal edilecektir.",
+        "Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar."
+      ],
+      "product_count": 46,
+      "products": [
+        {
+          "name": "Buzdolabı İç Yüzey Temizleyicisi",
+          "product_id": "9197061833",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Kazan Temizleyici (Vegan)",
+          "product_id": "9191470012",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Kireç Çözücü Tablet",
+          "product_id": "9191470013",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Bulaşık Makinesi Temizleme Sıvısı 200ml",
+          "product_id": "9191470014",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Çay & Kahve Makinesi Temizleyici",
+          "product_id": "9190000099",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Buzdolabı Koku Giderici",
+          "product_id": "9197065561",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Bul Mak Koku Limon Quick&Shine",
+          "product_id": "9197065559",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Bulaşık Makinesi Kokusu (Tropikal)",
+          "product_id": "9197065560",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Davlumbaz ve Aspiratör Izgara Tem.",
+          "product_id": "9197066107",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Espresso Kahve Makinası Temizleyici",
+          "product_id": "9197070437",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick and Shine Kurutucu Kokusu Fresh",
+          "product_id": "2993960100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Ekran Temizleyici",
+          "product_id": "9197061829",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Cam ve Seramik OcakTemizleyici",
+          "product_id": "9197065877",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Fırın içi & Izgara Temizleyici",
+          "product_id": "9197066392",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Bulaşık Makinesi Tuzu (2 kg)",
+          "product_id": "9197066627",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Yün Kurutma Topları",
+          "product_id": "9197068325",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Klima Parfümü",
+          "product_id": "9197069930",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick Mill New Emilia PID FH Inox",
+          "product_id": "9272201600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick Mill Naz Gri Edizione Özel Model",
+          "product_id": "9272211600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick Mill Emilia Gri Özel ModelEdizione",
+          "product_id": "9272161600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick Mill New Sebastiano PID FH White",
+          "product_id": "9272171600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick Mill New Sebastiano PID FH Inox",
+          "product_id": "9272181600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick Mill New Emilia PID FH White",
+          "product_id": "9272191600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick Mill Naz Plus PID Fast Heat",
+          "product_id": "9272221600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Siyah Seri Manyetik Kireç Önleyici",
+          "product_id": "9197061837",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Manyetik Kireç Önleyici",
+          "product_id": "9190369002",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Su Sebili Temizleme Solüsyonu",
+          "product_id": "9197071848",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Çok Amaçlı Mikrofiber Temizlik Bezi",
+          "product_id": "9197062326",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Inoks Ocak Temizleyici",
+          "product_id": "9197061827",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Temizlik ve Bakım Kiti (Kapsül)",
+          "product_id": "9197066113",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Kurutma Makinesi Koku Kapsülü",
+          "product_id": "2973320100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Keyf-i Şömine",
+          "product_id": "2504700001",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Elektrikli Süpürge Kokusu",
+          "product_id": "9197071843",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Ekran Temizleme Ürünü",
+          "product_id": "9197066391",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick Mill Pippa- Inox",
+          "product_id": "9272571600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick Mill Stretta - Siyah",
+          "product_id": "9272541600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick Mill Pippa- Siyah",
+          "product_id": "9272581600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick Mill Pop-Up - Inox",
+          "product_id": "9272591600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick Mill Pegaso - Inox",
+          "product_id": "9272611600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick Mill Stretta - Sarı",
+          "product_id": "9272551600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick Mill Stretta- Kırmızı",
+          "product_id": "9272561600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Inoks Yüzey Parlatıcı",
+          "product_id": "9197061828",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Fırın İçi ve Izgara Temizleyici",
+          "product_id": "9197061830",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Seramik ve Cam Yüzeyli Ocak Temizleyici",
+          "product_id": "9197061832",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Küçük Ev Aletleri Temizleme Solüsyonu",
+          "product_id": "9197065271",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "Quick Mill Pop-Up - Siyah",
+          "product_id": "9272601600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "yuva-kuran-genclerimizin-yanindayiz",
+      "name": "Yuva Kuran Gençlerimizin Yanındayız!",
+      "category": "beyaz-esya-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/beyaz-esya-kampanyalari/yuva-kuran-genclerimizin-yanindayiz",
+      "date_text": "1 Eylül - 30 Nisan 2027",
+      "start_date": "2026-09-01",
+      "end_date": "2027-04-30",
+      "conditions": [
+        "Katılım KoşullarıT.C. Aile ve Sosyal Hizmetler Bakanlığı tarafından Aile ve Gençlik Fonu kapsamında yürütülen Evlenecek Gençlerin Desteklenmesi Projesi çerçevesinde \"Yuva kuran gençlerimizin yanındayız!\" anlayışıyla evlilik hazırlığı yapan gençlerimize Arçelik mağazalarımızda vehttps://www.arcelik.com.tr/üzerinden İndirim Kodu ile yapılacak alışverişlerinde seçili ürünlerde perakende satış fiyatı üzerinden birbirinden farklı her bir ürün için 5.000 TL indirim sağlanacaktır.Evlenecek Gençlerin Desteklenmesi Projesi hakkında detaylı bilgi içinBaşvuru Koşulları · Evlilik Kredisi · T.C. Aile ve Sosyal Hizmetler Bakanlığıtıklayabilirsiniz.Evlenecek Gençlerin Desteklenmesi Projesi kapsamında, başvurusu değerlendirilen ve \"Nikah Onayı Bekleniyor\" aşamasında olan vatandaşlar için e-Devlet Kapısı üzerinden özel bir İndirim Kodu oluşturulur. İndirim Kodu Nasıl Alınır? Detayı içintıklayınız.İndirim kodu 1 kez kullanılır, değişim / iade söz konusu olduğunda kişiye başka kod verilmeyecektir.Kampanya 30 Nisan 2027 tarihine kadar geçerlidir.Kampanya seçili ürünlerde geçerlidir.Diğer kampanyalarla birleştirilemez.Stoklarla sınırlıdır.Kampanya yetkili satıcılarımızda ve web sitelerimizde geçerlidir.Kampanya fiyatları bireysel satış için sunulmuştur. Bireysel satış haricindeki ticari amaçlı satışlar iptal edilecektir.Bu kampanya kullanım alışkanlıklarınıza ve ihtiyaçlarınıza göre özelleşmiştir.Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar.",
+        "T.C. Aile ve Sosyal Hizmetler Bakanlığı tarafından Aile ve Gençlik Fonu kapsamında yürütülen Evlenecek Gençlerin Desteklenmesi Projesi çerçevesinde \"Yuva kuran gençlerimizin yanındayız!\" anlayışıyla evlilik hazırlığı yapan gençlerimize Arçelik mağazalarımızda vehttps://www.arcelik.com.tr/üzerinden İndirim Kodu ile yapılacak alışverişlerinde seçili ürünlerde perakende satış fiyatı üzerinden birbirinden farklı her bir ürün için 5.000 TL indirim sağlanacaktır.",
+        "Evlenecek Gençlerin Desteklenmesi Projesi hakkında detaylı bilgi içinBaşvuru Koşulları · Evlilik Kredisi · T.C. Aile ve Sosyal Hizmetler Bakanlığıtıklayabilirsiniz.",
+        "Evlenecek Gençlerin Desteklenmesi Projesi kapsamında, başvurusu değerlendirilen ve \"Nikah Onayı Bekleniyor\" aşamasında olan vatandaşlar için e-Devlet Kapısı üzerinden özel bir İndirim Kodu oluşturulur. İndirim Kodu Nasıl Alınır? Detayı içintıklayınız.",
+        "İndirim kodu 1 kez kullanılır, değişim / iade söz konusu olduğunda kişiye başka kod verilmeyecektir.",
+        "Kampanya 30 Nisan 2027 tarihine kadar geçerlidir.",
+        "Kampanya seçili ürünlerde geçerlidir.",
+        "Diğer kampanyalarla birleştirilemez.",
+        "Stoklarla sınırlıdır.",
+        "Kampanya yetkili satıcılarımızda ve web sitelerimizde geçerlidir.",
+        "Kampanya fiyatları bireysel satış için sunulmuştur. Bireysel satış haricindeki ticari amaçlı satışlar iptal edilecektir.",
+        "Bu kampanya kullanım alışkanlıklarınıza ve ihtiyaçlarınıza göre özelleşmiştir.",
+        "Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar."
+      ],
+      "product_count": 169,
+      "products": [
+        {
+          "name": "391641 EI",
+          "product_id": "7285520143",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 2074 NFK",
+          "product_id": "7278720101",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "18325 EKOLOJİK",
+          "product_id": "8866271100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "24325 EKOLOJİK",
+          "product_id": "8866251100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "9252 MI",
+          "product_id": "7606610177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFM 130 I",
+          "product_id": "7768270161",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 340 G",
+          "product_id": "7768270164",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 340 S",
+          "product_id": "7768270167",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 340 B",
+          "product_id": "7768270171",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2071 MI",
+          "product_id": "7254140100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2071 MB",
+          "product_id": "7254140101",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "09560 HP",
+          "product_id": "9200301100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "18560 HP",
+          "product_id": "9200341100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12560 HP",
+          "product_id": "9200321100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12465 HP",
+          "product_id": "8896351100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "18465 HP",
+          "product_id": "8896371100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "09465 HP",
+          "product_id": "8896331100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 330 S",
+          "product_id": "7768270190",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "24465 HP",
+          "product_id": "8896391100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "24560 HP",
+          "product_id": "9200361100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "274532 EB",
+          "product_id": "7281620118",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "274532 EI",
+          "product_id": "7281620197",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 330 B",
+          "product_id": "7768270185",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "260316 MB",
+          "product_id": "7282920101",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "260316 MI",
+          "product_id": "7282920102",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "07325 A",
+          "product_id": "9205831100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570475 EI",
+          "product_id": "7256120191",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570475 EB",
+          "product_id": "7256120110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 120 S",
+          "product_id": "7768270195",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AB 281",
+          "product_id": "7673010177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AFC 330 G",
+          "product_id": "7768270204",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2681 EB",
+          "product_id": "7283640817",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 2071 YNK E",
+          "product_id": "7519520064",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12325 A",
+          "product_id": "9209341100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "09325 A",
+          "product_id": "9209361100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1010 KMIG",
+          "product_id": "7188260190",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1210 KM",
+          "product_id": "7188870120",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2071 NFB",
+          "product_id": "7284740110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2172 JEB",
+          "product_id": "7294220112",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2782 EB",
+          "product_id": "7278420113",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12670",
+          "product_id": "9208011100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "15325 S",
+          "product_id": "9209721100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2172 JEI",
+          "product_id": "7294220191",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12770 AL",
+          "product_id": "9207931100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A75 D 986 S",
+          "product_id": "CE2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "578556 EI",
+          "product_id": "7281820164",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1280 YKM",
+          "product_id": "7175722600",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278552 EI",
+          "product_id": "7291620165",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278551 ESC",
+          "product_id": "7282120137",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2350 E",
+          "product_id": "457510920030",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "800 KMX",
+          "product_id": "7188870170",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "900 KMX",
+          "product_id": "7188870180",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1000 KMX",
+          "product_id": "7188870190",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "900 KMX S",
+          "product_id": "7188220150",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 OLED D 975 A",
+          "product_id": "CV8T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A55 OLED D 975 A",
+          "product_id": "CV7T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "9100 DMX",
+          "product_id": "457100007200",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12140 MX",
+          "product_id": "457100000023",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "11140 MX",
+          "product_id": "457100000014",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "9120 DMX",
+          "product_id": "457100000020",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "10120 MX",
+          "product_id": "457100000011",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "8100 MX",
+          "product_id": "457100000035",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "9120 DMXS",
+          "product_id": "457100000019",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "10120 MXS",
+          "product_id": "457100000015",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "391572 EI",
+          "product_id": "7293720177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270490 EI",
+          "product_id": "7295820101",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6433",
+          "product_id": "7629710177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6444",
+          "product_id": "7630110177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570406 MB",
+          "product_id": "7293220150",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 EB",
+          "product_id": "7293520120",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2063 MB",
+          "product_id": "457200000022",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2052 NFB",
+          "product_id": "457200000021",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2032 MB",
+          "product_id": "7217620111",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2043 MB",
+          "product_id": "7223320111",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2205 JE",
+          "product_id": "457500000044",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2298 JE",
+          "product_id": "457500000040",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278551 EDI",
+          "product_id": "7282120136",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 Q 990 AY",
+          "product_id": "DR4T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A55 Q 990 AY",
+          "product_id": "DR2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2360 JE",
+          "product_id": "457500000041",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 EI",
+          "product_id": "7202920102",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2175 JEB",
+          "product_id": "7294220114",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2162 NFB",
+          "product_id": "7285920110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2104 E",
+          "product_id": "457500000033",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2104 GE",
+          "product_id": "457500000028",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2451 E",
+          "product_id": "457500000030",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "391572 ESC",
+          "product_id": "7295520135",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 EA",
+          "product_id": "7202920101",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 MB",
+          "product_id": "7202920104",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283616 EI",
+          "product_id": "7296520186",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "578556 EB",
+          "product_id": "7281620116",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6444 OK",
+          "product_id": "7631710177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2175 JEI",
+          "product_id": "7294220194",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "583628 EB",
+          "product_id": "7289120114",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 MG",
+          "product_id": "7202920103",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1000 KMP HA",
+          "product_id": "7188220260",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "583628 EI",
+          "product_id": "7283120185",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2083 Multimode EI",
+          "product_id": "7294220192",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6444 OK I",
+          "product_id": "7631810177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6444 OK A",
+          "product_id": "7631910177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "900 KMP I",
+          "product_id": "7188270130",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "900 KMP IG",
+          "product_id": "7188220160",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "910 KMP IG",
+          "product_id": "7188220170",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AB 250",
+          "product_id": "7628410177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AB 240",
+          "product_id": "7630610177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1000 KMX S",
+          "product_id": "7188220180",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6688 DI",
+          "product_id": "7632010177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "274533 MB",
+          "product_id": "7281620117",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "470503 MB",
+          "product_id": "7293320110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570476 MG",
+          "product_id": "7253620181",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6455 WF I",
+          "product_id": "7632110177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6455 WF",
+          "product_id": "7632210177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6455 WF MG",
+          "product_id": "7632310177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570357 MB",
+          "product_id": "7293120114",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2072 MB",
+          "product_id": "7254120110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "F 8541-1 EBG",
+          "product_id": "7786120267",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2072 MI",
+          "product_id": "7254120590",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "F 8541-1 EBB",
+          "product_id": "7786120266",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6567 WF I",
+          "product_id": "7634610177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6567 WF",
+          "product_id": "7634710177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6444 WF",
+          "product_id": "7632710177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6467 WF I",
+          "product_id": "7633810177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6467 WF SC",
+          "product_id": "7633710177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6467 WF",
+          "product_id": "7633910177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "574509 MB",
+          "product_id": "7263520116",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A55 E 795 B",
+          "product_id": "EH7T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A50 E 895 A",
+          "product_id": "EU9T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A55 E 895 A",
+          "product_id": "EV1T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 E 795 B",
+          "product_id": "EH8T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 QE 988 A",
+          "product_id": "FA6T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A75 E 795 B",
+          "product_id": "EH9T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A55 QE 988 A",
+          "product_id": "FA5T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A75 E 895 A",
+          "product_id": "EV3T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 E 895 A",
+          "product_id": "EV2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A50 E 795 B",
+          "product_id": "EH6T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "383510 EI",
+          "product_id": "7293420156",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6667 WF I",
+          "product_id": "7633610177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570477 EB",
+          "product_id": "7217820110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1100 KMX",
+          "product_id": "7188270140",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "570477 MB",
+          "product_id": "7250820150",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "09570 HP",
+          "product_id": "9212751100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12570 HP",
+          "product_id": "9212771100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "18570 HP",
+          "product_id": "9212791100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "24570 HP",
+          "product_id": "9212811100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278550 EB Fit",
+          "product_id": "7281620161",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283613 EB",
+          "product_id": "7296520147",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "12470 HP",
+          "product_id": "9212851100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "18470 HP",
+          "product_id": "9212871100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "901 KMP I",
+          "product_id": "7188270150",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "901 KMP IG",
+          "product_id": "7188270180",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "24470 HP",
+          "product_id": "9212891100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "09470 HP",
+          "product_id": "9212831100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2205 JEM",
+          "product_id": "457500000152",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2298 JEM",
+          "product_id": "457500000155",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2360 JEM",
+          "product_id": "457500000159",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "9120 MP OG",
+          "product_id": "7131960100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "6466",
+          "product_id": "7635210177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "270475 MI",
+          "product_id": "7202920105",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "278550 EI Fit",
+          "product_id": "7282120165",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "283613 EI",
+          "product_id": "7296520137",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "AB 252",
+          "product_id": "7633010177",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2030 MB",
+          "product_id": "7266920110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "2298 JEMG",
+          "product_id": "457500000156",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1001 KMX",
+          "product_id": "7184270110",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1001 KMX S",
+          "product_id": "7188270170",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "1101 KMX",
+          "product_id": "7184270100",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "901 KMX",
+          "product_id": "7184270120",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "9120 TMX",
+          "product_id": "457100034700",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "911 KMP IG",
+          "product_id": "7188220190",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-yazar-kasa-posta-buyuk-degisim-firsati",
+      "name": "Yazar Kasa POS’ta Büyük Değişim Fırsatı!",
+      "category": "elektronik-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/elektronik-kampanyalari/arcelikten-yazar-kasa-posta-buyuk-degisim-firsati",
+      "date_text": "1 Eylül - 30 Kasım 2026",
+      "start_date": "2026-09-01",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıKampanya, Beko 220 TR, Beko 220 TRL veya Beko 300 TR Yazar Kasa POS cihazlarını aktif olarak kullanan ve üzerinde en az bir banka uygulaması yüklü olan işletmeler için 30 Kasım 2026 tarihine kadar geçerlidir.Kampanyadan faydalanmak için Fito uygulamasını (https://play.google.com/store/apps/details?id=com.tokenfinancial.fito&pli=1) indirerek, size özel kampanya kodunuzu profilinizde yer alan \"İndirim Kuponlarım\" menüsünden almanız gerekmektedir. Kod ile birlikte Arçelik mağazaları veya arcelik.com.tr üzerinden X30 TR yazar kasa POS modeli 2.000 TL indirim ile 7.999 TL’ye alınabilecektir.Kupon kodu tek kullanımlıktır ve yalnızca 1 adet X30 TR Yazar Kasa POS için geçerlidir.Fito, Beko POS cihazı kullanıcılarına özel bir destek uygulamasıdır. Fito ile; cihazın için servis talebi açabilir ve sürecini görüntüleyebilir, size özel kampanyalardan faydalanabilir, avantajlı komisyon oranı fırsatıyla banka uygulaması talebinde bulunabilir, sektörel gelişme ve duyurulardan haberdar olabilirsiniz.Uygulamaya kayıt ve kullanımı tamamen ücretsizdir.Uygulamaya işletme yetkilisinin telefonu ile kayıt yapıldığı zaman işletme ve cihaz bilgileri otomatik olarak gelmektedir. Eğer farklı bir numara ile giriş yapılırsa VKN ve cihaz ID bilgisinin manuel olarak eklenerek ilerlenmesi gerekmektedir. Aynı VKN için birden fazla telefon ile Fito uygulamasına kayıt yapılabilmektedir. Kayıt ve giriş akışları hakkında daha detaylı bilgi için videoyu seyredebilirsiniz. (https://www.youtube.com/watch?v=GUqPG2Ij9Wc)Kampanya kodunuza ve indirim detaylarınıza, Fito uygulamasındaki ‘’Profil’’ alanında yer alan ‘’İndirim Kuponlarım’’ menüsünden veya X30 TR Yazar Kasa POS ürün sayfasından ulaşabilirsiniz.Her VKN özelinde yalnızca 1 adet kod tanımlanmaktadır.Kampanya kodu kişiye özeldir; devredilemez ve üçüncü kişiler tarafından kullanılamaz.Uygulamaya kayıt olma ya da kodu görüntüleme hakkında 0850 250 07 67 numaralı Çözüm Merkezi’nden destek alabilirsiniz.Kampanya 10.000 adetle sınırlıdır.Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar.",
+        "Kampanya, Beko 220 TR, Beko 220 TRL veya Beko 300 TR Yazar Kasa POS cihazlarını aktif olarak kullanan ve üzerinde en az bir banka uygulaması yüklü olan işletmeler için 30 Kasım 2026 tarihine kadar geçerlidir.",
+        "Kampanyadan faydalanmak için Fito uygulamasını (https://play.google.com/store/apps/details?id=com.tokenfinancial.fito&pli=1) indirerek, size özel kampanya kodunuzu profilinizde yer alan \"İndirim Kuponlarım\" menüsünden almanız gerekmektedir. Kod ile birlikte Arçelik mağazaları veya arcelik.com.tr üzerinden X30 TR yazar kasa POS modeli 2.000 TL indirim ile 7.999 TL’ye alınabilecektir.",
+        "Kupon kodu tek kullanımlıktır ve yalnızca 1 adet X30 TR Yazar Kasa POS için geçerlidir.",
+        "Fito, Beko POS cihazı kullanıcılarına özel bir destek uygulamasıdır. Fito ile; cihazın için servis talebi açabilir ve sürecini görüntüleyebilir, size özel kampanyalardan faydalanabilir, avantajlı komisyon oranı fırsatıyla banka uygulaması talebinde bulunabilir, sektörel gelişme ve duyurulardan haberdar olabilirsiniz.",
+        "Uygulamaya kayıt ve kullanımı tamamen ücretsizdir.",
+        "Uygulamaya işletme yetkilisinin telefonu ile kayıt yapıldığı zaman işletme ve cihaz bilgileri otomatik olarak gelmektedir. Eğer farklı bir numara ile giriş yapılırsa VKN ve cihaz ID bilgisinin manuel olarak eklenerek ilerlenmesi gerekmektedir. Aynı VKN için birden fazla telefon ile Fito uygulamasına kayıt yapılabilmektedir. Kayıt ve giriş akışları hakkında daha detaylı bilgi için videoyu seyredebilirsiniz. (https://www.youtube.com/watch?v=GUqPG2Ij9Wc)",
+        "Kampanya kodunuza ve indirim detaylarınıza, Fito uygulamasındaki ‘’Profil’’ alanında yer alan ‘’İndirim Kuponlarım’’ menüsünden veya X30 TR Yazar Kasa POS ürün sayfasından ulaşabilirsiniz.",
+        "Her VKN özelinde yalnızca 1 adet kod tanımlanmaktadır.",
+        "Kampanya kodu kişiye özeldir; devredilemez ve üçüncü kişiler tarafından kullanılamaz.",
+        "Uygulamaya kayıt olma ya da kodu görüntüleme hakkında 0850 250 07 67 numaralı Çözüm Merkezi’nden destek alabilirsiniz.",
+        "Kampanya 10.000 adetle sınırlıdır.",
+        "Arçelik Pazarlama A.Ş. kampanya şartlarını değiştirme haklarını saklı tutar."
+      ],
+      "product_count": 1,
+      "products": [
+        {
+          "name": "Beko X30TR Android Yazarkasa POS",
+          "product_id": "BQ1T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-yapay-zeka-tv-alanlara-dsmart-go-12-ay-ucretsiz",
+      "name": "Arçelik’ten Yapay Zeka TV Alanlara D-Smart GO 12 Ay Ücretsiz!",
+      "category": "televizyon-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/televizyon-kampanyalari/arcelikten-yapay-zeka-tv-alanlara-dsmart-go-12-ay-ucretsiz",
+      "date_text": "1 Ağustos - 31 Aralık 2026",
+      "start_date": "2026-08-01",
+      "end_date": "2026-12-31",
+      "conditions": [
+        "Katılım KoşullarıD-Smart Go Nedir?D-Smart GO, internet üzerinden yüzlerce dizi, film, belgesel, çocuk ve spor içeriği ile canlı TV kanallarını; web sitesi, iOS ve Android mobil uygulamaları, akıllı televizyonlar üzerinden izleyebileceğiniz bir servistir.Üyeliğimi Nasıl Aktive Edebilirim ?Size gönderilen SMS linki ile Oliz uygulaması üzerinden promosyon kodunuzu aldıktan sonra aşağıdaki üyelik adımlarını takip ederek D-Smart GO yayınlarını izlemeye hemen başlayabilirsiniz.www.dsmartgo.com.tr adresine girerek ana sayfada yer alan “Üye Ol” butonuna tıklayın.Üyelik oluşturmak istediğiniz telefon numarası ve belirlediğiniz şifre ile kayıt işlemini başlatın.Telefonunuza gelen doğrulama kodunu ilgili alana girerek üyeliğinizi tamamlayın.Ardından, ana sayfada sağ üst köşede bulunan profilim alanında yer alan hesabım alanına giriniz.Bu alanda paketler kısmı işaretlenerek promosyon kodum var sekmesini seçiniz.SMS linki ile Oliz uygulaması üzerinden gelen promosyon kodunuzu ilgili alana girerek devam sonrasında onayla ve aktif et butonuna basınız.Gelen ekranda kredi kartı bilgilerinizi doldurarak D-Smart GO izlemeye başlayabilirsiniz.Keyifli seyirler dileriz!Kampanya Koşulları:Kampanya, Arçelik mağazalarından veya arcelik.com.tr üzerinden Oliz uygulaması ile gerçekleştirilen alışverişlerde geçerlidir.Kampanyada geçerli promosyon kodu bir kez kullanabilir. Kampanya D-Smart GO’nun devam eden diğer indirim ve kampanyaları ile birleştirilemez.Kampanya kapsamında kullanılacak promosyon kodu ile D-Smart GO ilk 12 ay ücretsiz kullanabilirsiniz.Üyeliğinizi iptal etmediğiniz takdirde indirimli kampanya döneminin ardından D-Smart GO aylık paket üyeliğiniz otomatik yenileme özelliğiyle takip eden dönem için güncel fiyatlar ile yenilenir.Kampanya kodlarının kullanımı ile ilgili sorularınız için 0850 266 00 00 numaralı Müşteri iletişim merkezimiz ya da https://www.dsmartgo.com.tr/tr/bilgi/bize-ulasin üzerinden D-Smart GO Müşteri Hizmetleri ekibimizle iletişime geçebilirsiniz.Kampanya kapsamında verilen kodlar bireysel kullanıma yöneliktir. Kodlar ticari alanlarda, işletmelerde ya da umuma açık yayın ortamlarında kullanılamaz.Kampanya son geçerlilik tarihi 31 Aralık 2026.Arçelik kampanya üzerinde değişiklik yapma hakkını saklı tutar.Kampanya kapsamındaki ürünler:A50 D 986 S; A 955 C AI; A55 D 986 S; A55 Q 987 A; A55 QE 988 A; A 1055 C AI; A55 Q 990 AY; A 1255 C AI; A55 OLED D 975 A; A 965 C AI; A65 QE 988 A; A65 D 986 S; A65 Q 987 A; A 1065 C AI; A65 Q 990 AY; A 1265 C AI; A65 OLED D 975 A; A 975 C AI; A75 QE 988 A; A75 D 986 S; A85 N 995 X; A98 Q 995 X; A XL85 C; A XL100 C",
+        "www.dsmartgo.com.tr adresine girerek ana sayfada yer alan “Üye Ol” butonuna tıklayın.",
+        "Üyelik oluşturmak istediğiniz telefon numarası ve belirlediğiniz şifre ile kayıt işlemini başlatın.",
+        "Telefonunuza gelen doğrulama kodunu ilgili alana girerek üyeliğinizi tamamlayın.",
+        "Ardından, ana sayfada sağ üst köşede bulunan profilim alanında yer alan hesabım alanına giriniz.",
+        "Bu alanda paketler kısmı işaretlenerek promosyon kodum var sekmesini seçiniz.",
+        "SMS linki ile Oliz uygulaması üzerinden gelen promosyon kodunuzu ilgili alana girerek devam sonrasında onayla ve aktif et butonuna basınız.",
+        "Gelen ekranda kredi kartı bilgilerinizi doldurarak D-Smart GO izlemeye başlayabilirsiniz.",
+        "Kampanya, Arçelik mağazalarından veya arcelik.com.tr üzerinden Oliz uygulaması ile gerçekleştirilen alışverişlerde geçerlidir.",
+        "Kampanyada geçerli promosyon kodu bir kez kullanabilir. Kampanya D-Smart GO’nun devam eden diğer indirim ve kampanyaları ile birleştirilemez.",
+        "Kampanya kapsamında kullanılacak promosyon kodu ile D-Smart GO ilk 12 ay ücretsiz kullanabilirsiniz.",
+        "Üyeliğinizi iptal etmediğiniz takdirde indirimli kampanya döneminin ardından D-Smart GO aylık paket üyeliğiniz otomatik yenileme özelliğiyle takip eden dönem için güncel fiyatlar ile yenilenir.",
+        "Kampanya kodlarının kullanımı ile ilgili sorularınız için 0850 266 00 00 numaralı Müşteri iletişim merkezimiz ya da https://www.dsmartgo.com.tr/tr/bilgi/bize-ulasin üzerinden D-Smart GO Müşteri Hizmetleri ekibimizle iletişime geçebilirsiniz.",
+        "Kampanya kapsamında verilen kodlar bireysel kullanıma yöneliktir. Kodlar ticari alanlarda, işletmelerde ya da umuma açık yayın ortamlarında kullanılamaz.",
+        "Kampanya son geçerlilik tarihi 31 Aralık 2026.",
+        "Arçelik kampanya üzerinde değişiklik yapma hakkını saklı tutar."
+      ],
+      "product_count": 22,
+      "products": [
+        {
+          "name": "A50 D 986 S",
+          "product_id": "CD4T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A75 D 986 S",
+          "product_id": "CE2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A55 D 986 S",
+          "product_id": "CD5T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 D 986 S",
+          "product_id": "CD7T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 OLED D 975 A",
+          "product_id": "CV8T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A55 OLED D 975 A",
+          "product_id": "CV7T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A98 Q 995 X",
+          "product_id": "CS3T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A85 N 995 X",
+          "product_id": "CS2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 Q 990 AY",
+          "product_id": "DR4T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A55 Q 990 AY",
+          "product_id": "DR2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A55 Q 987 A",
+          "product_id": "DP6T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 Q 987 A",
+          "product_id": "DP7T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 QE 988 A",
+          "product_id": "FA6T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A55 QE 988 A",
+          "product_id": "FA5T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A75 QE 988 A",
+          "product_id": "FU7T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 955 C AI",
+          "product_id": "HC7T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 1265 C AI",
+          "product_id": "GX4T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 975 C AI",
+          "product_id": "HD2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 1065 C AI",
+          "product_id": "GY4T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 1055 C AI",
+          "product_id": "GX6T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 1255 C AI",
+          "product_id": "GX3T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 965 C AI",
+          "product_id": "HC9T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-buyuk-ekran-tv-alanlara-12-ay-s-sport-plus-uyelik-hediye",
+      "name": "Arçelik’ten Büyük Ekran TV Alanlara 12 Ay S Sport Plus Üyelik Hediye!",
+      "category": "televizyon-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/televizyon-kampanyalari/arcelikten-buyuk-ekran-tv-alanlara-12-ay-s-sport-plus-uyelik-hediye",
+      "date_text": "1 Kasım - 30 Kasım 2026",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "conditions": [
+        "Katılım KoşullarıS Sport Plus Nedir?LaLiga, Serie A, EuroLeague, NBA, NFL, UFC, Boks Geceleri ve daha fazlası S Sport Plus’ın çoklu ekran özelliğiyle sen neredeysen orada! Dünyanın en iyi lig ve şampiyonalarını her ay 700 saatten fazla canlı yayını, tekrar izle seçeneği ileDopdolu Spor KeyfiniS Sport Plus’ta izleyin.Üyeliğimi Nasıl Aktive Edebilirim ?Size gönderilen SMS linki ile Oliz uygulaması üzerinden promosyon kodunuzu aldıktan sonra aşağıdaki üyelik adımlarını takip ederek S Sport Plus yayınlarını izlemeye hemen başlayabilirsiniz.S Sport Plus web sitesine girip “Üye Ol” butonuna tıklayın.Üyelik bilgilerinizi tanımlayın.Herhangi bir paket seçimi yapmadan kampanya kodunu, “Promosyon Kodu” alanına girip S Sport Plus üyeliğinizi başlatın.Promosyon kodunu girdikten sonra üyeliğinizin tamamlandığı bilgisini ekranda göreceksiniz.Başka herhangi bir işlem yapmanıza gerek yoktur. Yönlendirme sonrası S Sport Plus’ı hemen keşfetmeye başlayabilirsiniz.Kampanya Koşulları:Kampanya, Arçelik mağazalarından veya arcelik.com.tr üzerinden Oliz uygulaması ile gerçekleştirilen alışverişlerde geçerlidir.Kampanya 65 inc ve üzeri ürün alımlarında geçerlidir.Kampanya kodları30.11.2026tarihine kadar aktive edilmelidir.Kampanyada geçerli promosyon kodu bir kez kullanılabilir.Kampanya kapsamında kullanılacak promosyon kodu ile S Sport Plus’ı12 ay ücretsizkullanabilirsiniz. Üyeliğinizi iptal etmediğiniz takdirde indirimli kampanya döneminin ardından S Sport Plus aylık paket üyeliğiniz otomatik yenileme özelliğiyle takip eden dönem için güncel fiyatlar ile yenilenir.Kampanya kodlarının kullanımı ile ilgili sorularınız için 0 850 532 47 77 numaralı WhatsApp Destek Hattımız ya dadestek@ssportplus.commail adresi üzerinden S Sport Plus Müşteri Hizmetleri ekibimizle iletişime geçebilirsiniz.Kampanya kapsamında verilen kodlar bireysel kullanıma yöneliktir. Kodlar ticari alanlarda, işletmelerde ya da umuma açık yayın ortamlarında kullanılamazKampanya kapsamındaki ürünler:A65 E 795 B, A 765 C, A75 E 795 B, A 775 C, A75 D 790 B, A65 D 790 B, A65 E 895 A, A 865 C, A75 E 895 A, A 875 C, A75 D 895 A, A65 D 895 A, A65 QE 988 A, A 965 C AI, A75 QE 988 A, A 975 C AI, A75 D 986 S, A65 D 986 S, A65 Q 987 A, A65 Q 990 AY, A 1065 C AI, A65 OLED D 975 A, A 1265 C AI, A85 N 995 X, A98 Q 995 X",
+        "S Sport Plus web sitesine girip “Üye Ol” butonuna tıklayın.",
+        "Üyelik bilgilerinizi tanımlayın.",
+        "Herhangi bir paket seçimi yapmadan kampanya kodunu, “Promosyon Kodu” alanına girip S Sport Plus üyeliğinizi başlatın.",
+        "Promosyon kodunu girdikten sonra üyeliğinizin tamamlandığı bilgisini ekranda göreceksiniz.",
+        "Kampanya, Arçelik mağazalarından veya arcelik.com.tr üzerinden Oliz uygulaması ile gerçekleştirilen alışverişlerde geçerlidir.",
+        "Kampanya 65 inc ve üzeri ürün alımlarında geçerlidir.",
+        "Kampanya kodları30.11.2026tarihine kadar aktive edilmelidir.",
+        "Kampanyada geçerli promosyon kodu bir kez kullanılabilir.",
+        "Kampanya kapsamında kullanılacak promosyon kodu ile S Sport Plus’ı12 ay ücretsizkullanabilirsiniz. Üyeliğinizi iptal etmediğiniz takdirde indirimli kampanya döneminin ardından S Sport Plus aylık paket üyeliğiniz otomatik yenileme özelliğiyle takip eden dönem için güncel fiyatlar ile yenilenir.",
+        "Kampanya kodlarının kullanımı ile ilgili sorularınız için 0 850 532 47 77 numaralı WhatsApp Destek Hattımız ya dadestek@ssportplus.commail adresi üzerinden S Sport Plus Müşteri Hizmetleri ekibimizle iletişime geçebilirsiniz.",
+        "Kampanya kapsamında verilen kodlar bireysel kullanıma yöneliktir. Kodlar ticari alanlarda, işletmelerde ya da umuma açık yayın ortamlarında kullanılamaz"
+      ],
+      "product_count": 26,
+      "products": [
+        {
+          "name": "A75 D 790 B",
+          "product_id": "AR6T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 D 790 B",
+          "product_id": "AR5T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 D 895 A",
+          "product_id": "AT4T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A75 D 895 A",
+          "product_id": "AT5T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A75 D 986 S",
+          "product_id": "CE2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 D 986 S",
+          "product_id": "CD7T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 OLED D 975 A",
+          "product_id": "CV8T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A98 Q 995 X",
+          "product_id": "CS3T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A85 N 995 X",
+          "product_id": "CS2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 Q 990 AY",
+          "product_id": "DR4T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 Q 987 A",
+          "product_id": "DP7T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 E 795 B",
+          "product_id": "EH8T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 QE 988 A",
+          "product_id": "FA6T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A75 E 795 B",
+          "product_id": "EH9T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A75 E 895 A",
+          "product_id": "EV3T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 E 895 A",
+          "product_id": "EV2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A75 QE 988 A",
+          "product_id": "FU7T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 765 C",
+          "product_id": "GF3T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 775 C",
+          "product_id": "GF4T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 1265 C AI",
+          "product_id": "GX4T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 975 C AI",
+          "product_id": "HD2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 1065 C AI",
+          "product_id": "GY4T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 965 C AI",
+          "product_id": "HC9T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 865 C",
+          "product_id": "GZ7T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 875 C",
+          "product_id": "HG3T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A XL85 C",
+          "product_id": "HG6T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-akilli-tv-alanlara-dsmart-go-6-ay-ucretsiz",
+      "name": "Arçelik’ten Akıllı TV Alanlara D-Smart GO 6 Ay Ücretsiz!",
+      "category": "televizyon-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/televizyon-kampanyalari/arcelikten-akilli-tv-alanlara-dsmart-go-6-ay-ucretsiz",
+      "date_text": "1 Ağustos - 31 Aralık 2026",
+      "start_date": "2026-08-01",
+      "end_date": "2026-12-31",
+      "conditions": [
+        "Katılım KoşullarıD-Smart Go Nedir?D-Smart GO, internet üzerinden yüzlerce dizi, film, belgesel, çocuk ve spor içeriği ile canlı TV kanallarını; web sitesi, iOS ve Android mobil uygulamaları, akıllı televizyonlar üzerinden izleyebileceğiniz bir servistir.Üyeliğimi Nasıl Aktive Edebilirim ?Size gönderilen SMS linki ile Oliz uygulaması üzerinden promosyon kodunuzu aldıktan sonra aşağıdaki üyelik adımlarını takip ederek D-Smart GO yayınlarını izlemeye hemen başlayabilirsiniz.www.dsmartgo.com.tr adresine girerek ana sayfada yer alan “Üye Ol” butonuna tıklayın.Üyelik oluşturmak istediğiniz telefon numarası ve belirlediğiniz şifre ile kayıt işlemini başlatın.Telefonunuza gelen doğrulama kodunu ilgili alana girerek üyeliğinizi tamamlayın. Ardından, ana sayfada sağ üst köşede bulunan profilim alanında yer alan hesabım alanına giriniz.Bu alanda paketler kısmı işaretlenerek promosyon kodum var sekmesini seçiniz.SMS linki ile Oliz uygulaması üzerinden gelen promosyon kodunuzu ilgili alana girerek devam sonrasında onayla ve aktif et butonuna basınız.Gelen ekranda kredi kartı bilgilerinizi doldurarak D-Smart GO izlemeye başlayabilirsiniz.Keyifli seyirler dileriz!Kampanya Koşulları:Kampanya, Arçelik mağazalarından veya arcelik.com.tr üzerinden Oliz uygulaması ile gerçekleştirilen alışverişlerde geçerlidir.Kampanyada geçerli promosyon kodu bir kez kullanabilir. Kampanya D-Smart GO’nun devam eden diğer indirim ve kampanyaları ile birleştirilemez.Kampanya kapsamında kullanılacak promosyon kodu ile D-Smart GO ilk 6 ay ücretsiz kullanabilirsiniz. Üyeliğinizi iptal etmediğiniz takdirde indirimli kampanya döneminin ardından D-Smart GO aylık paket üyeliğiniz otomatik yenileme özelliğiyle takip eden dönem için güncel fiyatlar ile yenilenir.Kampanya kodlarının kullanımı ile ilgili sorularınız için 0850 266 00 00 numaralı Müşteri iletişim merkezimiz ya da https://www.dsmartgo.com.tr/tr/bilgi/bize-ulasin üzerinden D-Smart GO Müşteri Hizmetleri ekibimizle iletişime geçebilirsiniz.Kampanya kapsamında verilen kodlar bireysel kullanıma yöneliktir. Kodlar ticari alanlarda, işletmelerde ya da umuma açık yayın ortamlarında kullanılamaz.Kampanya son geçerlilik tarihi 31 Aralık 2026.Arçelik kampanya üzerinde değişiklik yapma hakkını saklı tutar.Kampanya kapsamındaki ürünler:A 632 C; A32 D 696 B; A40 D 697 B; A40 D 695 B; A 643 C; A43 D 697 B; A43 D 695 B; A 743 C; A43 E 795 B; A43 D 790 B; A 750 C; A50 E 795 B; A50 D 790 B; A 850 C; A50 E 895 A; A50 D 895 A; A 755 C; A55 D 790 B; A55 E 795 B; A 855 C; A55 D 895 A; A55 E 895 A; A 765 C; A65 E 795 B; A65 D 790 B; A 865 C; A65 E 895 A; A65 D 895 A; A 775 C; A75 E 795 B; A75 D 790 B; A75 E 895 A; A 875 C; A75 D 895 A",
+        "www.dsmartgo.com.tr adresine girerek ana sayfada yer alan “Üye Ol” butonuna tıklayın.",
+        "Üyelik oluşturmak istediğiniz telefon numarası ve belirlediğiniz şifre ile kayıt işlemini başlatın.",
+        "Telefonunuza gelen doğrulama kodunu ilgili alana girerek üyeliğinizi tamamlayın. Ardından, ana sayfada sağ üst köşede bulunan profilim alanında yer alan hesabım alanına giriniz.",
+        "Bu alanda paketler kısmı işaretlenerek promosyon kodum var sekmesini seçiniz.",
+        "SMS linki ile Oliz uygulaması üzerinden gelen promosyon kodunuzu ilgili alana girerek devam sonrasında onayla ve aktif et butonuna basınız.",
+        "Gelen ekranda kredi kartı bilgilerinizi doldurarak D-Smart GO izlemeye başlayabilirsiniz.",
+        "Kampanya, Arçelik mağazalarından veya arcelik.com.tr üzerinden Oliz uygulaması ile gerçekleştirilen alışverişlerde geçerlidir.",
+        "Kampanyada geçerli promosyon kodu bir kez kullanabilir. Kampanya D-Smart GO’nun devam eden diğer indirim ve kampanyaları ile birleştirilemez.",
+        "Kampanya kapsamında kullanılacak promosyon kodu ile D-Smart GO ilk 6 ay ücretsiz kullanabilirsiniz. Üyeliğinizi iptal etmediğiniz takdirde indirimli kampanya döneminin ardından D-Smart GO aylık paket üyeliğiniz otomatik yenileme özelliğiyle takip eden dönem için güncel fiyatlar ile yenilenir.",
+        "Kampanya kodlarının kullanımı ile ilgili sorularınız için 0850 266 00 00 numaralı Müşteri iletişim merkezimiz ya da https://www.dsmartgo.com.tr/tr/bilgi/bize-ulasin üzerinden D-Smart GO Müşteri Hizmetleri ekibimizle iletişime geçebilirsiniz.",
+        "Kampanya kapsamında verilen kodlar bireysel kullanıma yöneliktir. Kodlar ticari alanlarda, işletmelerde ya da umuma açık yayın ortamlarında kullanılamaz.",
+        "Kampanya son geçerlilik tarihi 31 Aralık 2026.",
+        "Arçelik kampanya üzerinde değişiklik yapma hakkını saklı tutar."
+      ],
+      "product_count": 34,
+      "products": [
+        {
+          "name": "A55 D 790 B",
+          "product_id": "AR4T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A43 D 790 B",
+          "product_id": "AR2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A75 D 790 B",
+          "product_id": "AR6T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 D 790 B",
+          "product_id": "AR5T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A50 D 790 B",
+          "product_id": "AR3T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A50 D 895 A",
+          "product_id": "AT2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A55 D 895 A",
+          "product_id": "AT3T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 D 895 A",
+          "product_id": "AT4T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A75 D 895 A",
+          "product_id": "AT5T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A43 D 695 B",
+          "product_id": "BJ8T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A40 D 695 B",
+          "product_id": "BJ7T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A32 D 696 B",
+          "product_id": "CZ1T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A43 D 697 B",
+          "product_id": "EA2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A40 D 697 B",
+          "product_id": "EA1T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A55 E 795 B",
+          "product_id": "EH7T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A50 E 895 A",
+          "product_id": "EU9T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A55 E 895 A",
+          "product_id": "EV1T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 E 795 B",
+          "product_id": "EH8T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A75 E 795 B",
+          "product_id": "EH9T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A43 E 795 B",
+          "product_id": "EH5T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A75 E 895 A",
+          "product_id": "EV3T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A65 E 895 A",
+          "product_id": "EV2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A50 E 795 B",
+          "product_id": "EH6T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 750 C",
+          "product_id": "GH7T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 755 C",
+          "product_id": "GF2T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 765 C",
+          "product_id": "GF3T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 775 C",
+          "product_id": "GF4T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 850 C",
+          "product_id": "GZ5T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 855 C",
+          "product_id": "GZ6T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 865 C",
+          "product_id": "GZ7T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 643 C",
+          "product_id": "GL4T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 743 C",
+          "product_id": "GW1T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 632 C",
+          "product_id": "GV1T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        },
+        {
+          "name": "A 875 C",
+          "product_id": "HG3T00",
+          "relationship": "İlgili ürün",
+          "required_quantity": null
+        }
+      ],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelikten-kucuk-ev-aletleri-alanlara-6-ay-disney-uyeligi-hediye",
+      "name": "Arçelik’ten Küçük Ev Aleti Alanlara 6 Ay Disney+ Üyeliği Hediye!",
+      "category": "kucuk-ev-aletleri-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/kucuk-ev-aletleri-kampanyalari/arcelikten-kucuk-ev-aletleri-alanlara-6-ay-disney-uyeligi-hediye",
+      "date_text": "1 Ağustos - 31 Aralık 2026",
+      "start_date": "2026-08-01",
+      "end_date": "2026-12-31",
+      "conditions": [
+        "Katılım KoşullarıDisney+ Nedir?Disney+; Disney, Pixar, Marvel, Star Wars ve National Geographic içeriklerinin yanı sıra, dünyaca ünlü “The Simpsons” ve herkese hitap eden daha birçok dizi, film ve orijinal içeriğin yer aldığı genel eğlence markası Hulu’nun da yer aldığı dijital yayın platformudur. The Walt Disney Company’nin amiral gemisi olarak tüketiciye doğrudan yayın servisi sağlayan platform; ödüllü genel eğlence içerikleri ve herkese hitap eden yapımlardan oluşan eşsiz bir katalogla dünya çapında izleyiciler için bir buluşma noktasıdır. Disney’in sahibi olduğu benzersiz film ve dizi arşivine erişim sunan Disney+, aynı zamanda The Walt Disney Studios’un en yeni yapımlarının yer aldığı tek platformdur. Ayrıca 20th Century Studios, Disney Television Studios, FX, Searchlight Pictures ve daha birçok öne çıkan stüdyonun yapımları sadece Disney+’ta yer alır. Daha fazlası için disneyplus.com’u ziyaret edebilir veya mobil ve TV cihazlarından Disney+ uygulamasına erişebilirsiniz.İyi seyirler!Üyeliğimi Nasıl Aktive Edebilirim?Arçelik Küçük Ev Aletleri alışverişinizi tamamladıktan sonra size gönderilen SMS’teki linke tıklayarak aşağıdaki adımları takip edebilirsiniz:Linke tıklayın ve yönlendirilen sayfadaki kampanya sayfasına gidin.E-posta adresinizi girin. Daha önce Disney+ hesabınız yoksa yeni bir hesap oluşturmanız istenir.Yeni kullanıcıysanız: Parola belirleyerek hesabınızı oluşturun.Mevcut kullanıcıysanız: Mevcut şifrenizle giriş yapın.Pazarlama mesajları onayınızı seçin ve Kullanım Koşulları’nı kabul edin.Teklif detaylarını ve ödeme ekranını görüntüleyin. Bu ekranda kampanya süresi ve promosyon koşulları belirtilir. Sizden bir ödeme yöntemi girmeniz istenebilir. (Promosyon süresi bitiminde üyeliğinizi iptal edebilirsiniz.)Özet sayfasında kampanya bilgilerini gözden geçirin.“Üye Ol” butonuna tıklayarak işlemi tamamlayın.Üyeliğinizin aktif olduğunu belirten ekranı gördükten sonra:Profilinizi oluşturunDisney+ içeriklerini izlemeye başlayın.Mobil cihazdaysanız, TV’nize Disney+ uygulamasını indirerek izlemeye devam edebilirsiniz.Üyelik aktif olduktan sonra:Üyelik yönetim ekranına erişebilir,Kampanya geçerlilik süresine dair bilgilere ulaşabilirsiniz.Kampanya Koşulları:Arçelik’ten seçili Küçük Ev Aletleri satın alan tüm tüketiciler kampanyadan faydalanabilir. Kampanya bitiş süresi31 Aralık 2026.İlgili kampanya Oliz ile satın alımlarda geçerlidir.Disney+’ta daha önce hesap oluşturmuş ancak aktif üyeliği olmayan kullanıcılar da kampanyadan yararlanabilir.Aktif üyeliği olan kullanıcılar üyeliklerini sonlandırarak, son ödeme döneminin bitimini takiben kampanyaya dahil olabilirler.Promosyon kodları alındıktan sonra30 Ocak 2027tarihe kadar aktive edilmelidir. Bu tarihten sonra aktivasyon işlemi yapılamaz.Kampanya kodları yalnızca bir kez kullanılabilir ve başka kampanyalarla birleştirilemez.Kampanya kapsamındaDisney+ 7500 TL altı ürünler için ilk ay 6, 7500 TL ve üzeri ürünler için 12 ay hediyedir.Üyeliğinizi iptal etmediğiniz takdirde, kampanya süresi sonunda üyelik ücretiniz güncel fiyatlar üzerinden yenilenir.Kod kullanımıyla ilgili sorularınız için:https://www.arcelik.com.tr/destekve/veyahttps://help.disneyplus.comadreslerini ziyaret edebilir. Ayrıca,+90 800 621 2127 Disney+ Türkiye Çağrı Merkezi’ni arayarak kampanya bilgisiyle birlikte e-posta adresiniz ve kullanıcı adınızı ileterek destek talebinde bulunabilirsiniz.Seçili Küçük Ev Aletleri Modelleri:BKG 6916 ;BKG 7122;BSU 2110 S;BSU 2110 Y;BEU 5124 ;BEU 4024 M ;BEU 6024 ;BEU 6024 M ;BEU 9030 M ;ÜTÜ MASASI S;K 6224;KD 3151;S 3645;UVT 1000;TRB 6984 Toz Torbası;TRB 3982 Toz Torbası;6255 T.Torbası 6'lı;S 4540 / TRB 6986 / S 4250 A / 4240 C Toz Torbası;4960/4961T.Torba5li;4925/4910 T.Torba5li;K 1291;K 1632 VS;DO 3585;DO 9266 CI ;K 1435 MK;Kıyma, Sucuk ve İçli Köfte Aksesuarı;MK 9250 I ;KB 6234 T ;KB 6534 TM;KB 6534 TT;KB 9408;HB 6410;HBS 6150 ;HBS 6410;RHB 3410;RHB 6050;RHB 6050 S;RHB 6050 K;RHB 6050 G;RHB 9410;MS 6210 ;MS 6410 B;Proyo Aksesuar Kiti;TM 6306 S;TM 6206 G ;TM 6606 I;TM 3302 WAFFLE TOST;EK 6120 I;EK 6521;EK 9320 I ;EK 6420;FRA 6244;FRA 6244-Mısır;FRA 6464 X;FRA 6334 B;KL 9022 I ;KL 9221 I ;KL 9221 I ;KL 6412 I CAM ;KL 6422 - RETRO;KL 6522 I;KL 6522 I Voltran JR SS Malezya;KL 9513 I - Digital;K 3281 C;CM 3626 IC;CM 6342 IN;CM 6582 I - XL INOX;CM 6964 K;CM 6964 S;CM 6964 Beyaz;CM 6964 G;CM 6587 G XL CAM;TKM 3341 TELVEX ;TKM 3341 TELVEX ;TKM 3341 TELVE-X SİYAH;TKM 6448 Telve-X Sütlü;K 3300 Beyaz;K 3300 Kırmızı;K 3300 Siyah Yeni;K 3300 GRION;K 3300 / 40 YIL;K 3300 100. YIL KIRM;3300 TFF KIRMZI ;K 3400 Beyaz-Y;K 3400 Kırmızı-Y;K 3500;KO 9111 I;KO 9410;KO 9420;FK 9110 I;FK 6112 I;FK 6310 S;FK 9314 I ;FK 6414 ;EM 3450 - steam nozzle; BEU 9030 D;BIU 6324;BKU 6030;BKU 9130;TRB 3174;TRB 6986 B ;S 4540 T;TSZ 3282;S 7564;TSZ 6282;STSZ 9525;TSZ 6083;RS 3221;RS 9221;RS 9221;RS 9231;RS 6121;RS 6131;RS 9551;SD 9261;SD 9361;SD 9361;SD 9461;SDI 9524 ;SDI 3575;SD 3341;SD 3141;SD 6141;SD 9041K;SD 9161;SD 6341;SD 9441;S 7610;BVT 65 A;BVT 75 A;CSR 55 A;MM 9042 DS;MM 6371;MM 6471 S;MM 6491 S;MM 6491 G;Hamur Açma ve Kesme Aksesuarı;TB 9285 CI ;HBS 9285 CI ;DM 6644 S ;K 1583;SM 6670;KM 6024 M;SMC 9491;YM 3200 I;YM 9242 I;TM 6046 CK;TM 6046 CS;TM 6046 CS;TM 6046 CK;TM 6046 G;TM 6046 C;TM 6046 C;TMW 6046 G;TMD 9546 C;TM 9946 I ;TM 9046 S;FRA 6364 S XXL;FR 9284 - 2IN1 ;FRA 9494 ;FR 9374;MC 6056 I;MC 6251 ;CM 9058 B;CFM 9449 S 3IN1 CAM;CFM 9649 S MIP;CFM 9147 B BIO;CFM 9147 I INOX ;SE 9034;SE 9035 I Porselen;SE 9036 I;SE 9038 I (Inox - inox);K 3300 CR;K 3300 LS;K 3300 LT;TKM 9961 B;TKM 9961 S;TKM 9961 L;TKM 9961 GRION ;TKM 9961 BIO;TKM 9961 Z;TKO 6540;K 3170 70.YIL ;K 3700;FK 9518 S Benz Brew;EM 3353;EM 6450 kapsüllü;EM 8550 - GRIND PRO;TEM 9690;EM 6395;EM 9495 ;EM 9595 - V4;CAR COOLER OTB 61223",
+        "Linke tıklayın ve yönlendirilen sayfadaki kampanya sayfasına gidin.",
+        "E-posta adresinizi girin. Daha önce Disney+ hesabınız yoksa yeni bir hesap oluşturmanız istenir.",
+        "Yeni kullanıcıysanız: Parola belirleyerek hesabınızı oluşturun.",
+        "Mevcut kullanıcıysanız: Mevcut şifrenizle giriş yapın.",
+        "Pazarlama mesajları onayınızı seçin ve Kullanım Koşulları’nı kabul edin.",
+        "Teklif detaylarını ve ödeme ekranını görüntüleyin. Bu ekranda kampanya süresi ve promosyon koşulları belirtilir. Sizden bir ödeme yöntemi girmeniz istenebilir. (Promosyon süresi bitiminde üyeliğinizi iptal edebilirsiniz.)",
+        "Özet sayfasında kampanya bilgilerini gözden geçirin.",
+        "“Üye Ol” butonuna tıklayarak işlemi tamamlayın.",
+        "Profilinizi oluşturun",
+        "Disney+ içeriklerini izlemeye başlayın.",
+        "Mobil cihazdaysanız, TV’nize Disney+ uygulamasını indirerek izlemeye devam edebilirsiniz.",
+        "Üyelik yönetim ekranına erişebilir,",
+        "Kampanya geçerlilik süresine dair bilgilere ulaşabilirsiniz.",
+        "Arçelik’ten seçili Küçük Ev Aletleri satın alan tüm tüketiciler kampanyadan faydalanabilir. Kampanya bitiş süresi31 Aralık 2026.",
+        "İlgili kampanya Oliz ile satın alımlarda geçerlidir.",
+        "Disney+’ta daha önce hesap oluşturmuş ancak aktif üyeliği olmayan kullanıcılar da kampanyadan yararlanabilir.",
+        "Aktif üyeliği olan kullanıcılar üyeliklerini sonlandırarak, son ödeme döneminin bitimini takiben kampanyaya dahil olabilirler.",
+        "Promosyon kodları alındıktan sonra30 Ocak 2027tarihe kadar aktive edilmelidir. Bu tarihten sonra aktivasyon işlemi yapılamaz.",
+        "Kampanya kodları yalnızca bir kez kullanılabilir ve başka kampanyalarla birleştirilemez.",
+        "Kampanya kapsamındaDisney+ 7500 TL altı ürünler için ilk ay 6, 7500 TL ve üzeri ürünler için 12 ay hediyedir.Üyeliğinizi iptal etmediğiniz takdirde, kampanya süresi sonunda üyelik ücretiniz güncel fiyatlar üzerinden yenilenir.",
+        "Kod kullanımıyla ilgili sorularınız için:https://www.arcelik.com.tr/destekve/veyahttps://help.disneyplus.comadreslerini ziyaret edebilir. Ayrıca,+90 800 621 2127 Disney+ Türkiye Çağrı Merkezi’ni arayarak kampanya bilgisiyle birlikte e-posta adresiniz ve kullanıcı adınızı ileterek destek talebinde bulunabilirsiniz."
+      ],
+      "product_count": 0,
+      "products": [],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    },
+    {
+      "id": "arcelik-tv-alan-kullanicilara-2-ay-mubi-uyeligi-hediye",
+      "name": "TV Alan Kullanıcılara 2 Ay MUBI Üyeliği Hediye!",
+      "category": "televizyon-kampanyalari",
+      "url": "https://www.arcelik.com.tr/kampanyalar/televizyon-kampanyalari/arcelik-tv-alan-kullanicilara-2-ay-mubi-uyeligi-hediye",
+      "date_text": "1 Ağustos - 31 Aralık 2026",
+      "start_date": "2026-08-01",
+      "end_date": "2026-12-31",
+      "conditions": [
+        "Katılım KoşullarıMUBI Nedir?Dünya çapında 190 ülkede hizmet veren MUBI, global bir çevrimiçi film seçkisi, yapım şirketi ve film dağıtımcısıdır. Birbirinden güzel, heyecan verici, inanılmaz filmlerin keşfedildiği ve seyredildiği yerdir. Sinemanın efsanevi yaratıcılarından yükselen yönetmenlere, dünyanın her köşesinden filmler MUBI küratörleri tarafından özenle seçilir. MUBI aynı zamanda sadece platform üzerinden erişebilecek iddialı yeni filmlerin yapımcısı ve dağıtımcısıdır.İyi seyirler!Üyeliğimi Nasıl Aktive Edebilirim?Arçelik marka TV’nizi satın aldıktan sonra, MUBI uygulamasını TV'nizin uygulama mağazasından indirip aşağıdaki adımları takip ederek 2 aylık ücretsiz üyelik hakkınızı otomatik olarak kullanabilirsiniz:Arçelik TV’nizden uygulama mağazasına girin.MUBI uygulamasını bulun ve yükleyin.Uygulamayı açarak giriş yapın veya yeni bir hesap oluşturun.Kullanıcı bilgilerinizi ve ödeme bilgilerinizi girin.Üyeliğiniz otomatik olarak 2 ay boyunca ücretsiz olarak tanımlanacaktır.( Ücretsiz dönem sona erdiğinde, üyeliğiniz iptal edilmediği takdirde, güncel fiyatlar üzerinden otomatik olarak yenilenir.)Kampanya KoşullarıKampanya, sadeceArçelik marka seçili Google ve Android TV modelleriiçin geçerlidir.Ücretsiz deneme süresi, yalnızca MUBI uygulaması üzerinden başlatılan yeni üyeliklerde geçerlidir.Ayrıca daha önce MUBI üyeliği bulunan ancak şu anda aktif olmayan kullanıcılar da kampanyadan faydalanabilir.Kod veya SMS gönderimi yapılmaz, üyelik otomatik olarak sistem üzerinden tanımlanır.Kampanya başka kampanyalarla birleştirilemez.Her kullanıcı kampanyadan bir kez faydalanabilir.Yardım ve destek için:https://mubi.com/helpSeçili TV ModelleriA98 Q 995 X; A85 N 995 X; A75 QE 988 A; A75 D 986 S; A75 E 895 A; A75 D 895 A; A75 E 795 B; A75 D 790 B; A65 OLED D 975 A; A65 Q 990 AY; A65 QE 988 A; A65 Q 987 A; A65 D 986 S; A65 E 895 A; A65 D 895 A; A65 E 795 B; A65 D 790 B; A55 OLED D 975 A; A55 Q 990 AY; A55 QE 988 A; A55 Q 987 A; A55 D 986 S; A55 E 895 A; A55 D 895 A; A55 E 795 B; A55 D 790 B; A50 D 986 S; A50 E 895 A; A50 D 895 A; A50 E 795 B; A50 D 790 B; A43 E 795 B; A43 D 790 B; A43 D 697 B; A43 D 695 B; A40 D 697 B; A40 D 695 B; A40 D 560 B; A32 D 696 B; A32 D 695 B; A32 D 561 B",
+        "Arçelik TV’nizden uygulama mağazasına girin.",
+        "MUBI uygulamasını bulun ve yükleyin.",
+        "Uygulamayı açarak giriş yapın veya yeni bir hesap oluşturun.",
+        "Kullanıcı bilgilerinizi ve ödeme bilgilerinizi girin.",
+        "Üyeliğiniz otomatik olarak 2 ay boyunca ücretsiz olarak tanımlanacaktır.( Ücretsiz dönem sona erdiğinde, üyeliğiniz iptal edilmediği takdirde, güncel fiyatlar üzerinden otomatik olarak yenilenir.)",
+        "Kampanya, sadeceArçelik marka seçili Google ve Android TV modelleriiçin geçerlidir.",
+        "Ücretsiz deneme süresi, yalnızca MUBI uygulaması üzerinden başlatılan yeni üyeliklerde geçerlidir.",
+        "Ayrıca daha önce MUBI üyeliği bulunan ancak şu anda aktif olmayan kullanıcılar da kampanyadan faydalanabilir.",
+        "Kod veya SMS gönderimi yapılmaz, üyelik otomatik olarak sistem üzerinden tanımlanır.",
+        "Kampanya başka kampanyalarla birleştirilemez.",
+        "Her kullanıcı kampanyadan bir kez faydalanabilir.",
+        "Yardım ve destek için:https://mubi.com/help"
+      ],
+      "product_count": 0,
+      "products": [],
+      "scraped_at": "2026-11-22T14:26:27Z"
+    }
+  ]
+}

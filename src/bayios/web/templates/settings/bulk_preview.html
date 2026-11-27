@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-heading">
+    <a class="breadcrumb" href="{{ back_url }}">&larr; Geri</a>
+    <h1>{{ title }}</h1>
+    <p class="page-subtitle">{{ preview.new_count }} yeni, {{ preview.existing_count }} mevcut, {{ preview.error_count }} hatalı satır.</p>
+  </div>
+  <div class="page-actions"><a class="btn" href="{{ back_url }}">Vazgeç</a></div>
+</div>
+
+{% if preview.error_count %}
+<div class="alert alert-danger"><span><strong>Düzeltme gerekli:</strong> Hatalı satırlar varken toplu ekleme yapılamaz.</span></div>
+{% endif %}
+
+<section class="panel">
+  <div class="panel-header">
+    <div>
+      <h2>Toplu Ekleme Önizlemesi</h2>
+      <p>Yeni kayıtlar canonical adlarıyla oluşturulur; mevcut kayıtlar atlanır.</p>
+    </div>
+  </div>
+  <div class="panel-body panel-body-flush">
+    <div class="table-container mobile-cards-container" style="border: 0; border-radius: 0; margin-top: 0;">
+      <table class="data-table mobile-cards">
+        <thead><tr><th class="col-name">Girilen</th><th class="col-name">Görünecek Ad</th><th>Durum</th><th>Not</th></tr></thead>
+        <tbody>
+          {% for item in preview.items %}
+          <tr>
+            <td class="col-name" data-label="Girilen">{{ item.raw }}</td>
+            <td class="col-name" data-label="Görünecek Ad"><strong>{{ item.canonical }}</strong></td>
+            <td data-label="Durum">{% if item.status == 'new' %}<span class="badge badge-success">Yeni</span>{% elif item.status == 'existing' %}<span class="badge badge-info">Mevcut</span>{% else %}<span class="badge badge-danger">Hatalı</span>{% endif %}</td>
+            <td data-label="Not">{{ item.message or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="panel-footer">
+    <form method="post" action="{{ action }}">
+      <textarea name="names" hidden>{{ raw_text }}</textarea>
+      <div class="modal-actions" style="margin-top: 0;">
+        <a href="{{ back_url }}" class="btn">Vazgeç</a>
+        <button type="submit" class="btn btn-primary" {% if preview.error_count %}disabled{% endif %}>Yeni Kayıtları Ekle</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

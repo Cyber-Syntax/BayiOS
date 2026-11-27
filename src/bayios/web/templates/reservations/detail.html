@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Rezervasyon #{{ reservation.reservation_number }}{% endblock %}
+{% block content %}
+{% set msg = request.query_params.get('msg') or error or '' %}
+{% set success_messages = {
+  'created': 'Rezervasyon oluşturuldu.',
+  'updated': 'Rezervasyon bilgileri güncellendi.',
+  'item_added': 'Rezervasyona satır eklendi.',
+  'quantity_updated': 'Satır miktarı güncellendi.',
+  'item_removed': 'Satır kaldırıldı.',
+  'status_changed': 'Satır durumu güncellendi.',
+  'delivered': 'Teslimat kaydedildi; fiziksel stok düşüldü.',
+  'cancelled': 'İptal kaydedildi; fiziksel stok değişmedi.',
+  'snoozed': 'Hatırlatma ertelendi.'
+} %}
+<div x-data="{ showEdit: false, showSnooze: false }">
+  {% if msg in success_messages %}
+  <div class="alert alert-success"><span><strong>Başarılı:</strong> {{ success_messages[msg] }}</span></div>
+  {% elif msg.startswith('error:') %}
+  <div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
+  {% elif msg %}
+  <div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg }}</span></div>
+  {% endif %}
+
+  <div class="page-header">
+    <div class="page-heading">
+      <a class="breadcrumb" href="/reservations">{{ icon("arrow-left", "icon icon-sm") }} Rezervasyonlar</a>
+      <h1>Rezervasyon #{{ reservation.reservation_number }} · {{ reservation.customer_name }}</h1>
+      <div class="product-heading-meta">
+        <span class="muted small">{{ reservation.reservation_date | tr_date_long }}</span>
+        <span class="muted small">· Hatırlatma: {{ reservation.reminder_due_at | tr_date_long }}</span>
+        <span class="badge {% if reservation.is_overdue %}badge-warning{% elif reservation.reminder_status == 'resolved' %}badge-success{% else %}badge-info{% endif %}">{{ reservation.reminder_label }}</span>
+      </div>
+    </div>
+    <div class="page-actions">
+      <details class="menu">
+        <summary class="btn">{{ icon("print") }} A4 (Depo + Bayi)</summary>
+        <div class="menu-panel">
+          <a href="/reservations/{{ reservation.id }}/print?copy=both">Depo + Bayi</a>
+          <a href="/reservations/{{ reservation.id }}/print?copy=depot">Depo Kopyası</a>
+          <a href="/reservations/{{ reservation.id }}/print?copy=dealer">Bayi Kopyası</a>
+        </div>
+      </details>
+      <button type="button" class="btn" @click="showEdit = true">{{ icon("edit") }} Düzenle</button>
+      <button type="button" class="btn" @click="showSnooze = true">{{ icon("clock") }} Hatırlatmayı Ertele</button>
+    </div>
+  </div>
+
+  <div class="grid-stats" style="margin-bottom: 16px;">
+    <div class="stat-box">
+      <div class="stat-label">Durum</div>
+      <div class="stat-value stat-value-sm">
+        <span class="badge {% if reservation.summary.label == 'Teslim edildi' %}badge-success{% elif reservation.summary.label == 'İptal' %}badge-danger{% elif reservation.summary.label == 'Kısmi süreçte' %}badge-warning{% else %}badge-info{% endif %}">{{ reservation.summary.label }}</span>
+      </div>
+    </div>
+    <div class="stat-box"><div class="stat-label">Toplam Miktar</div><div class="stat-value">{{ reservation.summary.total_quantity }}</div></div>
+    <div class="stat-box"><div class="stat-label">Teslim Edilen</div><div class="stat-value" style="color: var(--success);">{{ reservation.summary.delivered_quantity }}</div></div>
+    <div class="stat-box"><div class="stat-label">İptal Edilen</div><div class="stat-value" style="color: var(--danger);">{{ reservation.summary.cancelled_quantity }}</div></div>
+    <div class="stat-box"><div class="stat-label">Açık Rezerve</div><div class="stat-value" style="color: var(--info);">{{ reservation.summary.open_quantity }}</div></div>
+  </div>
+
+  {% if reservation.note %}
+  <div class="internal-banner" style="margin-bottom: 16px;">
+    {{ icon("info") }}
+    <span><strong>Not:</strong> {{ reservation.note }}</span>
+  </div>
+  {% endif %}
+
+  <section class="panel" style="margin-bottom: 16px;">
+    <div class="panel-header">
+      <div>
+        <h2>Rezervasyon Satırları</h2>
+        <p>{{ reservation.items | length }} satır · teslimat ve kurulum takibi.</p>
+      </div>
+    </div>
+    <div class="panel-body">
+      {% for item in reservation.items %}
+      <article class="res-line">
+        <div class="res-line-head">
+          <div style="min-width: 0;">
+            <div class="res-line-title">{{ item.product_name }}</div>
+            <div class="res-line-meta">
+              {% if item.external_id %}<span class="mono">ID: {{ item.external_id }}</span>{% endif %}
+              {% if item.product_id is none %}<span> · Ürün kaydı silinmiş; snapshot'tan gösteriliyor.</span>{% endif %}
+              {% if item.service_date %} · Servis: {{ item.service_date | tr_date_long }}{% endif %}
+              {% if item.other_dealer_note %} · Temin: {{ item.other_dealer_note }}{% endif %}
+            </div>
+          </div>
+          <span class="badge {% if item.status == 'delivered' %}badge-success{% elif item.status == 'cancelled' %}badge-danger{% elif item.status == 'reserved' %}badge-info{% else %}badge-warning{% endif %}">{{ item.status_label }}</span>
+        </div>
+
+        <div class="res-line-metrics">
+          <div class="res-metric"><span>Miktar</span><strong>{{ item.quantity }}</strong></div>
+          <div class="res-metric"><span>Teslim</span><strong>{{ item.delivered_quantity }}</strong></div>
+          <div class="res-metric"><span>İptal</span><strong>{{ item.cancelled_quantity }}</strong></div>
+          <div class="res-metric"><span>Açık</span><strong>{{ item.open_quantity }}</strong></div>
+        </div>
+
+        {% if not item.is_terminal and item.product_id is not none %}
+        <div class="res-action-grid">
+          <div class="res-action">
+            <h4>Teslim Et</h4>
+            <form method="post" action="/reservations/{{ reservation.id }}/items/{{ item.id }}/deliver">
+              <div class="form-group">
+                <label for="deliver-qty-{{ item.id }}">Adet</label>
+                <input type="number" id="deliver-qty-{{ item.id }}" name="quantity" class="form-control" min="1" max="{{ item.open_quantity }}" value="{{ item.open_quantity }}" required inputmode="numeric">
+              </div>
+              <div class="form-group">
+                <label for="deliver-reason-{{ item.id }}">Stok gerekçesi (ops.)</label>
+                <input type="text" id="deliver-reason-{{ item.id }}" name="low_stock_reason" class="form-control" placeholder="Stok yetersizse">
+              </div>
+              <input type="hidden" name="idempotency_key" value="{{ item.id }}-{{ page_token }}">
+              <button type="submit" class="btn btn-sm btn-primary">{{ icon("check", "icon icon-sm") }} Teslim Et</button>
+            </form>
+          </div>
+
+          <div class="res-action">
+            <h4>İptal Et</h4>
+            <form method="post" action="/reservations/{{ reservation.id }}/items/{{ item.id }}/cancel">
+              <div class="form-group">
+                <label for="cancel-qty-{{ item.id }}">Adet</label>
+                <input type="number" id="cancel-qty-{{ item.id }}" name="quantity" class="form-control" min="1" max="{{ item.open_quantity }}" value="{{ item.open_quantity }}" required inputmode="numeric">
+              </div>
+              <div class="form-group">
+                <label for="cancel-note-{{ item.id }}">İptal notu</label>
+                <input type="text" id="cancel-note-{{ item.id }}" name="note" class="form-control" placeholder="Neden iptal?">
+              </div>
+              <button type="submit" class="btn btn-sm btn-danger">{{ icon("close", "icon icon-sm") }} İptal Et</button>
+            </form>
+          </div>
+        </div>
+
+        <details class="accordion" style="margin-top: 10px;">
+          <summary><span class="accordion-title">{{ icon("sliders") }} Durum ve miktar işlemleri</span></summary>
+          <div class="accordion-body">
+            <div class="res-action-grid">
+              <div class="res-action">
+                <h4>Durum Güncelle</h4>
+                <form method="post" action="/reservations/{{ reservation.id }}/items/{{ item.id }}/status">
+                  <div class="form-group">
+                    <label for="status-{{ item.id }}">Yeni durum</label>
+                    <select id="status-{{ item.id }}" name="target_status" class="form-control">
+                      {% for value, label in status_options %}
+                      <option value="{{ value }}" {% if item.status == value %}disabled{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="service-date-{{ item.id }}">Servis tarihi</label>
+                    <input type="date" id="service-date-{{ item.id }}" name="service_date" class="form-control" placeholder="Servis tarihi" data-date-picker>
+                  </div>
+                  <div class="form-group">
+                    <label for="dealer-note-{{ item.id }}">Temin notu</label>
+                    <input type="text" id="dealer-note-{{ item.id }}" name="other_dealer_note" class="form-control" placeholder="Başka bayiden temin">
+                  </div>
+                  <button type="submit" class="btn btn-sm">Durumu Güncelle</button>
+                </form>
+              </div>
+              <div class="res-action">
+                <h4>Miktar Güncelle</h4>
+                <form method="post" action="/reservations/{{ reservation.id }}/items/{{ item.id }}/quantity">
+                  <div class="form-group">
+                    <label for="qty-{{ item.id }}">Yeni miktar</label>
+                    <input type="number" id="qty-{{ item.id }}" name="quantity" class="form-control" min="1" value="{{ item.quantity }}" required inputmode="numeric">
+                  </div>
+                  <div class="form-group">
+                    <label for="qty-note-{{ item.id }}">Not</label>
+                    <input type="text" id="qty-note-{{ item.id }}" name="note" class="form-control" placeholder="Değişiklik notu">
+                  </div>
+                  <button type="submit" class="btn btn-sm">Kaydet</button>
+                  {% if item.delivered_quantity == 0 and item.cancelled_quantity == 0 %}
+                  <button type="submit" class="btn btn-sm btn-danger" formaction="/reservations/{{ reservation.id }}/items/{{ item.id }}/remove" formnovalidate>Satırı Sil</button>
+                  {% endif %}
+                </form>
+              </div>
+            </div>
+          </div>
+        </details>
+        {% else %}
+        <p class="muted small" style="margin: 0;">Bu satırda işlem kapalı.</p>
+        {% endif %}
+
+        <details class="accordion" style="margin-top: 10px;">
+          <summary><span class="accordion-title">{{ icon("clock") }} Hareket geçmişi ({{ item.events | length }})</span></summary>
+          <div class="accordion-body">
+            {% if item.events %}
+            <div class="stack-sm">
+              {% for event in item.events %}
+              <div class="kv-row" style="display: block;">
+                <span class="muted small">{{ event.event_at | tr_datetime }}</span>
+                <div>
+                  {{ status_labels.get(event.old_status, '—') }} → {{ status_labels.get(event.new_status, event.new_status) }}
+                  {% if event.quantity_delta %}({{ event.quantity_delta }}){% endif %}
+                  {% if event.note %} · {{ event.note }}{% endif %}
+                  {% if event.created_by_name %} · {{ event.created_by_name }}{% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="muted small" style="margin: 0;">Hareket kaydı yok.</p>
+            {% endif %}
+          </div>
+        </details>
+      </article>
+      {% else %}
+      <div class="empty-state">
+        {{ icon("reservations") }}
+        <strong>Rezervasyon satırı yok</strong>
+        <p>Aşağıdaki arama alanından ürün ekleyin.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel" style="margin-bottom: 16px;">
+    <div class="panel-header">
+      <div>
+        <h2>Satır Ekle</h2>
+        <p>Ürün arayın, sonuçtan ekleyin.</p>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="search-field" style="max-width: 28rem;">
+        {{ icon("search") }}
+        <input type="search" name="q" class="form-control" placeholder="Ürün adı ile ara (örn: 07325 A)" autocomplete="off"
+               hx-get="/reservations/{{ reservation.id }}/items/picker"
+               hx-trigger="keyup changed delay:300ms, search"
+               hx-target="#add-item-results"
+               hx-include="this" aria-label="Ürün adı ile ara">
+      </div>
+      <div id="add-item-results" style="margin-top: 12px;"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <details class="accordion" style="border: 0;">
+      <summary><span class="accordion-title">{{ icon("clock") }} Hatırlatma Geçmişi ({{ reservation.reminders | length }})</span></summary>
+      <div class="accordion-body">
+        {% if reservation.reminders %}
+        <div class="stack-sm">
+          {% for reminder in reservation.reminders %}
+          <div class="kv-row" style="display: block;">
+            <span class="muted small">{{ reminder.created_at | tr_datetime }}</span>
+            <div>{{ reminder.previous_due_at | tr_date_long }} → {{ reminder.new_due_at | tr_date_long }}{% if reminder.note %} · {{ reminder.note }}{% endif %}{% if reminder.created_by_name %} · {{ reminder.created_by_name }}{% endif %}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="muted small" style="margin: 0;">Henüz erteleme yapılmadı.</p>
+        {% endif %}
+      </div>
+    </details>
+  </section>
+
+  <div x-show="showEdit" class="modal-backdrop" x-cloak @click.self="showEdit = false">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="res-edit-title">
+      <div class="modal-header">
+        <div>
+          <h2 id="res-edit-title">Rezervasyonu Düzenle</h2>
+          <p>Müşteri, tarih ve not bilgilerini güncelleyin.</p>
+        </div>
+        <button type="button" class="modal-close" @click="showEdit = false" aria-label="Kapat">{{ icon("close") }}</button>
+      </div>
+      <form method="post" action="/reservations/{{ reservation.id }}/edit">
+        <div class="form-group">
+          <label for="edit-customer">Müşteri Adı Soyadı *</label>
+          <input type="text" id="edit-customer" name="customer_name" class="form-control" required value="{{ reservation.customer_name }}">
+        </div>
+        <div class="form-group">
+          <label for="edit-date">Rezervasyon Tarihi</label>
+          <input type="date" id="edit-date" name="reservation_date" class="form-control" value="{{ reservation.reservation_date | iso_date }}" data-date-picker data-date-preview="edit-date-preview">
+          <small id="edit-date-preview" class="muted small">{{ reservation.reservation_date | tr_date_long }}</small>
+        </div>
+        <div class="form-group">
+          <label for="edit-note">Not</label>
+          <input type="text" id="edit-note" name="note" class="form-control" value="{{ reservation.note or '' }}">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn" @click="showEdit = false">Vazgeç</button>
+          <button type="submit" class="btn btn-primary">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div x-show="showSnooze" class="modal-backdrop" x-cloak @click.self="showSnooze = false">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="res-snooze-title">
+      <div class="modal-header">
+        <div>
+          <h2 id="res-snooze-title">Hatırlatmayı Ertele</h2>
+          <p>Varsayılan erteleme bir aydır; tarihi değiştirebilirsiniz.</p>
+        </div>
+        <button type="button" class="modal-close" @click="showSnooze = false" aria-label="Kapat">{{ icon("close") }}</button>
+      </div>
+      <form method="post" action="/reservations/{{ reservation.id }}/reminder/snooze">
+        <div class="form-group">
+          <label for="snooze-date">Yeni Hatırlatma Tarihi</label>
+          <input type="date" id="snooze-date" name="new_due_at" class="form-control" value="{{ default_snooze | iso_date }}" data-date-picker data-date-preview="snooze-date-preview">
+          <small id="snooze-date-preview" class="muted small">{{ default_snooze | tr_date_long }}</small>
+        </div>
+        <div class="form-group">
+          <label for="snooze-note">Not</label>
+          <input type="text" id="snooze-note" name="note" class="form-control" placeholder="örn: Müşteri arandı, teslimat ertelendi">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn" @click="showSnooze = false">Vazgeç</button>
+          <button type="submit" class="btn btn-primary">Ertele</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

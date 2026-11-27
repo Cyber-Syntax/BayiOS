@@ -1,0 +1,240 @@
+import json
+import uuid
+from datetime import UTC, datetime
+from decimal import Decimal
+
+from bayios.adapters.db.models.products import Product
+from bayios.application.imports import ProductIndex, preview_product_import
+from tests.fakes import FakeUnitOfWork
+
+
+def test_preview_product_import_classifies_new_and_invalid_rows() -> None:
+    result = preview_product_import(
+        b"product_name,regular_price,quantity\nNew Product,1200,3\n,not-a-price,abc\n"
+    )
+
+    # Problematic rows are sorted to the top
+    assert [row.decision for row in result.rows] == ["error", "create"]
+    assert result.rows[0].errors == (
+        "Ürün adı zorunludur.",
+        "Perakende fiyat sayısal olmalıdır.",
+        "Fiziksel stok negatif olmayan tam sayı olmalıdır.",
+    )
+    assert result.rows[1].product_name == "New Product"
+    assert result.rows[1].regular_price == "1200"
+
+
+def test_preview_product_import_accepts_cp1254_semicolon_and_bom() -> None:
+    result = preview_product_import(
+        b"\xef\xbb\xbf" + "Name;Regular Price;Quantity\nBuzdolabı;12,50;0\n".encode("cp1254")
+    )
+
+    assert result.rows[0].decision == "create"
+    assert result.rows[0].product_name == "Buzdolabı"
+    assert result.rows[0].regular_price == "12.50"
+    assert result.rows[0].quantity == "0"
+
+
+def test_preview_product_import_reads_xlsx_rows() -> None:
+    from io import BytesIO
+
+    from openpyxl import Workbook
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append(["product_name", "regular_price", "quantity"])
+    sheet.append(["Bulaşık Makinesi", 2500, 1])
+    stream = BytesIO()
+    workbook.save(stream)
+
+    result = preview_product_import(stream.getvalue())
+
+    assert result.rows[0].decision == "create"
+    assert result.rows[0].regular_price == "2500"
+    assert result.rows[0].quantity == "1"
+
+
+def test_preview_product_import_parses_optional_category() -> None:
+    csv_bytes = (
+        b"product_name,category,regular_price,quantity\n"
+        b"07325 A,Buzdolabi,38099,5\n"
+        b"09470 HP,,52899,0\n"
+    )
+
+    result = preview_product_import(csv_bytes)
+
+    assert result.rows[0].category_name == "Buzdolabi"
+    assert result.rows[1].category_name is None
+
+
+def test_preview_product_import_parses_arcelik_csv_format() -> None:
+    csv_bytes = (
+        b"product_name,regular_price,website_discounted_price,quantity\n"
+        b"0.58m  with Anderson cable,475 TL,\n"
+        b"07325 A,38.099 TL,34.099 TL\n"
+        b"10121,39.999 TL,\n"
+    )
+
+    result = preview_product_import(csv_bytes)
+
+    assert len(result.rows) == 3
+    # 0.58m cable: 475 TL, empty discounted price, empty quantity
+    assert result.rows[0].decision == "create"
+    assert result.rows[0].product_name == "0.58m  with Anderson cable"
+    assert result.rows[0].regular_price == "475"
+    assert result.rows[0].website_discounted_price is None
+    assert result.rows[0].quantity is None
+
+    # 07325 A: 38.099 TL, 34.099 TL, omitted quantity (3 columns)
+    assert result.rows[1].decision == "create"
+    assert result.rows[1].product_name == "07325 A"
+    assert result.rows[1].regular_price == "38099"
+    assert result.rows[1].website_discounted_price == "34099"
+    assert result.rows[1].quantity is None
+    assert result.rows[1].errors == ()
+    assert result.rows[1].warnings == (
+        "Madde kodu yok; ürün ada göre eşleştirilecek.",
+    )
+
+    # 10121: 39.999 TL, empty discounted, empty quantity
+    assert result.rows[2].decision == "create"
+    assert result.rows[2].product_name == "10121"
+    assert result.rows[2].regular_price == "39999"
+    assert result.rows[2].website_discounted_price is None
+    assert result.rows[2].quantity is None
+
+
+def test_preview_treats_zero_website_price_as_missing() -> None:
+    result = preview_product_import(
+        b"product_name,regular_price,website_discounted_price\n"
+        b"10121,39999,0\n"
+    )
+
+    assert result.rows[0].decision == "create"
+    assert result.rows[0].website_discounted_price is None
+    assert result.rows[0].clear_website_discounted_price is True
+    assert result.rows[0].errors == ()
+
+
+def test_preview_blank_oliz_cell_requests_clear_when_column_exists() -> None:
+    result = preview_product_import(
+        b"product_name,regular_price,website_discounted_price\n"
+        b"10121,39999,\n"
+    )
+
+    assert result.rows[0].website_discounted_price is None
+    assert result.rows[0].clear_website_discounted_price is True
+
+
+def test_preview_absent_oliz_column_does_not_request_clear() -> None:
+    result = preview_product_import(
+        b"product_name,regular_price\n"
+        b"10121,39999\n"
+    )
+
+    assert result.rows[0].website_discounted_price is None
+    assert result.rows[0].clear_website_discounted_price is False
+
+
+def test_preview_accepts_madde_kodu_header_and_skips_name_format_warning() -> None:
+    result = preview_product_import(
+        "Madde Kodu,Ürün Adı,Perakende Fiyat\n"
+        "9178065911,0.58m with Anderson cable,475\n".encode()
+    )
+
+    assert result.rows[0].external_id == "9178065911"
+    assert result.rows[0].warnings == ()
+    assert result.rows[0].decision == "create"
+
+
+def test_preview_warns_only_when_item_code_is_missing() -> None:
+    result = preview_product_import(
+        "Ürün Adı,Perakende Fiyat\n2 Yıl Garanti,3099\n".encode()
+    )
+
+    assert result.rows[0].warnings == (
+        "Madde kodu yok; ürün ada göre eşleştirilecek.",
+    )
+
+
+def _catalog_bytes(product: dict[str, object]) -> bytes:
+    return json.dumps(
+        {
+            "schema_version": "1.0",
+            "scraped_at": "2026-11-24T20:47:23Z",
+            "products": [product],
+        },
+        ensure_ascii=False,
+    ).encode("utf-8")
+
+
+def _indexed_catalog_uow() -> tuple[FakeUnitOfWork, bytes]:
+    uow = FakeUnitOfWork()
+    uow.products.add(
+        Product(
+            id=uuid.uuid4(),
+            external_id="100",
+            name="07325 A",
+            name_normalized="07325 a",
+            kind="product",
+            regular_price=Decimal(38099),
+            website_discounted_price=None,
+            physical_stock=0,
+            source_url="https://example.test/100",
+            scraped_at=datetime(2026, 11, 24, 20, 47, 23, tzinfo=UTC),
+            details={"features": [], "specifications": []},
+        )
+    )
+    source = _catalog_bytes(
+        {
+            "id": "100",
+            "product_name": "07325 A",
+            "category": "",
+            "price": 38099.0,
+            "discounted_price": None,
+            "currency": "TRY",
+            "source_url": "https://example.test/100",
+            "features": [],
+            "specifications": [],
+            "kind": "product",
+            "scraped_at": "2026-11-24T20:47:23Z",
+        }
+    )
+    return uow, source
+
+
+def test_preview_marks_unchanged_catalog_row_as_skip() -> None:
+    uow, source = _indexed_catalog_uow()
+
+    preview = preview_product_import(source, index=ProductIndex.load(uow))
+
+    row = preview.rows[0]
+    assert row.decision == "skip"
+    assert row.changes == ()
+    assert row.status_label == "Değişiklik yok"
+
+
+def test_preview_marks_real_catalog_change_as_update() -> None:
+    uow, _source = _indexed_catalog_uow()
+    changed = _catalog_bytes(
+        {
+            "id": "100",
+            "product_name": "07325 A",
+            "category": "",
+            "price": 39000.0,
+            "discounted_price": None,
+            "currency": "TRY",
+            "source_url": "https://example.test/100",
+            "features": [],
+            "specifications": [],
+            "kind": "product",
+            "scraped_at": "2026-11-24T20:47:23Z",
+        }
+    )
+
+    preview = preview_product_import(changed, index=ProductIndex.load(uow))
+
+    row = preview.rows[0]
+    assert row.decision == "update"
+    assert row.changes == ("Perakende fiyat",)
+    assert row.status_label == "Güncellenecek"

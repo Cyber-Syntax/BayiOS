@@ -1,0 +1,485 @@
+{% extends "base.html" %}
+{% from "offers/_basket_totals.html" import basket_totals %}
+{% from "_icons.html" import icon %}
+{% block title %}{% if offer_id %}Teklif Düzenle{% else %}Yeni Teklif{% endif %}{% endblock %}
+{% block body_class %}no-tabbar{% endblock %}
+{% block mobile_nav %}{% endblock %}
+{% block content %}
+<div x-data='{ ...offerBuilder({{ initial_items | tojson }}), paymentType: {{ values.payment_type | tojson }}, cashTotalOverride: {{ values.cash_total_override | tojson }}, cardTotalOverride: {{ values.card_total_override | tojson }} }'>
+
+  <div class="page-header">
+    <div class="page-heading">
+      <a class="breadcrumb" href="/offers">{{ icon("arrow-left", "icon icon-sm") }} Teklifler</a>
+      <h1>{% if offer_id %}Teklif Düzenle{% else %}Yeni Teklif{% endif %}</h1>
+    </div>
+  </div>
+
+  {% if error %}<div class="alert alert-danger"><span><strong>Kaydedilemedi:</strong> {{ error }}</span></div>{% endif %}
+
+  <form id="offer-form" class="offer-form-shell" method="post" action="{% if offer_id %}/offers/{{ offer_id }}/edit{% else %}/offers{% endif %}">
+    <input type="hidden" name="customer_phone" value="{{ values.customer_phone }}">
+
+    <section class="panel" aria-labelledby="offer-customer-title">
+      <div class="panel-header">
+        <div>
+          <h2 id="offer-customer-title">Müşteri</h2>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="offer-customer">Müşteri Adı</label>
+            <input type="text" id="offer-customer" name="customer_name" class="form-control" value="{{ values.customer_name }}" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="offer-note">Not</label>
+            <input type="text" id="offer-note" name="note" class="form-control" value="{{ values.note }}" autocomplete="off">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel offer-basket-panel" aria-labelledby="offer-basket-title">
+      <div class="panel-header">
+        <div>
+          <h2 id="offer-basket-title">Sepet</h2>
+          <p><span x-text="items.length"></span> ürün satırı</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="basket-add-block">
+          <label for="offer-product-search" class="form-label">Ürün Ekle</label>
+          <div class="search-field">
+            {{ icon("search") }}
+            <input type="search" id="offer-product-search" name="q" class="form-control" placeholder="Ürün adı ile ara" autocomplete="off"
+                   hx-get="/offers/picker" hx-trigger="keyup changed delay:300ms, search" hx-target="#offer-picker"
+                   hx-include="this, #offer-discount, #offer-cash-discount" aria-label="Ürün adı ile ara">
+          </div>
+          <div id="offer-picker" style="margin-top: 10px;">{% include "offers/_picker.html" %}</div>
+        </div>
+
+        <div class="basket-lines">
+          <template x-for="(item, index) in items" :key="item.key">
+            <div class="offer-line">
+              <input type="hidden" name="product_id" :value="item.product_id">
+              <div class="offer-line-head">
+                <div class="offer-line-title">
+                  <strong x-text="item.product_name"></strong>
+                  <div class="offer-line-meta">
+                    <span>Normal: <span class="mono" x-text="formatMoney(item.regular_price)"></span> TL</span>
+                    <span x-show="item.oliz_price"> · Oliz: <span class="mono" x-text="formatMoney(item.oliz_price)"></span> TL</span>
+                    <span x-show="item.cost_price"> · Maliyet: <span class="mono" x-text="formatMoney(item.cost_price)"></span> TL</span>
+                  </div>
+                  <div x-show="item.campaign_name" class="offer-line-campaign">
+                    <span class="offer-line-campaign-name" x-text="item.campaign_name" :title="item.campaign_name"></span>
+                    <span class="muted small" x-text="campaignEffect(item)"></span>
+                    <span class="muted small" x-show="item.is_basket">Sepet kampanyası; kayıtta hesaplanır</span>
+                    <strong class="mono small" x-text="formatMoney(item.campaign_price) + ' TL'"></strong>
+                  </div>
+                </div>
+                <div class="offer-line-total">
+                  <div x-text="formatMoney((Number(item.unit_price_cash || item.campaign_price || item.regular_price || 0)) * (item.quantity || 1)) + ' TL'"></div>
+                  <div class="muted micro" x-text="'Nakit ×' + (item.quantity || 1)"></div>
+                </div>
+              </div>
+              <div class="offer-line-controls">
+                <div class="form-group">
+                  <label>Adet</label>
+                  <input type="number" name="quantity" class="form-control" min="1" x-model="item.quantity" @change="notifyChange()" inputmode="numeric">
+                </div>
+                <div class="form-group">
+                  <label>Kampanya</label>
+                  <select name="campaign_id" class="form-control" x-model="item.campaign_id" @change="campaignChanged(item); notifyChange()">
+                    <template x-for="option in campaignOptions(item)" :key="option.value">
+                      <option :value="option.value" x-text="option.label"></option>
+                    </template>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Hediye</label>
+                  <select name="gift_present" class="form-control" x-model="item.gift_present" @change="notifyChange()">
+                    <option value="">—</option><option value="1">Hediye var</option><option value="0">Hediye yok</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Nakit Birim (TL)</label>
+                  <input type="text" name="unit_price_cash" class="form-control" placeholder="Nakit" x-model="item.unit_price_cash" @change="notifyChange()" inputmode="decimal">
+                </div>
+                <div class="form-group">
+                  <label>Kart Birim (TL)</label>
+                  <input type="text" name="unit_price_card" class="form-control" placeholder="Kart" x-model="item.unit_price_card" @change="notifyChange()" inputmode="decimal">
+                </div>
+                <button type="button" class="btn btn-sm btn-danger" @click="remove(index)" title="Satırı çıkar">{{ icon("trash", "icon icon-sm") }}<span class="sr-only">Satırı çıkar</span></button>
+              </div>
+            </div>
+          </template>
+          <div x-show="items.length === 0" class="empty-state">
+            {{ icon("products") }}
+            <strong>Sepet boş</strong>
+            <p>Yukarıdaki ürün arama alanından ürün ekleyin.</p>
+          </div>
+        </div>
+
+        <details class="accordion offer-payment-accordion" open>
+          <summary><span class="accordion-title">{{ icon("cash") }} Ödeme ve İndirimler</span></summary>
+          <div class="accordion-body">
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label for="offer-payment">Ödeme Tipi</label>
+                <select id="offer-payment" name="payment_type" class="form-control" x-model="paymentType">
+                  <option value="cash" {% if values.payment_type == 'cash' %}selected{% endif %}>Nakit</option>
+                  <option value="card" {% if values.payment_type == 'card' %}selected{% endif %}>Kart</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="offer-discount">Kart Bayi İndirimi (%)</label>
+                <input type="number" id="offer-discount" name="dealer_discount_percent" class="form-control" min="0" max="100" step="0.01" inputmode="decimal" value="{{ values.dealer_discount_percent }}" @input="recalculateUnitPrices()" @change="notifyChange()">
+              </div>
+              <div class="form-group">
+                <label for="offer-cash-discount">Nakit Bayi İndirimi (%)</label>
+                <input type="number" id="offer-cash-discount" name="dealer_discount_cash_percent" class="form-control" min="0" max="100" step="0.01" inputmode="decimal" value="{{ values.dealer_discount_cash_percent }}" @input="recalculateUnitPrices()" @change="notifyChange()">
+              </div>
+            </div>
+
+            <div x-show="paymentType === 'card'" x-cloak>
+              <hr class="divider">
+              <div class="form-grid-3">
+                <div class="form-group">
+                  <label for="offer-channel">Kanal</label>
+                  <select id="offer-channel" name="channel" class="form-control">
+                    <option value="">—</option>
+                    {% for value, label in channel_options %}<option value="{{ value }}" {% if values.channel == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="offer-bank">Banka (isteğe bağlı)</label>
+                  <select id="offer-bank" name="bank_id" class="form-control">
+                    <option value="">Genel (tüm bankalar)</option>
+                    {% for bank in banks %}<option value="{{ bank.id }}" {% if values.bank_id == (bank.id | string) %}selected{% endif %}>{{ bank.name }}</option>{% endfor %}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="offer-card-network">Kart Ağı (isteğe bağlı)</label>
+                  <select id="offer-card-network" name="card_network" class="form-control">
+                    <option value="">Genel</option>
+                    {% for network in card_network_options %}<option value="{{ network }}" {% if values.card_network == network %}selected{% endif %}>{{ network }}</option>{% endfor %}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="offer-installment">Taksit</label>
+                  <input type="number" id="offer-installment" name="installment_count" class="form-control" min="1" value="{{ values.installment_count }}" inputmode="numeric">
+                </div>
+                <div class="form-group">
+                  <label for="offer-card-type">Kart Tipi</label>
+                  <select id="offer-card-type" name="card_type" class="form-control">
+                    <option value="">—</option>
+                    {% for value, label in card_options %}<option value="{{ value }}" {% if values.card_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="cluster" style="margin-top: 4px;">
+                <input type="hidden" id="offer-bank-select-id" name="select_id" value="offer-bank">
+                <input type="text" id="offer-new-bank" name="name" class="form-control" placeholder="Yeni banka adı" style="max-width: 14rem;">
+                <button type="button" class="btn btn-sm"
+                        hx-post="/commissions/banks/quick-add"
+                        hx-include="#offer-new-bank, #offer-bank-select-id"
+                        hx-target="#bank-quick-status" hx-swap="outerHTML">Banka Ekle</button>
+                <span id="bank-quick-status" class="muted small"></span>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <div class="form-grid-2" style="margin-top: 14px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="offer-cash-total-override">Nakit Toplam (manuel)</label>
+            <input type="text" id="offer-cash-total-override" name="cash_total_override" class="form-control" inputmode="decimal" placeholder="Boş = otomatik" x-model="cashTotalOverride" @input="applyManualTotals()">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="offer-card-total-override">Kart Toplam (manuel)</label>
+            <input type="text" id="offer-card-total-override" name="card_total_override" class="form-control" inputmode="decimal" placeholder="Boş = otomatik" x-model="cardTotalOverride" @input="applyManualTotals()">
+          </div>
+        </div>
+        <p class="form-hint" style="margin: 6px 0 12px;">Manuel toplam satır fiyatlarına orantılı dağıtılır; yuvarlama artığı kâr özetinde gösterilir.</p>
+
+        {{ basket_totals(none, false) }}
+
+        <div id="offer-basket-preview"
+             hx-post="/offers/basket-preview"
+             hx-trigger="load delay:500ms, offer-changed from:body, change from:#offer-form, input delay:600ms from:#offer-form"
+             hx-include="#offer-form"
+             hx-target="this"
+             hx-swap="innerHTML">
+          <p class="muted" style="margin: 0;">Sepet kampanya önizlemesi hazırlanıyor…</p>
+        </div>
+
+        <details class="accordion offer-scenario-accordion" open>
+          <summary>
+            <span class="accordion-title">{{ icon("chart") }} Senaryo Özeti</span>
+            <span class="badge badge-info">Canlı</span>
+          </summary>
+          <div class="accordion-body">
+            <div id="offer-scenario-summary">
+              <p class="muted" style="margin: 0; font-size: 12px;">Ürün ve ödeme bilgileri değiştiğinde otomatik güncellenir.</p>
+            </div>
+          </div>
+        </details>
+
+        <details class="accordion offer-installment-accordion">
+          <summary>
+            <span class="accordion-title">{{ icon("card") }} Taksit Seçenekleri</span>
+          </summary>
+          <div class="accordion-body">
+            <p class="form-hint" style="margin: 0 0 10px;">Ürün veya ödeme değiştiğinde seçenekler otomatik yenilenir.</p>
+            <div id="offer-comparison"
+                 hx-post="/offers/compare"
+                 hx-trigger="load delay:800ms, change from:#offer-form, input delay:600ms from:#offer-form, offer-changed from:body"
+                 hx-include="#offer-form"
+                 hx-target="#offer-comparison"
+                 hx-swap="innerHTML">
+              <p class="muted" style="margin: 0;">Taksit seçenekleri hesaplanıyor…</p>
+            </div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <div class="sticky-action-spacer"></div>
+    <div class="sticky-action-bar no-print">
+      <div class="sticky-note">Teklif kaydedilmeden önce sepeti ve senaryo özetini kontrol edin.</div>
+      <div class="actions-group">
+        <a href="/offers" class="btn">Vazgeç</a>
+        <button type="submit" class="btn btn-primary" id="offer-submit-button">{% if offer_id %}Kaydet{% else %}Teklif Oluştur{% endif %}</button>
+      </div>
+    </div>
+  </form>
+</div>
+<script>
+  document.getElementById('offer-form')?.addEventListener('submit', function () {
+    const button = document.getElementById('offer-submit-button');
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Kaydediliyor…';
+    }
+  });
+
+  function applyOfferOption(button) {
+    const form = document.getElementById('offer-form');
+    if (!form) return;
+    const selectedRow = button.closest('tr');
+    if (selectedRow) {
+      document.querySelectorAll('#offer-comparison tr.option-row').forEach((row) => row.classList.remove('row-selected'));
+      selectedRow.classList.add('row-selected');
+    }
+    const payment = form.querySelector('[name="payment_type"]');
+    payment.value = button.dataset.payment;
+    payment.dispatchEvent(new Event('change', { bubbles: true }));
+    if (button.dataset.payment === 'card') {
+      const fields = {
+        channel: button.dataset.channel,
+        bank_id: button.dataset.bankId,
+        installment_count: button.dataset.installment,
+        card_type: button.dataset.cardType,
+      };
+      Object.entries(fields).forEach(([name, value]) => {
+        const input = form.querySelector('[name="' + name + '"]');
+        if (input) {
+          input.value = value || '';
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+    }
+    const taksitDetails = button.closest('details');
+    if (taksitDetails) {
+      taksitDetails.open = false;
+    }
+    document.body.dispatchEvent(new CustomEvent('offer-changed'));
+  }
+
+  function offerBuilder(initialItems) {
+    return {
+      items: initialItems.map((item, index) => ({
+        ...item,
+        quantity: item.quantity || 1,
+        campaign_id: item.campaign_id || 'auto',
+        gift_present: item.gift_present || '',
+        unit_price_cash: item.unit_price_cash || '',
+        unit_price_card: item.unit_price_card || '',
+        previews: item.previews || {},
+        campaign_name: item.campaign_name || '',
+        campaign_price: item.campaign_price || '',
+        discount_type: item.discount_type || '',
+        discount_value: item.discount_value || '',
+        gift_description: item.gift_description || '',
+        company_price: item.company_price || '',
+        company_discount: item.company_discount || '0',
+        company_share: item.company_share || '0',
+        is_basket: item.is_basket || false,
+        key: (item.product_id || item.product_name) + '-' + index + '-' + Date.now(),
+      })),
+      init() {
+        this.$nextTick(() => this.notifyChange());
+      },
+      addProduct(payload) {
+        if (this.items.some((item) => item.product_id === payload.product_id)) return;
+        const previews = payload.previews || {};
+        const selected = previews.auto || previews.none || {};
+        this.items.push({
+          product_id: payload.product_id,
+          product_name: payload.product_name,
+          regular_price: payload.regular_price || '',
+          oliz_price: payload.oliz_price || '',
+          cost_price: payload.cost_price || '',
+          previews,
+          quantity: 1,
+          campaign_id: 'auto',
+          gift_present: '',
+          unit_price_cash: '',
+          unit_price_card: '',
+          campaign_name: selected.campaign_name || '',
+          campaign_price: selected.price || payload.regular_price || '',
+          discount_type: selected.discount_type || '',
+          discount_value: selected.discount_value || '',
+          gift_description: selected.gift_description || '',
+          company_price: selected.price || payload.regular_price || '',
+          company_discount: selected.discount_amount || '0',
+          company_share: selected.share_amount || '0',
+          is_basket: selected.is_basket || false,
+          key: payload.product_id + '-' + Date.now(),
+        });
+        this.$nextTick(() => {
+          this.recalculateUnitPrices();
+          this.notifyChange();
+        });
+      },
+      remove(index) {
+        this.items.splice(index, 1);
+        this.$nextTick(() => this.notifyChange());
+      },
+      applyManualTotals() {
+        const parse = (value) => {
+          if (value === null || value === undefined || String(value).trim() === '') return null;
+          const number = Number(String(value).replace(',', '.'));
+          return Number.isFinite(number) ? number : null;
+        };
+        const allocate = (total, weights) => {
+          const target = Math.round(Number(total) * 100) / 100;
+          const positive = weights.map((weight) => (weight > 0 ? weight : 0));
+          let denominator = positive.reduce((sum, weight) => sum + weight, 0);
+          if (denominator <= 0) {
+            denominator = Math.max(1, positive.length);
+            positive.fill(1);
+          }
+          const shares = [];
+          let used = 0;
+          positive.slice(0, -1).forEach((weight) => {
+            const share = Math.round(target * 100 * weight / denominator) / 100;
+            shares.push(share);
+            used += share;
+          });
+          shares.push(Math.round((target - used) * 100) / 100);
+          return shares;
+        };
+        const cashTotal = parse(this.cashTotalOverride);
+        const cardTotal = parse(this.cardTotalOverride);
+        if (cashTotal === null && cardTotal === null) {
+          this.$nextTick(() => this.notifyChange());
+          return;
+        }
+        if (cashTotal !== null) {
+          const weights = this.items.map((item) => {
+            const unit = parse(item.unit_price_cash) ?? parse(item.regular_price) ?? 0;
+            return Math.max(0, unit * (item.quantity || 1));
+          });
+          const shares = allocate(cashTotal, weights);
+          this.items.forEach((item, index) => {
+            item.unit_price_cash = (shares[index] / (item.quantity || 1)).toFixed(2);
+          });
+        }
+        if (cardTotal !== null) {
+          const weights = this.items.map((item) => {
+            const unit = parse(item.unit_price_card) ?? parse(item.regular_price) ?? 0;
+            return Math.max(0, unit * (item.quantity || 1));
+          });
+          const shares = allocate(cardTotal, weights);
+          this.items.forEach((item, index) => {
+            item.unit_price_card = (shares[index] / (item.quantity || 1)).toFixed(2);
+          });
+        }
+        this.$nextTick(() => this.notifyChange());
+      },
+      notifyChange() {
+        document.body.dispatchEvent(new CustomEvent('offer-changed'));
+      },
+      campaignOptions(item) {
+        const options = [
+          { value: 'auto', label: 'POS ile aynı (otomatik)' },
+          { value: '', label: 'Kampanya yok (Oliz)' },
+        ];
+        const seen = new Set(options.map((option) => option.value));
+        const previews = item.previews || {};
+        Object.entries(previews).forEach(([key, preview]) => {
+          if (key === 'none' || key === 'auto' || seen.has(key)) return;
+          const label = (preview.campaign_name || key) + (preview.is_basket ? ' (sepet kampanyası)' : '');
+          options.push({ value: key, label });
+          seen.add(key);
+        });
+        if (item.campaign_id && !seen.has(item.campaign_id)) {
+          options.push({
+            value: item.campaign_id,
+            label: (item.campaign_name || 'Seçili kampanya') + ' (pasif)',
+          });
+        }
+        return options;
+      },
+      recalculateUnitPrices() {
+        const cardPercent = Number(document.getElementById('offer-discount')?.value || 0);
+        const cashPercent = Number(document.getElementById('offer-cash-discount')?.value || 0);
+        const round = (value) => (Math.round((value + Number.EPSILON) * 100) / 100).toFixed(2);
+        this.items.forEach((item) => {
+          if (item.is_basket) return;
+          const base = Number(item.company_price || item.campaign_price || item.regular_price || 0);
+          if (!base) return;
+          item.unit_price_cash = round(base * (100 - cashPercent) / 100);
+          item.unit_price_card = round(base * (100 - cardPercent) / 100);
+        });
+      },
+      campaignChanged(item) {
+        const key = item.campaign_id === '' ? 'none' : item.campaign_id;
+        const preview = item.previews[key] || item.previews.auto || item.previews.none || {};
+        item.campaign_name = preview.campaign_name || (preview.source === 'oliz' ? 'Oliz' : '');
+        item.campaign_price = preview.price || item.regular_price || '';
+        item.discount_type = preview.discount_type || '';
+        item.discount_value = preview.discount_value || '';
+        item.gift_description = preview.gift_description || '';
+        item.company_price = preview.price || item.regular_price || '';
+        item.company_discount = preview.discount_amount || '0';
+        item.company_share = preview.share_amount || '0';
+        item.is_basket = preview.is_basket || false;
+        this.recalculateUnitPrices();
+      },
+      campaignEffect(item) {
+        if (!item.campaign_name) return '';
+        if (item.discount_type === 'percent' && item.discount_value) {
+          return 'normal fiyattan %' + item.discount_value + ' indirim';
+        }
+        if (item.discount_type === 'fixed_amount' && item.discount_value) {
+          return this.formatMoney(item.discount_value) + ' TL indirim';
+        }
+        if (item.discount_type === 'special_price') return 'özel fiyat';
+        if (item.gift_description) return item.gift_description;
+        return '';
+      },
+      formatMoney(value) {
+        if (value === null || value === undefined || value === '') return '—';
+        const number = Number(value);
+        if (Number.isNaN(number)) return value;
+        return number.toLocaleString('tr-TR', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      },
+    };
+  }
+</script>
+{% endblock %}

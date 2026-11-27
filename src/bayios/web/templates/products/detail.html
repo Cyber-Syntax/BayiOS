@@ -1,0 +1,563 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block content %}
+<div x-data="{
+  showDeleteModal: false,
+  deleteStep: 1,
+  showStockModal: false,
+  showEditModal: false,
+  showDealerModal: false
+}">
+
+{% set msg = request.query_params.get('msg') %}
+{% if msg == 'stock_updated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Ürün stoku başarıyla güncellendi.</span></div>
+{% elif msg == 'product_updated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Ürün bilgileri güncellendi.</span></div>
+{% elif msg == 'archived' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Ürün arşive kaldırıldı.</span></div>
+{% elif msg == 'unarchived' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Ürün arşivden çıkarıldı.</span></div>
+{% elif msg == 'dealer_pricing_updated' %}
+<div class="alert alert-success"><span><strong>Başarılı:</strong> Bayi nakit/kart taban fiyatları güncellendi.</span></div>
+{% elif msg and msg.startswith('error:') %}
+<div class="alert alert-danger"><span><strong>İşlem yapılamadı:</strong> {{ msg[6:] }}</span></div>
+{% endif %}
+
+{% set has_oliz = product.website_discounted_price is not none %}
+{% set product_kind = product.kind or 'product' %}
+{% set margin_base = product.website_discounted_price if product.website_discounted_price is not none else product.regular_price %}
+
+<div class="product-header">
+  <div class="product-heading">
+    <a class="breadcrumb" href="/products">{{ icon("arrow-left", "icon icon-sm") }} Ürünler</a>
+    <h1>{{ product.name }}</h1>
+    <div class="product-heading-meta">
+      {% if category_name %}<span class="badge badge-info">{{ category_name }}</span>{% endif %}
+      {% if product.is_archived %}<span class="badge badge-warning">Arşivde</span>{% endif %}
+      {% if product.external_id %}<span class="muted small">ID: <span class="mono">{{ product.external_id }}</span></span>{% endif %}
+    </div>
+  </div>
+  <div class="page-actions product-detail-actions">
+    <a class="btn btn-primary product-top-action" href="/offers/new?product_id={{ product.id }}">
+      {{ icon("plus") }}
+      Teklife Ekle
+    </a>
+    <a class="btn product-top-action" href="/reservations/new?product_id={{ product.id }}">
+      {{ icon("reservations") }}
+      Rezervasyon Aç
+    </a>
+    <details class="menu">
+      <summary class="btn">
+        {{ icon("more") }}
+        Diğer işlemler
+      </summary>
+      <div class="menu-panel">
+        <button type="button" @click="showEditModal = true">{{ icon("edit", "icon icon-sm") }} Düzenle</button>
+        <button type="button" @click="showStockModal = true">{{ icon("stock", "icon icon-sm") }} Stok Güncelle</button>
+        <form method="post" action="/products/{{ product.id }}/archive">
+          <input type="hidden" name="action" value="{% if product.is_archived %}unarchive{% else %}archive{% endif %}">
+          <button type="submit">{{ icon("archive", "icon icon-sm") }} {% if product.is_archived %}Arşivden Çıkar{% else %}Arşivle{% endif %}</button>
+        </form>
+        <button type="button" class="danger" @click="deleteStep = 1; showDeleteModal = true">{{ icon("trash", "icon icon-sm") }} Sil</button>
+      </div>
+    </details>
+  </div>
+</div>
+
+<details class="accordion product-price-section" open>
+  <summary><span class="accordion-title">{{ icon("cash") }} Fiyat ve stok</span></summary>
+  <div class="accordion-body">
+<div class="product-hero">
+  <section class="price-panel" aria-label="Fiyat ve stok">
+    {% set primary_price = product.regular_price if product.regular_price is not none else product.website_discounted_price %}
+    <div class="price-main-label">{% if product.regular_price is not none %}Normal Fiyat{% else %}Fiyat{% endif %}</div>
+    <div class="price-main{% if primary_price is none %} is-muted{% endif %}">
+      {% if primary_price is not none %}{{ primary_price | tr_money }} TL{% else %}—{% endif %}
+    </div>
+    <div class="price-sub">
+      {% if product.regular_price is not none and has_oliz %}
+      <span>Oliz / Web: <strong class="mono">{{ product.website_discounted_price | tr_money }} TL</strong></span>
+      {% if oliz_discount is not none %}
+      <span class="price-discount">· Oliz indirimi: <strong class="mono">{{ oliz_discount | tr_money }} TL</strong></span>
+      {% endif %}
+      {% elif product.regular_price is none %}
+      <span>Normal fiyat tanımlı değil</span>
+      {% endif %}
+      {% if product.last_price_changed_at %}
+      <span>· Son değişim: {{ product.last_price_changed_at | tr_datetime }}</span>
+      {% endif %}
+    </div>
+
+    <div class="price-main-label" style="margin-top: 16px;">Bayi Fiyatı</div>
+    <div class="price-box-grid">
+      <div class="price-box">
+        <div class="price-box-label">Nakit / Havale taban</div>
+        <div class="price-box-value is-cash">
+          {% if dealer_pricing and dealer_pricing.cash_floor_price is not none %}{{ dealer_pricing.cash_floor_price | tr_money }} TL{% else %}—{% endif %}
+        </div>
+      </div>
+      <div class="price-box">
+        <div class="price-box-label">Kredi Kartı taban</div>
+        <div class="price-box-value">
+          {% if dealer_pricing and dealer_pricing.card_floor_price is not none %}{{ dealer_pricing.card_floor_price | tr_money }} TL{% else %}—{% endif %}
+        </div>
+      </div>
+    </div>
+    {% if dealer_pricing and dealer_pricing.updated_at %}
+    <div class="form-hint">Son bayi fiyatı güncellemesi: {{ dealer_pricing.updated_at | tr_datetime }}{% if dealer_pricing.updated_by_name %} · {{ dealer_pricing.updated_by_name }}{% endif %}</div>
+    {% endif %}
+
+    <div class="product-actions">
+      <button type="button" class="btn btn-ghost" @click="showDealerModal = true">{{ icon("sliders") }} Fiyatları Güncelle</button>
+    </div>
+  </section>
+
+  <aside class="product-side">
+    <div class="fact-card">
+      <div class="section-heading">
+        <h2>Stok ve rezervasyon</h2>
+      </div>
+      <div class="fact-list">
+        <div class="fact-row">
+          <span class="fact-label">Fiziksel stok</span>
+          <span class="fact-value">
+            {% if product.physical_stock > 0 %}
+            {{ product.physical_stock }}
+            {% elif product.physical_stock == 0 %}
+            <span class="badge badge-warning">Stok yok</span>
+            {% else %}
+            <span class="badge badge-danger">Stok düzeltmesi gerekli ({{ product.physical_stock }})</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="fact-row">
+          <span class="fact-label">Açık rezervasyon</span>
+          <span class="fact-value">{{ open_reservation }}</span>
+        </div>
+        <div class="fact-row">
+          <span class="fact-label">Son fiyat değişimi</span>
+          <span class="fact-value">{{ product.last_price_changed_at | tr_datetime if product.last_price_changed_at else '—' }}</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+  </div>
+</details>
+
+<details class="accordion product-campaigns-section" {% if active_campaigns %}open{% endif %}>
+  <summary><span class="accordion-title">{{ icon("campaigns") }} Aktif Kampanyalar ({{ active_campaigns | length }})</span></summary>
+  <div class="accordion-body">
+    {% if active_campaigns %}
+    <div class="campaign-list">
+      {% for campaign in active_campaigns %}
+      <article class="campaign-card is-active">
+        <div class="campaign-head">
+          <div style="min-width: 0;">
+            <div class="campaign-name">
+              {{ campaign.campaign_name }}
+              <span class="badge badge-neutral">v{{ campaign.version_no }}</span>
+            </div>
+            <div class="campaign-meta">
+              {{ campaign.relation_label }} · {{ campaign.starts_at | tr_date }} – {{ campaign.ends_at | tr_date }}
+            </div>
+          </div>
+          <span class="badge badge-success">{{ campaign.state_label }}</span>
+        </div>
+        <div class="campaign-body">
+          <div class="cluster campaign-info-row">
+            {% if campaign.discount_type == 'percent' %}
+            <span class="badge badge-info">{{ campaign.discount_value | tr_percent }} indirim</span>
+            {% elif campaign.discount_type in ('fixed_amount', 'special_price') %}
+            <span class="badge badge-info">{{ campaign.discount_value | tr_money }} TL indirim</span>
+            {% else %}
+            <span class="badge badge-info">{{ campaign.discount_type_label }}</span>
+            {% endif %}
+            {% if campaign.gift_description %}<span class="badge badge-neutral">{{ campaign.gift_description }}</span>{% endif %}
+          </div>
+          <div class="campaign-scenarios">
+            {% for scenario in campaign.scenarios %}
+            <div class="scenario-box">
+              <div class="scenario-label">{% if scenario.gift_present %}Hediye var{% else %}Hediye yok{% endif %}</div>
+              <div class="scenario-value">
+                {% if scenario.is_informational %}Bilgi{% elif scenario.final_price is not none %}{{ scenario.final_price | tr_money }} TL{% else %}—{% endif %}
+              </div>
+              {% if scenario.warning %}<div class="scenario-note">{{ scenario.warning }}</div>{% endif %}
+            </div>
+            {% else %}
+            <div class="scenario-box"><div class="scenario-value">Senaryo yok</div></div>
+            {% endfor %}
+            <a class="btn btn-sm campaign-open" href="/campaigns/{{ campaign.campaign_id }}"><span class="campaign-open-full">Kampanyayı aç</span><span class="campaign-open-short">Aç</span> {{ icon("chevron-right", "icon icon-sm") }}</a>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      {{ icon("campaigns") }}
+      <strong>Aktif kampanya yok</strong>
+      <p>Bu ürün için tarihi geçerli bir kampanya bulunmuyor.</p>
+    </div>
+    {% endif %}
+  </div>
+</details>
+
+<div class="detail-stack">
+  {% if product_details and not product_details.is_empty %}
+  {% if product_details.features %}
+  <details class="accordion">
+    <summary>
+      <span class="accordion-title">{{ icon("list") }} Ürün Özellikleri ({{ product_details.features | length }})</span>
+    </summary>
+    <div class="accordion-body">
+      <div class="spec-grid">
+        {% for feature in product_details.features %}
+        <div class="spec-card">
+          {% if feature.title %}<h3>{{ feature.title }}</h3>{% endif %}
+          {% if feature.text %}<p>{{ feature.text }}</p>{% endif %}
+          {% if feature.note %}<p class="muted" style="margin-top: 6px;">{{ feature.note }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </details>
+  {% endif %}
+  {% if product_details.specifications %}
+  <details class="accordion">
+    <summary>
+      <span class="accordion-title">{{ icon("sliders") }} Teknik Özellikler ({{ product_details.specifications | length }})</span>
+    </summary>
+    <div class="accordion-body">
+      <div class="spec-table-desktop">
+        <div class="table-container" data-table-scroll style="margin-top: 0;">
+          <table class="data-table" style="min-width: 0;">
+            <thead><tr><th>Grup</th><th>Özellik</th><th>Değer</th></tr></thead>
+            <tbody>
+              {% for specification in product_details.specifications %}
+              <tr>
+                <td><small class="muted">{{ specification.group or '—' }}</small></td>
+                <td>{{ specification.name }}</td>
+                <td class="mono">{{ specification.value }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="spec-mobile-list">
+        {% set spec_ns = namespace(group=None) %}
+        {% for specification in product_details.specifications %}
+          {% if specification.group != spec_ns.group %}
+            {% if not loop.first %}</section>{% endif %}
+            <section class="spec-mobile-group">
+              <h4>{{ specification.group or 'Diğer' }}</h4>
+              {% set spec_ns.group = specification.group %}
+          {% endif %}
+          <div class="spec-mobile-row">
+            <span class="spec-mobile-name">{{ specification.name }}</span>
+            <span class="spec-mobile-value">{{ specification.value }}</span>
+          </div>
+          {% if loop.last %}</section>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </details>
+  {% endif %}
+  {% endif %}
+
+  {% if dealer_pricing and dealer_pricing.history %}
+  <details class="accordion">
+    <summary>
+      <span class="accordion-title">{{ icon("cash") }} Bayi Fiyat Geçmişi ({{ dealer_pricing.history | length }})</span>
+    </summary>
+    <div class="accordion-body">
+      <div class="table-container mobile-cards-container product-history-container" style="margin-top: 0;">
+        <table class="data-table mobile-cards product-history-table" style="min-width: 0;">
+          <thead>
+            <tr><th class="col-date">Tarih</th><th>Nakit Eski → Yeni</th><th>Kart Eski → Yeni</th><th>Not</th><th>İşlemi yapan</th></tr>
+          </thead>
+          <tbody>
+            {% for row in dealer_pricing.history %}
+            <tr>
+              <td class="col-date" data-label="Tarih">{{ row.changed_at | tr_datetime }}</td>
+              <td class="mono" data-label="Nakit Eski → Yeni">{{ row.old_cash_floor | tr_money }} → {{ row.new_cash_floor | tr_money }} TL</td>
+              <td class="mono" data-label="Kart Eski → Yeni">{{ row.old_card_floor | tr_money }} → {{ row.new_card_floor | tr_money }} TL</td>
+              <td data-label="Not">{{ row.note or '—' }}</td>
+              <td data-label="İşlemi yapan">{{ row.changed_by_name or '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </details>
+  {% endif %}
+
+  <details class="accordion">
+    <summary>
+      <span class="accordion-title">{{ icon("chart") }} Fiyat Geçmişi ({{ price_history | length }})</span>
+    </summary>
+    <div class="accordion-body">
+      <div class="table-container mobile-cards-container product-history-container" style="margin-top: 0;">
+        <table class="data-table mobile-cards product-history-table" style="min-width: 0;">
+          <thead>
+            <tr><th>Tarih</th><th>Fiyat Türü</th><th>Eski Değer</th><th>Yeni Değer</th><th>Kaynak</th><th>İşlemi Yapan</th></tr>
+          </thead>
+          <tbody>
+            {% for h in price_history %}
+            <tr>
+              <td data-label="Tarih">{{ h.changed_at | tr_datetime if h.changed_at else '—' }}</td>
+              <td data-label="Fiyat Türü">{% if h.field_name == 'regular_price' %}Normal Fiyat{% elif h.field_name == 'website_discounted_price' %}Oliz / İndirimli Fiyat{% else %}{{ h.field_name }}{% endif %}</td>
+              <td class="mono" data-label="Eski Değer">{{ h.old_value | tr_money if h.old_value is not none else '—' }}{% if h.old_value is not none %} TL{% endif %}</td>
+              <td class="mono" data-label="Yeni Değer"><strong>{{ h.new_value | tr_money if h.new_value is not none else '—' }}{% if h.new_value is not none %} TL{% endif %}</strong></td>
+              <td data-label="Kaynak"><span class="badge badge-neutral">{{ h.source }}</span></td>
+              <td data-label="İşlemi Yapan">{{ h.changed_by_name or '—' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6"><div class="table-empty"><strong>Fiyat geçmişi kaydı yok</strong><p>Fiyat değiştiğinde burada görünür.</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </details>
+
+  <details class="accordion">
+    <summary>
+      <span class="accordion-title">{{ icon("stock") }} Stok Hareket Geçmişi ({{ stock_movements | length }})</span>
+    </summary>
+    <div class="accordion-body">
+      {% set movement_labels = {
+        'csv_update': 'CSV Güncellemesi',
+        'stock_count_adjustment': 'Sayım Düzeltmesi',
+        'manual_adjustment': 'Manuel Düzeltme',
+        'delivery_out': 'Teslimat Çıkışı',
+        'return_in': 'İade Girişi',
+        'reversal': 'Geri Alma'
+      } %}
+      <div class="table-container mobile-cards-container product-history-container" style="margin-top: 0;">
+        <table class="data-table mobile-cards product-history-table" style="min-width: 0;">
+          <thead>
+            <tr><th>Tarih</th><th>Hareket Türü</th><th>Önceki</th><th>Değişim</th><th>Yeni</th><th>Not</th><th>İşlemi Yapan</th></tr>
+          </thead>
+          <tbody>
+            {% for m in stock_movements %}
+            <tr>
+              <td data-label="Tarih">{{ m.created_at | tr_datetime if m.created_at else '—' }}</td>
+              <td data-label="Hareket Türü"><span class="badge badge-neutral">{{ movement_labels.get(m.movement_type, m.movement_type) }}</span></td>
+              <td class="mono" data-label="Önceki">{{ m.quantity_before }}</td>
+              <td class="mono" data-label="Değişim">
+                {% if m.quantity_delta > 0 %}<strong style="color: var(--success);">+{{ m.quantity_delta }}</strong>
+                {% elif m.quantity_delta < 0 %}<strong style="color: var(--danger);">{{ m.quantity_delta }}</strong>
+                {% else %}0{% endif %}
+              </td>
+              <td class="mono" data-label="Yeni"><strong>{{ m.quantity_after }}</strong></td>
+              <td data-label="Not">{{ m.note or '—' }}</td>
+              <td data-label="İşlemi Yapan">{{ m.created_by_name or '—' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7"><div class="table-empty"><strong>Stok hareketi kaydı yok</strong><p>Stok değiştiğinde burada görünür.</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </details>
+
+  <details class="accordion">
+    <summary>
+      <span class="accordion-title">{{ icon("eye") }} İç Bilgiler</span>
+    </summary>
+    <div class="accordion-body">
+      <div class="internal-banner" style="margin-bottom: 12px;">
+        {{ icon("alert") }}
+        <span>Bu bölüm yalnız çalışan içindir. Müşteri A4 çıktısında maliyet, kâr ve scraper bilgisi yer almaz.</span>
+      </div>
+      <dl class="kv-list">
+        <div class="kv-row"><dt>Alış maliyeti</dt><dd>{% if product.cost_price is not none %}{{ product.cost_price | tr_money }} TL{% else %}—{% endif %}</dd></div>
+        <div class="kv-row">
+          <dt>Tahmini kâr marjı</dt>
+          <dd>
+            {% if product.cost_price is not none and margin_base is not none and margin_base > 0 %}
+            {{ (((margin_base - product.cost_price) / margin_base * 100) | round(1)) | tr_percent }}
+            {% else %}—{% endif %}
+          </dd>
+        </div>
+        <div class="kv-row"><dt>Kayıt No</dt><dd>{{ product.id }}</dd></div>
+        <div class="kv-row"><dt>Scraper ID</dt><dd>{{ product.external_id or '—' }}</dd></div>
+        <div class="kv-row"><dt>Tür</dt><dd>{% if product_kind == 'warranty' %}Garanti{% elif product_kind == 'explicit' %}Açık{% else %}Ürün{% endif %}</dd></div>
+        <div class="kv-row"><dt>Scraper tarihi</dt><dd>{{ product.scraped_at | tr_datetime if product.scraped_at else '—' }}</dd></div>
+        <div class="kv-row">
+          <dt>Kaynak</dt>
+          <dd>{% if product.source_url %}<a href="{{ product.source_url }}" target="_blank" rel="noopener">Ürün sayfası {{ icon("external", "icon icon-sm") }}</a>{% else %}—{% endif %}</dd>
+        </div>
+      </dl>
+    </div>
+  </details>
+</div>
+
+<div class="product-mobile-actions-spacer no-print" aria-hidden="true"></div>
+<div class="product-mobile-actions no-print" aria-label="Ürün aksiyonları">
+  <a class="btn btn-primary" href="/offers/new?product_id={{ product.id }}">
+    {{ icon("plus") }}
+    Teklife Ekle
+  </a>
+  <a class="btn" href="/reservations/new?product_id={{ product.id }}">
+    {{ icon("reservations") }}
+    Rezervasyon Aç
+  </a>
+</div>
+
+<!-- Edit Product Modal -->
+<div x-show="showEditModal" class="modal-backdrop modal-backdrop-full" x-cloak @click.self="showEditModal = false">
+  <div class="modal-box modal-box-full" role="dialog" aria-modal="true" aria-labelledby="edit-product-title">
+    <div class="modal-header">
+      <div>
+        <h2 id="edit-product-title">Ürün Bilgilerini Düzenle</h2>
+        <p>Boş bırakılan fiyat alanları temizlenir; stok için ayrı işlem kullanılır.</p>
+      </div>
+      <button type="button" class="modal-close" @click="showEditModal = false" aria-label="Kapat">{{ icon("close") }}</button>
+    </div>
+    <form method="post" action="/products/{{ product.id }}/edit">
+      <div class="form-group">
+        <label for="edit-product-name">Ürün Adı *</label>
+        <input type="text" id="edit-product-name" name="name" class="form-control" value="{{ product.name }}" required>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label for="edit-product-regular">Normal Fiyat (TL)</label>
+          <input type="text" id="edit-product-regular" name="regular_price" class="form-control" value="{{ product.regular_price if product.regular_price is not none else '' }}" inputmode="decimal">
+        </div>
+        <div class="form-group">
+          <label for="edit-product-oliz">Oliz / İndirimli Fiyat</label>
+          <input type="text" id="edit-product-oliz" name="website_discounted_price" class="form-control" value="{{ product.website_discounted_price if product.website_discounted_price is not none else '' }}" inputmode="decimal">
+        </div>
+        <div class="form-group">
+          <label for="edit-product-cost">Alış Maliyeti (TL)</label>
+          <input type="text" id="edit-product-cost" name="cost_price" class="form-control" value="{{ product.cost_price if product.cost_price is not none else '' }}" inputmode="decimal">
+        </div>
+        <div class="form-group">
+          <label for="edit-product-category">Kategori</label>
+          <select id="edit-product-category" name="category_id" class="form-control">
+            <option value="">Kategorisiz</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}" {% if product.category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" @click="showEditModal = false">Vazgeç</button>
+        <button type="submit" class="btn btn-primary">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Stock Update Modal -->
+<div x-show="showStockModal" class="modal-backdrop" x-cloak @click.self="showStockModal = false">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="stock-modal-title">
+    <div class="modal-header">
+      <div>
+        <h2 id="stock-modal-title">Stok Miktarını Güncelle</h2>
+        <p>Fiziksel stok doğrudan satılabilir stoktur; değişiklik hareket geçmişine yazılır.</p>
+      </div>
+      <button type="button" class="modal-close" @click="showStockModal = false" aria-label="Kapat">{{ icon("close") }}</button>
+    </div>
+    <form method="post" action="/products/{{ product.id }}/stock">
+      <div class="form-group">
+        <label for="stock-modal-value">Yeni Fiziksel Stok *</label>
+        <input type="number" id="stock-modal-value" name="physical_stock" class="form-control" value="{{ product.physical_stock }}" required inputmode="numeric">
+      </div>
+      <div class="form-group">
+        <label for="stock-modal-note">Açıklama / Not</label>
+        <input type="text" id="stock-modal-note" name="note" class="form-control" placeholder="örn: Raf sayımı düzeltmesi, hasarlı ürün ayrıldı">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" @click="showStockModal = false">Vazgeç</button>
+        <button type="submit" class="btn btn-primary">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Dealer Pricing Modal -->
+<div x-show="showDealerModal" class="modal-backdrop" x-cloak @click.self="showDealerModal = false">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="dealer-modal-title">
+    <div class="modal-header">
+      <div>
+        <h2 id="dealer-modal-title">Bayi Taban Fiyatları</h2>
+        <p>Ürüne özel nakit/kart taban fiyatları genel bayi indirimi oranından ayrıdır.</p>
+      </div>
+      <button type="button" class="modal-close" @click="showDealerModal = false" aria-label="Kapat">{{ icon("close") }}</button>
+    </div>
+    <form method="post" action="/products/{{ product.id }}/dealer-pricing">
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label for="dealer-cash">Nakit Taban (TL)</label>
+          <input type="text" id="dealer-cash" name="cash_floor_price" class="form-control" value="{{ dealer_pricing.cash_floor_price if dealer_pricing and dealer_pricing.cash_floor_price is not none else '' }}" inputmode="decimal">
+        </div>
+        <div class="form-group">
+          <label for="dealer-card">Kart Taban (TL)</label>
+          <input type="text" id="dealer-card" name="card_floor_price" class="form-control" value="{{ dealer_pricing.card_floor_price if dealer_pricing and dealer_pricing.card_floor_price is not none else '' }}" inputmode="decimal">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="dealer-note">Not</label>
+        <input type="text" id="dealer-note" name="note" class="form-control" value="{{ dealer_pricing.note if dealer_pricing and dealer_pricing.note else '' }}" placeholder="örn: Kasım ayı bayi fiyatı">
+        <span class="form-hint">Boş bırakılan taban fiyat temizlenir. Yalnızca değer değiştiğinde geçmiş kaydı oluşur.</span>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" @click="showDealerModal = false">Vazgeç</button>
+        <button type="submit" class="btn btn-primary">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Two-Step Delete Modal -->
+<div x-show="showDeleteModal" class="modal-backdrop" x-cloak @click.self="showDeleteModal = false">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="delete-product-title">
+    <div x-show="deleteStep === 1">
+      <div class="modal-header">
+        <div>
+          <h2 id="delete-product-title">Ürünü Silme Onayı (1/2)</h2>
+          <p><strong>"{{ product.name }}"</strong> kalıcı olarak silinecek.</p>
+        </div>
+        <button type="button" class="modal-close" @click="showDeleteModal = false" aria-label="Kapat">{{ icon("close") }}</button>
+      </div>
+      <div class="alert alert-danger" style="margin-bottom: 0;">
+        <span><strong>Bu işlem geri alınamaz.</strong> Ürüne ait tüm fiyat ve stok hareket geçmişi de silinir. Açık rezervasyonu olan ürün silinemez.</span>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" @click="showDeleteModal = false">Vazgeç</button>
+        <button type="button" class="btn btn-danger" @click="deleteStep = 2">Devam Et (2. Onay) {{ icon("arrow-right") }}</button>
+      </div>
+    </div>
+    <div x-show="deleteStep === 2">
+      <div class="modal-header">
+        <div>
+          <h2>Son Doğrulama (2/2)</h2>
+          <p>Yanlışlıkla silinmeyi önlemek için son onayınızı verin.</p>
+        </div>
+        <button type="button" class="modal-close" @click="showDeleteModal = false" aria-label="Kapat">{{ icon("close") }}</button>
+      </div>
+      <div class="alert alert-danger" style="margin-bottom: 0;">
+        <span><strong>"{{ product.name }}"</strong> veritabanından tamamen silinecek.</span>
+      </div>
+      <form method="post" action="/products/{{ product.id }}/delete">
+        <input type="hidden" name="confirmed" value="yes_delete_permanently">
+        <div class="modal-actions">
+          <button type="button" class="btn" @click="showDeleteModal = false">Vazgeç</button>
+          <button type="submit" class="btn btn-danger">Evet, Kalıcı Olarak Sil</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+</div>
+{% endblock %}

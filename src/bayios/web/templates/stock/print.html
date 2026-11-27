@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}A5 {% if reserved_only %}Rezervasyonlu Ürünler{% elif in_stock %}Sayım Listesi (Sadece Stokta){% else %}Sayım Listesi{% endif %}{% endblock %}
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/print-a5.css?v={{ asset_version }}" media="print">
+{% endblock %}
+{% block content %}
+{% set print_title = "Rezervasyonlu Ürünler" if reserved_only else ("Sayım Listesi (Sadece Stokta)" if in_stock else "Sayım Listesi") %}
+<div class="actions-bar no-print">
+  <div>
+    <a href="/stock" class="muted" style="text-decoration: none;">&larr; Stok / Sayım</a>
+    <h1 style="margin-top: .25rem;">A5 {{ print_title }}</h1>
+  </div>
+  <div class="actions-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <a class="btn" href="/stock/print{% if selected_category %}?category_id={{ selected_category }}{% endif %}">Tümü</a>
+    <a class="btn" href="/stock/print?{% if selected_category %}category_id={{ selected_category }}&{% endif %}in_stock=1">Sadece Stokta</a>
+    <a class="btn" href="/stock/print?{% if selected_category %}category_id={{ selected_category }}&{% endif %}reserved_only=1">Rezervasyonlu</a>
+    <button type="button" class="btn btn-primary" onclick="window.print()">Yazdır</button>
+  </div>
+</div>
+
+<div class="card a5-sheet">
+  <div class="print-header">
+    <div>
+      <h1>A5 {{ print_title }}</h1>
+      <p>Kategori: <strong>{{ category_name }}</strong></p>
+    </div>
+    <div class="print-meta">
+      <div>Tarih: {{ generated_at | tr_datetime }}</div>
+      <div>Sayımı yapan: ____________________</div>
+      <div>İmza: ____________________</div>
+    </div>
+  </div>
+
+  <table class="a5-table">
+    <thead>
+      <tr>
+        <th class="col-no">#</th>
+        <th>Ürün Adı</th>
+        <th class="col-qty">Fiziksel</th>
+        <th class="col-qty">Rezervasyon</th>
+        <th class="col-counted">Sayılan</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set counter = namespace(value=0) %}
+      {% for group in groups %}
+        {% if groups | length > 1 or not selected_category %}
+        <tr class="category-row"><td colspan="5">{{ group.name }}</td></tr>
+        {% endif %}
+        {% for row in group.rows %}
+        {% set counter.value = counter.value + 1 %}
+        <tr>
+          <td class="col-no">{{ counter.value }}</td>
+          <td>{{ row.product.name }}</td>
+          <td class="col-qty">{{ row.summary.physical }}</td>
+          <td class="col-qty">{{ row.summary.open_reservation if row.summary.open_reservation else '—' }}</td>
+          <td class="col-counted"></td>
+        </tr>
+        {% endfor %}
+      {% else %}
+      <tr>
+        <td colspan="5" class="muted" style="text-align: center; padding: 3mm;">Bu filtrede ürün bulunmuyor.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="print-note">0 = stok yok. Negatif stok, stok düzeltmesi gerektirir. Sayılan sütununa elle miktar yazılabilir.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+<span id="bank-quick-status" class="muted">{{ message }}</span>
+{% if selected_id %}
+<select id="{{ select_id }}" name="bank_id" class="form-control" hx-swap-oob="outerHTML">
+  <option value="">—</option>
+  {% for bank in banks %}<option value="{{ bank.id }}"{% if bank.id | string == selected_id %} selected{% endif %}>{{ bank.name }}</option>{% endfor %}
+</select>
+{% endif %}

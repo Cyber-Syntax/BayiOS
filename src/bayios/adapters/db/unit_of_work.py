@@ -1,0 +1,142 @@
+from __future__ import annotations
+
+from types import TracebackType
+from typing import Self
+
+from sqlalchemy.orm import Session, sessionmaker
+
+from bayios.adapters.db.repositories.campaigns import (
+    SqlAlchemyCampaignRepository,
+)
+from bayios.adapters.db.repositories.commissions import (
+    SqlAlchemyCommissionRepository,
+)
+from bayios.adapters.db.repositories.dealer_pricing import (
+    SqlAlchemyDealerPricingRepository,
+)
+from bayios.adapters.db.repositories.imports import SqlAlchemyImportBatchRepository
+from bayios.adapters.db.repositories.offers import SqlAlchemyOfferRepository
+from bayios.adapters.db.repositories.products import SqlAlchemyProductRepository
+from bayios.adapters.db.repositories.reservations import (
+    SqlAlchemyReservationRepository,
+)
+from bayios.adapters.db.repositories.stock_counts import (
+    SqlAlchemyStockCountRepository,
+)
+
+
+class SqlAlchemyUnitOfWork:
+    def __init__(self, session_factory: sessionmaker[Session]) -> None:
+        self._session_factory = session_factory
+        self._session: Session | None = None
+        self._products: SqlAlchemyProductRepository | None = None
+        self._stock_counts: SqlAlchemyStockCountRepository | None = None
+        self._reservations: SqlAlchemyReservationRepository | None = None
+        self._campaigns: SqlAlchemyCampaignRepository | None = None
+        self._dealer_pricing: SqlAlchemyDealerPricingRepository | None = None
+        self._commissions: SqlAlchemyCommissionRepository | None = None
+        self._offers: SqlAlchemyOfferRepository | None = None
+        self._import_batches: SqlAlchemyImportBatchRepository | None = None
+        self._committed = False
+
+    @property
+    def session(self) -> Session:
+        if self._session is None:
+            raise RuntimeError("UnitOfWork is not active; use it as a context manager")
+        return self._session
+
+    @property
+    def products(self) -> SqlAlchemyProductRepository:
+        if self._products is None:
+            raise RuntimeError("UnitOfWork is not active; use it as a context manager")
+        return self._products
+
+    @property
+    def stock_counts(self) -> SqlAlchemyStockCountRepository:
+        if self._stock_counts is None:
+            raise RuntimeError("UnitOfWork is not active; use it as a context manager")
+        return self._stock_counts
+
+    @property
+    def reservations(self) -> SqlAlchemyReservationRepository:
+        if self._reservations is None:
+            raise RuntimeError("UnitOfWork is not active; use it as a context manager")
+        return self._reservations
+
+    @property
+    def campaigns(self) -> SqlAlchemyCampaignRepository:
+        if self._campaigns is None:
+            raise RuntimeError("UnitOfWork is not active; use it as a context manager")
+        return self._campaigns
+
+    @property
+    def dealer_pricing(self) -> SqlAlchemyDealerPricingRepository:
+        if self._dealer_pricing is None:
+            raise RuntimeError("UnitOfWork is not active; use it as a context manager")
+        return self._dealer_pricing
+
+    @property
+    def commissions(self) -> SqlAlchemyCommissionRepository:
+        if self._commissions is None:
+            raise RuntimeError("UnitOfWork is not active; use it as a context manager")
+        return self._commissions
+
+    @property
+    def offers(self) -> SqlAlchemyOfferRepository:
+        if self._offers is None:
+            raise RuntimeError("UnitOfWork is not active; use it as a context manager")
+        return self._offers
+
+    @property
+    def import_batches(self) -> SqlAlchemyImportBatchRepository:
+        if self._import_batches is None:
+            raise RuntimeError("UnitOfWork is not active; use it as a context manager")
+        return self._import_batches
+
+    def __enter__(self) -> Self:
+        if self._session is not None:
+            raise RuntimeError("UnitOfWork is already active")
+        self._session = self._session_factory()
+        self._products = SqlAlchemyProductRepository(self._session)
+        self._stock_counts = SqlAlchemyStockCountRepository(self._session)
+        self._reservations = SqlAlchemyReservationRepository(self._session)
+        self._campaigns = SqlAlchemyCampaignRepository(self._session)
+        self._dealer_pricing = SqlAlchemyDealerPricingRepository(self._session)
+        self._commissions = SqlAlchemyCommissionRepository(self._session)
+        self._offers = SqlAlchemyOfferRepository(self._session)
+        self._import_batches = SqlAlchemyImportBatchRepository(self._session)
+        self._committed = False
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        session = self.session
+        try:
+            if exc_type is not None:
+                session.rollback()
+            elif not self._committed and (session.dirty or session.new or session.deleted):
+                # Rollback uncommitted write changes if any exist
+                session.rollback()
+        finally:
+            session.close()
+            self._session = None
+            self._products = None
+            self._stock_counts = None
+            self._reservations = None
+            self._campaigns = None
+            self._dealer_pricing = None
+            self._commissions = None
+            self._offers = None
+            self._import_batches = None
+
+    def commit(self) -> None:
+        self.session.commit()
+        self._committed = True
+
+    def rollback(self) -> None:
+        self.session.rollback()
+        self._committed = False
