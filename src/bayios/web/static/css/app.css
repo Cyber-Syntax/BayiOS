@@ -3228,3 +3228,8 @@ table.data-table.product-preview-table tbody tr.preview-row-warning td {
     grid-column: 1 / -1;
   }
 }
+
+/* A5 stock print: light category band visible on screen and in print preview. */
+.a5-table .category-row td {
+  background: #e5e7eb;
+}

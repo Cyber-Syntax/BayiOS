@@ -47,10 +47,14 @@ html, body {
 .a5-table .col-qty { width: 13mm; text-align: right; }
 .a5-table .col-counted { width: 17mm; }
 .a5-table .category-row td {
+  background: #e5e7eb;
   border-bottom: 0.3pt solid #000;
+  border-top: 0.3pt solid #000;
   font-size: 7pt;
   font-weight: 700;
   padding-top: 1.3mm;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
 }
 .a5-table thead { display: table-header-group; }
 .a5-table tr { break-inside: avoid; page-break-inside: avoid; }
