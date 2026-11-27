@@ -1,5 +1,9 @@
 # todo.md
 
+## güvenlik
+
+- [ ] feat: basit paylaşılan şifreli erişim koruması (MVP auth) — plan: [auth-mvp-plan.md](./auth-mvp-plan.md)
+
 - [ ] eğer boyut küçük olursa, ürünler sekmesinde tüm kartı boş alanlara tıklayınca seçebiliyorum ama eğer window boyutu büyük olursa sadece checkbox ile seçebiliyorum. Bunu değiştir; büyük olunca da kartta boş alana tıklayınca ürün seçilsin.
 - [ ] sadece seçilmiş ürünleri excel ile dışa aktar
 - [ ] sadece kategorisi seçilmiş ürünleri excel ile dışa aktar.
