@@ -743,7 +743,7 @@ Teslim anında fiziksel stok yetersizse sistem uyarı göstermeli ancak onayla d
 
 **FR-STOCK-10 (P0):** Sayım oturumunun açılış zamanı, sayım zamanı, tamamlayan çalışan adı (isteğe bağlı) ve satır değişiklikleri tutulmalıdır.
 
-**FR-STOCK-11 (P0):** A5 sayım listesi kategori bazlı basılabilmelidir; kategori, fiziksel stok ve rezervasyon miktarı görünmelidir.
+**FR-STOCK-11 (P0):** A5 sayım listesi kategori bazlı basılabilmelidir; kategori, fiziksel stok ve rezervasyon miktarı görünmelidir. Yalnızca stokta olan ürünler ve yalnızca rezervasyonu olan ürünler ayrı seçeneklerle basılabilmelidir.
 
 **FR-STOCK-12 (P0):** Ürün hareket geçmişinde CSV güncellemesi, sayım düzeltmesi ve rezervasyon teslim çıkışı ayırt edilebilmelidir.
 
@@ -767,7 +767,7 @@ Teslim anında fiziksel stok yetersizse sistem uyarı göstermeli ancak onayla d
 
 **FR-STOCK-22 (P0) — 0 = Stok Yok:** Fiziksel stok 0 ise "Stok yok" gösterilmelidir. Negatif stok desteklenmeye devam eder ve "Stok düzeltmesi gerekli" olarak gösterilir. Sayımda 0 veya boş bırakılan satır stok değiştirmez.
 
-**FR-STOCK-23 (P0) — Sadece Stokta Olanları Dışa Aktarma:** Excel dışa aktarımında yalnızca fiziksel stoğu 0'dan büyük ürünleri içeren ayrı bir seçenek bulunmalıdır.
+**FR-STOCK-23 (P0) — Sadece Stokta Olanları Dışa Aktarma/Yazdırma:** Excel dışa aktarımında ve A5 sayım listesinde yalnızca fiziksel stoğu 0'dan büyük ürünleri içeren ayrı bir seçenek bulunmalıdır.
 
 ### 5.9 V2 adayı — Hızlı teslim ve Code 128 (v1 dışı)
 

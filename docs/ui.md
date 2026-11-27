@@ -370,7 +370,7 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 - Mobil sayım satırı: üstte ürün adı; altta üç eşit sütunda “Sistem / Sayılan / Fark”. “Uygulandı” mobilde gizlenir; sayılan input tam genişlik ve en az 42px yüksekliğindedir.
 - Telefonda sayım girişi büyük dokunma hedefleriyle; laptopta tablo.
 - Açık sayım “Sayımı İptal Et” ile stok değiştirmeden kapatılır. Tamamlanmış sayım “Sayımı Geri Al” ile ters kayıtla eski stoklara döner.
-- A5 sayım listesi kategori grupları, fiziksel stok, rezervasyon ve elle yazılabilir sayılan sütunuyla basılır; rezervasyonu olan ürünler ayrıca filtrelenebilir.
+- A5 sayım listesi kategori grupları, fiziksel stok, rezervasyon ve elle yazılabilir sayılan sütunuyla basılır; "Tümü / Sadece Stokta / Rezervasyonlu" filtreleri ayrı seçeneklerdir.
 
 ### 6.9 Ayarlar
 

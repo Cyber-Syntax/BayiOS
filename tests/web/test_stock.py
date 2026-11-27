@@ -279,6 +279,22 @@ def test_print_page_is_a5_with_category_and_reservation_columns(
     assert "A4 Sayım Listesi" not in response.text
 
 
+def test_print_in_stock_only_excludes_zero_and_negative(
+    client: TestClient, fake_uow: FakeUnitOfWork
+) -> None:
+    category = next(iter(fake_uow.products.categories.values()))
+    _add_product(fake_uow, "Sıfır Ürün", stock=0, category_id=category.id)
+    _add_product(fake_uow, "Negatif Ürün", stock=-2, category_id=category.id)
+
+    response = client.get("/stock/print?in_stock=1")
+
+    assert response.status_code == 200
+    assert "Sadece Stokta" in response.text
+    assert "07325 A" in response.text
+    assert "Sıfır Ürün" not in response.text
+    assert "Negatif Ürün" not in response.text
+
+
 def test_print_reserved_only_lists_reserved_products(
     client: TestClient, fake_uow: FakeUnitOfWork
 ) -> None:

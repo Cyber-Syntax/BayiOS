@@ -1,15 +1,19 @@
 {% extends "base.html" %}
-{% block title %}A5 Sayım Listesi{% endblock %}
+{% block title %}A5 {% if reserved_only %}Rezervasyonlu Ürünler{% elif in_stock %}Sayım Listesi (Sadece Stokta){% else %}Sayım Listesi{% endif %}{% endblock %}
 {% block head_extra %}
 <link rel="stylesheet" href="/static/css/print-a5.css?v={{ asset_version }}" media="print">
 {% endblock %}
 {% block content %}
+{% set print_title = "Rezervasyonlu Ürünler" if reserved_only else ("Sayım Listesi (Sadece Stokta)" if in_stock else "Sayım Listesi") %}
 <div class="actions-bar no-print">
   <div>
     <a href="/stock" class="muted" style="text-decoration: none;">&larr; Stok / Sayım</a>
-    <h1 style="margin-top: .25rem;">A5 {% if reserved_only %}Rezervasyonlu Ürünler{% else %}Sayım Listesi{% endif %}</h1>
+    <h1 style="margin-top: .25rem;">A5 {{ print_title }}</h1>
   </div>
-  <div class="actions-group">
+  <div class="actions-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <a class="btn" href="/stock/print{% if selected_category %}?category_id={{ selected_category }}{% endif %}">Tümü</a>
+    <a class="btn" href="/stock/print?{% if selected_category %}category_id={{ selected_category }}&{% endif %}in_stock=1">Sadece Stokta</a>
+    <a class="btn" href="/stock/print?{% if selected_category %}category_id={{ selected_category }}&{% endif %}reserved_only=1">Rezervasyonlu</a>
     <button type="button" class="btn btn-primary" onclick="window.print()">Yazdır</button>
   </div>
 </div>
@@ -17,7 +21,7 @@
 <div class="card a5-sheet">
   <div class="print-header">
     <div>
-      <h1>A5 {% if reserved_only %}Rezervasyonlu Ürünler{% else %}Sayım Listesi{% endif %}</h1>
+      <h1>A5 {{ print_title }}</h1>
       <p>Kategori: <strong>{{ category_name }}</strong></p>
     </div>
     <div class="print-meta">

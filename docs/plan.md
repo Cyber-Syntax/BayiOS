@@ -373,7 +373,7 @@ Bir reservation uçtan uca takip edilir; duplicate stock deduction mümkün değ
 - 0 veya boş sayılan satır stok hareketi üretmez.
 - Açık sayım iptali stok hareketi üretmez; tamamlanmış sayımın geri alınması ters hareket üretir.
 - Hızlı sayımda aynı ürün ikinci kez eklenmez; kategori dışı/arşivli ürün eklenemez.
-- A5 kategori listesi kategori, fiziksel stok ve rezervasyon sütunlarını içerir.
+- A5 kategori listesi kategori, fiziksel stok ve rezervasyon sütunlarını içerir; yalnızca stokta olanlar ve yalnızca rezervasyonu olanlar filtrelenebilir.
 - Stok sayfasında açık/incelemedeki oturumlar üst bölümde görünür ve "Devam Et" doğru oturuma gider.
 - Stok listesi ve sayım satırlarında sayfa numarasıyla doğrudan son sayfaya geçiş çalışır; filtre parametreleri kaybolmaz.
 - Açık sayım oturumunda "Sayımı Kaydet" ve "Ara Kaydet" butonları HTML'de sabit eylem çubuğu içinde bulunur ve formu gönderir.

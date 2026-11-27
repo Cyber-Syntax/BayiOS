@@ -354,11 +354,17 @@ def print_count_list(
     uow: UnitOfWorkDep,
     category_id: Annotated[str | None, Query()] = None,
     reserved_only: Annotated[bool, Query()] = False,
+    in_stock: Annotated[bool, Query()] = False,
 ) -> HTMLResponse:
     selected_category = _optional_uuid(category_id)
     categories = list_categories(uow)
     category_names = _category_index(categories)
-    rows, _ = get_stock_overview(uow, category_id=selected_category, limit=10_000)
+    rows, _ = get_stock_overview(
+        uow,
+        category_id=selected_category,
+        limit=10_000,
+        only_in_stock=in_stock,
+    )
     if reserved_only:
         rows = tuple(row for row in rows if row.summary.open_reservation > 0)
 
@@ -385,6 +391,7 @@ def print_count_list(
             "selected_category": selected_category,
             "category_name": category_name,
             "reserved_only": reserved_only,
+            "in_stock": in_stock,
             "generated_at": datetime.now(UTC),
         },
     )

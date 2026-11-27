@@ -19,6 +19,7 @@
             <a href="/stock/export/xlsx?category_id={{ selected_category or '' }}&q={{ q | urlencode }}">Excel (Tümü)</a>
             <a href="/stock/export/xlsx?category_id={{ selected_category or '' }}&q={{ q | urlencode }}&in_stock=1">Excel (Sadece Stokta)</a>
             <a href="/stock/print{% if selected_category %}?category_id={{ selected_category }}{% endif %}" target="_blank">A5 Sayım Listesi</a>
+            <a href="/stock/print?{% if selected_category %}category_id={{ selected_category }}&{% endif %}in_stock=1" target="_blank">A5 Sayım Listesi (Sadece Stokta)</a>
             <a href="/stock/print{% if selected_category %}?category_id={{ selected_category }}&{% else %}?{% endif %}reserved_only=1" target="_blank">Rezervasyonlu Ürünler (A5)</a>
           </div>
         </details>
@@ -30,6 +31,7 @@
           <a href="/stock/export/xlsx?category_id={{ selected_category or '' }}&q={{ q | urlencode }}">Excel (Tümü)</a>
           <a href="/stock/export/xlsx?category_id={{ selected_category or '' }}&q={{ q | urlencode }}&in_stock=1">Excel (Sadece Stokta)</a>
           <a href="/stock/print{% if selected_category %}?category_id={{ selected_category }}{% endif %}" target="_blank">A5 Sayım Listesi</a>
+          <a href="/stock/print?{% if selected_category %}category_id={{ selected_category }}&{% endif %}in_stock=1" target="_blank">A5 Sayım Listesi (Sadece Stokta)</a>
           <a href="/stock/print{% if selected_category %}?category_id={{ selected_category }}&{% else %}?{% endif %}reserved_only=1" target="_blank">Rezervasyonlu Ürünler (A5)</a>
         </div>
       </details>
