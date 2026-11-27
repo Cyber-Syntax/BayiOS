@@ -150,7 +150,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\update-bayios.ps1
 
 Betik sırayla şunları yapar:
 
-1. Git çalışma ağacının temiz olduğunu kontrol eder; değilse hiçbir şey yapmadan durur.
+1. Git'te takip edilen değişiklikleri kontrol eder; varsa hiçbir şey yapmadan durur. Untracked JSON/XLSX dosyaları güncellemeyi engellemez.
 2. `git fetch` + `git pull --ff-only` ile güncel kodu alır (sadece `-SkipPull` verilirse atlar).
 3. Mevcut image'ı `localhost/bayios:previous` olarak etiketler.
 4. `localhost/bayios:latest` image'ını build eder; build'e `GIT_SHA` ve `BUILD_TIME` gömülür.

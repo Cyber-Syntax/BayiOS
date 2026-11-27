@@ -1,73 +1,40 @@
-# Projeyi Podman Compose ile başlatır.
-# Bu dosyayı compose.yaml / docker-compose.yml dosyanızın bulunduğu proje
-# klasörüne koyun ve o klasörden çalıştırın.
+#requires -Version 5.1
+# Compatibility entry point for the old scripts/start.ps1 shortcut.
+# It delegates to the maintained scripts so force-recreate, health checks,
+# rollback and the repository-root fix are always used.
+#
+# Default: build + migrate + force-recreate (same intent as the old script).
+# -NoBuild: only start the already-built image.
 
+[CmdletBinding()]
+param(
+    [switch]$NoBuild
+)
+
+Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-function Invoke-PodmanCompose {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string[]] $ComposeArgs
-    )
-
-    Write-Host "`n> podman-compose $($ComposeArgs -join ' ')" -ForegroundColor Cyan
-    & podman-compose @ComposeArgs
-
-    if ($LASTEXITCODE -ne 0) {
-        throw "Komut başarısız oldu (çıkış kodu: $LASTEXITCODE)."
-    }
+$target = if ($NoBuild) {
+    Join-Path $PSScriptRoot 'start-bayios.ps1'
+} else {
+    Join-Path $PSScriptRoot 'update-bayios.ps1'
 }
 
-try {
-    # Script hangi klasörden çağrılırsa çağrılsın proje dizininde çalış.
-    Set-Location -LiteralPath $PSScriptRoot
-
-    if (-not (Get-Command podman -ErrorAction SilentlyContinue)) {
-        throw "'podman' komutu bulunamadı. Podman Desktop/Podman CLI kurulumunu ve PATH ayarını kontrol edin."
-    }
-
-    if (-not (Get-Command podman-compose -ErrorAction SilentlyContinue)) {
-        throw "'podman-compose' komutu bulunamadı. podman-compose kurulumunu ve PATH ayarını kontrol edin."
-    }
-
-    $composeFiles = @('compose.yaml', 'compose.yml', 'docker-compose.yaml', 'docker-compose.yml')
-    $composeFileExists = $false
-    foreach ($file in $composeFiles) {
-        if (Test-Path -LiteralPath (Join-Path $PSScriptRoot $file)) {
-            $composeFileExists = $true
-            break
-        }
-    }
-    if (-not $composeFileExists) {
-        throw "Proje klasöründe compose.yaml, compose.yml veya docker-compose.yml dosyası bulunamadı."
-    }
-
-    # Podman servisi/makinesi kapalıysa başlatmayı dene.
-    Write-Host 'Podman bağlantısı kontrol ediliyor...' -ForegroundColor Yellow
-    & podman info *> $null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host 'Podman makinesi başlatılıyor...' -ForegroundColor Yellow
-        & podman machine start
-        if ($LASTEXITCODE -ne 0) {
-            throw "Podman makinesi başlatılamadı. İlk kurulumsa önce 'podman machine init' komutunu çalıştırın."
-        }
-    }
-
-    Write-Host "`nÖnce mevcut Compose servisleri kapatılıyor..." -ForegroundColor Yellow
-    Invoke-PodmanCompose -ComposeArgs @('down')
-
-    Write-Host "`nUygulama yeniden build edilip başlatılıyor..." -ForegroundColor Green
-
-    Invoke-PodmanCompose -ComposeArgs @('build', 'app')
-    Invoke-PodmanCompose -ComposeArgs @('up', '-d', 'postgres')
-    Invoke-PodmanCompose -ComposeArgs @('run', '--rm', 'app', 'alembic', 'upgrade', 'head')
-    Invoke-PodmanCompose -ComposeArgs @('up', '-d')
-
-    Write-Host "`nSistem başarıyla başlatıldı." -ForegroundColor Green
-    Invoke-PodmanCompose -ComposeArgs @('ps')
-}
-catch {
-    Write-Host "`nHATA: $($_.Exception.Message)" -ForegroundColor Red
-    exit 1
+if (-not (Test-Path -LiteralPath $target)) {
+    throw ('Required script not found: {0}' -f $target)
 }
 
+$global:LASTEXITCODE = 0
+if ($NoBuild) {
+    & $target
+} else {
+    # Keep the old "build and start" behavior without requiring a clean git
+    # tree or taking a backup on every local start. Use update-bayios.ps1
+    # directly for a production update with backup.
+    & $target -SkipPull -SkipBackup
+}
+
+$code = $LASTEXITCODE
+if ($code -ne 0) {
+    exit $code
+}

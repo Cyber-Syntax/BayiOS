@@ -63,8 +63,19 @@ function Get-BayiosRepoRoot {
         return (Resolve-Path -LiteralPath $RepoPath -ErrorAction Stop).Path
     }
 
-    # This module lives in <repo>/scripts.
-    return (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..') -ErrorAction Stop).Path
+    # Walk up from the scripts directory until compose.yaml is found. This works
+    # whether the scripts live in <repo>/scripts or a copied subdirectory.
+    $current = (Resolve-Path -LiteralPath $PSScriptRoot -ErrorAction Stop).Path
+    for ($i = 0; $i -lt 4; $i++) {
+        if (Test-Path -LiteralPath (Join-Path $current 'compose.yaml')) {
+            return $current
+        }
+        $parent = Split-Path -Parent $current
+        if ([string]::IsNullOrWhiteSpace($parent) -or $parent -eq $current) { break }
+        $current = $parent
+    }
+
+    throw 'Could not locate the BayiOS repository root (compose.yaml was not found above the scripts directory).'
 }
 
 function Get-BayiosDotEnvValue {
@@ -262,28 +273,70 @@ function Get-BayiosProjectContainers {
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)][string]$ProjectName)
 
-    $format = '{{.Names}}|{{.Label "com.docker.compose.service"}}|{{.Label "com.docker.compose.oneoff"}}|{{.Status}}|{{.Image}}'
+    # Use JSON rather than a --format template with quoted label keys.
+    # Windows PowerShell 5.1 strips embedded quotes from native arguments,
+    # which made Podman interpret the template as "function com not defined".
     $result = Invoke-BayiosCapture -FilePath 'podman' -Arguments @(
         'ps', '-a',
         '--filter', ('label=com.docker.compose.project={0}' -f $ProjectName),
-        '--format', $format
+        '--format', 'json'
     )
 
     if ($result.ExitCode -ne 0) {
         throw ('podman ps failed: {0}' -f $result.Output)
     }
 
+    if ([string]::IsNullOrWhiteSpace($result.Output)) {
+        return @()
+    }
+
+    $jsonText = $result.Output
+    $jsonStart = $jsonText.IndexOf('[')
+    if ($jsonStart -gt 0) {
+        $jsonText = $jsonText.Substring($jsonStart)
+    }
+
+    try {
+        $parsed = $jsonText | ConvertFrom-Json
+    } catch {
+        throw ('podman ps JSON parse failed: {0}' -f $_.Exception.Message)
+    }
+
+    if ($null -eq $parsed) {
+        return @()
+    }
+
     $containers = @()
-    foreach ($line in ($result.Output -split "`r?`n")) {
-        if ([string]::IsNullOrWhiteSpace($line)) { continue }
-        $parts = $line -split '\|', 5
-        if ($parts.Count -lt 5) { continue }
+    foreach ($item in @($parsed)) {
+        $names = @($item.Names)
+        $name = ''
+        if ($names.Count -gt 0) {
+            $name = [string]$names[0]
+        }
+        if ([string]::IsNullOrWhiteSpace($name)) {
+            continue
+        }
+
+        $service = ''
+        $oneOff = ''
+        if ($null -ne $item.Labels) {
+            $serviceProperty = $item.Labels.PSObject.Properties['com.docker.compose.service']
+            if ($null -ne $serviceProperty) {
+                $service = [string]$serviceProperty.Value
+            }
+
+            $oneOffProperty = $item.Labels.PSObject.Properties['com.docker.compose.oneoff']
+            if ($null -ne $oneOffProperty) {
+                $oneOff = [string]$oneOffProperty.Value
+            }
+        }
+
         $containers += [pscustomobject]@{
-            Name    = $parts[0].Trim()
-            Service = $parts[1].Trim()
-            OneOff  = $parts[2].Trim()
-            Status  = $parts[3].Trim()
-            Image   = $parts[4].Trim()
+            Name    = $name
+            Service = $service
+            OneOff  = $oneOff
+            Status  = [string]$item.Status
+            Image   = [string]$item.Image
         }
     }
 
@@ -557,12 +610,14 @@ function Invoke-BayiosGitPull {
         [string]$Branch = ''
     )
 
-    $status = Invoke-BayiosCapture -FilePath 'git' -Arguments @('-C', $RepoPath, 'status', '--porcelain')
+    # Ignore untracked files: generated JSON/XLSX files in the repo do not block
+    # "git pull --ff-only". Tracked modifications still abort the update.
+    $status = Invoke-BayiosCapture -FilePath 'git' -Arguments @('-C', $RepoPath, 'status', '--porcelain', '--untracked-files=no')
     if ($status.ExitCode -ne 0) {
         throw ('git status failed: {0}' -f $status.Output)
     }
     if (-not [string]::IsNullOrWhiteSpace($status.Output)) {
-        throw ('Git working tree is not clean. Commit or stash changes before updating:{0}{1}' -f "`n", $status.Output)
+        throw ('Git working tree has tracked changes. Commit or stash them before updating:{0}{1}' -f "`n", $status.Output)
     }
 
     $fetch = Invoke-BayiosCapture -FilePath 'git' -Arguments @('-C', $RepoPath, 'fetch', 'origin')
