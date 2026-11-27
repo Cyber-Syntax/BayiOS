@@ -1,6 +1,6 @@
 # BayiOS
 
-LAN-only dealer operations system for a Turkish appliance dealer: products, imports, stock, reservations, campaigns, offers, commissions, and A4 printouts.
+LAN-only dealer operations system for a Turkish appliance dealer: products, imports, stock, reservations, campaigns, offers, commissions, and A4/A5 printouts.
 
 ## Project
 
@@ -16,9 +16,9 @@ LAN-only dealer operations system for a Turkish appliance dealer: products, impo
 uv sync                                     # install dependencies (uv.lock)
 bash scripts/dev.sh                         # dev Postgres + migrations + uvicorn --reload
 uv run uvicorn bayios.main:create_app --factory --reload
-uv run alembic upgrade head                 # apply migrations (head: 0020)
+uv run alembic upgrade head                 # apply migrations (head: 0025)
 uv run alembic revision -m "message"        # add a migration
-uv run pytest -q                            # full suite: 351 tests (345 pass, 6 skip without a test DB)
+uv run pytest -q                            # full suite: 418 tests (409 pass, 9 skip without a test DB)
 BAYIOS_TEST_DATABASE_URL=postgresql+psycopg://bayios:bayios@127.0.0.1:5432/bayios_test \
   uv run pytest tests/integration -q        # PostgreSQL integration tests
 uv run ruff check src tests                 # lint (currently clean)
@@ -48,7 +48,7 @@ Route handlers stay thin: parse the request, call an application use case with a
 - **Stock semantics:** physical stock is directly sellable. Reservations never reserve or reduce stock; only marking a reservation line `DELIVERED` reduces stock via an idempotent `delivery_out` movement. `stock_movements` is append-only.
 - **Transactions:** use `with uow:` and call `uow.commit()` explicitly. A failed operation must roll back and must never render as success.
 - **UI:** server-rendered Jinja2; HTMX only for partial updates (`_*.html` fragments); Alpine.js only for local UI state. No CDN and no runtime internet dependency. Vendored assets live in `web/static/vendor/` with hashes in `VERSIONS.txt`.
-- **CSS:** edit `web/static/css/app.css` and `print.css` directly. No Tailwind, Node, or CSS build step.
+- **CSS:** edit `web/static/css/app.css`, `print.css` and `print-a5.css` directly. No Tailwind, Node, or CSS build step.
 - **Immutability:** campaign versions, offer snapshots, commission periods, and reservation events are append-only; edits must not rewrite history. Only actual changes create history/version rows.
 - **Migrations:** Alembic revisions follow `00NN_slug.py`, forward-only; never edit an applied revision.
 - **Out of scope:** auth/roles, in-app/web scraping, WMS/Dynamics integration, POS basket optimization, PDF attachments, barcode product lookup, and manual barcode entry. Do not imply these exist. Importing the external scraper's Excel/CSV/`catalog.json` and campaign JSON output is in scope; the app never scrapes websites itself.

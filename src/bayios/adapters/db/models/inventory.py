@@ -58,6 +58,7 @@ class StockCountSession(Base):
             "status IN ('open', 'review', 'completed', 'cancelled')",
             name="status_valid",
         ),
+        sa.CheckConstraint("mode IN ('category', 'quick')", name="mode_valid"),
         sa.Index("ix_stock_count_sessions_category_id", "category_id"),
     )
 
@@ -69,6 +70,9 @@ class StockCountSession(Base):
         sa.ForeignKey("product_categories.id", ondelete="SET NULL")
     )
     status: Mapped[str] = mapped_column(sa.Text, server_default=sa.text("'open'"))
+    mode: Mapped[str] = mapped_column(
+        sa.Text, server_default=sa.text("'category'"), default="category"
+    )
     # Number of stock movements for the category when the snapshot was taken.
     stock_version: Mapped[int] = mapped_column(sa.Integer, server_default=sa.text("0"))
     note: Mapped[str | None] = mapped_column(sa.Text)
@@ -81,6 +85,11 @@ class StockCountSession(Base):
     created_by_device: Mapped[str | None] = mapped_column(sa.Text)
     completed_by_name: Mapped[str | None] = mapped_column(sa.Text)
     completed_by_device: Mapped[str | None] = mapped_column(sa.Text)
+    cancelled_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True))
+    cancelled_by_name: Mapped[str | None] = mapped_column(sa.Text)
+    cancelled_by_device: Mapped[str | None] = mapped_column(sa.Text)
+    cancel_reason: Mapped[str | None] = mapped_column(sa.Text)
+    reversed_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True))
 
 
 class StockCountItem(Base):

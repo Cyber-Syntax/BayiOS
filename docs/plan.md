@@ -348,18 +348,20 @@ Bir reservation uçtan uca takip edilir; duplicate stock deduction mümkün değ
 **Use-case akışları**
 
 - Product detail ve stock listesi physical/open görünümünü aynı hesap policy'sinden alır.
-- Category ile count session açılır; sistem quantity snapshot'lanır.
-- Counted quantity girilir; difference kullanıcıya gösterilmeden complete edilemez.
-- Completion sırasında current stock version kontrol edilir; conflict varsa yeniden hesaplama/review istenir.
+- Kategori sayımı tüm ürünleri snapshot'lar; hızlı sayım boş açılır ve yalnızca eklenen ürünleri içerir.
+- Sayımda yalnızca 0'dan büyük girilen miktarlar uygulanır; 0/boş satır stok değiştirmez ve "sayılmadı" kalır.
+- "Ara Kaydet" stok değiştirmez; "Sayımı Kaydet" tek transaction'da stok hareketlerini yazar ve oturumu kapatır.
+- Sayılan bir ürünün stoğu snapshot'tan sonra değiştiyse conflict üretilir; sayılmayan ürünlerdeki değişiklik engellemez.
+- Açık sayım iptali stok hareketi üretmez. Tamamlanmış sayımın geri alınması ters hareket yazar; stok sayımdan sonra değiştiyse reddedilir.
 - Farklar stock adjustment movement olarak ledger'a yazılır; movement silinmez.
 
 **Kullanım kolaylığı gereksinimleri**
 
-1. Stok sayfası açıldığında `open` ve `review` durumundaki oturumlar ürün tablosunun üstünde ayrı bir "Açık Sayım Oturumları" bölümünde listelenir; her satırda "Devam Et" bağlantısı bulunur. Tamamlanmış oturum geçmişi sayfanın altında kalır.
+1. Stok sayfası açıldığında `open` ve `review` durumundaki oturumlar ürün tablosunun üstünde ayrı bir "Açık Sayım Oturumları" bölümünde listelenir; her satırda "Devam Et" bağlantısı bulunur. Tamamlanmış ve iptal edilmiş oturum geçmişi sayfanın altındaki ikinci sekmede kalır.
 2. Stok ürün listesi `page`/`limit` parametreleriyle sayfalanır; arama (`q`) ve kategori filtresi korunur. Kategori seçimi ve arama yazımı "Ara" butonuna gerek kalmadan sonuçları otomatik yeniler.
 3. Sayım oturumu ürün satırları da sayfalanır; sayılan miktar formu yalnızca görünen sayfadaki alanları gönderir, diğer sayfalardaki kayıtlı değerler korunur.
 4. Ortak sayfalama bileşeni önceki/sonraki butonları, sayfa numarası girişi ve "Git" butonu içerir; kullanıcı doğrudan son sayfaya atlayabilir.
-5. Açık sayım oturumunda "Miktarları Kaydet" butonu `position: fixed` eylem çubuğunda ekranın altında durur; içerik için alt boşluk bırakılır ve yazdırma CSS'inde gizlenir.
+5. Açık sayım oturumunda "Sayımı Kaydet" ve "Ara Kaydet" butonları `position: fixed` eylem çubuğunda ekranın altında durur; içerik için alt boşluk bırakılır ve yazdırma CSS'inde gizlenir.
 
 **Davranış testleri**
 
@@ -367,10 +369,14 @@ Bir reservation uçtan uca takip edilir; duplicate stock deduction mümkün değ
 - Rezervasyon açılışı fiziksel stoğu değiştirmez; yalnızca teslimat fiziksel stoğu düşürür.
 - Eşzamanlı movement sonrası eski count sessizce overwrite etmez.
 - Completed session tekrar complete edilince duplicate movement üretmez.
-- A4 kategori listesi elle yazılabilir alanları içerir.
+- Kısmi sayım kapatıldığında sayılmayan ürünlerin stoğu değişmez.
+- 0 veya boş sayılan satır stok hareketi üretmez.
+- Açık sayım iptali stok hareketi üretmez; tamamlanmış sayımın geri alınması ters hareket üretir.
+- Hızlı sayımda aynı ürün ikinci kez eklenmez; kategori dışı/arşivli ürün eklenemez.
+- A5 kategori listesi kategori, fiziksel stok ve rezervasyon sütunlarını içerir.
 - Stok sayfasında açık/incelemedeki oturumlar üst bölümde görünür ve "Devam Et" doğru oturuma gider.
 - Stok listesi ve sayım satırlarında sayfa numarasıyla doğrudan son sayfaya geçiş çalışır; filtre parametreleri kaybolmaz.
-- Açık sayım oturumunda "Miktarları Kaydet" butonu HTML'de sabit eylem çubuğu içinde bulunur ve formu gönderir.
+- Açık sayım oturumunda "Sayımı Kaydet" ve "Ara Kaydet" butonları HTML'de sabit eylem çubuğu içinde bulunur ve formu gönderir.
 
 **Çıkış kriteri**
 

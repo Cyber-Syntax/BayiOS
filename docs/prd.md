@@ -103,7 +103,7 @@ MVP'de kullanıcı girişi, parola, rol ve yetkilendirme sistemi **yoktur**. Uyg
 3. CSV/Excel ürün içe aktarma ve tüm ürünleri dışa aktarma (sorunlu satırların önizlemede en başta gösterilmesi, "Sorunluları Atla" butonu ve doğru işlem özeti).
 4. Ürün fiyat geçmişi ve CSV aktarım geçmişi.
 5. Fiziksel stok, açık rezervasyon miktarı, stok hareketleri ve ürünler sekmesinden doğrudan stok güncelleme.
-6. Kategori bazlı stok sayım oturumları ve A4 sayım listeleri.
+6. Kategori bazlı stok sayım oturumları ve A5 sayım listeleri.
 7. Rezervasyon kayıtları, çoklu ürün, durum akışı ve hatırlatma/erteleme.
 8. Şirket kampanyaları ve bayi özel fiyat/indirim rehberi.
 9. Banka ve taksit bazlı POS komisyon tablosu; bankasız genel oran, bankaya özel oran ve formdan hızlı banka ekleme; minimum satış fiyatı referans hesabı.
@@ -739,11 +739,11 @@ Teslim anında fiziksel stok yetersizse sistem uyarı göstermeli ancak onayla d
 
 **FR-STOCK-08 (P0):** Sayım listesi ürün adı, sistemdeki fiziksel stok, sayılan miktar ve fark alanlarını içermelidir.
 
-**FR-STOCK-09 (P0):** Sayım tamamlandığında farklar kullanıcıya gösterilmeli ve onayla stok düzeltmesi hareketi olarak kaydedilmelidir.
+**FR-STOCK-09 (P0):** Sayım "Sayımı Kaydet" ile kapatıldığında yalnızca 0'dan büyük girilen miktarlar stok düzeltmesi hareketi olarak kaydedilir; 0 veya boş bırakılan satırların stoğu değişmez.
 
 **FR-STOCK-10 (P0):** Sayım oturumunun açılış zamanı, sayım zamanı, tamamlayan çalışan adı (isteğe bağlı) ve satır değişiklikleri tutulmalıdır.
 
-**FR-STOCK-11 (P0):** A4 sayım listesi kategori bazlı basılabilmelidir.
+**FR-STOCK-11 (P0):** A5 sayım listesi kategori bazlı basılabilmelidir; kategori, fiziksel stok ve rezervasyon miktarı görünmelidir.
 
 **FR-STOCK-12 (P0):** Ürün hareket geçmişinde CSV güncellemesi, sayım düzeltmesi ve rezervasyon teslim çıkışı ayırt edilebilmelidir.
 
@@ -751,13 +751,23 @@ Teslim anında fiziksel stok yetersizse sistem uyarı göstermeli ancak onayla d
 
 **FR-STOCK-14 (P1):** Sayım oturumu kaydedildikten sonra farklı çalışan tarafından sonuç girilebilmesi kolaylaştırılabilir.
 
-**FR-STOCK-15 (P0) — Açık Sayım Oturumlarının Üstte Gösterilmesi:** Stok / Sayım sayfası açıldığında `open` ve `review` durumundaki sayım oturumları belirgin biçimde erişilebilir olmalıdır. Açık oturumlar ve tamamlanmış oturum geçmişi [ui.md](./ui.md) içindeki sekme düzeniyle gösterilir.
+**FR-STOCK-15 (P0) — Açık Sayım Oturumlarının Üstte Gösterilmesi:** Stok / Sayım sayfası açıldığında `open` ve `review` durumundaki sayım oturumları belirgin biçimde erişilebilir olmalıdır. Açık oturumlar ve tamamlanmış/iptal edilmiş oturum geçmişi [ui.md](./ui.md) içindeki sekme düzeniyle gösterilir.
 
 **FR-STOCK-16 (P0) — Stok Sayfası ve Sayım Satırlarında Sayfalama:** Stok özeti ürün listesi ve açık sayım oturumundaki ürün satırları sayfalanabilmelidir; istenen sayfaya doğrudan geçiş desteklenmelidir. Sayfalama mevcut kategori ve arama filtrelerini korumalıdır. Görsel desen [ui.md](./ui.md) içindedir.
 
-**FR-STOCK-17 (P0) — Sabit "Miktarları Kaydet" Butonu:** Açık sayım oturumunda "Miktarları Kaydet" eylemi sayfa kaydırılsa bile erişilebilir olmalıdır. Sticky eylem çubuğu ve yazdırma davranışı [ui.md](./ui.md) içindedir.
+**FR-STOCK-17 (P0) — Sabit "Sayımı Kaydet" Butonu:** Açık sayım oturumunda "Sayımı Kaydet" ve "Ara Kaydet" eylemleri sayfa kaydırılsa bile erişilebilir olmalıdır. "Sayımı Kaydet" yalnızca 0'dan büyük miktarları uygular ve oturumu kapatır; "Ara Kaydet" stok değiştirmeden taslak kaydeder. Sticky eylem çubuğu ve yazdırma davranışı [ui.md](./ui.md) içindedir.
 
 **FR-STOCK-18 (P0) — Otomatik Filtre:** Stok sayfasında kategori seçildiğinde veya arama kutusuna yazıldığında sonuçlar "Ara" butonuna basılmadan otomatik güncellenmelidir; kullanıcı verimliliği için anında sonuç gösterilmelidir.
+
+**FR-STOCK-19 (P0) — Hızlı Sayım:** Boş başlayan hızlı sayım oturumunda ürün adı veya ID ile arama yapılabilmeli, sonuçtan ürün eklenebilmeli ve yalnızca eklenen ürünler sayılmalıdır. Aynı ürün ikinci kez eklenmemeli; arşivli veya oturum kategorisi dışındaki ürün eklenememelidir.
+
+**FR-STOCK-20 (P0) — Eksik Sayımla Kapatma:** Bazı ürünler sayılmamış olsa bile sayım kapatılabilmelidir. Sayılmayan satırlar "sayılmadı" olarak kalır ve stoklarına dokunulmaz; oturum özeti sayılan, sayılmayan ve düzeltilen satırları gösterir.
+
+**FR-STOCK-21 (P0) — Sayımı İptal Etme ve Geri Alma:** Açık veya fark incelemesindeki sayım iptal edilebilmelidir; iptal stok hareketi üretmez. Tamamlanmış sayım geri alınabilmelidir; geri alma, uygulanan düzeltmeleri ters hareketle geri yazar. Sayımdan sonra stok değiştiyse geri alma reddedilmelidir.
+
+**FR-STOCK-22 (P0) — 0 = Stok Yok:** Fiziksel stok 0 ise "Stok yok" gösterilmelidir. Negatif stok desteklenmeye devam eder ve "Stok düzeltmesi gerekli" olarak gösterilir. Sayımda 0 veya boş bırakılan satır stok değiştirmez.
+
+**FR-STOCK-23 (P0) — Sadece Stokta Olanları Dışa Aktarma:** Excel dışa aktarımında yalnızca fiziksel stoğu 0'dan büyük ürünleri içeren ayrı bir seçenek bulunmalıdır.
 
 ### 5.9 V2 adayı — Hızlı teslim ve Code 128 (v1 dışı)
 
@@ -807,7 +817,7 @@ Teslim anında fiziksel stok yetersizse sistem uyarı göstermeli ancak onayla d
 
 **FR-PRINT-02 (P0):** Rezervasyon çıktısı depo kopyası ve bayi kopyası olarak iki biçimde alınabilmelidir.
 
-**FR-PRINT-03 (P0):** Kategori bazlı stok sayım/ürün listesi A4 çıktısı verebilmelidir.
+**FR-PRINT-03 (P0):** Kategori bazlı stok sayım/ürün listesi A5 çıktısı verebilmelidir; kategori, fiziksel stok ve rezervasyon miktarı görünmelidir.
 
 **FR-PRINT-04 (P0):** Teklif A4 çıktısı verebilmelidir.
 
@@ -907,12 +917,12 @@ Ekranlar: Ana Sayfa, Ürünler, Kampanyalar, Teklifler, Rezervasyonlar, Stok / S
 2. Çalışan stok listesinde kategori seçerek veya arama yazarak sonuçları anında filtreler ("Ara" butonuna gerek kalmadan).
 3. Çalışan kategori seçer ve sayım oturumu açar.
 4. Sistem o kategorideki ürünlerin mevcut fiziksel stoklarını listeler; uzun liste sayfalanır ve sayfa numarasıyla doğrudan istenen sayfaya gidilebilir.
-5. A4 sayım listesi alınabilir.
-6. Depocu/çalışan sayılan miktarları kâğıttan veya doğrudan telefondan/bilgisayardan girer; "Miktarları Kaydet" butonu ekranın altında sabit durur.
-7. Sistem farkları hesaplar.
-8. Çalışan farkları kontrol edip onaylar.
-9. Stok düzeltmeleri hareket olarak uygulanır.
-10. Sayım oturumu kapanır; önceki değerler korunur.
+5. A5 sayım listesi alınabilir; rezervasyonu olan ürünler ayrıca filtrelenebilir.
+6. Depocu/çalışan sayılan miktarları kâğıttan veya doğrudan telefondan/bilgisayardan girer; "Sayımı Kaydet" butonu ekranın altında sabit durur.
+7. "Sayımı Kaydet" yalnızca 0'dan büyük girilen miktarları stok düzeltmesi olarak uygular; 0/boş satırlar değişmez.
+8. Sayım oturumu, bazı ürünler sayılmamış olsa bile kapanır; sayılmayanlar "sayılmadı" olarak kalır.
+9. Tamamlanmış sayım yanlışsa "Sayımı Geri Al" ters hareketle stokları eski değerlere döndürür.
+10. İptal edilen açık sayım stoklara dokunmaz; önceki değerler korunur.
 
 ### 6.9 V2 adayı — Hızlı Teslim barkod akışı (v1 dışı)
 
@@ -1152,8 +1162,10 @@ PDF/ek dosya tablosu MVP'de bulunmaz. Dosya özelliği sonraki fazda eklendiğin
 **stock_count_sessions**
 
 - `id`, `category_id`, `status` (`open`, `review`, `completed`, `cancelled`)
+- `mode` (`category`, `quick`)
 - `started_at`, `completed_at`, `created_by_name`, `completed_by_name`
-- `note`
+- `cancelled_at`, `cancelled_by_name`, `cancel_reason`, `reversed_at`
+- `note`, `summary`
 
 **stock_count_items**
 
@@ -1235,14 +1247,15 @@ Filtrelenmiş ürün sonuçlarını dışa aktarma MVP dışında tutulur; tüm 
 - Gerekirse müşteri/çalışan için imza veya el yazısı not alanı bırakılabilir; ilk sürümde zorunlu değildir.
 - Gelecekte eklenecek PDF ekleri yazdırma formuna otomatik gömülmek zorunda değildir; PDF ayrı açılabilir.
 
-### 9.2 Stok sayım çıktısı
+### 9.2 Stok sayım çıktısı (A5)
 
-- Kategori adı ve sayım tarihi.
+- Kategori adı/gruplaması ve sayım tarihi.
 - Ürün adı.
 - Mevcut sistem fiziksel stok miktarı.
+- Açık rezervasyon miktarı.
 - Elle yazılabilir sayılan miktar alanı.
-- Fark/not alanı.
 - Sayım yapan/teslim alan alanı isteğe bağlı.
+- Rezervasyonu olan ürünler yalnızca rezerve ürünler filtresiyle ayrıca basılabilir.
 
 ### 9.3 Teklif çıktısı
 
@@ -1505,7 +1518,7 @@ Başlangıç: Fiziksel stok 5, açık rezervasyon 0.
 12. Çok ürünlü rezervasyonda bir ürün teslim edildiğinde diğer ürün satırları açık kalabilir.
 13. Stok / Sayım sayfasında `open` ve `review` durumundaki oturumlar sayfanın üst bölümünde görünür; uzun ürün listesinin altına inmeden "Devam Et" ile açılabilir.
 14. Stok ürün listesi ve sayım satırları sayfalanır; sayfa numarası yazılarak doğrudan son sayfaya gidilebilir.
-15. Açık sayım oturumunda "Miktarları Kaydet" butonu sayfa kaydırılsa bile ekranın altında sabit kalır ve formu gönderir.
+15. Açık sayım oturumunda "Sayımı Kaydet" ve "Ara Kaydet" butonları sayfa kaydırılsa bile ekranın altında sabit kalır; "Sayımı Kaydet" yalnızca 0'dan büyük miktarları uygular.
 16. Stok sayfasında kategori seçildiğinde veya arama yazıldığında sonuçlar "Ara" butonuna basılmadan otomatik güncellenir.
 
 ### 13.3 Kampanya testleri
@@ -1645,11 +1658,13 @@ POS hesaplayıcısı en son milestone olarak kalır. Sıralama, çalışanlara e
 - Fiziksel stok / açık rezervasyon görünümü.
 - Açık ve incelemedeki sayım oturumlarının sayfa üstünde gösterilmesi.
 - Kategori bazlı sayım oturumu.
-- Sayım farkı ve onay.
+- Kısmi sayımla kapatma; 0/boş satırların stoğuna dokunmama.
+- Hızlı sayım (boş oturum + ürün arama/ekleme).
+- Sayım iptali ve tamamlanmış sayımı ters kayıtla geri alma.
 - Stok hareket geçmişi.
-- A4 sayım listesi.
+- A5 sayım listesi (kategori, fiziksel stok, rezervasyon).
 - Stok ürün listesi ve sayım satırlarında sayfalama + doğrudan sayfa geçişi.
-- Açık sayım oturumunda sabit "Miktarları Kaydet" eylem çubuğu.
+- Açık sayım oturumunda sabit "Sayımı Kaydet" / "Ara Kaydet" eylem çubuğu.
 
 **Çıkış kriteri:** Kategori sayımı uygulamaya işlenir ve stok hareketi olarak geriye dönük görülebilir; açık oturumlar üstte bulunur; sayfalama ve sabit kaydet butonu uzun listelerde kullanılabilir.
 
@@ -1761,7 +1776,7 @@ Bu PRD aşağıdaki kullanıcı kararlarını temel alır:
 - Ürün içe aktarmada kategori opsiyoneldir; dışa aktarmada kategori her zaman bulunur. İçe aktarmada bilinmeyen kategori adları otomatik oluşturulur.
 - Fiziksel stok doğrudan satılabilir stoktur; ayrı "satılabilir stok" veya "temin ihtiyacı" hesabı yapılmaz. Rezervasyonlar fiziksel stoktan ürün ayırmaz.
 - Ürünler, stok listesi ve sayım satırları sayfalanır; sayfa numarası yazılarak doğrudan istenen sayfaya gidilebilir.
-- Açık sayım oturumları stok sayfasının üstünde gösterilir ve "Miktarları Kaydet" butonu ekran altında sabit durur.
+- Açık sayım oturumları stok sayfasının üstünde gösterilir; "Sayımı Kaydet" ve "Ara Kaydet" butonları ekran altında sabit durur.
 - Yedekleme döngüsü günlük, haftalık tam ve aylık uzun süreli yedek olarak uygulanır; aylık geri yükleme testi yapılır.
 - POS hesaplayıcısı son milestone'dur.
 

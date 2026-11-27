@@ -122,7 +122,15 @@
       <div class="fact-list">
         <div class="fact-row">
           <span class="fact-label">Fiziksel stok</span>
-          <span class="fact-value">{{ product.physical_stock }}</span>
+          <span class="fact-value">
+            {% if product.physical_stock > 0 %}
+            {{ product.physical_stock }}
+            {% elif product.physical_stock == 0 %}
+            <span class="badge badge-warning">Stok yok</span>
+            {% else %}
+            <span class="badge badge-danger">Stok düzeltmesi gerekli ({{ product.physical_stock }})</span>
+            {% endif %}
+          </span>
         </div>
         <div class="fact-row">
           <span class="fact-label">Açık rezervasyon</span>

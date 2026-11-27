@@ -210,6 +210,7 @@ class SqlAlchemyProductRepository:
         limit: int = 50,
         offset: int = 0,
         include_archived: bool = False,
+        in_stock_only: bool = False,
     ) -> tuple[Sequence[Product], int]:
         stmt = sa.select(Product)
         count_stmt = sa.select(sa.func.count(Product.id))
@@ -219,6 +220,9 @@ class SqlAlchemyProductRepository:
         if not include_archived:
             stmt = stmt.where(Product.is_archived.is_(False))
             count_stmt = count_stmt.where(Product.is_archived.is_(False))
+        if in_stock_only:
+            stmt = stmt.where(Product.physical_stock > 0)
+            count_stmt = count_stmt.where(Product.physical_stock > 0)
         if query and query.strip():
             normalized = normalize_product_name(query)
             clean_query = query.strip()
@@ -302,6 +306,18 @@ class SqlAlchemyProductRepository:
 
     def add_price_history(self, history: ProductPriceHistory) -> None:
         self._session.add(history)
+
+    def get_stock_movements_for_reference(
+        self, reference_type: str, reference_id: uuid.UUID
+    ) -> Sequence[StockMovement]:
+        return self._session.scalars(
+            sa.select(StockMovement)
+            .where(
+                StockMovement.reference_type == reference_type,
+                StockMovement.reference_id == reference_id,
+            )
+            .order_by(StockMovement.created_at)
+        ).all()
 
     def add_stock_movement(self, movement: StockMovement) -> None:
         self._session.add(movement)

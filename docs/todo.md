@@ -3,7 +3,12 @@
 - [ ] eğer boyut küçük olursa, ürünler sekmesinde tüm kartı boş alanlara tıklayınca seçebiliyorum ama eğer window boyutu büyük olursa sadece checkbox ile seçebiliyorum. Bunu değiştir; büyük olunca da kartta boş alana tıklayınca ürün seçilsin.
 - [ ] sadece seçilmiş ürünleri excel ile dışa aktar
 - [ ] sadece kategorisi seçilmiş ürünleri excel ile dışa aktar.
-- [ ] a4 sayım listesi, kategori seçince, o kategori için çıkartsın, tüm kategoride tüm kategori için a4 sayım listesi çıkartsın.
+- [x] A5 sayım listesi, kategori seçince o kategori için, tümünde kategori gruplarıyla çıksın; rezervasyonu olan ürünler ayrı filtrelenebilsin.
+- [x] hızlı sayım: boş oturumda ürün arayıp yalnızca yazılan ürünleri sayma.
+- [x] sayımı bazı ürünler sayılmasa bile kapatabilme; 0/boş satırların stoğunu değiştirmeme.
+- [x] sayımı iptal etme ve tamamlanmış sayımı ters kayıtla geri alma.
+- [x] sadece stokta olanları Excel ile dışa aktarma.
+- [x] 0 = stok yok kuralı; negatif stok desteği korunarak.
 - [ ] sayım geçmişi ve açık sayım oturumları yukarıda olsun ama yer kazanmak için iki tane iç sekme olarak görünsünler.
 - [ ] tekliflerde aynı zamanda yukarıda toplam komisyonlu detayı göstermemiz lazım, örnek toplam kazanç, toplam komisyonlar çıkınca bayiinin hakedişler ile toplam kazancı.
 - [ ] feat: teklif detayları excel ile iç/dış aktar

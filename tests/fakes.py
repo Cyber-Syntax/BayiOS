@@ -218,12 +218,14 @@ class FakeProductRepository:
         limit: int = 50,
         offset: int = 0,
         include_archived: bool = False,
+        in_stock_only: bool = False,
     ) -> tuple[Sequence[Product], int]:
         results = [
             product
             for product in self.products.values()
             if (category_id is None or product.category_id == category_id)
             and (include_archived or not product.is_archived)
+            and (not in_stock_only or product.physical_stock > 0)
         ]
         if query and query.strip():
             normalized = normalize_product_name(query)
@@ -286,6 +288,16 @@ class FakeProductRepository:
 
     def get_stock_movements(self, product_id: uuid.UUID) -> Sequence[StockMovement]:
         return [m for m in self.stock_movements if m.product_id == product_id]
+
+    def get_stock_movements_for_reference(
+        self, reference_type: str, reference_id: uuid.UUID
+    ) -> Sequence[StockMovement]:
+        return [
+            movement
+            for movement in self.stock_movements
+            if movement.reference_type == reference_type
+            and movement.reference_id == reference_id
+        ]
 
     def add_price_history(self, history: ProductPriceHistory) -> None:
         self.price_history.append(history)

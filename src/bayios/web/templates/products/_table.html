@@ -59,9 +59,9 @@
           {% if product.physical_stock > 0 %}
           <span class="badge badge-success">Stok: {{ product.physical_stock }}</span>
           {% elif product.physical_stock == 0 %}
-          <span class="badge badge-warning">Stokta yok</span>
+          <span class="badge badge-warning">Stok yok</span>
           {% else %}
-          <span class="badge badge-danger">Stok: {{ product.physical_stock }}</span>
+          <span class="badge badge-danger">Stok düzeltmesi gerekli ({{ product.physical_stock }})</span>
           {% endif %}
         </td>
         <td class="col-date" data-label="Son Fiyat Değişimi">

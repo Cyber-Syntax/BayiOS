@@ -14,9 +14,18 @@ from bayios.adapters.db.models.products import Product, ProductCategory
 from bayios.application.errors import ConflictError, NotFoundError, ValidationError
 from bayios.application.ports.unit_of_work import UnitOfWork
 from bayios.domain.commissions import commission_group_for_category_name
-from bayios.domain.inventory import CountSession, StockSummary, complete_count_session
+from bayios.domain.inventory import (
+    CountSession,
+    MovementType,
+    StockSummary,
+    complete_count_session,
+    reverse_count_session,
+)
+from bayios.domain.inventory import StockMovement as DomainStockMovement
 from bayios.domain.naming import canonical_display_name
 from bayios.domain.products import ActorContext, normalize_category_name
+
+COUNT_MODES = ("category", "quick")
 
 
 @dataclass(frozen=True)
@@ -43,17 +52,34 @@ class StockCountView:
     category_id: uuid.UUID | None
     category_name: str | None
     status: str
+    mode: str
     stock_version: int
     note: str | None
     started_at: datetime
     completed_at: datetime | None
     completed_by_name: str | None
+    cancelled_at: datetime | None
+    cancelled_by_name: str | None
+    cancel_reason: str | None
+    reversed_at: datetime | None
     items: tuple[CountSessionLine, ...]
     summary: Mapping[str, object] | None
 
     @property
     def counted_lines(self) -> int:
         return sum(1 for item in self.items if item.counted_quantity is not None)
+
+    @property
+    def skipped_lines(self) -> int:
+        return len(self.items) - self.counted_lines
+
+    @property
+    def has_counted(self) -> bool:
+        return self.counted_lines > 0
+
+    @property
+    def all_counted(self) -> bool:
+        return bool(self.items) and self.skipped_lines == 0
 
     @property
     def difference_lines(self) -> int:
@@ -70,6 +96,8 @@ class StockCountCompletion:
     adjusted_count: int
     unchanged_count: int
     total_difference: int
+    counted_count: int = 0
+    skipped_count: int = 0
 
 
 def get_stock_overview(
@@ -79,6 +107,7 @@ def get_stock_overview(
     open_reservations: Mapping[uuid.UUID, int] | None = None,
     limit: int | None = None,
     offset: int = 0,
+    only_in_stock: bool = False,
 ) -> tuple[tuple[StockOverviewRow, ...], int]:
     reservations = open_reservations
     with uow:
@@ -87,6 +116,7 @@ def get_stock_overview(
             query=query,
             limit=limit or 10_000,
             offset=offset,
+            in_stock_only=only_in_stock,
         )
         if reservations is None:
             reservations = uow.reservations.open_quantity_by_product(
@@ -160,8 +190,11 @@ def open_stock_count_session(
     category_id: uuid.UUID | None,
     actor: ActorContext | None = None,
     note: str | None = None,
+    mode: str = "category",
 ) -> StockCountView:
     actor = actor or ActorContext()
+    if mode not in COUNT_MODES:
+        raise ValidationError("Geçersiz sayım türü.")
     now = datetime.now(UTC)
     with uow:
         category = None
@@ -169,14 +202,17 @@ def open_stock_count_session(
             category = uow.products.get_category(category_id)
             if category is None:
                 raise NotFoundError("Kategori bulunamadı.")
-        products = list(uow.products.list_by_category(category_id))
-        if not products:
-            raise ValidationError("Bu kategoride sayılacak aktif ürün bulunmuyor.")
+        products: list[Product] = []
+        if mode == "category":
+            products = list(uow.products.list_by_category(category_id))
+            if not products:
+                raise ValidationError("Bu kategoride sayılacak aktif ürün bulunmuyor.")
 
         session = StockCountSession(
             id=uuid.uuid4(),
             category_id=category_id,
             status="open",
+            mode=mode,
             stock_version=uow.stock_counts.stock_version(category_id),
             note=note,
             started_at=now,
@@ -194,7 +230,8 @@ def open_stock_count_session(
             )
             for product in products
         ]
-        uow.stock_counts.add_items(items)
+        if items:
+            uow.stock_counts.add_items(items)
         uow.commit()
         return _to_view(session, items, category.name if category else None)
 
@@ -222,6 +259,43 @@ def list_recent_stock_count_sessions(
         return tuple(uow.stock_counts.list_sessions(limit=limit))
 
 
+def add_stock_count_line(
+    uow: UnitOfWork,
+    session_id: uuid.UUID,
+    product_id: uuid.UUID,
+) -> StockCountView:
+    with uow:
+        session = uow.stock_counts.get_session(session_id)
+        if session is None:
+            raise NotFoundError("Sayım oturumu bulunamadı.")
+        if session.status in ("completed", "cancelled"):
+            raise ValidationError("Tamamlanmış veya iptal edilmiş sayıma ürün eklenemez.")
+        if session.mode != "quick":
+            raise ValidationError("Ürün ekleme yalnızca hızlı sayımda kullanılabilir.")
+        product = uow.products.get_by_id(product_id)
+        if product is None:
+            raise NotFoundError("Ürün bulunamadı.")
+        if product.is_archived:
+            raise ValidationError("Arşivlenmiş ürün sayıma eklenemez.")
+        if session.category_id is not None and product.category_id != session.category_id:
+            raise ValidationError("Ürün bu sayımın kategorisinde değil.")
+
+        items = list(uow.stock_counts.get_items(session_id))
+        if any(item.product_id == product_id for item in items):
+            return _to_view(session, items, _category_name(uow, session))
+        item = StockCountItem(
+            id=uuid.uuid4(),
+            session_id=session.id,
+            product_id=product.id,
+            product_name=product.name,
+            system_quantity=product.physical_stock,
+        )
+        uow.stock_counts.add_items([item])
+        items.append(item)
+        uow.commit()
+        return _to_view(session, items, _category_name(uow, session))
+
+
 def save_counted_quantities(
     uow: UnitOfWork,
     session_id: uuid.UUID,
@@ -232,7 +306,7 @@ def save_counted_quantities(
         if session is None:
             raise NotFoundError("Sayım oturumu bulunamadı.")
         if session.status in ("completed", "cancelled"):
-            raise ValidationError("Tamamlanmış sayım oturumu değiştirilemez.")
+            raise ValidationError("Tamamlanmış veya iptal edilmiş sayım değiştirilemez.")
 
         items = list(uow.stock_counts.get_items(session_id))
         for item in items:
@@ -241,16 +315,14 @@ def save_counted_quantities(
             quantity = counted[item.product_id]
             if quantity is not None and quantity < 0:
                 raise ValidationError("Sayılan miktar negatif olamaz.")
+            if quantity is not None and quantity == 0:
+                quantity = None
             item.counted_quantity = quantity
             item.difference = (
                 None if quantity is None else quantity - item.system_quantity
             )
 
-        session.status = (
-            "review"
-            if items and all(item.counted_quantity is not None for item in items)
-            else "open"
-        )
+        session.status = "open"
         uow.commit()
         return _to_view(session, items, _category_name(uow, session))
 
@@ -264,53 +336,84 @@ def refresh_stock_count_session(
         if session is None:
             raise NotFoundError("Sayım oturumu bulunamadı.")
         if session.status in ("completed", "cancelled"):
-            raise ValidationError("Tamamlanmış sayım oturumu yenilenemez.")
+            raise ValidationError("Tamamlanmış veya iptal edilmiş sayım yenilenemez.")
 
         items = list(uow.stock_counts.get_items(session_id))
-        current_products = {
-            product.id: product
-            for product in uow.products.list_by_category(session.category_id)
-        }
-        remaining_items: list[StockCountItem] = []
-        existing_product_ids: set[uuid.UUID] = set()
-        for item in items:
-            product = current_products.get(item.product_id)
-            if product is None:
-                uow.stock_counts.delete_item(item)
-                continue
-            existing_product_ids.add(product.id)
-            item.system_quantity = product.physical_stock
-            item.difference = (
-                None
-                if item.counted_quantity is None
-                else item.counted_quantity - item.system_quantity
-            )
-            remaining_items.append(item)
+        if session.mode == "quick":
+            product_ids = [item.product_id for item in items]
+            products = {
+                product.id: product
+                for product in uow.products.get_by_ids(product_ids)
+            }
+            remaining_items: list[StockCountItem] = []
+            for item in items:
+                product = products.get(item.product_id)
+                if product is None or product.is_archived:
+                    uow.stock_counts.delete_item(item)
+                    continue
+                item.system_quantity = product.physical_stock
+                item.difference = (
+                    None
+                    if item.counted_quantity is None
+                    else item.counted_quantity - item.system_quantity
+                )
+                remaining_items.append(item)
+        else:
+            current_products = {
+                product.id: product
+                for product in uow.products.list_by_category(session.category_id)
+            }
+            remaining_items = []
+            existing_product_ids: set[uuid.UUID] = set()
+            for item in items:
+                product = current_products.get(item.product_id)
+                if product is None:
+                    uow.stock_counts.delete_item(item)
+                    continue
+                existing_product_ids.add(product.id)
+                item.system_quantity = product.physical_stock
+                item.difference = (
+                    None
+                    if item.counted_quantity is None
+                    else item.counted_quantity - item.system_quantity
+                )
+                remaining_items.append(item)
 
-        new_items = [
-            StockCountItem(
-                id=uuid.uuid4(),
-                session_id=session.id,
-                product_id=product.id,
-                product_name=product.name,
-                system_quantity=product.physical_stock,
-            )
-            for product in current_products.values()
-            if product.id not in existing_product_ids
-        ]
-        if new_items:
-            uow.stock_counts.add_items(new_items)
-            remaining_items.extend(new_items)
+            new_items = [
+                StockCountItem(
+                    id=uuid.uuid4(),
+                    session_id=session.id,
+                    product_id=product.id,
+                    product_name=product.name,
+                    system_quantity=product.physical_stock,
+                )
+                for product in current_products.values()
+                if product.id not in existing_product_ids
+            ]
+            if new_items:
+                uow.stock_counts.add_items(new_items)
+                remaining_items.extend(new_items)
 
         session.stock_version = uow.stock_counts.stock_version(session.category_id)
-        session.status = (
-            "review"
-            if remaining_items
-            and all(item.counted_quantity is not None for item in remaining_items)
-            else "open"
-        )
+        session.status = "open"
         uow.commit()
         return _to_view(session, remaining_items, _category_name(uow, session))
+
+
+def save_and_complete_stock_count(
+    uow: UnitOfWork,
+    session_id: uuid.UUID,
+    counted: Mapping[uuid.UUID, int | None],
+    actor: ActorContext | None = None,
+) -> StockCountCompletion:
+    """Entered positive counts are applied; blank/zero/uncounted lines are skipped."""
+    actor = actor or ActorContext()
+    now = datetime.now(UTC)
+    with uow:
+        session = uow.stock_counts.get_session(session_id)
+        if session is None:
+            raise NotFoundError("Sayım oturumu bulunamadı.")
+        return _complete_stock_count(uow, session, counted, actor, now)
 
 
 def complete_stock_count_session(
@@ -320,116 +423,282 @@ def complete_stock_count_session(
     *,
     acknowledge_differences: bool = False,
 ) -> StockCountCompletion:
+    """Compatibility entry point: applies the quantities already saved as draft."""
+    del acknowledge_differences
     actor = actor or ActorContext()
     now = datetime.now(UTC)
     with uow:
         session = uow.stock_counts.get_session(session_id)
         if session is None:
             raise NotFoundError("Sayım oturumu bulunamadı.")
-        if session.status == "completed":
-            summary = session.summary or {}
-            return StockCountCompletion(
-                session_id=session.id,
-                adjusted_count=int(summary.get("adjusted_count", 0)),
-                unchanged_count=int(summary.get("unchanged_count", 0)),
-                total_difference=int(summary.get("total_difference", 0)),
-            )
-        if session.status != "review":
-            raise ValidationError(
-                "Sayımı tamamlamadan önce tüm miktarları girip farkları inceleyin."
-            )
+        return _complete_stock_count(uow, session, None, actor, now)
 
-        items = list(uow.stock_counts.get_items(session_id))
-        if not items:
-            raise ValidationError("Sayım oturumunda ürün bulunmuyor.")
-        if any(item.counted_quantity is None for item in items):
-            raise ValidationError("Tüm ürünlerin sayılan miktarı girilmelidir.")
 
-        product_ids = [item.product_id for item in items]
-        products = {product.id: product for product in uow.products.get_by_ids(product_ids)}
-        if len(products) != len(product_ids):
-            raise ConflictError(
-                "Sayımdaki bazı ürünler artık mevcut değil. Sayımı yenileyin."
-            )
-
-        snapshots = {str(item.product_id): item.system_quantity for item in items}
-        counted = {str(item.product_id): int(item.counted_quantity or 0) for item in items}
-        current = {
-            str(item.product_id): products[item.product_id].physical_stock
-            for item in items
-        }
-        current_version = uow.stock_counts.stock_version(session.category_id)
-        domain_session = CountSession(
-            category_id=str(session.category_id or "all"),
-            snapshots=snapshots,
-            stock_version=session.stock_version,
-            opened_at=session.started_at,
-        )
-        try:
-            completion = complete_count_session(
-                domain_session,
-                counted_quantities=counted,
-                current_quantities=current,
-                current_version=current_version,
-                actor_name=actor.worker_name,
-                acknowledge_differences=acknowledge_differences,
-                completed_at=now,
-            )
-        except ValueError as exc:
-            if "güncel değil" in str(exc):
-                raise ConflictError(
-                    "Sayım açıldıktan sonra stok değişti. Farkları yenileyip tekrar inceleyin."
-                ) from exc
-            raise ValidationError(str(exc)) from exc
-
-        adjusted_count = 0
-        total_difference = 0
-        for movement in completion.movements:
-            product_id = uuid.UUID(movement.product_id)
-            product = products[product_id]
-            product.physical_stock = movement.quantity_after
-            total_difference += movement.quantity_delta
-            adjusted_count += 1
-            uow.products.add_stock_movement(
-                StockMovement(
-                    id=uuid.uuid4(),
-                    product_id=product_id,
-                    movement_type="stock_count_adjustment",
-                    quantity_delta=movement.quantity_delta,
-                    quantity_before=movement.quantity_before,
-                    quantity_after=movement.quantity_after,
-                    reference_type="stock_count_session",
-                    reference_id=session.id,
-                    note=session.note or f"Sayım düzeltmesi #{session.count_number}",
-                    idempotency_key=f"stock_count:{session.id}:{product_id}",
-                    created_at=now,
-                    created_by_name=actor.worker_name,
-                    created_by_device=actor.device_name,
-                )
-            )
-
-        for item in items:
-            item.difference = item.counted_quantity - current[str(item.product_id)]
-            if item.difference:
-                item.applied_at = now
-
-        session.status = "completed"
-        session.completed_at = now
-        session.completed_by_name = actor.worker_name
-        session.completed_by_device = actor.device_name
-        session.summary = {
-            "adjusted_count": adjusted_count,
-            "unchanged_count": len(items) - adjusted_count,
-            "total_difference": total_difference,
-            "line_count": len(items),
-        }
-        uow.commit()
+def _complete_stock_count(
+    uow: UnitOfWork,
+    session: StockCountSession,
+    counted: Mapping[uuid.UUID, int | None] | None,
+    actor: ActorContext,
+    now: datetime,
+) -> StockCountCompletion:
+    if session.status == "completed":
+        summary = session.summary or {}
         return StockCountCompletion(
             session_id=session.id,
-            adjusted_count=adjusted_count,
-            unchanged_count=len(items) - adjusted_count,
-            total_difference=total_difference,
+            adjusted_count=int(summary.get("adjusted_count", 0)),
+            unchanged_count=int(summary.get("unchanged_count", 0)),
+            total_difference=int(summary.get("total_difference", 0)),
+            counted_count=int(summary.get("counted_count", 0)),
+            skipped_count=int(summary.get("skipped_count", 0)),
         )
+    if session.status == "cancelled":
+        raise ValidationError("İptal edilmiş sayım kaydedilemez.")
+
+    items = list(uow.stock_counts.get_items(session.id))
+    if not items:
+        raise ValidationError("Sayım oturumunda ürün bulunmuyor.")
+
+    # Preserve drafts saved on other pagination pages; only submitted fields replace them.
+    merged = {item.product_id: item.counted_quantity for item in items}
+    if counted is not None:
+        item_ids = set(merged)
+        merged.update(
+            {
+                product_id: quantity
+                for product_id, quantity in counted.items()
+                if product_id in item_ids
+            }
+        )
+    positive = _normalize_counted(merged)
+
+    product_ids = list(positive)
+    products = {
+        product.id: product for product in uow.products.get_by_ids(product_ids)
+    }
+    if len(products) != len(product_ids):
+        raise ConflictError(
+            "Sayımdaki bazı ürünler artık mevcut değil. Sayımı yenileyin."
+        )
+
+    current = {
+        str(product_id): products[product_id].physical_stock
+        for product_id in product_ids
+    }
+    snapshots = {str(item.product_id): item.system_quantity for item in items}
+    domain_session = CountSession(
+        category_id=str(session.category_id or "all"),
+        snapshots=snapshots,
+        stock_version=session.stock_version,
+        opened_at=session.started_at,
+    )
+    try:
+        completion = complete_count_session(
+            domain_session,
+            counted_quantities={
+                str(product_id): quantity for product_id, quantity in positive.items()
+            },
+            current_quantities=current,
+            actor_name=actor.worker_name,
+            completed_at=now,
+        )
+    except ValueError as exc:
+        message = str(exc)
+        if "stok değişti" in message or "güncel değil" in message:
+            raise ConflictError(message) from exc
+        raise ValidationError(message) from exc
+
+    for movement in completion.movements:
+        product_id = uuid.UUID(movement.product_id)
+        product = products[product_id]
+        product.physical_stock = movement.quantity_after
+        uow.products.add_stock_movement(
+            StockMovement(
+                id=uuid.uuid4(),
+                product_id=product_id,
+                movement_type="stock_count_adjustment",
+                quantity_delta=movement.quantity_delta,
+                quantity_before=movement.quantity_before,
+                quantity_after=movement.quantity_after,
+                reference_type="stock_count_session",
+                reference_id=session.id,
+                note=session.note or f"Sayım düzeltmesi #{session.count_number}",
+                idempotency_key=f"stock_count:{session.id}:{product_id}",
+                created_at=now,
+                created_by_name=actor.worker_name,
+                created_by_device=actor.device_name,
+            )
+        )
+
+    adjusted_ids = {uuid.UUID(product_id) for product_id in completion.adjustments}
+    for item in items:
+        quantity = positive.get(item.product_id)
+        if quantity is None:
+            item.counted_quantity = None
+            item.difference = None
+            item.applied_at = None
+            continue
+        item.counted_quantity = quantity
+        item.difference = quantity - int(current[str(item.product_id)])
+        item.applied_at = now if item.product_id in adjusted_ids else None
+
+    adjusted_count = len(completion.adjustments)
+    counted_count = len(positive)
+    skipped_count = len(items) - counted_count
+    session.status = "completed"
+    session.completed_at = now
+    session.completed_by_name = actor.worker_name
+    session.completed_by_device = actor.device_name
+    session.summary = {
+        "adjusted_count": adjusted_count,
+        "unchanged_count": counted_count - adjusted_count,
+        "counted_count": counted_count,
+        "skipped_count": skipped_count,
+        "total_difference": completion.total_difference,
+        "line_count": len(items),
+    }
+    uow.commit()
+    return StockCountCompletion(
+        session_id=session.id,
+        adjusted_count=adjusted_count,
+        unchanged_count=counted_count - adjusted_count,
+        total_difference=completion.total_difference,
+        counted_count=counted_count,
+        skipped_count=skipped_count,
+    )
+
+
+def cancel_stock_count_session(
+    uow: UnitOfWork,
+    session_id: uuid.UUID,
+    actor: ActorContext | None = None,
+    reason: str | None = None,
+) -> StockCountView:
+    """Cancel an open count without touching stock.
+
+    A completed count is reversed with compensating movements, so stock returns
+    to its pre-count value. If stock changed after the count, reversal is refused.
+    """
+    actor = actor or ActorContext()
+    now = datetime.now(UTC)
+    with uow:
+        session = uow.stock_counts.get_session(session_id)
+        if session is None:
+            raise NotFoundError("Sayım oturumu bulunamadı.")
+        if session.status == "cancelled":
+            return _to_view(
+                session,
+                uow.stock_counts.get_items(session_id),
+                _category_name(uow, session),
+            )
+
+        if session.status == "completed":
+            stored_movements = tuple(
+                uow.products.get_stock_movements_for_reference(
+                    "stock_count_session", session.id
+                )
+            )
+            if stored_movements:
+                movements = tuple(
+                    DomainStockMovement(
+                        product_id=str(movement.product_id),
+                        movement_type=MovementType(movement.movement_type),
+                        quantity_delta=movement.quantity_delta,
+                        quantity_before=movement.quantity_before,
+                        quantity_after=movement.quantity_after,
+                        created_at=movement.created_at,
+                        actor_name=movement.created_by_name,
+                    )
+                    for movement in stored_movements
+                )
+                product_ids = [uuid.UUID(movement.product_id) for movement in movements]
+                products = {
+                    product.id: product
+                    for product in uow.products.get_by_ids(product_ids)
+                }
+                if len(products) != len(product_ids):
+                    raise ConflictError(
+                        "Sayımdaki bazı ürünler artık mevcut değil; sayım geri alınamaz."
+                    )
+                current = {
+                    movement.product_id: products[
+                        uuid.UUID(movement.product_id)
+                    ].physical_stock
+                    for movement in movements
+                }
+                domain_session = CountSession(
+                    category_id=str(session.category_id or "all"),
+                    snapshots={},
+                    stock_version=session.stock_version,
+                    opened_at=session.started_at,
+                    completed=True,
+                )
+                try:
+                    reversal = reverse_count_session(
+                        domain_session,
+                        movements,
+                        current,
+                        actor.worker_name,
+                        reversed_at=now,
+                    )
+                except ValueError as exc:
+                    raise ConflictError(str(exc)) from exc
+                for movement in reversal.movements:
+                    product_id = uuid.UUID(movement.product_id)
+                    products[product_id].physical_stock = movement.quantity_after
+                    uow.products.add_stock_movement(
+                        StockMovement(
+                            id=uuid.uuid4(),
+                            product_id=product_id,
+                            movement_type="reversal",
+                            quantity_delta=movement.quantity_delta,
+                            quantity_before=movement.quantity_before,
+                            quantity_after=movement.quantity_after,
+                            reference_type="stock_count_session",
+                            reference_id=session.id,
+                            note=reason
+                            or f"Sayım geri alındı #{session.count_number}",
+                            idempotency_key=(
+                                f"stock_count_reverse:{session.id}:{product_id}"
+                            ),
+                            created_at=now,
+                            created_by_name=actor.worker_name,
+                            created_by_device=actor.device_name,
+                        )
+                    )
+                summary = dict(session.summary or {})
+                summary["reversed"] = True
+                summary["reversed_at"] = now.isoformat()
+                summary["reversal_count"] = len(reversal.movements)
+                session.summary = summary
+                session.reversed_at = now
+
+        session.status = "cancelled"
+        session.cancelled_at = now
+        session.cancelled_by_name = actor.worker_name
+        session.cancelled_by_device = actor.device_name
+        cleaned_reason = (reason or "").strip()
+        session.cancel_reason = cleaned_reason or None
+        uow.commit()
+        return _to_view(
+            session,
+            uow.stock_counts.get_items(session_id),
+            _category_name(uow, session),
+        )
+
+
+def _normalize_counted(
+    counted: Mapping[uuid.UUID, int | None],
+) -> dict[uuid.UUID, int]:
+    normalized: dict[uuid.UUID, int] = {}
+    for product_id, quantity in counted.items():
+        if quantity is None:
+            continue
+        if quantity < 0:
+            raise ValidationError("Sayılan miktar negatif olamaz.")
+        if quantity == 0:
+            continue
+        normalized[product_id] = quantity
+    return normalized
 
 
 def _to_view(
@@ -443,11 +712,16 @@ def _to_view(
         category_id=session.category_id,
         category_name=category_name,
         status=session.status,
+        mode=getattr(session, "mode", None) or "category",
         stock_version=session.stock_version,
         note=session.note,
         started_at=session.started_at,
         completed_at=session.completed_at,
         completed_by_name=session.completed_by_name,
+        cancelled_at=session.cancelled_at,
+        cancelled_by_name=session.cancelled_by_name,
+        cancel_reason=session.cancel_reason,
+        reversed_at=session.reversed_at,
         items=tuple(
             CountSessionLine(
                 id=item.id,

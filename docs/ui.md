@@ -174,7 +174,7 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 
 - Pill biçiminde, 11–12px, ikon + metin.
 - Renkler: success, warning, danger, info, neutral.
-- Stok: “Stok: 3”, “Stokta yok”, negatifse “Stok düzeltmesi gerekli”.
+- Stok: “Stok: 3”, “Stok yok”, negatifse “Stok düzeltmesi gerekli”.
 - Durum: “Taslak”, “Müşteriye sunuldu”, “Kabul edildi”, “Süresi geçti”, “Arşivde”.
 - **Sert kural:** Serbest metin taşıyan rozetler satır kırar. Global `white-space: nowrap` kullanılmaz; tüm rozetlerde `max-width: 100%` ve `overflow-wrap: anywhere` vardır. Uzun kampanya/hediye/ürün adı yatay kaydırma üretmez.
 - Kısa durum rozetleri (Yeni, Güncellenecek, Değişiklik yok, Hatalı, Atlanacak) tek satırdır; kategori/ürün türü gibi serbest metinler rozet değil düz metin olarak gösterilir.
@@ -359,15 +359,18 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 
 ### 6.8 Stok / Sayım
 
-- Üstte açık oturumlar ve sayım geçmişi iki iç sekme; açık oturumlar en üstte.
+- Üstte açık oturumlar ve sayım geçmişi iki iç sekme; açık oturumlar en üstte. Geçmişte tamamlanan ve iptal edilen oturumlar “Tamamlandı / İptal · Geri Alındı” rozetiyle görünür.
 - Kategori filtresi ve arama otomatik; “Ara” gerekmez.
-- Stok özeti: ürün, kategori, fiziksel stok, açık rezervasyon, fark.
+- Stok özeti: ürün, kategori, fiziksel stok, açık rezervasyon, fark. 0 stok “Stok yok”, negatif stok “Stok düzeltmesi gerekli” olarak gösterilir.
 - Mobil stok kartı: ürün adı + stok rozeti; kategori + açık rezervasyon; altta tek “Detay” eylemi. Etiketler gizlenir.
-- Açık/geçmiş sayım oturumu kartı: no + kategori + durum; başlangıç/tamamlanma + eylem. Geçmişte başlangıç ve tamamlayan mobilde gizlenir.
-- Sayım oturumu: satır bazında sistem stoku, sayılan miktar (büyük input), fark; sticky “Miktarları Kaydet”.
+- Açık/geçmiş sayım oturumu kartı: no + kategori + durum; başlangıç/kapanma + eylem. Geçmişte başlangıç ve kapatan mobilde gizlenir.
+- Yeni sayım modalında “Kategori sayımı / Hızlı sayım” seçilir. Hızlı sayım boş açılır; ürün adı/ID aramasıyla eklenen ürünler sayılır.
+- Hızlı sayım sayfası: üstte ürün arama ve sonuç listesi; altta yalnızca eklenen ürünlerin satırları. Aynı ürün “Eklendi” olarak işaretlenir.
+- Sayım oturumu: satır bazında sistem stoku, sayılan miktar (büyük input), fark; sticky “Ara Kaydet” ve “Sayımı Kaydet”. “Sayımı Kaydet” yalnızca 0’dan büyük miktarları uygular ve kapatır; 0/boş satırlar değişmez.
 - Mobil sayım satırı: üstte ürün adı; altta üç eşit sütunda “Sistem / Sayılan / Fark”. “Uygulandı” mobilde gizlenir; sayılan input tam genişlik ve en az 42px yüksekliğindedir.
 - Telefonda sayım girişi büyük dokunma hedefleriyle; laptopta tablo.
-- A4 sayım listesi kategori bazlı.
+- Açık sayım “Sayımı İptal Et” ile stok değiştirmeden kapatılır. Tamamlanmış sayım “Sayımı Geri Al” ile ters kayıtla eski stoklara döner.
+- A5 sayım listesi kategori grupları, fiziksel stok, rezervasyon ve elle yazılabilir sayılan sütunuyla basılır; rezervasyonu olan ürünler ayrıca filtrelenebilir.
 
 ### 6.9 Ayarlar
 
@@ -389,7 +392,7 @@ Bu belge, BayiOS arayüzünde görsel veya etkileşimle ilgili her kararın tek 
 
 - Üst çubuk, sol menü, alt sekme, sticky çubuklar ve modal backdrop basılmaz.
 - Müşteri çıktısında maliyet, iç kâr ve komisyon detayı yoktur.
-- Sayfa A4, 15mm kenar; başlık, tarih, sayfa numarası.
+- Stok sayım listesi A5, 6mm kenar, kompakt 7pt tablo; diğer çıktılar A4, 15mm kenar. Başlık, tarih, sayfa numarası.
 - Kapalı akordeonlar basılmaz.
 - Faz 4'e kadar ekran UI'ı yenilenir, A4 içeriği değişmez.
 

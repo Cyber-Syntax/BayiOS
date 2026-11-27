@@ -1,54 +1,66 @@
 {% extends "base.html" %}
-{% block title %}A4 Sayım Listesi{% endblock %}
+{% block title %}A5 Sayım Listesi{% endblock %}
+{% block head_extra %}
+<link rel="stylesheet" href="/static/css/print-a5.css?v={{ asset_version }}" media="print">
+{% endblock %}
 {% block content %}
 <div class="actions-bar no-print">
   <div>
     <a href="/stock" class="muted" style="text-decoration: none;">&larr; Stok / Sayım</a>
-    <h1 style="margin-top: .25rem;">A4 Sayım Listesi</h1>
+    <h1 style="margin-top: .25rem;">A5 {% if reserved_only %}Rezervasyonlu Ürünler{% else %}Sayım Listesi{% endif %}</h1>
   </div>
   <div class="actions-group">
     <button type="button" class="btn btn-primary" onclick="window.print()">Yazdır</button>
   </div>
 </div>
 
-<div class="card">
-  <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+<div class="card a5-sheet">
+  <div class="print-header">
     <div>
-      <h2 style="margin: 0;">BayiOS Stok Sayım Listesi</h2>
-      <p class="muted" style="margin: .25rem 0 0;">Kategori: <strong>{{ category_name }}</strong></p>
+      <h1>A5 {% if reserved_only %}Rezervasyonlu Ürünler{% else %}Sayım Listesi{% endif %}</h1>
+      <p>Kategori: <strong>{{ category_name }}</strong></p>
     </div>
-    <div style="text-align: right; font-size: .85rem;">
+    <div class="print-meta">
       <div>Tarih: {{ generated_at | tr_datetime }}</div>
       <div>Sayımı yapan: ____________________</div>
       <div>İmza: ____________________</div>
     </div>
   </div>
 
-  <table class="data-table" style="min-width: 0;">
+  <table class="a5-table">
     <thead>
       <tr>
-        <th style="width: 3rem;">#</th>
+        <th class="col-no">#</th>
         <th>Ürün Adı</th>
-        <th style="width: 8rem;">Sistem Stoğu</th>
-        <th style="width: 8rem;">Sayılan Miktar</th>
-        <th style="width: 7rem;">Fark</th>
+        <th class="col-qty">Fiziksel</th>
+        <th class="col-qty">Rezervasyon</th>
+        <th class="col-counted">Sayılan</th>
       </tr>
     </thead>
     <tbody>
-      {% for row in rows %}
-      <tr>
-        <td>{{ loop.index }}</td>
-        <td>{{ row.product.name }}</td>
-        <td>{{ row.summary.physical }}</td>
-        <td style="height: 2.6rem;"></td>
-        <td></td>
-      </tr>
+      {% set counter = namespace(value=0) %}
+      {% for group in groups %}
+        {% if groups | length > 1 or not selected_category %}
+        <tr class="category-row"><td colspan="5">{{ group.name }}</td></tr>
+        {% endif %}
+        {% for row in group.rows %}
+        {% set counter.value = counter.value + 1 %}
+        <tr>
+          <td class="col-no">{{ counter.value }}</td>
+          <td>{{ row.product.name }}</td>
+          <td class="col-qty">{{ row.summary.physical }}</td>
+          <td class="col-qty">{{ row.summary.open_reservation if row.summary.open_reservation else '—' }}</td>
+          <td class="col-counted"></td>
+        </tr>
+        {% endfor %}
       {% else %}
       <tr>
-        <td colspan="5" class="muted" style="text-align: center; padding: 1.5rem;">Bu kategoride ürün bulunmuyor.</td>
+        <td colspan="5" class="muted" style="text-align: center; padding: 3mm;">Bu filtrede ürün bulunmuyor.</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+
+  <p class="print-note">0 = stok yok. Negatif stok, stok düzeltmesi gerektirir. Sayılan sütununa elle miktar yazılabilir.</p>
 </div>
 {% endblock %}

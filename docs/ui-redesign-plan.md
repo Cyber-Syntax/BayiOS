@@ -136,7 +136,7 @@ Kapsam dışı: WhatsApp paylaşımı, barkod/kamera, hızlı teslim, kimlik do�
 - [x] Komisyon listesi: dönem kartları/tablosu, aktif dönem vurgusu, içe/dışa aktarma.
 - [x] Komisyon detayı: kanal sekmeleri, oran matrisi, kategori limitleri ve banka bazlı limit tablosu.
 - [x] Kampanyalar: liste, detay, form, sürüm geçmişi, içe/dışa aktarma.
-- [x] Stok/Sayım: açık oturumlar ve geçmiş için iki iç sekme; kategori filtresi; sayım girişi; sticky "Miktarları Kaydet".
+- [x] Stok/Sayım: açık oturumlar ve geçmiş için iki iç sekme; kategori filtresi; sayım girişi; sticky "Sayımı Kaydet" / "Ara Kaydet".
 - [~] Ayarlar: sekmeler, toplu ekleme önizlemesi ve mobil notlar tamam; birleştirme/silme modalları hâlâ tarayıcı confirm kullanıyor.
 - [x] İçe/dışa aktarma önizlemeleri: mobilde "laptopta daha rahat" notu, yatay kaydırmalı tablo.
 

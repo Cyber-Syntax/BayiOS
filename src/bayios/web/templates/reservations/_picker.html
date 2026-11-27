@@ -8,6 +8,8 @@
       <div class="picker-meta">
         {% if product.external_id %}<span class="mono">ID: {{ product.external_id }}</span> · {% endif %}
         <span>Fiziksel stok: <span class="mono">{{ product.physical_stock }}</span></span>
+        {% if product.physical_stock == 0 %}<span class="badge badge-warning">Stok yok</span>{% endif %}
+        {% if product.physical_stock < 0 %}<span class="badge badge-danger">Stok düzeltmesi gerekli</span>{% endif %}
       </div>
     </div>
     <button type="button" class="btn btn-sm btn-primary"

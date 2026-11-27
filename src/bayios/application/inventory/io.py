@@ -5,6 +5,7 @@ import uuid
 from bayios.application.inventory import get_stock_overview, list_categories
 from bayios.application.ports.unit_of_work import UnitOfWork
 from bayios.application.tabular import ColumnSpec, SheetSpec, write_xlsx
+from bayios.domain.inventory import STOCK_STATUS_LABELS, stock_status
 
 
 def export_stock_xlsx(
@@ -12,10 +13,16 @@ def export_stock_xlsx(
     *,
     category_id: uuid.UUID | None = None,
     query: str | None = None,
+    only_in_stock: bool = False,
 ) -> bytes:
     categories = {category.id: category.name for category in list_categories(uow)}
     rows, _total = get_stock_overview(
-        uow, category_id=category_id, query=query, limit=10_000, offset=0
+        uow,
+        category_id=category_id,
+        query=query,
+        limit=10_000,
+        offset=0,
+        only_in_stock=only_in_stock,
     )
     sheet = SheetSpec(
         title="Stok",
@@ -34,11 +41,7 @@ def export_stock_xlsx(
                 "physical": row.summary.physical,
                 "open_reservation": row.summary.open_reservation,
                 "available": row.summary.physical - row.summary.open_reservation,
-                "status": (
-                    "Stokta"
-                    if row.summary.physical > 0
-                    else "Stok yok"
-                ),
+                "status": STOCK_STATUS_LABELS[stock_status(row.summary.physical)],
             }
             for row in rows
         ),

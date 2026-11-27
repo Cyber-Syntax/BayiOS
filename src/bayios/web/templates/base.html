@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/static/css/app.css?v={{ asset_version }}">
   <link rel="stylesheet" href="/static/vendor/flatpickr/flatpickr.min.css?v={{ asset_version }}">
   <link rel="stylesheet" href="/static/css/print.css?v={{ asset_version }}" media="print">
+  {% block head_extra %}{% endblock %}
   <script src="/static/vendor/htmx.min.js?v={{ asset_version }}" defer></script>
   <script src="/static/vendor/alpine.min.js?v={{ asset_version }}" defer></script>
   <script src="/static/vendor/flatpickr/flatpickr.min.js?v={{ asset_version }}" defer></script>
